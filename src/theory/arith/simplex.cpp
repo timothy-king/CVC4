@@ -29,7 +29,7 @@ using namespace CVC4::theory::arith;
 
 static const bool CHECK_AFTER_PIVOT = true;
 
-SimplexDecisionProcedure::SimplexDecisionProcedure(LinearEqualityModule& linEq, NodeCallBack& conflictChannel) :
+SimplexDecisionProcedure::SimplexDecisionProcedure(LinearEqualityModule& linEq, NodeCallBack& conflictChannel, ArithVarMalloc& variables) :
   d_conflictVariable(ARITHVAR_SENTINEL),
   d_linEq(linEq),
   d_partialModel(d_linEq.getPartialModel()),
@@ -38,7 +38,8 @@ SimplexDecisionProcedure::SimplexDecisionProcedure(LinearEqualityModule& linEq, 
   d_numVariables(0),
   d_conflictChannel(conflictChannel),
   d_pivotsInRound(),
-  d_DELTA_ZERO(0,0)
+  d_DELTA_ZERO(0,0),
+  d_arithVarMalloc(variables)
 {
   switch(ArithHeuristicPivotRule rule = options::arithHeuristicPivotRule()) {
   case MINIMUM:
@@ -68,10 +69,6 @@ SimplexDecisionProcedure::Statistics::Statistics():
   d_successDuringVarOrderSearch("theory::arith::qi::DuringVarOrderSearch::success",0),
   d_attemptAfterVarOrderSearch("theory::arith::qi::AfterVarOrderSearch::attempt",0),
   d_successAfterVarOrderSearch("theory::arith::qi::AfterVarOrderSearch::success",0),
-  d_weakeningAttempts("theory::arith::weakening::attempts",0),
-  d_weakeningSuccesses("theory::arith::weakening::success",0),
-  d_weakenings("theory::arith::weakening::total",0),
-  d_weakenTime("theory::arith::weakening::time"),
   d_simplexConflicts("theory::arith::simplexConflicts",0)
 {
   StatisticsRegistry::registerStat(&d_statUpdateConflicts);
@@ -88,11 +85,6 @@ SimplexDecisionProcedure::Statistics::Statistics():
   StatisticsRegistry::registerStat(&d_successDuringVarOrderSearch);
   StatisticsRegistry::registerStat(&d_attemptAfterVarOrderSearch);
   StatisticsRegistry::registerStat(&d_successAfterVarOrderSearch);
-
-  StatisticsRegistry::registerStat(&d_weakeningAttempts);
-  StatisticsRegistry::registerStat(&d_weakeningSuccesses);
-  StatisticsRegistry::registerStat(&d_weakenings);
-  StatisticsRegistry::registerStat(&d_weakenTime);
 
   StatisticsRegistry::registerStat(&d_simplexConflicts);
 }
@@ -113,89 +105,7 @@ SimplexDecisionProcedure::Statistics::~Statistics(){
   StatisticsRegistry::unregisterStat(&d_attemptAfterVarOrderSearch);
   StatisticsRegistry::unregisterStat(&d_successAfterVarOrderSearch);
 
-  StatisticsRegistry::unregisterStat(&d_weakeningAttempts);
-  StatisticsRegistry::unregisterStat(&d_weakeningSuccesses);
-  StatisticsRegistry::unregisterStat(&d_weakenings);
-  StatisticsRegistry::unregisterStat(&d_weakenTime);
-
   StatisticsRegistry::unregisterStat(&d_simplexConflicts);
-}
-
-
-
-
-
-
-
-ArithVar SimplexDecisionProcedure::minVarOrder(const SimplexDecisionProcedure& simp, ArithVar x, ArithVar y){
-  Assert(x != ARITHVAR_SENTINEL);
-  Assert(y != ARITHVAR_SENTINEL);
-  Assert(!simp.d_tableau.isBasic(x));
-  Assert(!simp.d_tableau.isBasic(y));
-  if(x <= y){
-    return x;
-  } else {
-    return y;
-  }
-}
-
-ArithVar SimplexDecisionProcedure::minColLength(const SimplexDecisionProcedure& simp, ArithVar x, ArithVar y){
-  Assert(x != ARITHVAR_SENTINEL);
-  Assert(y != ARITHVAR_SENTINEL);
-  Assert(!simp.d_tableau.isBasic(x));
-  Assert(!simp.d_tableau.isBasic(y));
-  uint32_t xLen = simp.d_tableau.getColLength(x);
-  uint32_t yLen = simp.d_tableau.getColLength(y);
-  if( xLen > yLen){
-     return y;
-  } else if( xLen== yLen ){
-    return minVarOrder(simp,x,y);
-  }else{
-    return x;
-  }
-}
-
-ArithVar SimplexDecisionProcedure::minBoundAndRowCount(const SimplexDecisionProcedure& simp, ArithVar x, ArithVar y){
-  Assert(x != ARITHVAR_SENTINEL);
-  Assert(y != ARITHVAR_SENTINEL);
-  Assert(!simp.d_tableau.isBasic(x));
-  Assert(!simp.d_tableau.isBasic(y));
-  if(simp.d_partialModel.hasEitherBound(x) && !simp.d_partialModel.hasEitherBound(y)){
-    return y;
-  }else if(!simp.d_partialModel.hasEitherBound(x) && simp.d_partialModel.hasEitherBound(y)){
-    return x;
-  }else {
-    return minColLength(simp, x, y);
-  }
-}
-
-template <bool above>
-ArithVar SimplexDecisionProcedure::selectSlack(ArithVar x_i, SimplexDecisionProcedure::PreferenceFunction pref){
-  ArithVar slack = ARITHVAR_SENTINEL;
-
-  for(Tableau::RowIterator iter = d_tableau.basicRowIterator(x_i); !iter.atEnd();  ++iter){
-    const Tableau::Entry& entry = *iter;
-    ArithVar nonbasic = entry.getColVar();
-    if(nonbasic == x_i) continue;
-
-    const Rational& a_ij = entry.getCoefficient();
-    int sgn = a_ij.sgn();
-    if(isAcceptableSlack<above>(sgn, nonbasic)){
-      //If one of the above conditions is met, we have found an acceptable
-      //nonbasic variable to pivot x_i with.  We can now choose which one we
-      //prefer the most.
-      slack = (slack == ARITHVAR_SENTINEL) ? nonbasic : pref(*this, slack, nonbasic);
-    }
-  }
-
-  return slack;
-}
-
-Node betterConflict(TNode x, TNode y){
-  if(x.isNull()) return y;
-  else if(y.isNull()) return x;
-  else if(x.getNumChildren() <= y.getNumChildren()) return x;
-  else return y;
 }
 
 bool SimplexDecisionProcedure::findConflictOnTheQueue(SearchPeriod type) {
@@ -238,7 +148,7 @@ bool SimplexDecisionProcedure::findConflictOnTheQueue(SearchPeriod type) {
   }
 }
 
-Result::Sat SimplexDecisionProcedure::findModel(bool exactResult){
+Result::Sat SimplexDecisionProcedure::dualFindModel(bool exactResult){
   Assert(d_conflictVariable == ARITHVAR_SENTINEL);
   Assert(d_queue.inCollectionMode());
 
@@ -362,25 +272,6 @@ Result::Sat SimplexDecisionProcedure::findModel(bool exactResult){
   Assert(d_queue.inCollectionMode());
   Debug("arith::findModel") << "end findModel() " << instance << " " << result <<  endl;
   return result;
-
-
-  // Assert(foundConflict || d_queue.empty());
-
-  // // Curiously the invariant that we always do a full check
-  // // means that the assignment we can always empty these queues.
-  // d_queue.clear();
-  // d_pivotsInRound.purge();
-  // d_conflictVariable = ARITHVAR_SENTINEL;
-
-  // Assert(!d_queue.inCollectionMode());
-  // d_queue.transitionToCollectionMode();
-
-
-  // Assert(d_queue.inCollectionMode());
-
-  // Debug("arith::findModel") << "end findModel() " << instance << endl;
-
-  // return foundConflict;
 }
 
 Node SimplexDecisionProcedure::checkBasicForConflict(ArithVar basic){
@@ -389,14 +280,14 @@ Node SimplexDecisionProcedure::checkBasicForConflict(ArithVar basic){
   const DeltaRational& beta = d_partialModel.getAssignment(basic);
 
   if(d_partialModel.strictlyLessThanLowerBound(basic, beta)){
-    ArithVar x_j = selectSlackUpperBound(basic);
+    ArithVar x_j = d_linEq.anySlackUpperBound(basic);
     if(x_j == ARITHVAR_SENTINEL ){
-      return generateConflictBelowLowerBound(basic);
+      return d_linEq.generateConflictBelowLowerBound(basic);
     }
   }else if(d_partialModel.strictlyGreaterThanUpperBound(basic, beta)){
-    ArithVar x_j = selectSlackLowerBound(basic);
+    ArithVar x_j = d_linEq.anySlackLowerBound(basic);
     if(x_j == ARITHVAR_SENTINEL ){
-      return generateConflictAboveUpperBound(basic);
+      return d_linEq.generateConflictAboveUpperBound(basic);
     }
   }
   return Node::null();
@@ -431,16 +322,17 @@ bool SimplexDecisionProcedure::searchForFeasibleSolution(uint32_t remainingItera
                         << " threshold " << options::arithPivotThreshold()
                         << endl;
 
-    PreferenceFunction pf = useVarOrderPivot ? minVarOrder : minBoundAndRowCount;
+    LinearEqualityModule::PreferenceFunction pf = useVarOrderPivot ?
+      &LinearEqualityModule::minVarOrder : &LinearEqualityModule::minBoundAndColLength;
 
     DeltaRational beta_i = d_partialModel.getAssignment(x_i);
     ArithVar x_j = ARITHVAR_SENTINEL;
 
     if(d_partialModel.strictlyLessThanLowerBound(x_i, beta_i)){
-      x_j = selectSlackUpperBound(x_i, pf);
+      x_j = d_linEq.selectSlackUpperBound(x_i, pf);
       if(x_j == ARITHVAR_SENTINEL ){
         ++(d_statistics.d_statUpdateConflicts);
-        Node conflict = generateConflictBelowLowerBound(x_i); //unsat
+        Node conflict = d_linEq.generateConflictBelowLowerBound(x_i); //unsat
         d_conflictVariable = x_i;
         reportConflict(conflict);
         return true;
@@ -449,10 +341,10 @@ bool SimplexDecisionProcedure::searchForFeasibleSolution(uint32_t remainingItera
       d_linEq.pivotAndUpdate(x_i, x_j, l_i);
 
     }else if(d_partialModel.strictlyGreaterThanUpperBound(x_i, beta_i)){
-      x_j = selectSlackLowerBound(x_i, pf);
+      x_j = d_linEq.selectSlackLowerBound(x_i, pf);
       if(x_j == ARITHVAR_SENTINEL ){
         ++(d_statistics.d_statUpdateConflicts);
-        Node conflict = generateConflictAboveUpperBound(x_i); //unsat
+        Node conflict = d_linEq.generateConflictAboveUpperBound(x_i); //unsat
 
         d_conflictVariable = x_i;
         reportConflict(conflict);
@@ -477,116 +369,3 @@ bool SimplexDecisionProcedure::searchForFeasibleSolution(uint32_t remainingItera
 
   return false;
 }
-
-
-
-Constraint SimplexDecisionProcedure::weakestExplanation(bool aboveUpper, DeltaRational& surplus, ArithVar v, const Rational& coeff, bool& anyWeakening, ArithVar basic){
-
-  int sgn = coeff.sgn();
-  bool ub = aboveUpper?(sgn < 0) : (sgn > 0);
-
-  Constraint c = ub ?
-    d_partialModel.getUpperBoundConstraint(v) :
-    d_partialModel.getLowerBoundConstraint(v);
-
-// #warning "revisit"
-//   Node exp = ub ?
-//     d_partialModel.explainUpperBound(v) :
-//     d_partialModel.explainLowerBound(v);
-
-  bool weakened;
-  do{
-    const DeltaRational& bound = c->getValue();
-
-    weakened = false;
-
-    Constraint weaker = ub?
-      c->getStrictlyWeakerUpperBound(true, true):
-      c->getStrictlyWeakerLowerBound(true, true);
-
-    // Node weaker = ub?
-    //   d_propManager.strictlyWeakerAssertedUpperBound(v, bound):
-    //   d_propManager.strictlyWeakerAssertedLowerBound(v, bound);
-
-    if(weaker != NullConstraint){
-    //if(!weaker.isNull()){
-      const DeltaRational& weakerBound = weaker->getValue();
-      //DeltaRational weakerBound = asDeltaRational(weaker);
-
-      DeltaRational diff = aboveUpper ? bound - weakerBound : weakerBound - bound;
-      //if var == basic,
-      //  if aboveUpper, weakerBound > bound, multiply by -1
-      //  if !aboveUpper, weakerBound < bound, multiply by -1
-      diff = diff * coeff;
-      if(surplus > diff){
-        ++d_statistics.d_weakenings;
-        weakened = true;
-        anyWeakening = true;
-        surplus = surplus - diff;
-
-        Debug("weak") << "found:" << endl;
-        if(v == basic){
-          Debug("weak") << "  basic: ";
-        }
-        Debug("weak") << "  " << surplus << " "<< diff  << endl
-                      << "  " << bound << c << endl
-                      << "  " << weakerBound << weaker << endl;
-
-        Assert(diff > d_DELTA_ZERO);
-        c = weaker;
-      }
-    }
-  }while(weakened);
-
-  return c;
-}
-
-Node SimplexDecisionProcedure::weakenConflict(bool aboveUpper, ArithVar basicVar){
-  TimerStat::CodeTimer codeTimer(d_statistics.d_weakenTime);
-
-  const DeltaRational& assignment = d_partialModel.getAssignment(basicVar);
-  DeltaRational surplus;
-  if(aboveUpper){
-    Assert(d_partialModel.hasUpperBound(basicVar));
-    Assert(assignment > d_partialModel.getUpperBound(basicVar));
-    surplus = assignment - d_partialModel.getUpperBound(basicVar);
-  }else{
-    Assert(d_partialModel.hasLowerBound(basicVar));
-    Assert(assignment < d_partialModel.getLowerBound(basicVar));
-    surplus = d_partialModel.getLowerBound(basicVar) - assignment;
-  }
-
-  NodeBuilder<> conflict(kind::AND);
-  bool anyWeakenings = false;
-  for(Tableau::RowIterator i = d_tableau.basicRowIterator(basicVar); !i.atEnd(); ++i){
-    const Tableau::Entry& entry = *i;
-    ArithVar v = entry.getColVar();
-    const Rational& coeff = entry.getCoefficient();
-    bool weakening = false;
-    Constraint c = weakestExplanation(aboveUpper, surplus, v, coeff, weakening, basicVar);
-    Debug("weak") << "weak : " << weakening << " "
-                  << c->assertedToTheTheory() << " "
-                  << d_partialModel.getAssignment(v) << " "
-                  << c << endl
-                  << c->explainForConflict() << endl;
-    anyWeakenings = anyWeakenings || weakening;
-
-    Debug("weak") << "weak : " << c->explainForConflict() << endl;
-    c->explainForConflict(conflict);
-  }
-  ++d_statistics.d_weakeningAttempts;
-  if(anyWeakenings){
-    ++d_statistics.d_weakeningSuccesses;
-  }
-  return conflict;
-}
-
-
-Node SimplexDecisionProcedure::generateConflictAboveUpperBound(ArithVar conflictVar){
-  return weakenConflict(true, conflictVar);
-}
-
-Node SimplexDecisionProcedure::generateConflictBelowLowerBound(ArithVar conflictVar){
-  return weakenConflict(false, conflictVar);
-}
-

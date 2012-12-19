@@ -104,8 +104,11 @@ private:
   /** Stores to the DeltaRational constant 0. */
   DeltaRational d_DELTA_ZERO;
 
+  /** Used for requesting d_opt, bound and error variables for primal.*/
+  ArithVarMalloc& d_arithVarMalloc;
+
 public:
-  SimplexDecisionProcedure(LinearEqualityModule& linEq, NodeCallBack& conflictChannel);
+  SimplexDecisionProcedure(LinearEqualityModule& linEq, NodeCallBack& conflictChannel, ArithVarMalloc& variables);
 
   /**
    * This must be called when the value of a basic variable may now voilate one
@@ -121,7 +124,7 @@ public:
    * This is done by a simplex search through the possible bases of the tableau.
    *
    * If all of the variables can be made consistent with their bounds
-   * false is returned. Otherwise true is returned, and at least 1 conflict
+   * SAT is returned. Otherwise UNSAT is returned, and at least 1 conflict
    * was reported on the conflictCallback passed to the Module.
    *
    * Tableau pivoting is performed so variables may switch from being basic to
@@ -129,93 +132,39 @@ public:
    *
    * Corresponds to the "check()" procedure in [Cav06].
    */
-  Result::Sat findModel(bool exactResult);
+  Result::Sat dualFindModel(bool exactResult);
+
+  /**
+   * Tries to update the assignments of the variables s.t. all of the assignments
+   * are consistent with their bounds.
+   *
+   * This is a REALLY heavy hammer consider calling dualFindModel(false) first.
+   */
+  Result::Sat primalFindModel();
 
 private:
-
+  
   /**
-   * A PreferenceFunction takes a const ref to the SimplexDecisionProcedure,
-   * and 2 ArithVar variables and returns one of the ArithVar variables potentially
-   * using the internals of the SimplexDecisionProcedure.
+   * This is the main simplex for DPLL(T) loop.
+   * It runs for at most maxIterations.
    *
-   * Both ArithVar must be non-basic in d_tableau.
+   * Returns true iff it has found a conflict.
+   * d_conflictVariable will be set and the conflict for this row is reported.
    */
-  typedef ArithVar (*PreferenceFunction)(const SimplexDecisionProcedure&, ArithVar, ArithVar);
-
-  /**
-   * minVarOrder is a PreferenceFunction for selecting the smaller of the 2 ArithVars.
-   * This PreferenceFunction is used during the VarOrder stage of
-   * findModel.
-   */
-  static ArithVar minVarOrder(const SimplexDecisionProcedure& simp, ArithVar x, ArithVar y);
-
-  /**
-   * minRowCount is a PreferenceFunction for selecting the variable with the smaller
-   * row count in the tableau.
-   *
-   * This is a heuristic rule and should not be used
-   * during the VarOrder stage of findModel.
-   */
-  static ArithVar minColLength(const SimplexDecisionProcedure& simp, ArithVar x, ArithVar y);
-
-  /**
-   * minBoundAndRowCount is a PreferenceFunction for preferring a variable
-   * without an asserted bound over variables with an asserted bound.
-   * If both have bounds or both do not have bounds,
-   * the rule falls back to minRowCount(...).
-   *
-   * This is a heuristic rule and should not be used
-   * during the VarOrder stage of findModel.
-   */
-  static ArithVar minBoundAndRowCount(const SimplexDecisionProcedure& simp, ArithVar x, ArithVar y);
-
-
-
-
-private:
   bool searchForFeasibleSolution(uint32_t maxIterations);
 
   enum SearchPeriod {BeforeDiffSearch, DuringDiffSearch, AfterDiffSearch, DuringVarOrderSearch, AfterVarOrderSearch};
 
   bool findConflictOnTheQueue(SearchPeriod period);
 
-
-  /**
-   * Given the basic variable x_i,
-   * this function finds the smallest nonbasic variable x_j in the row of x_i
-   * in the tableau that can "take up the slack" to let x_i satisfy its bounds.
-   * This returns ARITHVAR_SENTINEL if none exists.
-   *
-   * More formally one of the following conditions must be satisfied:
-   * -  lowerBound && a_ij < 0 && assignment(x_j) < upperbound(x_j)
-   * -  lowerBound && a_ij > 0 && assignment(x_j) > lowerbound(x_j)
-   * - !lowerBound && a_ij > 0 && assignment(x_j) < upperbound(x_j)
-   * - !lowerBound && a_ij < 0 && assignment(x_j) > lowerbound(x_j)
-   *
-   */
-  template <bool lowerBound>  ArithVar selectSlack(ArithVar x_i, PreferenceFunction pf);
-  ArithVar selectSlackLowerBound(ArithVar x_i, PreferenceFunction pf = minVarOrder) {
-    return selectSlack<true>(x_i, pf);
-  }
-  ArithVar selectSlackUpperBound(ArithVar x_i, PreferenceFunction pf = minVarOrder) {
-    return selectSlack<false>(x_i, pf);
-  }
   /**
    * Returns the smallest basic variable whose assignment is not consistent
    * with its upper and lower bounds.
    */
-  ArithVar selectSmallestInconsistentVar();
-
-  /**
-   * Given a non-basic variable that is know to not be updatable
-   * to a consistent value, construct and return a conflict.
-   * Follows section 4.2 in the CAV06 paper.
-   */
-  Node generateConflictAboveUpperBound(ArithVar conflictVar);
-  Node generateConflictBelowLowerBound(ArithVar conflictVar);
+  //ArithVar selectSmallestInconsistentVar();
 
 public:
-  void increaseMax() {d_numVariables++;}
+  void increaseMax() { d_numVariables++; }
 
 
   void clearQueue() {
@@ -248,15 +197,6 @@ private:
     ++(d_statistics.d_simplexConflicts);
   }
 
-  template <bool above>
-  inline bool isAcceptableSlack(int sgn, ArithVar nonbasic){
-    return
-      ( above && sgn < 0 && d_partialModel.strictlyBelowUpperBound(nonbasic)) ||
-      ( above && sgn > 0 && d_partialModel.strictlyAboveLowerBound(nonbasic)) ||
-      (!above && sgn > 0 && d_partialModel.strictlyBelowUpperBound(nonbasic)) ||
-      (!above && sgn < 0 && d_partialModel.strictlyAboveLowerBound(nonbasic));
-  }
-
   /**
    * Checks a basic variable, b, to see if it is in conflict.
    * If a conflict is discovered a node summarizing the conflict is returned.
@@ -264,10 +204,15 @@ private:
    */
   Node checkBasicForConflict(ArithVar b);
 
-  Node weakenConflict(bool aboveUpper, ArithVar basicVar);
-  Constraint weakestExplanation(bool aboveUpper, DeltaRational& surplus, ArithVar v, const Rational& coeff, bool& anyWeakening, ArithVar basic);
+  /** Gets a fresh variable from TheoryArith. */
+  ArithVar requestVariable(){
+    return d_arithVarMalloc.request();
+  }
 
-
+  /** Releases a requested variable from TheoryArith.*/
+  void releaseVariable(ArithVar v){
+    d_arithVarMalloc.release(v);
+  }
 
   /** These fields are designed to be accessible to TheoryArith methods. */
   class Statistics {
@@ -281,10 +226,6 @@ private:
     IntStat d_attemptDuringDiffSearch, d_successDuringDiffSearch;
     IntStat d_attemptDuringVarOrderSearch, d_successDuringVarOrderSearch;
     IntStat d_attemptAfterVarOrderSearch, d_successAfterVarOrderSearch;
-
-    IntStat d_weakeningAttempts, d_weakeningSuccesses, d_weakenings;
-    TimerStat d_weakenTime;
-
 
     IntStat d_simplexConflicts;
 

@@ -23,25 +23,43 @@ namespace CVC4 {
 namespace theory {
 namespace arith {
 
-/* Explicitly instatiate this function. */
+/* Explicitly instatiate these functions. */
 template void LinearEqualityModule::propagateNonbasics<true>(ArithVar basic, Constraint c);
 template void LinearEqualityModule::propagateNonbasics<false>(ArithVar basic, Constraint c);
+
+template ArithVar LinearEqualityModule::selectSlack<true>(ArithVar x_i, PreferenceFunction pf) const;
+template ArithVar LinearEqualityModule::selectSlack<false>(ArithVar x_i, PreferenceFunction pf) const;
 
 LinearEqualityModule::Statistics::Statistics():
   d_statPivots("theory::arith::pivots",0),
   d_statUpdates("theory::arith::updates",0),
-  d_pivotTime("theory::arith::pivotTime")
+  d_pivotTime("theory::arith::pivotTime"),
+  d_weakeningAttempts("theory::arith::weakening::attempts",0),
+  d_weakeningSuccesses("theory::arith::weakening::success",0),
+  d_weakenings("theory::arith::weakening::total",0),
+  d_weakenTime("theory::arith::weakening::time")
 {
   StatisticsRegistry::registerStat(&d_statPivots);
   StatisticsRegistry::registerStat(&d_statUpdates);
 
   StatisticsRegistry::registerStat(&d_pivotTime);
+
+  StatisticsRegistry::registerStat(&d_weakeningAttempts);
+  StatisticsRegistry::registerStat(&d_weakeningSuccesses);
+  StatisticsRegistry::registerStat(&d_weakenings);
+  StatisticsRegistry::registerStat(&d_weakenTime);
 }
 
 LinearEqualityModule::Statistics::~Statistics(){
   StatisticsRegistry::unregisterStat(&d_statPivots);
   StatisticsRegistry::unregisterStat(&d_statUpdates);
   StatisticsRegistry::unregisterStat(&d_pivotTime);
+
+
+  StatisticsRegistry::unregisterStat(&d_weakeningAttempts);
+  StatisticsRegistry::unregisterStat(&d_weakeningSuccesses);
+  StatisticsRegistry::unregisterStat(&d_weakenings);
+  StatisticsRegistry::unregisterStat(&d_weakenTime);
 }
 
 void LinearEqualityModule::update(ArithVar x_i, const DeltaRational& v){
@@ -53,16 +71,12 @@ void LinearEqualityModule::update(ArithVar x_i, const DeltaRational& v){
                  << assignment_x_i << "|-> " << v << endl;
   DeltaRational diff = v - assignment_x_i;
 
-  //Assert(matchingSets(d_tableau, x_i));
   Tableau::ColIterator basicIter = d_tableau.colIterator(x_i);
   for(; !basicIter.atEnd(); ++basicIter){
     const Tableau::Entry& entry = *basicIter;
     Assert(entry.getColVar() == x_i);
 
     ArithVar x_j = d_tableau.rowIndexToBasic(entry.getRowIndex());
-    //ReducedRowVector& row_j = d_tableau.lookup(x_j);
-
-    //const Rational& a_ji = row_j.lookup(x_i);
     const Rational& a_ji = entry.getCoefficient();
 
     const DeltaRational& assignment = d_partialModel.getAssignment(x_j);
@@ -314,6 +328,159 @@ void LinearEqualityModule::propagateNonbasics(ArithVar basic, Constraint c){
   Debug("arith::explainNonbasics") << "LinearEqualityModule::explainNonbasics("
                                    << basic << ") done" << endl;
 }
+
+Constraint LinearEqualityModule::weakestExplanation(bool aboveUpper, DeltaRational& surplus, ArithVar v, const Rational& coeff, bool& anyWeakening, ArithVar basic) const {
+
+  int sgn = coeff.sgn();
+  bool ub = aboveUpper?(sgn < 0) : (sgn > 0);
+
+  Constraint c = ub ?
+    d_partialModel.getUpperBoundConstraint(v) :
+    d_partialModel.getLowerBoundConstraint(v);
+
+  bool weakened;
+  do{
+    const DeltaRational& bound = c->getValue();
+
+    weakened = false;
+
+    Constraint weaker = ub?
+      c->getStrictlyWeakerUpperBound(true, true):
+      c->getStrictlyWeakerLowerBound(true, true);
+
+    if(weaker != NullConstraint){
+      const DeltaRational& weakerBound = weaker->getValue();
+
+      DeltaRational diff = aboveUpper ? bound - weakerBound : weakerBound - bound;
+      //if var == basic,
+      //  if aboveUpper, weakerBound > bound, multiply by -1
+      //  if !aboveUpper, weakerBound < bound, multiply by -1
+      diff = diff * coeff;
+      if(surplus > diff){
+        ++d_statistics.d_weakenings;
+        weakened = true;
+        anyWeakening = true;
+        surplus = surplus - diff;
+
+        Debug("weak") << "found:" << endl;
+        if(v == basic){
+          Debug("weak") << "  basic: ";
+        }
+        Debug("weak") << "  " << surplus << " "<< diff  << endl
+                      << "  " << bound << c << endl
+                      << "  " << weakerBound << weaker << endl;
+
+        Assert(diff.sgn() > 0);
+        c = weaker;
+      }
+    }
+  }while(weakened);
+
+  return c;
+}
+
+Node LinearEqualityModule::minimallyWeakConflict(bool aboveUpper, ArithVar basicVar) const {
+  TimerStat::CodeTimer codeTimer(d_statistics.d_weakenTime);
+
+  const DeltaRational& assignment = d_partialModel.getAssignment(basicVar);
+  DeltaRational surplus;
+  if(aboveUpper){
+    Assert(d_partialModel.hasUpperBound(basicVar));
+    Assert(assignment > d_partialModel.getUpperBound(basicVar));
+    surplus = assignment - d_partialModel.getUpperBound(basicVar);
+  }else{
+    Assert(d_partialModel.hasLowerBound(basicVar));
+    Assert(assignment < d_partialModel.getLowerBound(basicVar));
+    surplus = d_partialModel.getLowerBound(basicVar) - assignment;
+  }
+
+  NodeBuilder<> conflict(kind::AND);
+  bool anyWeakenings = false;
+  for(Tableau::RowIterator i = d_tableau.basicRowIterator(basicVar); !i.atEnd(); ++i){
+    const Tableau::Entry& entry = *i;
+    ArithVar v = entry.getColVar();
+    const Rational& coeff = entry.getCoefficient();
+    bool weakening = false;
+    Constraint c = weakestExplanation(aboveUpper, surplus, v, coeff, weakening, basicVar);
+    Debug("weak") << "weak : " << weakening << " "
+                  << c->assertedToTheTheory() << " "
+                  << d_partialModel.getAssignment(v) << " "
+                  << c << endl
+                  << c->explainForConflict() << endl;
+    anyWeakenings = anyWeakenings || weakening;
+
+    Debug("weak") << "weak : " << c->explainForConflict() << endl;
+    c->explainForConflict(conflict);
+  }
+  ++d_statistics.d_weakeningAttempts;
+  if(anyWeakenings){
+    ++d_statistics.d_weakeningSuccesses;
+  }
+  return conflict;
+}
+
+ArithVar LinearEqualityModule::minVarOrder(ArithVar x, ArithVar y) const {
+  Assert(x != ARITHVAR_SENTINEL);
+  Assert(y != ARITHVAR_SENTINEL);
+  if(x <= y){
+    return x;
+  } else {
+    return y;
+  }
+}
+
+ArithVar LinearEqualityModule::minColLength(ArithVar x, ArithVar y) const {
+  Assert(x != ARITHVAR_SENTINEL);
+  Assert(y != ARITHVAR_SENTINEL);
+  Assert(!d_tableau.isBasic(x));
+  Assert(!d_tableau.isBasic(y));
+  uint32_t xLen = d_tableau.getColLength(x);
+  uint32_t yLen = d_tableau.getColLength(y);
+  if( xLen > yLen){
+     return y;
+  } else if( xLen== yLen ){
+    return minVarOrder(x,y);
+  }else{
+    return x;
+  }
+}
+
+ArithVar LinearEqualityModule::minBoundAndColLength(ArithVar x, ArithVar y) const{
+  Assert(x != ARITHVAR_SENTINEL);
+  Assert(y != ARITHVAR_SENTINEL);
+  Assert(!d_tableau.isBasic(x));
+  Assert(!d_tableau.isBasic(y));
+  if(d_partialModel.hasEitherBound(x) && d_partialModel.hasEitherBound(y)){
+    return y;
+  }else if(d_partialModel.hasEitherBound(x) && d_partialModel.hasEitherBound(y)){
+    return x;
+  }else {
+    return minColLength(x, y);
+  }
+}
+
+template <bool above>
+ArithVar LinearEqualityModule::selectSlack(ArithVar x_i, PreferenceFunction pref) const{
+  ArithVar slack = ARITHVAR_SENTINEL;
+
+  for(Tableau::RowIterator iter = d_tableau.basicRowIterator(x_i); !iter.atEnd();  ++iter){
+    const Tableau::Entry& entry = *iter;
+    ArithVar nonbasic = entry.getColVar();
+    if(nonbasic == x_i) continue;
+
+    const Rational& a_ij = entry.getCoefficient();
+    int sgn = a_ij.sgn();
+    if(isAcceptableSlack<above>(sgn, nonbasic)){
+      //If one of the above conditions is met, we have found an acceptable
+      //nonbasic variable to pivot x_i with.  We can now choose which one we
+      //prefer the most.
+      slack = (slack == ARITHVAR_SENTINEL) ? nonbasic : (this->*pref)(slack, nonbasic);
+    }
+  }
+
+  return slack;
+}
+
 
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */

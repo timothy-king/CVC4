@@ -83,7 +83,7 @@ TheoryArith::TheoryArith(context::Context* c, context::UserContext* u, OutputCha
   d_raiseConflict(d_conflicts),
   d_tempVarMalloc(*this),
   d_congruenceManager(c, d_constraintDatabase, d_setupLiteralCallback, d_arithvarNodeMap, d_raiseConflict),
-  d_simplex(d_linEq, d_raiseConflict),
+  d_simplex(d_linEq, d_raiseConflict, d_tempVarMalloc),
   d_constraintDatabase(c, u, d_arithvarNodeMap, d_congruenceManager, d_raiseConflict),
   d_deltaComputeCallback(this),
   d_basicVarModelUpdateCallBack(d_simplex),
@@ -1622,7 +1622,7 @@ void TheoryArith::check(Effort effortLevel){
   bool emmittedConflictOrSplit = false;
   Assert(d_conflicts.empty());
 
-  d_qflraStatus = d_simplex.findModel(fullEffort(effortLevel));
+  d_qflraStatus = d_simplex.dualFindModel(fullEffort(effortLevel));
 
   switch(d_qflraStatus){
   case Result::SAT:
