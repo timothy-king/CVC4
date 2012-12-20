@@ -70,6 +70,13 @@ private:
   // TODO A better would be:
   //context::CDO<bool> d_nlIncomplete;
 
+
+  /**
+   * The constraint database associated with the theory.
+   * This must be declared before ArithPartialModel.
+   */
+  ConstraintDatabase d_constraintDatabase;
+
   enum Result::Sat d_qflraStatus;
   // check()
   //   !done() -> d_qflraStatus = Unknown
@@ -90,19 +97,17 @@ private:
   ArithStaticLearner d_learner;
 
 
-  ArithVar d_numberOfVariables;
-  inline ArithVar getNumberOfVariables() const { return d_numberOfVariables; }
-  std::vector<ArithVar> d_pool;
+  //std::vector<ArithVar> d_pool;
   void releaseArithVar(ArithVar v);
 
   /**
    * The map between arith variables to nodes.
    */
-  ArithVarNodeMap d_arithvarNodeMap;
+  //ArithVarNodeMap d_arithvarNodeMap;
 
-  typedef ArithVarNodeMap::var_iterator var_iterator;
-  var_iterator var_begin() const { return d_arithvarNodeMap.var_begin(); }
-  var_iterator var_end() const { return d_arithvarNodeMap.var_end(); }
+  typedef ArithVariables::var_iterator var_iterator;
+  var_iterator var_begin() const { return d_partialModel.var_begin(); }
+  var_iterator var_end() const { return d_partialModel.var_end(); }
 
   NodeSet d_setupNodes;
   bool isSetup(Node n) const {
@@ -141,34 +146,23 @@ private:
    */
   context::CDInsertHashMap<Node, Constraint, NodeHashFunction> d_assertionsThatDoNotMatchTheirLiterals;
 
-  /**
-   * (For the moment) the type hierarchy goes as:
-   * Integer <: Real
-   * The type number of a variable is an integer representing the most specific
-   * type of the variable. The possible values of type number are:
-   */
-  enum ArithType
-    {
-      ATReal = 0,
-      ATInteger = 1
-   };
 
-  std::vector<ArithType> d_variableTypes;
-  inline ArithType nodeToArithType(TNode x) const {
-    return (x.getType().isInteger() ? ATInteger : ATReal);
-  }
+  //std::vector<ArithType> d_variableTypes;
+
 
   /** Returns true if x is of type Integer. */
   inline bool isInteger(ArithVar x) const {
-    return d_variableTypes[x] >= ATInteger;
+    return d_partialModel.isInteger(x);
+    //return d_variableTypes[x] >= ATInteger;
   }
 
   /** This is the set of variables initially introduced as slack variables. */
-  std::vector<bool> d_slackVars;
+  //std::vector<bool> d_slackVars;
 
   /** Returns true if the variable was initially introduced as a slack variable. */
   inline bool isSlackVariable(ArithVar x) const{
-    return d_slackVars[x];
+    return d_partialModel.isSlack(x);
+    //return d_slackVars[x];
   }
 
   /**
@@ -214,11 +208,12 @@ private:
 
   context::CDQueue<Constraint> d_learnedBounds;
 
+
   /**
    * Manages information about the assignment and upper and lower bounds on
    * variables.
    */
-  ArithPartialModel d_partialModel;
+  ArithVariables d_partialModel;
 
   /**
    * The tableau for all of the constraints seen thus far in the system.
@@ -311,10 +306,6 @@ private:
 
   /** This implements the Simplex decision procedure. */
   SimplexDecisionProcedure d_simplex;
-
-
-  /** The constraint database associated with the theory. */
-  ConstraintDatabase d_constraintDatabase;
 
   class ModelException : public Exception {
   public:

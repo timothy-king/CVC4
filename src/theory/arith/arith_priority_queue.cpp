@@ -53,9 +53,9 @@ ArithPriorityQueue::Statistics::~Statistics(){
   StatisticsRegistry::unregisterStat(&d_enqueuesVarOrderModeDuplicates);
 }
 
-ArithPriorityQueue::ArithPriorityQueue(ArithPartialModel& pm, const Tableau& tableau):
+ArithPriorityQueue::ArithPriorityQueue(ArithVariables& vars, const Tableau& tableau):
   d_pivotRule(MINIMUM),
-  d_partialModel(pm),
+  d_variables(vars),
   d_tableau(tableau),
   d_modeInUse(Collection),
   d_ZERO_DELTA(0,0)
@@ -115,10 +115,10 @@ ArithVar ArithPriorityQueue::dequeueInconsistentBasicVariable(){
 
 ArithPriorityQueue::VarDRatPair ArithPriorityQueue::computeDiff(ArithVar basic){
   Assert(basicAndInconsistent(basic));
-  const DeltaRational& beta = d_partialModel.getAssignment(basic);
-  DeltaRational diff = d_partialModel.strictlyLessThanLowerBound(basic,beta) ?
-    d_partialModel.getLowerBound(basic) - beta:
-    beta - d_partialModel.getUpperBound(basic);
+  const DeltaRational& beta = d_variables.getAssignment(basic);
+  DeltaRational diff = d_variables.strictlyLessThanLowerBound(basic,beta) ?
+    d_variables.getLowerBound(basic) - beta:
+    beta - d_variables.getUpperBound(basic);
 
   Assert(d_ZERO_DELTA < diff);
   return VarDRatPair(basic,diff);

@@ -145,7 +145,7 @@ private:
    * Reference to the arithmetic partial model for checking if a variable
    * is consistent with its upper and lower bounds.
    */
-  ArithPartialModel& d_partialModel;
+  ArithVariables& d_variables;
 
   /** Reference to the Tableau for checking if a variable is basic. */
   const Tableau& d_tableau;
@@ -165,7 +165,7 @@ private:
 
 public:
 
-  ArithPriorityQueue(ArithPartialModel& pm, const Tableau& tableau);
+  ArithPriorityQueue(ArithVariables& var, const Tableau& tableau);
 
   /** precondition: !inDifferenceMode() */
   void setPivotRule(PivotRule rule);
@@ -176,7 +176,7 @@ public:
 
   inline bool basicAndInconsistent(ArithVar var) const{
     return d_tableau.isBasic(var)
-      && !d_partialModel.assignmentIsConsistent(var) ;
+      && !d_variables.assignmentIsConsistent(var) ;
   }
 
   void transitionToDifferenceMode();

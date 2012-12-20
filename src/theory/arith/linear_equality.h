@@ -50,7 +50,7 @@ private:
    * Manages information about the assignment and upper and lower bounds on the
    * variables.
    */
-  ArithPartialModel& d_partialModel;
+  ArithVariables& d_variables;
 
   /** Reference to the Tableau to operate upon. */
   Tableau& d_tableau;
@@ -58,14 +58,16 @@ private:
   /** Called whenever the value of a basic variable is updated. */
   ArithVarCallBack& d_basicVariableUpdates;
 
+
+
 public:
 
   /**
    * Initializes a LinearEqualityModule with a partial model, a tableau,
    * and a callback function for when basic variables update their values.
    */
-  LinearEqualityModule(ArithPartialModel& pm, Tableau& t, ArithVarCallBack& f):
-    d_partialModel(pm), d_tableau(t), d_basicVariableUpdates(f)
+  LinearEqualityModule(ArithVariables& vars, Tableau& t, ArithVarCallBack& f):
+    d_variables(vars), d_tableau(t), d_basicVariableUpdates(f)
   {}
 
   /**
@@ -82,7 +84,7 @@ public:
   void pivotAndUpdate(ArithVar x_i, ArithVar x_j, const DeltaRational& v);
 
 
-  ArithPartialModel& getPartialModel() const{ return d_partialModel; }
+  ArithVariables& getVariables() const{ return d_variables; }
   Tableau& getTableau() const{ return d_tableau; }
 
 
@@ -178,10 +180,10 @@ public:
   template <bool above>
   inline bool isAcceptableSlack(int sgn, ArithVar nonbasic) const {
     return
-      ( above && sgn < 0 && d_partialModel.strictlyBelowUpperBound(nonbasic)) ||
-      ( above && sgn > 0 && d_partialModel.strictlyAboveLowerBound(nonbasic)) ||
-      (!above && sgn > 0 && d_partialModel.strictlyBelowUpperBound(nonbasic)) ||
-      (!above && sgn < 0 && d_partialModel.strictlyAboveLowerBound(nonbasic));
+      ( above && sgn < 0 && d_variables.strictlyBelowUpperBound(nonbasic)) ||
+      ( above && sgn > 0 && d_variables.strictlyAboveLowerBound(nonbasic)) ||
+      (!above && sgn > 0 && d_variables.strictlyBelowUpperBound(nonbasic)) ||
+      (!above && sgn < 0 && d_variables.strictlyAboveLowerBound(nonbasic));
   }
 
   /**

@@ -58,12 +58,13 @@ const uint32_t RESET_START = 2;
 TheoryArith::TheoryArith(context::Context* c, context::UserContext* u, OutputChannel& out, Valuation valuation, const LogicInfo& logicInfo, QuantifiersEngine* qe) :
   Theory(THEORY_ARITH, c, u, out, valuation, logicInfo, qe),
   d_nlIncomplete( false),
+  d_constraintDatabase(c, u, d_partialModel, d_congruenceManager, d_raiseConflict),
   d_qflraStatus(Result::SAT_UNKNOWN),
   d_unknownsInARow(0),
   d_hasDoneWorkSinceCut(false),
   d_learner(u),
-  d_numberOfVariables(0),
-  d_pool(),
+  //d_numberOfVariables(0),
+  //d_pool(),
   d_setupLiteralCallback(this),
   d_assertionsThatDoNotMatchTheirLiterals(c),
   d_nextIntegerCheckVar(0),
@@ -82,9 +83,8 @@ TheoryArith::TheoryArith(context::Context* c, context::UserContext* u, OutputCha
   d_conflicts(c),
   d_raiseConflict(d_conflicts),
   d_tempVarMalloc(*this),
-  d_congruenceManager(c, d_constraintDatabase, d_setupLiteralCallback, d_arithvarNodeMap, d_raiseConflict),
+  d_congruenceManager(c, d_constraintDatabase, d_setupLiteralCallback, d_partialModel, d_raiseConflict),
   d_simplex(d_linEq, d_raiseConflict, d_tempVarMalloc),
-  d_constraintDatabase(c, u, d_arithvarNodeMap, d_congruenceManager, d_raiseConflict),
   d_deltaComputeCallback(this),
   d_basicVarModelUpdateCallBack(d_simplex),
   d_DELTA_ZERO(0),
@@ -843,7 +843,7 @@ void TheoryArith::setupVariableList(const VarList& vl){
 
   TNode vlNode = vl.getNode();
   Assert(!isSetup(vlNode));
-  Assert(!d_arithvarNodeMap.hasArithVar(vlNode));
+  Assert(!d_partialModel.hasArithVar(vlNode));
 
   for(VarList::iterator i = vl.begin(), end = vl.end(); i != end; ++i){
     Variable var = *i;
@@ -1040,7 +1040,7 @@ void TheoryArith::setupPolynomial(const Polynomial& poly) {
   Assert(!poly.containsConstant());
   TNode polyNode = poly.getNode();
   Assert(!isSetup(polyNode));
-  Assert(!d_arithvarNodeMap.hasArithVar(polyNode));
+  Assert(!d_partialModel.hasArithVar(polyNode));
 
   for(Polynomial::iterator i = poly.begin(), end = poly.end(); i != end; ++i){
     Monomial mono = *i;
@@ -1131,12 +1131,10 @@ void TheoryArith::preRegisterTerm(TNode n) {
 }
 
 void TheoryArith::releaseArithVar(ArithVar v){
-  Assert(d_arithvarNodeMap.hasNode(v));
+  Assert(d_partialModel.hasNode(v));
   
   d_constraintDatabase.removeVariable(v);
-  d_arithvarNodeMap.remove(v);
-
-  d_pool.push_back(v);
+  d_partialModel.releaseArithVar(v);
 }
 
 ArithVar TheoryArith::requestArithVar(TNode x, bool slack){
@@ -1145,50 +1143,52 @@ ArithVar TheoryArith::requestArithVar(TNode x, bool slack){
   if(getLogicInfo().isLinear() && Variable::isDivMember(x)){
     throw LogicException("Non-linear term was asserted to arithmetic in a linear logic.");
   }
-  Assert(!d_arithvarNodeMap.hasArithVar(x));
+  Assert(!d_partialModel.hasArithVar(x));
   Assert(x.getType().isReal());// real or integer
 
   // ArithVar varX = d_variables.size();
   // d_variables.push_back(Node(x));
 
-  bool reclaim = !d_pool.empty();
-  ArithVar varX;
+  ArithVar max = d_partialModel.getNumberOfVariables();
+  ArithVar varX = d_partialModel.allocate(x, slack);
+
+  bool reclaim = varX <= max;
 
   if(reclaim){
-    varX = d_pool.back();
-    d_pool.pop_back();
+    // varX = d_pool.back();
+    // d_pool.pop_back();
 
-    d_partialModel.setAssignment(varX, d_DELTA_ZERO, d_DELTA_ZERO);
+    // d_partialModel.setAssignment(varX, d_DELTA_ZERO, d_DELTA_ZERO);
   }else{
-    varX = d_numberOfVariables;
-    ++d_numberOfVariables;
+    // varX = d_numberOfVariables;
+    // ++d_numberOfVariables;
 
-    d_slackVars.push_back(true);
-    d_variableTypes.push_back(ATReal);
+    // d_slackVars.push_back(true);
+    // d_variableTypes.push_back(ATReal);
 
     d_simplex.increaseMax();
 
     d_tableau.increaseSize();
     d_tableauSizeHasBeenModified = true;
 
-    d_partialModel.initialize(varX, d_DELTA_ZERO);
+    //d_partialModel.initialize(varX, d_DELTA_ZERO);
   }
 
-  ArithType type;
-  if(slack){
-    //The type computation is not quite accurate for Rationals that are integral.
-    //We'll use the isIntegral check from the polynomial package instead.
-    Polynomial p = Polynomial::parsePolynomial(x);
-    type = p.isIntegral() ? ATInteger : ATReal;
-  }else{
-    type = nodeToArithType(x);
-  }
-  d_variableTypes[varX] = type;
-  d_slackVars[varX] = slack;
+  // ArithType type;
+  // if(slack){
+  //   //The type computation is not quite accurate for Rationals that are integral.
+  //   //We'll use the isIntegral check from the polynomial package instead.
+  //   Polynomial p = Polynomial::parsePolynomial(x);
+  //   type = p.isIntegral() ? ATInteger : ATReal;
+  // }else{
+  //   type = nodeToArithType(x);
+  // }
+  // d_variableTypes[varX] = type;
+  // d_slackVars[varX] = slack;
 
   d_constraintDatabase.addVariable(varX);
 
-  d_arithvarNodeMap.setArithVar(x,varX);
+  //d_partialModel.setArithVar(x,varX);
 
   // Debug("integers") << "isInteger[[" << x << "]]: " << x.getType().isInteger() << endl;
 
@@ -1230,10 +1230,10 @@ void TheoryArith::asVectors(const Polynomial& p, std::vector<Rational>& coeffs, 
 
     // TODO: This VarList::isMember(n) can be stronger
     Assert(isLeaf(n) || VarList::isMember(n));
-    Assert(theoryOf(n) != THEORY_ARITH || d_arithvarNodeMap.hasArithVar(n));
+    Assert(theoryOf(n) != THEORY_ARITH || d_partialModel.hasArithVar(n));
 
-    Assert(d_arithvarNodeMap.hasArithVar(n));
-    ArithVar av = d_arithvarNodeMap.asArithVar(n);
+    Assert(d_partialModel.hasArithVar(n));
+    ArithVar av = d_partialModel.asArithVar(n);
 
     coeffs.push_back(constant.getValue());
     variables.push_back(av);
@@ -1269,7 +1269,7 @@ ArithVar TheoryArith::determineArithVar(const Polynomial& p) const{
   Assert(p.getHead().constantIsPositive());
   TNode n = p.getNode();
   Debug("determineArithVar") << "determineArithVar(" << n << ")" << endl;
-  return d_arithvarNodeMap.asArithVar(n);
+  return d_partialModel.asArithVar(n);
 }
 
 ArithVar TheoryArith::determineArithVar(TNode assertion) const{
@@ -1282,7 +1282,7 @@ ArithVar TheoryArith::determineArithVar(TNode assertion) const{
 
 bool TheoryArith::canSafelyAvoidEqualitySetup(TNode equality){
   Assert(equality.getKind() == EQUAL);
-  return d_arithvarNodeMap.hasArithVar(equality[0]);
+  return d_partialModel.hasArithVar(equality[0]);
 }
 
 Comparison TheoryArith::mkIntegerEqualityFromAssignment(ArithVar v){
@@ -1291,7 +1291,7 @@ Comparison TheoryArith::mkIntegerEqualityFromAssignment(ArithVar v){
   Assert(beta.isIntegral());
   Polynomial betaAsPolynomial( Constant::mkConstant(beta.floor()) );
 
-  TNode var = d_arithvarNodeMap.asNode(v);
+  TNode var = d_partialModel.asNode(v);
   Polynomial varAsPolynomial = Polynomial::parsePolynomial(var);
   return Comparison::mkComparison(EQUAL, varAsPolynomial, betaAsPolynomial);
 }
@@ -1532,7 +1532,8 @@ bool TheoryArith::assertionCases(Constraint constraint){
  */
 bool TheoryArith::hasIntegerModel(){
   //if(d_variables.size() > 0){
-  if(getNumberOfVariables()){
+  ArithVar numVars = d_partialModel.getNumberOfVariables();
+  if(numVars > 0){
     const ArithVar rrEnd = d_nextIntegerCheckVar;
     do {
       //Do not include slack variables
@@ -1542,7 +1543,7 @@ bool TheoryArith::hasIntegerModel(){
           return false;
         }
       }
-    } while((d_nextIntegerCheckVar = (1 + d_nextIntegerCheckVar == getNumberOfVariables() ? 0 : 1 + d_nextIntegerCheckVar)) != rrEnd);
+    } while((d_nextIntegerCheckVar = (1 + d_nextIntegerCheckVar == numVars ? 0 : 1 + d_nextIntegerCheckVar)) != rrEnd);
   }
   return true;
 }
@@ -1789,12 +1790,12 @@ Node TheoryArith::roundRobinBranch(){
     const DeltaRational& d = d_partialModel.getAssignment(v);
     const Rational& r = d.getNoninfinitesimalPart();
     const Rational& i = d.getInfinitesimalPart();
-    Trace("integers") << "integers: assignment to [[" << d_arithvarNodeMap.asNode(v) << "]] is " << r << "[" << i << "]" << endl;
+    Trace("integers") << "integers: assignment to [[" << d_partialModel.asNode(v) << "]] is " << r << "[" << i << "]" << endl;
 
     Assert(! (r.getDenominator() == 1 && i.getNumerator() == 0));
     Assert(!d.isIntegral());
 
-    TNode var = d_arithvarNodeMap.asNode(v);
+    TNode var = d_partialModel.asNode(v);
     Integer floor_d = d.floor();
     Integer ceil_d = d.ceiling();
 
@@ -1893,8 +1894,8 @@ void TheoryArith::debugPrintModel(){
   Debug("arith::print_model") << "Model:" << endl;
   for (var_iterator vi = var_begin(), vend = var_end(); vi != vend; ++vi){
     ArithVar i = *vi;
-    if(d_arithvarNodeMap.hasNode(i)){
-      Debug("arith::print_model") << d_arithvarNodeMap.asNode(i) << " : " <<
+    if(d_partialModel.hasNode(i)){
+      Debug("arith::print_model") << d_partialModel.asNode(i) << " : " <<
         d_partialModel.getAssignment(i);
       if(d_tableau.isBasic(i))
         Debug("arith::print_model") << " (basic)";
@@ -2022,7 +2023,7 @@ DeltaRational TheoryArith::getDeltaValue(TNode n) const throw (DeltaRationalExce
     }
     // TODO: This is a bit of a weak check
     if(isSetup(n)){
-      ArithVar var = d_arithvarNodeMap.asArithVar(n);
+      ArithVar var = d_partialModel.asArithVar(n);
       const DeltaRational& assign = d_partialModel.getAssignment(var);
       if(assign != value){
         throw ModelException(n, "Model disagrees on non-linear term.");
@@ -2041,7 +2042,7 @@ DeltaRational TheoryArith::getDeltaValue(TNode n) const throw (DeltaRationalExce
   case kind::DIVISION:{ // 2 args
     DeltaRational res = getDeltaValue(n[0]) / getDeltaValue(n[1]);
     if(isSetup(n)){
-      ArithVar var = d_arithvarNodeMap.asArithVar(n);
+      ArithVar var = d_partialModel.asArithVar(n);
       if(d_partialModel.getAssignment(var) != res){
         throw ModelException(n, "Model disagrees on non-linear term.");
       }
@@ -2066,7 +2067,7 @@ DeltaRational TheoryArith::getDeltaValue(TNode n) const throw (DeltaRationalExce
         res = Rational(numer.euclidianDivideRemainder(denom));
       }
       if(isSetup(n)){
-        ArithVar var = d_arithvarNodeMap.asArithVar(n);
+        ArithVar var = d_partialModel.asArithVar(n);
         if(d_partialModel.getAssignment(var) != res){
           throw ModelException(n, "Model disagrees on non-linear term.");
         }
@@ -2077,7 +2078,7 @@ DeltaRational TheoryArith::getDeltaValue(TNode n) const throw (DeltaRationalExce
 
   default:
     if(isSetup(n)){
-      ArithVar var = d_arithvarNodeMap.asArithVar(n);
+      ArithVar var = d_partialModel.asArithVar(n);
       return d_partialModel.getAssignment(var);
     }else{
       throw ModelException(n, "Expected a setup node.");
@@ -2163,7 +2164,7 @@ void TheoryArith::collectModelInfo( TheoryModel* m, bool fullModel ){
   for(var_iterator vi = var_begin(), vend = var_end(); vi != vend; ++vi){
     ArithVar v = *vi;
     if(!isSlackVariable(v)){
-      Node term = d_arithvarNodeMap.asNode(v);
+      Node term = d_partialModel.asNode(v);
 
       if(theoryOf(term) == THEORY_ARITH || shared.find(term) != shared.end()){
         const DeltaRational& mod = d_partialModel.getAssignment(v);
@@ -2243,10 +2244,10 @@ bool TheoryArith::entireStateIsConsistent(const string& s){
   bool result = true;
   for(var_iterator vi = var_begin(), vend = var_end(); vi != vend; ++vi){
     ArithVar var = *vi;
-    //ArithVar var = d_arithvarNodeMap.asArithVar(*i);
+    //ArithVar var = d_partialModel.asArithVar(*i);
     if(!d_partialModel.assignmentIsConsistent(var)){
       d_partialModel.printModel(var);
-      Warning() << s << ":" << "Assignment is not consistent for " << var << d_arithvarNodeMap.asNode(var);
+      Warning() << s << ":" << "Assignment is not consistent for " << var << d_partialModel.asNode(var);
       if(d_tableau.isBasic(var)){
         Warning() << " (basic)";
       }
@@ -2265,7 +2266,7 @@ bool TheoryArith::unenqueuedVariablesAreConsistent(){
       if(!d_simplex.debugIsInCollectionQueue(var)){
 
         d_partialModel.printModel(var);
-        Warning() << "Unenqueued var is not consistent for " << var <<  d_arithvarNodeMap.asNode(var);
+        Warning() << "Unenqueued var is not consistent for " << var <<  d_partialModel.asNode(var);
         if(d_tableau.isBasic(var)){
           Warning() << " (basic)";
         }
@@ -2273,7 +2274,7 @@ bool TheoryArith::unenqueuedVariablesAreConsistent(){
         result = false;
       } else if(Debug.isOn("arith::consistency::initial")){
         d_partialModel.printModel(var);
-        Warning() << "Initial var is not consistent for " << var <<  d_arithvarNodeMap.asNode(var);
+        Warning() << "Initial var is not consistent for " << var <<  d_partialModel.asNode(var);
         if(d_tableau.isBasic(var)){
           Warning() << " (basic)";
         }

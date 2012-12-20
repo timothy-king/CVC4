@@ -52,6 +52,55 @@ inline Node mkRealSkolem(const std::string& name){
   return NodeManager::currentNM()->mkSkolem(name, NodeManager::currentNM()->realType());
 }
 
+/**
+ * (For the moment) the type hierarchy goes as:
+ * Integer <: Real
+ * The type number of a variable is an integer representing the most specific
+ * type of the variable. The possible values of type number are:
+ */
+enum ArithType {
+  ATReal = 0,
+  ATInteger = 1
+};
+
+inline ArithType nodeToArithType(TNode x) {
+  return (x.getType().isInteger() ? ATInteger : ATReal);
+}
+/* enum BoundsAsserted { */
+/*   NoBoundAsserted = 0x0, */
+/*   LowerBoundAsserted = 0x1, */
+/*   UpperBoundAsserted = 0x2, */
+/*   BothAsserted = 0x3 */
+/* }; */
+
+/* inline BoundsAsserted boundsUnion(BoundsAsserted a, BoundsAsserted b){ */
+/*   return (BoundsAsserted)(a | b); */
+/* } */
+
+/* inline BoundsAsserted boundsIntersection(BoundsAsserted a, BoundsAsserted b){ */
+/*   return (BoundsAsserted)(a & b); */
+/* } */
+
+/* inline bool hasLowerBound(BoundsAsserted a){ */
+/*   return boundsIntersection(a, LowerBoundAsserted) != NoBoundAsserted; */
+/* } */
+
+/* inline bool hasUpperBound(BoundsAsserted a){ */
+/*   return boundsIntersection(a, UpperBoundAsserted) != NoBoundAsserted; */
+/* } */
+
+/* enum BoundAssignmentRelation { */
+/*   Undefined = 0x00, */
+/*   BelowLowerBound = 0x11, */
+/*   AboveUpperBound = 0x12, */
+/*   BetweenBounds = 0x20, */
+/*   AtLowerBound = 0x31, */
+/*   AtUpperBound = 0x32, */
+/*   AtBothBounds = 0x33  // AtBothBounds = AtLowerBound | AtUpperBound */
+/* }; */
+
+
+
 /** \f$ k \in {LT, LEQ, EQ, GEQ, GT} \f$ */
 inline bool isRelationOperator(Kind k){
   using namespace kind;

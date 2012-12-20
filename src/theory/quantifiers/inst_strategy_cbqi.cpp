@@ -46,8 +46,8 @@ void InstStrategySimplex::processResetInstantiationRound( Theory::Effort effort 
   d_tableaux.clear();
   d_ceTableaux.clear();
   //search for instantiation rows in simplex tableaux
-  ArithVarNodeMap& avnm = d_th->d_arithvarNodeMap;
-  ArithVarNodeMap::var_iterator vi, vend;
+  ArithVariables& avnm = d_th->d_partialModel;
+  ArithVariables::var_iterator vi, vend;
   for(vi = avnm.var_begin(), vend = avnm.var_end(); vi != vend; ++vi ){
     ArithVar x = *vi;
     if( d_th->d_partialModel.hasEitherBound( x ) ){
@@ -168,8 +168,8 @@ void InstStrategySimplex::addTermToRow( ArithVar x, Node n, Node& f, NodeBuilder
 }
 
 void InstStrategySimplex::debugPrint( const char* c ){
-  const ArithVarNodeMap& avnm = d_th->d_arithvarNodeMap;
-  ArithVarNodeMap::var_iterator vi, vend;
+  const ArithVariables& avnm = d_th->d_partialModel;
+  ArithVariables::var_iterator vi, vend;
   for(vi = avnm.var_begin(), vend = avnm.var_end(); vi != vend; ++vi ){
     ArithVar x = *vi;
     Node n = avnm.asNode(x);
@@ -273,8 +273,8 @@ bool InstStrategySimplex::doInstantiation2( Node f, Node term, ArithVar x, InstM
 }
 
 Node InstStrategySimplex::getTableauxValue( Node n, bool minus_delta ){
-  if( d_th->d_arithvarNodeMap.hasArithVar(n) ){
-    ArithVar v = d_th->d_arithvarNodeMap.asArithVar( n );
+  if( d_th->d_partialModel.hasArithVar(n) ){
+    ArithVar v = d_th->d_partialModel.asArithVar( n );
     return getTableauxValue( v, minus_delta );
   }else{
     return NodeManager::currentNM()->mkConst( Rational(0) );
