@@ -72,7 +72,7 @@
 #include "context/cdqueue.h"
 
 #include "theory/arith/arithvar.h"
-#include "theory/arith/arithvar_node_map.h"
+//#include "theory/arith/arithvar_node_map.h"
 #include "theory/arith/delta_rational.h"
 
 #include "theory/arith/congruence_manager.h"
@@ -776,10 +776,10 @@ private:
   static bool emptyDatabase(const std::vector<PerVariableDatabase>& vec);
 
   /** Map from nodes to arithvars. */
-  const ArithVarNodeMap& d_av2nodeMap;
+  const ArithVariables& d_avariables;
 
-  const ArithVarNodeMap& getArithVarNodeMap() const{
-    return d_av2nodeMap;
+  const ArithVariables& getArithVariables() const{
+    return d_avariables;
   }
 
   ArithCongruenceManager& d_congruenceManager;
@@ -797,7 +797,7 @@ public:
 
   ConstraintDatabase( context::Context* satContext,
                       context::Context* userContext,
-                      const ArithVarNodeMap& av2nodeMap,
+                      const ArithVariables& variables,
                       ArithCongruenceManager& dm,
                       NodeCallBack& conflictCallBack);
 

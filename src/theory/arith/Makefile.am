@@ -14,7 +14,6 @@ libarith_la_SOURCES = \
 	arith_rewriter.cpp \
 	arith_static_learner.h \
 	arith_static_learner.cpp \
-	arithvar_node_map.h \
 	constraint_forward.h \
 	constraint.h \
 	constraint.cpp \

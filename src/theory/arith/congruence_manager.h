@@ -20,8 +20,8 @@
 #pragma once
 
 #include "theory/arith/arithvar.h"
-#include "theory/arith/arithvar_node_map.h"
 #include "theory/arith/constraint_forward.h"
+#include "theory/arith/partial_model.h"
 
 #include "theory/uf/equality_engine.h"
 
@@ -113,7 +113,7 @@ private:
   ConstraintDatabase& d_constraintDatabase;
   TNodeCallBack& d_setupLiteral;
 
-  const ArithVarNodeMap& d_av2Node;
+  const ArithVariables& d_avariables;
 
   eq::EqualityEngine d_ee;
 
@@ -210,7 +210,7 @@ private:
 
 public:
 
-  ArithCongruenceManager(context::Context* satContext, ConstraintDatabase&, TNodeCallBack& setLiteral, const ArithVarNodeMap&, NodeCallBack& raiseConflict);
+  ArithCongruenceManager(context::Context* satContext, ConstraintDatabase&, TNodeCallBack& setLiteral, const ArithVariables&, NodeCallBack& raiseConflict);
 
   Node explain(TNode literal);
   void explain(TNode lit, NodeBuilder<>& out);

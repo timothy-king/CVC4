@@ -21,20 +21,18 @@
 
 using namespace std;
 
-using namespace CVC4;
-using namespace CVC4::kind;
-
-using namespace CVC4::theory;
-using namespace CVC4::theory::arith;
+namespace CVC4 {
+namespace theory {
+namespace arith {
 
 static const bool CHECK_AFTER_PIVOT = true;
 
 SimplexDecisionProcedure::SimplexDecisionProcedure(LinearEqualityModule& linEq, NodeCallBack& conflictChannel, ArithVarMalloc& variables) :
   d_conflictVariable(ARITHVAR_SENTINEL),
   d_linEq(linEq),
-  d_partialModel(d_linEq.getPartialModel()),
+  d_variables(d_linEq.getVariables()),
   d_tableau(d_linEq.getTableau()),
-  d_queue(d_partialModel, d_tableau),
+  d_queue(d_variables, d_tableau),
   d_numVariables(0),
   d_conflictChannel(conflictChannel),
   d_pivotsInRound(),
@@ -277,14 +275,14 @@ Result::Sat SimplexDecisionProcedure::dualFindModel(bool exactResult){
 Node SimplexDecisionProcedure::checkBasicForConflict(ArithVar basic){
 
   Assert(d_tableau.isBasic(basic));
-  const DeltaRational& beta = d_partialModel.getAssignment(basic);
+  const DeltaRational& beta = d_variables.getAssignment(basic);
 
-  if(d_partialModel.strictlyLessThanLowerBound(basic, beta)){
+  if(d_variables.strictlyLessThanLowerBound(basic, beta)){
     ArithVar x_j = d_linEq.anySlackUpperBound(basic);
     if(x_j == ARITHVAR_SENTINEL ){
       return d_linEq.generateConflictBelowLowerBound(basic);
     }
-  }else if(d_partialModel.strictlyGreaterThanUpperBound(basic, beta)){
+  }else if(d_variables.strictlyGreaterThanUpperBound(basic, beta)){
     ArithVar x_j = d_linEq.anySlackLowerBound(basic);
     if(x_j == ARITHVAR_SENTINEL ){
       return d_linEq.generateConflictAboveUpperBound(basic);
@@ -325,10 +323,10 @@ bool SimplexDecisionProcedure::searchForFeasibleSolution(uint32_t remainingItera
     LinearEqualityModule::PreferenceFunction pf = useVarOrderPivot ?
       &LinearEqualityModule::minVarOrder : &LinearEqualityModule::minBoundAndColLength;
 
-    DeltaRational beta_i = d_partialModel.getAssignment(x_i);
+    DeltaRational beta_i = d_variables.getAssignment(x_i);
     ArithVar x_j = ARITHVAR_SENTINEL;
 
-    if(d_partialModel.strictlyLessThanLowerBound(x_i, beta_i)){
+    if(d_variables.strictlyLessThanLowerBound(x_i, beta_i)){
       x_j = d_linEq.selectSlackUpperBound(x_i, pf);
       if(x_j == ARITHVAR_SENTINEL ){
         ++(d_statistics.d_statUpdateConflicts);
@@ -337,10 +335,10 @@ bool SimplexDecisionProcedure::searchForFeasibleSolution(uint32_t remainingItera
         reportConflict(conflict);
         return true;
       }
-      DeltaRational l_i = d_partialModel.getLowerBound(x_i);
+      DeltaRational l_i = d_variables.getLowerBound(x_i);
       d_linEq.pivotAndUpdate(x_i, x_j, l_i);
 
-    }else if(d_partialModel.strictlyGreaterThanUpperBound(x_i, beta_i)){
+    }else if(d_variables.strictlyGreaterThanUpperBound(x_i, beta_i)){
       x_j = d_linEq.selectSlackLowerBound(x_i, pf);
       if(x_j == ARITHVAR_SENTINEL ){
         ++(d_statistics.d_statUpdateConflicts);
@@ -350,7 +348,7 @@ bool SimplexDecisionProcedure::searchForFeasibleSolution(uint32_t remainingItera
         reportConflict(conflict);
         return true;
       }
-      DeltaRational u_i = d_partialModel.getUpperBound(x_i);
+      DeltaRational u_i = d_variables.getUpperBound(x_i);
       d_linEq.pivotAndUpdate(x_i, x_j, u_i);
     }
     Assert(x_j != ARITHVAR_SENTINEL);
@@ -369,3 +367,7 @@ bool SimplexDecisionProcedure::searchForFeasibleSolution(uint32_t remainingItera
 
   return false;
 }
+
+}/* CVC4::theory::arith namespace */
+}/* CVC4::theory namespace */
+}/* CVC4 namespace */

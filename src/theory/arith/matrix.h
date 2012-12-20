@@ -25,7 +25,7 @@
 #include "util/dense_map.h"
 
 #include "theory/arith/arithvar.h"
-#include "theory/arith/arithvar_node_map.h"
+//#include "theory/arith/arithvar_node_map.h"
 #include "theory/arith/normal_form.h"
 
 #include <queue>
@@ -840,6 +840,22 @@ private:
   // RowIndex |-> Basic Variable
   typedef DenseMap<ArithVar> RowIndexToBasicMap;
   RowIndexToBasicMap d_rowIndex2basic;
+
+  typedef Index Instance;
+  Instance d_current;
+
+  void rolloverInstance();
+
+  void initializeInstance();
+
+  struct InstanceCount {
+    Instance d_inst;
+    uint32_t d_atLowerBounds;
+    uint32_t d_atUpperBounds;
+  };
+
+  // RowIndex -> InstanceCount
+  std::vector<InstanceCount> d_boundTracking;
 
 public:
 

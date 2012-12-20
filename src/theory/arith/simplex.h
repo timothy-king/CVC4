@@ -81,7 +81,7 @@ private:
    * variables.
    * Partial model matches that in LinearEqualityModule.
    */
-  ArithPartialModel& d_partialModel;
+  ArithVariables& d_variables;
 
   /**
    * Stores the linear equalities used by Simplex.

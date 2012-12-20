@@ -64,7 +64,7 @@ LinearEqualityModule::Statistics::~Statistics(){
 
 void LinearEqualityModule::update(ArithVar x_i, const DeltaRational& v){
   Assert(!d_tableau.isBasic(x_i));
-  DeltaRational assignment_x_i = d_partialModel.getAssignment(x_i);
+  DeltaRational assignment_x_i = d_variables.getAssignment(x_i);
   ++(d_statistics.d_statUpdates);
 
   Debug("arith") <<"update " << x_i << ": "
@@ -79,14 +79,14 @@ void LinearEqualityModule::update(ArithVar x_i, const DeltaRational& v){
     ArithVar x_j = d_tableau.rowIndexToBasic(entry.getRowIndex());
     const Rational& a_ji = entry.getCoefficient();
 
-    const DeltaRational& assignment = d_partialModel.getAssignment(x_j);
+    const DeltaRational& assignment = d_variables.getAssignment(x_j);
     DeltaRational  nAssignment = assignment+(diff * a_ji);
-    d_partialModel.setAssignment(x_j, nAssignment);
+    d_variables.setAssignment(x_j, nAssignment);
 
     d_basicVariableUpdates(x_j);
   }
 
-  d_partialModel.setAssignment(x_i, v);
+  d_variables.setAssignment(x_i, v);
 
   //double difference = ((double)d_tableau.getNumRows()) - ((double) d_tableau.getRowLength(x_i));
 
@@ -109,16 +109,16 @@ void LinearEqualityModule::pivotAndUpdate(ArithVar x_i, ArithVar x_j, const Delt
   const Rational& a_ij = entry_ij.getCoefficient();
 
 
-  const DeltaRational& betaX_i = d_partialModel.getAssignment(x_i);
+  const DeltaRational& betaX_i = d_variables.getAssignment(x_i);
 
   Rational inv_aij = a_ij.inverse();
   DeltaRational theta = (v - betaX_i)*inv_aij;
 
-  d_partialModel.setAssignment(x_i, v);
+  d_variables.setAssignment(x_i, v);
 
 
-  DeltaRational tmp = d_partialModel.getAssignment(x_j) + theta;
-  d_partialModel.setAssignment(x_j, tmp);
+  DeltaRational tmp = d_variables.getAssignment(x_j) + theta;
+  d_variables.setAssignment(x_j, tmp);
 
 
   //Assert(matchingSets(d_tableau, x_j));
@@ -129,8 +129,8 @@ void LinearEqualityModule::pivotAndUpdate(ArithVar x_i, ArithVar x_j, const Delt
     if(ridx != currRow ){
       ArithVar x_k = d_tableau.rowIndexToBasic(currRow);
       const Rational& a_kj = entry.getCoefficient();
-      DeltaRational nextAssignment = d_partialModel.getAssignment(x_k) + (theta * a_kj);
-      d_partialModel.setAssignment(x_k, nextAssignment);
+      DeltaRational nextAssignment = d_variables.getAssignment(x_k) + (theta * a_kj);
+      d_variables.setAssignment(x_k, nextAssignment);
 
       d_basicVariableUpdates(x_k);
     }
@@ -157,13 +157,13 @@ void LinearEqualityModule::debugPivot(ArithVar x_i, ArithVar x_j){
 
     ArithVar var = entry.getColVar();
     const Rational& coeff = entry.getCoefficient();
-    DeltaRational beta = d_partialModel.getAssignment(var);
+    DeltaRational beta = d_variables.getAssignment(var);
     Debug("arith::pivot") << var << beta << coeff;
-    if(d_partialModel.hasLowerBound(var)){
-      Debug("arith::pivot") << "(lb " << d_partialModel.getLowerBound(var) << ")";
+    if(d_variables.hasLowerBound(var)){
+      Debug("arith::pivot") << "(lb " << d_variables.getLowerBound(var) << ")";
     }
-    if(d_partialModel.hasUpperBound(var)){
-      Debug("arith::pivot") << "(up " << d_partialModel.getUpperBound(var) << ")";
+    if(d_variables.hasUpperBound(var)){
+      Debug("arith::pivot") << "(up " << d_variables.getUpperBound(var) << ")";
     }
     Debug("arith::pivot") << endl;
   }
@@ -191,11 +191,11 @@ void LinearEqualityModule::debugCheckTableau(){
       if(basic == nonbasic) continue;
 
       const Rational& coeff = entry.getCoefficient();
-      DeltaRational beta = d_partialModel.getAssignment(nonbasic);
+      DeltaRational beta = d_variables.getAssignment(nonbasic);
       Debug("paranoid:check_tableau") << nonbasic << beta << coeff<<endl;
       sum = sum + (beta*coeff);
     }
-    DeltaRational shouldBe = d_partialModel.getAssignment(basic);
+    DeltaRational shouldBe = d_variables.getAssignment(basic);
     Debug("paranoid:check_tableau") << "ending row" << sum
                                     << "," << shouldBe << endl;
 
@@ -207,8 +207,8 @@ bool LinearEqualityModule::debugEntireLinEqIsConsistent(const string& s){
   for(ArithVar var = 0, end = d_tableau.getNumColumns(); var != end; ++var){
     //  for(VarIter i = d_variables.begin(), end = d_variables.end(); i != end; ++i){
     //ArithVar var = d_arithvarNodeMap.asArithVar(*i);
-    if(!d_partialModel.assignmentIsConsistent(var)){
-      d_partialModel.printModel(var);
+    if(!d_variables.assignmentIsConsistent(var)){
+      d_variables.printModel(var);
       Warning() << s << ":" << "Assignment is not consistent for " << var ;
       if(d_tableau.isBasic(var)){
         Warning() << " (basic)";
@@ -231,8 +231,8 @@ DeltaRational LinearEqualityModule::computeBound(ArithVar basic, bool upperBound
     bool ub = upperBound ? (sgn > 0) : (sgn < 0);
 
     const DeltaRational& bound = ub ?
-      d_partialModel.getUpperBound(nonbasic):
-      d_partialModel.getLowerBound(nonbasic);
+      d_variables.getUpperBound(nonbasic):
+      d_variables.getLowerBound(nonbasic);
 
     DeltaRational diff = bound * coeff;
     sum = sum + diff;
@@ -253,7 +253,7 @@ DeltaRational LinearEqualityModule::computeRowValue(ArithVar x, bool useSafe){
     if(nonbasic == x) continue;
     const Rational& coeff = entry.getCoefficient();
 
-    const DeltaRational& assignment = d_partialModel.getAssignment(nonbasic, useSafe);
+    const DeltaRational& assignment = d_variables.getAssignment(nonbasic, useSafe);
     sum = sum + (assignment * coeff);
   }
   return sum;
@@ -267,13 +267,13 @@ bool LinearEqualityModule::hasBounds(ArithVar basic, bool upperBound){
     if(var == basic) continue;
     int sgn = entry.getCoefficient().sgn();
     if(upperBound){
-      if( (sgn < 0 && !d_partialModel.hasLowerBound(var)) ||
-          (sgn > 0 && !d_partialModel.hasUpperBound(var))){
+      if( (sgn < 0 && !d_variables.hasLowerBound(var)) ||
+          (sgn > 0 && !d_variables.hasUpperBound(var))){
         return false;
       }
     }else{
-      if( (sgn < 0 && !d_partialModel.hasUpperBound(var)) ||
-          (sgn > 0 && !d_partialModel.hasLowerBound(var))){
+      if( (sgn < 0 && !d_variables.hasUpperBound(var)) ||
+          (sgn > 0 && !d_variables.hasLowerBound(var))){
         return false;
       }
     }
@@ -307,17 +307,17 @@ void LinearEqualityModule::propagateNonbasics(ArithVar basic, Constraint c){
     Constraint bound = NullConstraint;
     if(upperBound){
       if(sgn < 0){
-        bound = d_partialModel.getLowerBoundConstraint(nonbasic);
+        bound = d_variables.getLowerBoundConstraint(nonbasic);
       }else{
         Assert(sgn > 0);
-        bound = d_partialModel.getUpperBoundConstraint(nonbasic);
+        bound = d_variables.getUpperBoundConstraint(nonbasic);
       }
     }else{
       if(sgn < 0){
-        bound = d_partialModel.getUpperBoundConstraint(nonbasic);
+        bound = d_variables.getUpperBoundConstraint(nonbasic);
       }else{
         Assert(sgn > 0);
-        bound = d_partialModel.getLowerBoundConstraint(nonbasic);
+        bound = d_variables.getLowerBoundConstraint(nonbasic);
       }
     }
     Assert(bound != NullConstraint);
@@ -335,8 +335,8 @@ Constraint LinearEqualityModule::weakestExplanation(bool aboveUpper, DeltaRation
   bool ub = aboveUpper?(sgn < 0) : (sgn > 0);
 
   Constraint c = ub ?
-    d_partialModel.getUpperBoundConstraint(v) :
-    d_partialModel.getLowerBoundConstraint(v);
+    d_variables.getUpperBoundConstraint(v) :
+    d_variables.getLowerBoundConstraint(v);
 
   bool weakened;
   do{
@@ -382,16 +382,16 @@ Constraint LinearEqualityModule::weakestExplanation(bool aboveUpper, DeltaRation
 Node LinearEqualityModule::minimallyWeakConflict(bool aboveUpper, ArithVar basicVar) const {
   TimerStat::CodeTimer codeTimer(d_statistics.d_weakenTime);
 
-  const DeltaRational& assignment = d_partialModel.getAssignment(basicVar);
+  const DeltaRational& assignment = d_variables.getAssignment(basicVar);
   DeltaRational surplus;
   if(aboveUpper){
-    Assert(d_partialModel.hasUpperBound(basicVar));
-    Assert(assignment > d_partialModel.getUpperBound(basicVar));
-    surplus = assignment - d_partialModel.getUpperBound(basicVar);
+    Assert(d_variables.hasUpperBound(basicVar));
+    Assert(assignment > d_variables.getUpperBound(basicVar));
+    surplus = assignment - d_variables.getUpperBound(basicVar);
   }else{
-    Assert(d_partialModel.hasLowerBound(basicVar));
-    Assert(assignment < d_partialModel.getLowerBound(basicVar));
-    surplus = d_partialModel.getLowerBound(basicVar) - assignment;
+    Assert(d_variables.hasLowerBound(basicVar));
+    Assert(assignment < d_variables.getLowerBound(basicVar));
+    surplus = d_variables.getLowerBound(basicVar) - assignment;
   }
 
   NodeBuilder<> conflict(kind::AND);
@@ -404,7 +404,7 @@ Node LinearEqualityModule::minimallyWeakConflict(bool aboveUpper, ArithVar basic
     Constraint c = weakestExplanation(aboveUpper, surplus, v, coeff, weakening, basicVar);
     Debug("weak") << "weak : " << weakening << " "
                   << c->assertedToTheTheory() << " "
-                  << d_partialModel.getAssignment(v) << " "
+                  << d_variables.getAssignment(v) << " "
                   << c << endl
                   << c->explainForConflict() << endl;
     anyWeakenings = anyWeakenings || weakening;
@@ -450,9 +450,9 @@ ArithVar LinearEqualityModule::minBoundAndColLength(ArithVar x, ArithVar y) cons
   Assert(y != ARITHVAR_SENTINEL);
   Assert(!d_tableau.isBasic(x));
   Assert(!d_tableau.isBasic(y));
-  if(d_partialModel.hasEitherBound(x) && d_partialModel.hasEitherBound(y)){
+  if(d_variables.hasEitherBound(x) && d_variables.hasEitherBound(y)){
     return y;
-  }else if(d_partialModel.hasEitherBound(x) && d_partialModel.hasEitherBound(y)){
+  }else if(d_variables.hasEitherBound(x) && d_variables.hasEitherBound(y)){
     return x;
   }else {
     return minColLength(x, y);

@@ -24,52 +24,22 @@ namespace theory {
 namespace arith {
 
 
-/*
-void Tableau::addRow(ArithVar basicVar,
-                     const std::vector<Rational>& coeffs,
-                     const std::vector<ArithVar>& variables){
-
-  Assert(coeffs.size() == variables.size());
-
-  //The new basic variable cannot already be a basic variable
-  Assert(!d_basicVariables.isMember(basicVar));
-  d_basicVariables.add(basicVar);
-  ReducedRowVector* row_current = new ReducedRowVector(basicVar,variables, coeffs,d_rowCount, d_columnMatrix);
-  d_rowsTable[basicVar] = row_current;
-
-  //A variable in the row may have been made non-basic already.
-  //If this is the case we fake pivoting this variable
-  vector<ArithVar>::const_iterator varsIter = variables.begin();
-  vector<ArithVar>::const_iterator varsEnd = variables.end();
-
-  for( ; varsIter != varsEnd; ++varsIter){
-    ArithVar var = *varsIter;
-
-    if(d_basicVariables.isMember(var)){
-      EntryID varID = find(basicVar, var);
-      TableauEntry& entry = d_entryManager.get(varID);
-      const Rational& coeff = entry.getCoefficient();
-
-      loadRowIntoMergeBuffer(var);
-      rowPlusRowTimesConstant(coeff, basicVar, var);
-      emptyRowFromMergeBuffer(var);
-    }
+void Tableau::initializeInstance() {
+  ++d_current;
+  if(d_current == 0){
+    rolloverInstance();
   }
 }
-*/
 
-/*
-ReducedRowVector* Tableau::removeRow(ArithVar basic){
-  Assert(isBasic(basic));
-
-  ReducedRowVector* row = d_rowsTable[basic];
-
-  d_basicVariables.remove(basic);
-  d_rowsTable[basic] = NULL;
-
-  return row;
+void Tableau::rolloverInstance(){
+  Assert(d_current == 0);
+  std::vector<InstanceCount>::iterator i = d_boundTracking.begin(), i_end = d_boundTracking.end();
+  for(;i != i_end; ++i){
+    InstanceCount& curr = *i;
+    curr.d_inst = 0;
+  }
+  d_current = 1;
 }
-*/
 
 void Tableau::pivot(ArithVar oldBasic, ArithVar newBasic){
   Assert(isBasic(oldBasic));
