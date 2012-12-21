@@ -52,7 +52,6 @@ private:
     int d_cmpAssignmentUB;
 
     unsigned d_pushCount;
-
     ArithType d_type;
     Node d_node;
     bool d_slack;  
@@ -68,6 +67,7 @@ private:
       return d_var != ARITHVAR_SENTINEL;
     }
     void initialize(ArithVar v, Node n, bool slack);
+
     bool canBeReclaimed() const{
       return d_pushCount == 0;
     }
@@ -109,6 +109,7 @@ private:
     Assert((d_nodeToArithVarMap.find(x))->second <= ARITHVAR_SENTINEL);
     return (d_nodeToArithVarMap.find(x))->second;
   }
+
 
   inline Node asNode(ArithVar a) const{
     Assert(hasNode(a));
