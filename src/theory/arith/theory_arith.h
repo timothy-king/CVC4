@@ -36,7 +36,7 @@
 #include "theory/arith/linear_equality.h"
 #include "theory/arith/simplex.h"
 #include "theory/arith/arith_static_learner.h"
-#include "theory/arith/arithvar_node_map.h"
+//#include "theory/arith/arithvar_node_map.h"
 #include "theory/arith/dio_solver.h"
 #include "theory/arith/congruence_manager.h"
 

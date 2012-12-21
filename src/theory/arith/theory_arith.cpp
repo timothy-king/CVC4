@@ -1152,7 +1152,7 @@ ArithVar TheoryArith::requestArithVar(TNode x, bool slack){
   ArithVar max = d_partialModel.getNumberOfVariables();
   ArithVar varX = d_partialModel.allocate(x, slack);
 
-  bool reclaim = varX <= max;
+  bool reclaim =  max >= d_partialModel.getNumberOfVariables();;
 
   if(reclaim){
     // varX = d_pool.back();

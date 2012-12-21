@@ -32,6 +32,7 @@ ArithVariables::ArithVariables(context::Context* c, RationalCallBack& deltaCompu
    d_safeAssignment(),
    d_numberOfVariables(0),
    d_pool(),
+   d_released(),
    d_nodeToArithVarMap(),
    d_lbRevertHistory(c, true, LowerBoundCleanUp(this)),
    d_ubRevertHistory(c, true, UpperBoundCleanUp(this)),
@@ -54,6 +55,10 @@ ArithVariables::VarInfo::VarInfo()
 
 void ArithVariables::VarInfo::initialize(ArithVar v, Node n, bool slack){
   Assert(!initialized());
+  Assert(d_lb == NullConstraint);
+  Assert(d_ub == NullConstraint);
+  Assert(d_cmpAssignmentLB > 0);
+  Assert(d_cmpAssignmentUB < 0);
   d_var = v;
   d_node = n;
   d_slack = slack;
@@ -70,6 +75,10 @@ void ArithVariables::VarInfo::initialize(ArithVar v, Node n, bool slack){
 
   Assert(initialized());
 }
+void ArithVariables::VarInfo::uninitialize(){
+  d_var = ARITHVAR_SENTINEL;
+  d_node = Node::null();
+}
 
 void ArithVariables::VarInfo::setAssignment(const DeltaRational& a){
   Assert(initialized());
@@ -83,10 +92,17 @@ void ArithVariables::VarInfo::setAssignment(const DeltaRational& a){
 }
 
 void ArithVariables::releaseArithVar(ArithVar v){
-  Unimplemented();
+  VarInfo& vi = d_vars.get(v);
+  vi.uninitialize();
+  if(vi.canBeReclaimed()){
+    d_pool.push_back(v);
+  }else{
+    d_released.push_back(v);
+  }
 }
 
 void ArithVariables::VarInfo::setUpperBound(Constraint ub){
+  Assert(initialized());
   d_ub = ub;
   if(d_ub == NullConstraint){
     d_cmpAssignmentUB = -1;
@@ -96,7 +112,7 @@ void ArithVariables::VarInfo::setUpperBound(Constraint ub){
 }
 
 void ArithVariables::VarInfo::setLowerBound(Constraint lb){
-  Assert(!initialized());
+  Assert(initialized());
   d_lb = lb;
   if(d_lb == NullConstraint){
     d_cmpAssignmentLB = 1;
@@ -105,8 +121,29 @@ void ArithVariables::VarInfo::setLowerBound(Constraint lb){
   }
 }
 
+void ArithVariables::attemptToReclaimReleased(){
+  std::list<ArithVar>::iterator i = d_released.begin();
+  std::list<ArithVar>::iterator i_end = d_released.end(); 
+  for(int iter = 0; iter < 20 && i != i_end; ++iter){
+    ArithVar v = *i;
+    VarInfo& vi = d_vars.get(v);
+    if(vi.canBeReclaimed()){
+      d_pool.push_back(v);
+      std::list<ArithVar>::iterator curr = i;
+      ++i;
+      d_released.erase(curr);
+    }else{
+      ++i;
+    }
+  }
+}
+
 ArithVar ArithVariables::allocateVariable(){
+  if(d_pool.empty()){
+    attemptToReclaimReleased();
+  }
   bool reclaim = !d_pool.empty();
+  
   ArithVar varX;
   if(reclaim){
     varX = d_pool.back();
@@ -167,6 +204,7 @@ void ArithVariables::setAssignment(ArithVar x, const DeltaRational& safe, const 
 void ArithVariables::initialize(ArithVar x, Node n, bool slack){
   VarInfo& vi = d_vars.get(x);
   vi.initialize(x, n, slack);
+  d_nodeToArithVarMap[n] = x;
 }
 
 ArithVar ArithVariables::allocate(Node n, bool slack){

@@ -30,6 +30,7 @@
 
 
 #include <vector>
+#include <list>
 
 #pragma once
 
@@ -52,7 +53,6 @@ private:
     int d_cmpAssignmentUB;
 
     unsigned d_pushCount;
-
     ArithType d_type;
     Node d_node;
     bool d_slack;  
@@ -68,6 +68,8 @@ private:
       return d_var != ARITHVAR_SENTINEL;
     }
     void initialize(ArithVar v, Node n, bool slack);
+    void uninitialize();
+
     bool canBeReclaimed() const{
       return d_pushCount == 0;
     }
@@ -84,7 +86,10 @@ private:
   ArithVar d_numberOfVariables;
 
   /** [0, d_numberOfVariables) \intersect d_vars.keys == d_pool */
+  // Everything in the pool is fair game.
+  // There must be NO outstanding assertions 
   std::vector<ArithVar> d_pool;
+  std::list<ArithVar> d_released;
 
   // Reverse Map from Node to ArithVar
   // Inverse of d_vars[x].d_node
@@ -109,6 +114,7 @@ private:
     Assert((d_nodeToArithVarMap.find(x))->second <= ARITHVAR_SENTINEL);
     return (d_nodeToArithVarMap.find(x))->second;
   }
+
 
   inline Node asNode(ArithVar a) const{
     Assert(hasNode(a));
@@ -148,6 +154,7 @@ private:
 
   bool canBeReleased(ArithVar v) const;
   void releaseArithVar(ArithVar v);
+  void attemptToReclaimReleased();
 
   bool isInteger(ArithVar x) const {
     return d_vars[x].d_type >= ATInteger;
