@@ -83,6 +83,10 @@ public:
   BoundCounts(uint32_t lbs, uint32_t ubs)
   : d_atLowerBounds(lbs), d_atUpperBounds(ubs) {}
 
+  bool operator==(BoundCounts bc) const {
+    return d_atLowerBounds == bc.d_atLowerBounds 
+    && d_atUpperBounds == bc.d_atUpperBounds;     
+  }
   inline uint32_t atLowerBounds() const{
     return d_atLowerBounds;
   }
@@ -91,15 +95,15 @@ public:
   }
 
   inline BoundCounts operator+(BoundCounts bc) const{
-    return BoundCounts(d_atUpperBounds + bc.d_atUpperBounds,
-                       d_atLowerBounds + bc.d_atLowerBounds);
+    return BoundCounts(d_atLowerBounds + bc.d_atLowerBounds,
+                       d_atUpperBounds + bc.d_atUpperBounds);
   }
 
   inline BoundCounts operator-(BoundCounts bc) const {
     Assert(d_atLowerBounds >= bc.d_atLowerBounds);
     Assert(d_atUpperBounds >= bc.d_atUpperBounds);
-    return BoundCounts( d_atUpperBounds - bc.d_atUpperBounds,
-                        d_atLowerBounds - bc.d_atLowerBounds);
+    return BoundCounts(d_atLowerBounds - bc.d_atLowerBounds,
+                       d_atUpperBounds - bc.d_atUpperBounds);
   }
 
   inline BoundCounts& operator+=(BoundCounts bc) {
@@ -128,6 +132,11 @@ public:
   }  
 };
 
+inline std::ostream& operator<<(std::ostream& os, const BoundCounts& bc){
+  os << "[bc " << bc.atLowerBounds() << ", "
+     << bc.atUpperBounds() << "]";
+  return os;
+}
 
 /** \f$ k \in {LT, LEQ, EQ, GEQ, GT} \f$ */
 inline bool isRelationOperator(Kind k){

@@ -276,13 +276,14 @@ Result::Sat SimplexDecisionProcedure::dualFindModel(bool exactResult){
 Node SimplexDecisionProcedure::checkBasicForConflict(ArithVar basic){
 
   Assert(d_tableau.isBasic(basic));
+  d_linEq.countBounds(basic);
 
   if(d_variables.cmpAssignmentLowerBound(basic) < 0){
     // ArithVar x_j = d_linEq.anySlackUpperBound(basic);
     // if(x_j == ARITHVAR_SENTINEL ){
     //   return d_linEq.generateConflictBelowLowerBound(basic);
     // }
-    if(d_linEq.nonbasicsAtLowerBounds(basic)){
+    if(d_linEq.nonbasicsAtUpperBounds(basic)){
       return d_linEq.generateConflictBelowLowerBound(basic);
     }
   }else if(d_variables.cmpAssignmentUpperBound(basic) > 0){
@@ -290,7 +291,7 @@ Node SimplexDecisionProcedure::checkBasicForConflict(ArithVar basic){
     // if(x_j == ARITHVAR_SENTINEL ){
     //   return d_linEq.generateConflictAboveUpperBound(basic);
     // }
-    if(d_linEq.nonbasicsAtUpperBounds(basic)){
+    if(d_linEq.nonbasicsAtLowerBounds(basic)){
       return d_linEq.generateConflictAboveUpperBound(basic);
     }
   }

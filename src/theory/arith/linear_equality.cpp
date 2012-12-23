@@ -110,6 +110,14 @@ void LinearEqualityModule::pivotAndUpdate(ArithVar x_i, ArithVar x_j, const Delt
 
   TimerStat::CodeTimer codeTimer(d_statistics.d_pivotTime);
 
+  static int instance = 0;
+
+  if(Debug.isOn("arith::tracking::pre")){
+    ++instance;
+    Debug("arith::tracking")  << "pre update #" << instance << endl;
+    debugCheckTracking();
+  }
+
   if(Debug.isOn("arith::simplex:row")){ debugPivot(x_i, x_j); }
 
   RowIndex ridx = d_tableau.basicToRowIndex(x_i);
@@ -164,15 +172,61 @@ void LinearEqualityModule::pivotAndUpdate(ArithVar x_i, ArithVar x_j, const Delt
     }
   }
 
+  if(Debug.isOn("arith::tracking::mid")){
+    Debug("arith::tracking")  << "postupdate prepivot #" << instance << endl;
+    debugCheckTracking();
+  }
+
   // Pivots
   ++(d_statistics.d_statPivots);
 
   d_tableau.pivot(x_i, x_j, d_trackCallback);
 
+  if(Debug.isOn("arith::tracking::post")){
+    Debug("arith::tracking")  << "postpivot #" << instance << endl;
+    debugCheckTracking();
+  }
+
   d_basicVariableUpdates(x_j);
 
   if(Debug.isOn("matrix")){
     d_tableau.printMatrix();
+  }
+}
+void LinearEqualityModule::debugCheckTracking(){
+  Tableau::BasicIterator basicIter = d_tableau.beginBasic(),
+    endIter = d_tableau.endBasic();
+  for(; basicIter != endIter; ++basicIter){
+    ArithVar basic = *basicIter;
+    Debug("arith::tracking") << "arith::tracking row basic: " << basic << endl;
+
+    for(Tableau::RowIterator iter = d_tableau.basicRowIterator(basic); !iter.atEnd() && Debug.isOn("arith::tracking"); ++iter){
+      const Tableau::Entry& entry = *iter;
+
+      ArithVar var = entry.getColVar();
+      const Rational& coeff = entry.getCoefficient();
+      DeltaRational beta = d_variables.getAssignment(var);
+      Debug("arith::tracking") << var << " " << d_variables.boundCounts(var)
+                               << " " << beta << coeff;
+      if(d_variables.hasLowerBound(var)){
+        Debug("arith::tracking") << "(lb " << d_variables.getLowerBound(var) << ")";
+      }
+      if(d_variables.hasUpperBound(var)){
+        Debug("arith::tracking") << "(up " << d_variables.getUpperBound(var) << ")";
+      }
+      Debug("arith::tracking") << endl;
+      
+    }
+    Debug("arith::tracking") << "end row"<< endl;
+
+    if(basicIsTracked(basic)){
+      BoundCounts computed = computeBoundCounts(basic);
+      Debug("arith::tracking")
+        << "computed " << computed
+        << " tracking " << d_boundTracking[basic] << endl;
+      Assert(computed == d_boundTracking[basic]);
+      
+    }
   }
 }
 
@@ -541,7 +595,7 @@ BoundCounts LinearEqualityModule::computeBoundCounts(ArithVar x_i) const{
   return counts;
 }
 
-BoundCounts LinearEqualityModule::countBounds(ArithVar x_i) const{
+BoundCounts LinearEqualityModule::cachingCountBounds(ArithVar x_i) const{
   if(d_boundTracking.isKey(x_i)){
     return d_boundTracking[x_i];
   }else{
@@ -549,42 +603,55 @@ BoundCounts LinearEqualityModule::countBounds(ArithVar x_i) const{
   }
 }
 
+BoundCounts LinearEqualityModule::countBounds(ArithVar x_i){
+  if(d_boundTracking.isKey(x_i)){
+    return d_boundTracking[x_i];
+  }else{
+    BoundCounts bc = computeBoundCounts(x_i);
+    if(d_areTracking){
+      d_boundTracking.set(x_i,bc);
+    }
+    return bc;
+  }
+}
+
 bool LinearEqualityModule::nonbasicsAtLowerBounds(ArithVar x_i) const {
-  BoundCounts bcs = countBounds(x_i);
+  BoundCounts bcs = cachingCountBounds(x_i);
   RowIndex ridx = d_tableau.basicToRowIndex(x_i);
   uint32_t length = d_tableau.getRowLength(ridx);
 
-  return bcs.atLowerBounds() == length;
+  return bcs.atLowerBounds() + 1 == length;
 }
 
 bool LinearEqualityModule::nonbasicsAtUpperBounds(ArithVar x_i) const {
-  BoundCounts bcs = countBounds(x_i);
+  BoundCounts bcs = cachingCountBounds(x_i);
   RowIndex ridx = d_tableau.basicToRowIndex(x_i);
   uint32_t length = d_tableau.getRowLength(ridx);
 
-  return bcs.atUpperBounds() == length;
+  return bcs.atUpperBounds() + 1 == length;
 }
 void LinearEqualityModule::trackingSwap(ArithVar basic, ArithVar nb, int nbSgn) {
-  if(basicIsTracked(basic)){
-    // z = a * x + \sum b y
-    // x = (1/a) z + \sum (1/a) b y
-    // basicCount(z) = bc(a*x) +  bc(\sum b y)
-    // basicCount(x) = bc(z/a) + bc(1/a * \sum b y)
-    // sgn(1/a) = sgn(a)
-    // bc(a*x) = bc(x).multiply(sgn(a))
-    // bc(1/a z) = bc(z).multiply(sgn(a))
-    // bc(1/a \sum b y) = bc(\sum b y).multiplyBySgn(sgn(a))
-    // bc(\sum b y) = basicCount(z) - bc(a*x)
-    // basicCount(x) =
-    //  = bc(z).multiply(sgn(a)) + (basicCount(z) - bc(a*x)).multiplyBySgn(sgn(a))
-    //  = ((basicCount(z) - bc(a*x)) + bc(z)).multiplyBySgn(sgn(a))
+  Assert(basicIsTracked(basic));
 
-    BoundCounts bc = d_boundTracking[basic];
-    bc -= (d_variables.boundCounts(nb)).multiplyBySgn(nbSgn);
-    bc += d_variables.boundCounts(basic);
-    d_boundTracking.set(nb, bc.multiplyBySgn(nbSgn));
-    d_boundTracking.remove(basic);
-  }
+  // z = a*x + \sum b*y
+  // x = (1/a) z + \sum (-1/a)*b*y
+  // basicCount(z) = bc(a*x) +  bc(\sum b y)
+  // basicCount(x) = bc(z/a) + bc(\sum -b/a * y)
+
+  // sgn(1/a) = sgn(a)
+  // bc(a*x) = bc(x).multiply(sgn(a))
+  // bc(z/a) = bc(z).multiply(sgn(a))
+  // bc(\sum -b/a * y) = bc(\sum b y).multiplyBySgn(-sgn(a))
+  // bc(\sum b y) = basicCount(z) - bc(a*x)
+  // basicCount(x) =
+  //  = bc(z).multiply(sgn(a)) + (basicCount(z) - bc(a*x)).multiplyBySgn(-sgn(a))
+
+  BoundCounts bc = d_boundTracking[basic];
+  bc -= (d_variables.boundCounts(nb)).multiplyBySgn(nbSgn);
+  bc = bc.multiplyBySgn(-nbSgn);
+  bc += d_variables.boundCounts(basic).multiplyBySgn(nbSgn);
+  d_boundTracking.set(nb, bc);
+  d_boundTracking.remove(basic);
 }
 
 void LinearEqualityModule::trackingCoefficientChange(RowIndex ridx, ArithVar nb, int oldSgn, int currSgn){

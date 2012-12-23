@@ -77,7 +77,9 @@ void Tableau::rowPivot(ArithVar basicOld, ArithVar basicNew, CoefficientChangeCa
   Assert(newBasicID != ENTRYID_SENTINEL);
 
   Tableau::Entry& newBasicEntry = d_entries.get(newBasicID);
-  Rational negInverseA_rs = -(newBasicEntry.getCoefficient().inverse());
+  const Rational& a_rs = newBasicEntry.getCoefficient();
+  int a_rs_sgn = a_rs.sgn();
+  Rational negInverseA_rs = -(a_rs.inverse());
 
   for(RowIterator i = basicRowIterator(basicOld); !i.atEnd(); ++i){
     EntryID id = i.getID();
@@ -86,11 +88,11 @@ void Tableau::rowPivot(ArithVar basicOld, ArithVar basicNew, CoefficientChangeCa
     entry.getCoefficient() *=  negInverseA_rs;
   }
 
-  cb.swap(basicOld, basicNew, -(negInverseA_rs.sgn()) );
-
   d_basic2RowIndex.remove(basicOld);
   d_basic2RowIndex.set(basicNew, rid);
   d_rowIndex2basic.set(rid, basicNew);
+
+  cb.swap(basicOld, basicNew, a_rs_sgn);
 }
 
 

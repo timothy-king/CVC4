@@ -219,8 +219,8 @@ public:
   }
 
   BoundCounts computeBoundCounts(ArithVar x_i) const;
-
-  BoundCounts countBounds(ArithVar x_i) const;
+  BoundCounts cachingCountBounds(ArithVar x_i) const;
+  BoundCounts countBounds(ArithVar x_i);
   void trackingCoefficientChange(RowIndex ridx, ArithVar nb, int oldSgn, int currSgn);
 
   void trackingSwap(ArithVar basic, ArithVar nb, int sgn);
@@ -287,6 +287,8 @@ public:
    * This code is for debugging.
    */
   void debugCheckTableau();
+
+  void debugCheckTracking();
 
   /** Debugging information for a pivot. */
   void debugPivot(ArithVar x_i, ArithVar x_j);
