@@ -90,6 +90,7 @@ private:
   // There must be NO outstanding assertions 
   std::vector<ArithVar> d_pool;
   std::list<ArithVar> d_released;
+  std::list<ArithVar>::iterator d_releasedIterator;
 
   // Reverse Map from Node to ArithVar
   // Inverse of d_vars[x].d_node
@@ -326,6 +327,18 @@ public:
     return cmpToUpperBound(x, c) >= 0;
   }
 
+  inline int cmpAssignmentLowerBound(ArithVar x) const{
+    return d_vars[x].d_cmpAssignmentLB;
+  }
+  inline int cmpAssignmentUpperBound(ArithVar x) const{
+    return d_vars[x].d_cmpAssignmentUB;
+  }
+
+  BoundCounts boundCounts(ArithVar x) const {
+    uint32_t lbIndc = (cmpAssignmentLowerBound(x) == 0) ? 1 : 0;
+    uint32_t ubIndc = (cmpAssignmentUpperBound(x) == 0) ? 1 : 0;
+    return BoundCounts(lbIndc, ubIndc);
+  }
 
   bool strictlyBelowUpperBound(ArithVar x) const;
   bool strictlyAboveLowerBound(ArithVar x) const;

@@ -33,6 +33,7 @@ ArithVariables::ArithVariables(context::Context* c, RationalCallBack& deltaCompu
    d_numberOfVariables(0),
    d_pool(),
    d_released(),
+   d_releasedIterator(d_released.begin()),
    d_nodeToArithVarMap(),
    d_lbRevertHistory(c, true, LowerBoundCleanUp(this)),
    d_ubRevertHistory(c, true, UpperBoundCleanUp(this)),
@@ -122,19 +123,21 @@ void ArithVariables::VarInfo::setLowerBound(Constraint lb){
 }
 
 void ArithVariables::attemptToReclaimReleased(){
-  std::list<ArithVar>::iterator i = d_released.begin();
   std::list<ArithVar>::iterator i_end = d_released.end(); 
-  for(int iter = 0; iter < 20 && i != i_end; ++iter){
-    ArithVar v = *i;
+  for(int iter = 0; iter < 20 && d_releasedIterator != i_end; ++d_releasedIterator){
+    ArithVar v = *d_releasedIterator;
     VarInfo& vi = d_vars.get(v);
     if(vi.canBeReclaimed()){
       d_pool.push_back(v);
-      std::list<ArithVar>::iterator curr = i;
-      ++i;
+      std::list<ArithVar>::iterator curr = d_releasedIterator;
+      ++d_releasedIterator;
       d_released.erase(curr);
     }else{
-      ++i;
+      ++d_releasedIterator;
     }
+  }
+  if(d_releasedIterator == i_end){
+    d_releasedIterator = d_released.begin();
   }
 }
 

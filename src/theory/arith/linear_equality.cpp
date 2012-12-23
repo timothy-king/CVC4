@@ -30,6 +30,13 @@ template void LinearEqualityModule::propagateNonbasics<false>(ArithVar basic, Co
 template ArithVar LinearEqualityModule::selectSlack<true>(ArithVar x_i, PreferenceFunction pf) const;
 template ArithVar LinearEqualityModule::selectSlack<false>(ArithVar x_i, PreferenceFunction pf) const;
 
+LinearEqualityModule::LinearEqualityModule(ArithVariables& vars, Tableau& t, ArithVarCallBack& f):
+  d_variables(vars),
+  d_tableau(t),
+  d_basicVariableUpdates(f),
+  d_trackCallback(this)
+{}
+
 LinearEqualityModule::Statistics::Statistics():
   d_statPivots("theory::arith::pivots",0),
   d_statUpdates("theory::arith::updates",0),
@@ -64,8 +71,12 @@ LinearEqualityModule::Statistics::~Statistics(){
 
 void LinearEqualityModule::update(ArithVar x_i, const DeltaRational& v){
   Assert(!d_tableau.isBasic(x_i));
-  DeltaRational assignment_x_i = d_variables.getAssignment(x_i);
+  const DeltaRational& assignment_x_i = d_variables.getAssignment(x_i);
   ++(d_statistics.d_statUpdates);
+
+  if(d_areTracking){
+    Unimplemented();
+  }
 
   Debug("arith") <<"update " << x_i << ": "
                  << assignment_x_i << "|-> " << v << endl;
@@ -113,13 +124,22 @@ void LinearEqualityModule::pivotAndUpdate(ArithVar x_i, ArithVar x_j, const Delt
 
   Rational inv_aij = a_ij.inverse();
   DeltaRational theta = (v - betaX_i)*inv_aij;
-
   d_variables.setAssignment(x_i, v);
 
+  Assert(inv_aij.sgn() != 0);
+
+  Assert(d_areTracking);
+  BoundCounts bc_i = countBounds(x_i);
+  BoundCounts before = (d_variables.boundCounts(x_j));
 
   DeltaRational tmp = d_variables.getAssignment(x_j) + theta;
   d_variables.setAssignment(x_j, tmp);
 
+  BoundCounts after = (d_variables.boundCounts(x_j));
+  
+  BoundCounts next_bc_i = (bc_i - before.multiplyBySgn(a_ij.sgn()))
+    + after.multiplyBySgn(a_ij.sgn());
+  d_boundTracking.set(x_i, next_bc_i);
 
   //Assert(matchingSets(d_tableau, x_j));
   for(Tableau::ColIterator iter = d_tableau.colIterator(x_j); !iter.atEnd(); ++iter){
@@ -133,13 +153,21 @@ void LinearEqualityModule::pivotAndUpdate(ArithVar x_i, ArithVar x_j, const Delt
       d_variables.setAssignment(x_k, nextAssignment);
 
       d_basicVariableUpdates(x_k);
+
+      if(basicIsTracked(x_k)){
+        BoundCounts next_bc_k = d_boundTracking[x_k];
+        next_bc_k -= before.multiplyBySgn(a_kj.sgn());
+        next_bc_k += after.multiplyBySgn(a_kj.sgn());
+        
+        d_boundTracking.set(x_k, next_bc_k);
+      }
     }
   }
 
   // Pivots
   ++(d_statistics.d_statPivots);
 
-  d_tableau.pivot(x_i, x_j);
+  d_tableau.pivot(x_i, x_j, d_trackCallback);
 
   d_basicVariableUpdates(x_j);
 
@@ -147,7 +175,6 @@ void LinearEqualityModule::pivotAndUpdate(ArithVar x_i, ArithVar x_j, const Delt
     d_tableau.printMatrix();
   }
 }
-
 
 void LinearEqualityModule::debugPivot(ArithVar x_i, ArithVar x_j){
   Debug("arith::pivot") << "debugPivot("<< x_i  <<"|->"<< x_j << ")" << endl;
@@ -481,6 +508,95 @@ ArithVar LinearEqualityModule::selectSlack(ArithVar x_i, PreferenceFunction pref
   return slack;
 }
 
+void LinearEqualityModule::startTrackingBoundCounts(){
+  Assert(!d_areTracking);
+  Assert(d_boundTracking.empty());
+
+  d_areTracking = true;
+  Assert(d_areTracking);
+}
+
+void LinearEqualityModule::stopTrackingBoundCounts(){
+  Assert(d_areTracking);
+  d_boundTracking.purge();
+
+  d_areTracking = false;
+  Assert(!d_areTracking);
+  Assert(d_boundTracking.empty());
+}
+
+
+BoundCounts LinearEqualityModule::computeBoundCounts(ArithVar x_i) const{
+  BoundCounts counts(0,0);
+
+  for(Tableau::RowIterator iter = d_tableau.basicRowIterator(x_i); !iter.atEnd();  ++iter){
+    const Tableau::Entry& entry = *iter;
+    ArithVar nonbasic = entry.getColVar();
+    if(nonbasic == x_i) continue;
+
+    const Rational& a_ij = entry.getCoefficient();
+    counts += (d_variables.boundCounts(nonbasic)).multiplyBySgn(a_ij.sgn());
+  }
+
+  return counts;
+}
+
+BoundCounts LinearEqualityModule::countBounds(ArithVar x_i) const{
+  if(d_boundTracking.isKey(x_i)){
+    return d_boundTracking[x_i];
+  }else{
+    return computeBoundCounts(x_i);
+  }
+}
+
+bool LinearEqualityModule::nonbasicsAtLowerBounds(ArithVar x_i) const {
+  BoundCounts bcs = countBounds(x_i);
+  RowIndex ridx = d_tableau.basicToRowIndex(x_i);
+  uint32_t length = d_tableau.getRowLength(ridx);
+
+  return bcs.atLowerBounds() == length;
+}
+
+bool LinearEqualityModule::nonbasicsAtUpperBounds(ArithVar x_i) const {
+  BoundCounts bcs = countBounds(x_i);
+  RowIndex ridx = d_tableau.basicToRowIndex(x_i);
+  uint32_t length = d_tableau.getRowLength(ridx);
+
+  return bcs.atUpperBounds() == length;
+}
+void LinearEqualityModule::trackingSwap(ArithVar basic, ArithVar nb, int nbSgn) {
+  if(basicIsTracked(basic)){
+    // z = a * x + \sum b y
+    // x = (1/a) z + \sum (1/a) b y
+    // basicCount(z) = bc(a*x) +  bc(\sum b y)
+    // basicCount(x) = bc(z/a) + bc(1/a * \sum b y)
+    // sgn(1/a) = sgn(a)
+    // bc(a*x) = bc(x).multiply(sgn(a))
+    // bc(1/a z) = bc(z).multiply(sgn(a))
+    // bc(1/a \sum b y) = bc(\sum b y).multiplyBySgn(sgn(a))
+    // bc(\sum b y) = basicCount(z) - bc(a*x)
+    // basicCount(x) =
+    //  = bc(z).multiply(sgn(a)) + (basicCount(z) - bc(a*x)).multiplyBySgn(sgn(a))
+    //  = ((basicCount(z) - bc(a*x)) + bc(z)).multiplyBySgn(sgn(a))
+
+    BoundCounts bc = d_boundTracking[basic];
+    bc -= (d_variables.boundCounts(nb)).multiplyBySgn(nbSgn);
+    bc += d_variables.boundCounts(basic);
+    d_boundTracking.set(nb, bc.multiplyBySgn(nbSgn));
+    d_boundTracking.remove(basic);
+  }
+}
+
+void LinearEqualityModule::trackingCoefficientChange(RowIndex ridx, ArithVar nb, int oldSgn, int currSgn){
+  ArithVar basic = d_tableau.rowIndexToBasic(ridx);
+  if(basicIsTracked(basic)){
+    BoundCounts nb_bc = d_variables.boundCounts(nb);
+    BoundCounts basic_bc = d_boundTracking[basic];
+    basic_bc -= nb_bc.multiplyBySgn(oldSgn);
+    basic_bc += nb_bc.multiplyBySgn(currSgn);
+    d_boundTracking.set(basic, basic_bc);
+  }  
+}
 
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */

@@ -41,6 +41,7 @@ namespace CVC4 {
 namespace theory {
 namespace arith {
 
+
 class LinearEqualityModule {
 public:
   typedef ArithVar (LinearEqualityModule::*PreferenceFunction)(ArithVar, ArithVar) const;
@@ -58,17 +59,13 @@ private:
   /** Called whenever the value of a basic variable is updated. */
   ArithVarCallBack& d_basicVariableUpdates;
 
-
-
 public:
 
   /**
    * Initializes a LinearEqualityModule with a partial model, a tableau,
    * and a callback function for when basic variables update their values.
    */
-  LinearEqualityModule(ArithVariables& vars, Tableau& t, ArithVarCallBack& f):
-    d_variables(vars), d_tableau(t), d_basicVariableUpdates(f)
-  {}
+  LinearEqualityModule(ArithVariables& vars, Tableau& t, ArithVarCallBack& f);
 
   /**
    * Updates the assignment of a nonbasic variable x_i to v.
@@ -96,7 +93,17 @@ public:
     return hasBounds(basic, true);
   }
 
+
+  void startTrackingBoundCounts();
+  void stopTrackingBoundCounts();
+
 private:
+
+  // RowIndex -> BoundCount
+  typedef DenseMap<BoundCounts> BoundCountingVector;
+  BoundCountingVector d_boundTracking;
+  bool d_areTracking;
+
   /**
    * Exports either the explanation of an upperbound or a lower bound
    * of the basic variable basic, using the non-basic variables in the row.
@@ -207,20 +214,50 @@ public:
     return selectSlack<false>(x_i, pf);
   }
 
-  ArithVar anySlackLowerBound(ArithVar x_i) const {
+  inline bool basicIsTracked(ArithVar v) const {
+    return d_boundTracking.isKey(v);
+  }
+
+  BoundCounts computeBoundCounts(ArithVar x_i) const;
+
+  BoundCounts countBounds(ArithVar x_i) const;
+  void trackingCoefficientChange(RowIndex ridx, ArithVar nb, int oldSgn, int currSgn);
+
+  void trackingSwap(ArithVar basic, ArithVar nb, int sgn);
+
+
+  bool nonbasicsAtLowerBounds(ArithVar x_i) const;
+  bool nonbasicsAtUpperBounds(ArithVar x_i) const;
+
+  ArithVar _anySlackLowerBound(ArithVar x_i) const {
     return selectSlack<true>(x_i, &LinearEqualityModule::noPreference);
   }
-  ArithVar anySlackUpperBound(ArithVar x_i) const {
+  ArithVar _anySlackUpperBound(ArithVar x_i) const {
     return selectSlack<false>(x_i, &LinearEqualityModule::noPreference);
   }
 
 private:
+  class TrackingCallback : public CoefficientChangeCallback {
+  private:
+    LinearEqualityModule* d_linEq;
+  public:
+    TrackingCallback(LinearEqualityModule* le) : d_linEq(le) {}
+    void update(ArithVar basic, ArithVar nb, int oldSgn, int currSgn){
+      d_linEq->trackingCoefficientChange(basic, nb, oldSgn, currSgn);
+    }
+    void swap(ArithVar basic, ArithVar nb, int oldNbSgn){
+      d_linEq->trackingSwap(basic, nb, oldNbSgn);
+    }
+
+ } d_trackCallback;
+
   /**
    * Selects the constraint for the variable v on the row for basic
    * with the weakest possible constraint that is consistent with the surplus
    * surplus.
    */
-  Constraint weakestExplanation(bool aboveUpper, DeltaRational& surplus, ArithVar v, const Rational& coeff, bool& anyWeakening, ArithVar basic) const;
+  Constraint weakestExplanation(bool aboveUpper, DeltaRational& surplus, ArithVar v,
+                                const Rational& coeff, bool& anyWeakening, ArithVar basic) const;
 
 public:
   /**

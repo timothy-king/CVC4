@@ -1245,22 +1245,15 @@ void TheoryArith::asVectors(const Polynomial& p, std::vector<Rational>& coeffs, 
  */
 void TheoryArith::setupBasicValue(ArithVar x){
   Assert(d_tableau.isBasic(x));
+  //If the variable is basic, assertions may have already happened and updates
+  //may have occured before setting this variable up.
 
-  // if(!d_tableau.isBasic(x)){
-  //   d_partialModel.setAssignment(x, d_DELTA_ZERO, d_DELTA_ZERO);
-  // }else{
-    //If the variable is basic, assertions may have already happened and updates
-    //may have occured before setting this variable up.
+  //This can go away if the tableau creation is done at preregister
+  //time instead of register
+  DeltaRational safeAssignment = d_linEq.computeRowValue(x, true);
+  DeltaRational assignment = d_linEq.computeRowValue(x, false);
+  d_partialModel.setAssignment(x,safeAssignment,assignment);
 
-    //This can go away if the tableau creation is done at preregister
-    //time instead of register
-    DeltaRational safeAssignment = d_linEq.computeRowValue(x, true);
-    DeltaRational assignment = d_linEq.computeRowValue(x, false);
-    //d_partialModel.initialize(x,safeAssignment);
-    //d_partialModel.setAssignment(x,assignment);
-    d_partialModel.setAssignment(x,safeAssignment,assignment);
-
-    //  }
   Debug("arith") << "setupVariable("<<x<<")"<<std::endl;
 }
 
@@ -1303,8 +1296,8 @@ Node TheoryArith::dioCutting(){
   for(var_iterator vi = var_begin(), vend = var_end(); vi != vend; ++vi){
     ArithVar v = *vi;
     if(isInteger(v)){
-      const DeltaRational& dr = d_partialModel.getAssignment(v);
-      if(d_partialModel.equalsUpperBound(v, dr) || d_partialModel.equalsLowerBound(v, dr)){
+      if(d_partialModel.cmpAssignmentUpperBound(v) == 0 ||
+         d_partialModel.cmpAssignmentLowerBound(v) == 0){
         if(!d_partialModel.boundsAreEqual(v)){
           // If the bounds are equal this is already in the dioSolver
           //Add v = dr as a speculation.
@@ -1623,7 +1616,10 @@ void TheoryArith::check(Effort effortLevel){
   bool emmittedConflictOrSplit = false;
   Assert(d_conflicts.empty());
 
+  d_linEq.startTrackingBoundCounts();
   d_qflraStatus = d_simplex.dualFindModel(fullEffort(effortLevel));
+  // TODO Save zeroes with no conflicts
+  d_linEq.stopTrackingBoundCounts();
 
   switch(d_qflraStatus){
   case Result::SAT:

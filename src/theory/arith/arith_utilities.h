@@ -66,39 +66,67 @@ enum ArithType {
 inline ArithType nodeToArithType(TNode x) {
   return (x.getType().isInteger() ? ATInteger : ATReal);
 }
-/* enum BoundsAsserted { */
-/*   NoBoundAsserted = 0x0, */
-/*   LowerBoundAsserted = 0x1, */
-/*   UpperBoundAsserted = 0x2, */
-/*   BothAsserted = 0x3 */
-/* }; */
 
-/* inline BoundsAsserted boundsUnion(BoundsAsserted a, BoundsAsserted b){ */
-/*   return (BoundsAsserted)(a | b); */
-/* } */
+/**
+ * x = \sum_{a < 0} a_i i + \sum_{b > 0} b_j j
+ *
+ * AtUpperBound = {assignment(i) = lb(i)} \cup {assignment(j) = ub(j)}
+ * AtLowerBound = {assignment(i) = ub(i)} \cup {assignment(j) = lb(j)}
+ */
+class BoundCounts {
+private:
+  uint32_t d_atLowerBounds;
+  uint32_t d_atUpperBounds;
 
-/* inline BoundsAsserted boundsIntersection(BoundsAsserted a, BoundsAsserted b){ */
-/*   return (BoundsAsserted)(a & b); */
-/* } */
+public:
+  BoundCounts() : d_atLowerBounds(0), d_atUpperBounds(0) {}
+  BoundCounts(uint32_t lbs, uint32_t ubs)
+  : d_atLowerBounds(lbs), d_atUpperBounds(ubs) {}
 
-/* inline bool hasLowerBound(BoundsAsserted a){ */
-/*   return boundsIntersection(a, LowerBoundAsserted) != NoBoundAsserted; */
-/* } */
+  inline uint32_t atLowerBounds() const{
+    return d_atLowerBounds;
+  }
+  inline uint32_t atUpperBounds() const{
+    return d_atUpperBounds;
+  }
 
-/* inline bool hasUpperBound(BoundsAsserted a){ */
-/*   return boundsIntersection(a, UpperBoundAsserted) != NoBoundAsserted; */
-/* } */
+  inline BoundCounts operator+(BoundCounts bc) const{
+    return BoundCounts(d_atUpperBounds + bc.d_atUpperBounds,
+                       d_atLowerBounds + bc.d_atLowerBounds);
+  }
 
-/* enum BoundAssignmentRelation { */
-/*   Undefined = 0x00, */
-/*   BelowLowerBound = 0x11, */
-/*   AboveUpperBound = 0x12, */
-/*   BetweenBounds = 0x20, */
-/*   AtLowerBound = 0x31, */
-/*   AtUpperBound = 0x32, */
-/*   AtBothBounds = 0x33  // AtBothBounds = AtLowerBound | AtUpperBound */
-/* }; */
+  inline BoundCounts operator-(BoundCounts bc) const {
+    Assert(d_atLowerBounds >= bc.d_atLowerBounds);
+    Assert(d_atUpperBounds >= bc.d_atUpperBounds);
+    return BoundCounts( d_atUpperBounds - bc.d_atUpperBounds,
+                        d_atLowerBounds - bc.d_atLowerBounds);
+  }
 
+  inline BoundCounts& operator+=(BoundCounts bc) {
+    d_atUpperBounds += bc.d_atUpperBounds;
+    d_atLowerBounds += bc.d_atLowerBounds;
+    return *this;
+  }
+
+  inline BoundCounts& operator-=(BoundCounts bc) {
+    Assert(d_atLowerBounds >= bc.d_atLowerBounds);
+    Assert(d_atUpperBounds >= bc.d_atUpperBounds);
+    d_atUpperBounds -= bc.d_atUpperBounds;
+    d_atLowerBounds -= bc.d_atLowerBounds;
+
+    return *this;
+  }
+
+  inline BoundCounts multiplyBySgn(int sgn) const{
+    if(sgn > 0){
+      return *this;
+    }else if(sgn == 0){
+      return BoundCounts(0,0);
+    }else{
+      return BoundCounts(d_atUpperBounds, d_atLowerBounds);
+    }
+  }  
+};
 
 
 /** \f$ k \in {LT, LEQ, EQ, GEQ, GT} \f$ */

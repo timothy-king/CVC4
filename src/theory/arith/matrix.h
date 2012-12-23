@@ -42,6 +42,18 @@ const EntryID ENTRYID_SENTINEL = std::numeric_limits<EntryID>::max();
 typedef Index RowIndex;
 const RowIndex ROW_INDEX_SENTINEL  = std::numeric_limits<RowIndex>::max();
 
+class CoefficientChangeCallback {
+public:
+  virtual void update(RowIndex basic, ArithVar nb, int oldSgn, int currSgn) = 0;
+  virtual void swap(ArithVar basic, ArithVar nb, int nbSgn) = 0;
+};
+
+class NoEffectCCCB : public CoefficientChangeCallback {
+public:
+  void update(RowIndex ridx, ArithVar nb, int oldSgn, int currSgn);
+  void swap(ArithVar basic, ArithVar nb, int nbSgn);
+};
+
 template<class T>
 class MatrixEntry {
 private:
@@ -549,7 +561,7 @@ public:
   }
 
   /**  to += mult * buffer. */
-  void rowPlusBufferTimesConstant(RowIndex to, const T& mult){
+  void rowPlusBufferTimesConstant(RowIndex to, const T& mult, CoefficientChangeCallback& cb){
     Assert(d_rowInMergeBuffer != ROW_INDEX_SENTINEL);
     Assert(to != ROW_INDEX_SENTINEL);
 
@@ -578,9 +590,15 @@ public:
         d_mergeBuffer.get(colVar).second = true;
 
         const Entry& other = d_entries.get(bufferEntry);
-        entry.getCoefficient() += mult * other.getCoefficient();
+        T& coeff = entry.getCoefficient();
+        int coeffOldSgn = coeff.sgn();
+        coeff += mult * other.getCoefficient();
+        int coeffNewSgn = coeff.sgn();
 
-        if(entry.getCoefficient() == d_zero){
+        cb.update(to, colVar, coeffOldSgn,  coeffNewSgn);
+
+
+        if(coeffNewSgn == 0){
           removeEntry(id);
         }
       }
@@ -599,6 +617,8 @@ public:
         Assert(!(d_mergeBuffer[colVar]).second);
         T newCoeff =  mult * entry.getCoefficient();
         addEntry(to, colVar, newCoeff);
+
+        cb.update(to, colVar, 0,  newCoeff.sgn());
       }
     }
 
@@ -689,22 +709,6 @@ public:
   void printEntry(const MatrixEntry<T>& entry) const {
     Debug("matrix") << entry.getColVar() << "*" << entry.getCoefficient();
   }
-
-
-protected:
-
-  // static bool bufferPairIsNotEmpty(const PosUsedPair& p){
-  //   return !(p.first == ENTRYID_SENTINEL && p.second == false);
-  // }
-
-  // static bool bufferPairIsEmpty(const PosUsedPair& p){
-  //   return (p.first == ENTRYID_SENTINEL && p.second == false);
-  // }
-  // bool mergeBufferIsEmpty() const {
-  //   return d_mergeBuffer.end() == std::find_if(d_mergeBuffer.begin(),
-  //                                              d_mergeBuffer.end(),
-  //                                              bufferPairIsNotEmpty);
-  // }
 
 public:
   uint32_t size() const {
@@ -841,22 +845,6 @@ private:
   typedef DenseMap<ArithVar> RowIndexToBasicMap;
   RowIndexToBasicMap d_rowIndex2basic;
 
-  typedef Index Instance;
-  Instance d_current;
-
-  void rolloverInstance();
-
-  void initializeInstance();
-
-  struct InstanceCount {
-    Instance d_inst;
-    uint32_t d_atLowerBounds;
-    uint32_t d_atUpperBounds;
-  };
-
-  // RowIndex -> InstanceCount
-  std::vector<InstanceCount> d_boundTracking;
-
 public:
 
   Tableau() : Matrix<Rational>(Rational(0)) {}
@@ -924,13 +912,13 @@ public:
    *   x_s is non-basic, and
    *   a_rs != 0.
    */
-  void pivot(ArithVar basicOld, ArithVar basicNew);
+  void pivot(ArithVar basicOld, ArithVar basicNew, CoefficientChangeCallback& cb);
 
   void removeBasicRow(ArithVar basic);
 
 private:
   /* Changes the basic variable on the row for basicOld to basicNew. */
-  void rowPivot(ArithVar basicOld, ArithVar basicNew);
+  void rowPivot(ArithVar basicOld, ArithVar basicNew, CoefficientChangeCallback& cb);
 
 };/* class Tableau */
 

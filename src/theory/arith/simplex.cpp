@@ -168,6 +168,7 @@ Result::Sat SimplexDecisionProcedure::dualFindModel(bool exactResult){
       result = Result::UNSAT;
     }
   }
+
   static const bool verbose = false;
   exactResult |= options::arithStandardCheckVarOrderPivots() < 0;
   const uint32_t inexactResultsVarOrderPivots = exactResult ? 0 : options::arithStandardCheckVarOrderPivots();
@@ -275,16 +276,21 @@ Result::Sat SimplexDecisionProcedure::dualFindModel(bool exactResult){
 Node SimplexDecisionProcedure::checkBasicForConflict(ArithVar basic){
 
   Assert(d_tableau.isBasic(basic));
-  const DeltaRational& beta = d_variables.getAssignment(basic);
 
-  if(d_variables.strictlyLessThanLowerBound(basic, beta)){
-    ArithVar x_j = d_linEq.anySlackUpperBound(basic);
-    if(x_j == ARITHVAR_SENTINEL ){
+  if(d_variables.cmpAssignmentLowerBound(basic) < 0){
+    // ArithVar x_j = d_linEq.anySlackUpperBound(basic);
+    // if(x_j == ARITHVAR_SENTINEL ){
+    //   return d_linEq.generateConflictBelowLowerBound(basic);
+    // }
+    if(d_linEq.nonbasicsAtLowerBounds(basic)){
       return d_linEq.generateConflictBelowLowerBound(basic);
     }
-  }else if(d_variables.strictlyGreaterThanUpperBound(basic, beta)){
-    ArithVar x_j = d_linEq.anySlackLowerBound(basic);
-    if(x_j == ARITHVAR_SENTINEL ){
+  }else if(d_variables.cmpAssignmentUpperBound(basic) > 0){
+    // ArithVar x_j = d_linEq.anySlackLowerBound(basic);
+    // if(x_j == ARITHVAR_SENTINEL ){
+    //   return d_linEq.generateConflictAboveUpperBound(basic);
+    // }
+    if(d_linEq.nonbasicsAtUpperBounds(basic)){
       return d_linEq.generateConflictAboveUpperBound(basic);
     }
   }
@@ -322,11 +328,11 @@ bool SimplexDecisionProcedure::searchForFeasibleSolution(uint32_t remainingItera
 
     LinearEqualityModule::PreferenceFunction pf = useVarOrderPivot ?
       &LinearEqualityModule::minVarOrder : &LinearEqualityModule::minBoundAndColLength;
-
-    DeltaRational beta_i = d_variables.getAssignment(x_i);
+    
+    //DeltaRational beta_i = d_variables.getAssignment(x_i);
     ArithVar x_j = ARITHVAR_SENTINEL;
 
-    if(d_variables.strictlyLessThanLowerBound(x_i, beta_i)){
+    if(d_variables.cmpAssignmentLowerBound(x_i) < 0 ){
       x_j = d_linEq.selectSlackUpperBound(x_i, pf);
       if(x_j == ARITHVAR_SENTINEL ){
         ++(d_statistics.d_statUpdateConflicts);
@@ -335,10 +341,10 @@ bool SimplexDecisionProcedure::searchForFeasibleSolution(uint32_t remainingItera
         reportConflict(conflict);
         return true;
       }
-      DeltaRational l_i = d_variables.getLowerBound(x_i);
+      const DeltaRational& l_i = d_variables.getLowerBound(x_i);
       d_linEq.pivotAndUpdate(x_i, x_j, l_i);
 
-    }else if(d_variables.strictlyGreaterThanUpperBound(x_i, beta_i)){
+    }else if(d_variables.cmpAssignmentUpperBound(x_i) > 0){
       x_j = d_linEq.selectSlackLowerBound(x_i, pf);
       if(x_j == ARITHVAR_SENTINEL ){
         ++(d_statistics.d_statUpdateConflicts);
@@ -348,7 +354,7 @@ bool SimplexDecisionProcedure::searchForFeasibleSolution(uint32_t remainingItera
         reportConflict(conflict);
         return true;
       }
-      DeltaRational u_i = d_variables.getUpperBound(x_i);
+      const DeltaRational& u_i = d_variables.getUpperBound(x_i);
       d_linEq.pivotAndUpdate(x_i, x_j, u_i);
     }
     Assert(x_j != ARITHVAR_SENTINEL);
