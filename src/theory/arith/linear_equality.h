@@ -218,6 +218,11 @@ public:
     return d_boundTracking.isKey(v);
   }
 
+  void maybeTrackVariable(ArithVar x_i){
+    if(d_areTracking){
+      countBounds(x_i);
+    }
+  }
   BoundCounts computeBoundCounts(ArithVar x_i) const;
   BoundCounts cachingCountBounds(ArithVar x_i) const;
   BoundCounts countBounds(ArithVar x_i);

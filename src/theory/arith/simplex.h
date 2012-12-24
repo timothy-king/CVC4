@@ -107,6 +107,8 @@ private:
   /** Used for requesting d_opt, bound and error variables for primal.*/
   ArithVarMalloc& d_arithVarMalloc;
 
+  std::vector<ArithVar> d_recentlyViolated;
+
 public:
   SimplexDecisionProcedure(LinearEqualityModule& linEq, NodeCallBack& conflictChannel, ArithVarMalloc& variables);
 
@@ -114,9 +116,7 @@ public:
    * This must be called when the value of a basic variable may now voilate one
    * of its bounds.
    */
-  void updateBasic(ArithVar x){
-    d_queue.enqueueIfInconsistent(x);
-  }
+  void updateBasic(ArithVar x);
 
   /**
    * Tries to update the assignments of variables such that all of the
@@ -156,12 +156,6 @@ private:
   enum SearchPeriod {BeforeDiffSearch, DuringDiffSearch, AfterDiffSearch, DuringVarOrderSearch, AfterVarOrderSearch};
 
   bool findConflictOnTheQueue(SearchPeriod period);
-
-  /**
-   * Returns the smallest basic variable whose assignment is not consistent
-   * with its upper and lower bounds.
-   */
-  //ArithVar selectSmallestInconsistentVar();
 
 public:
   void increaseMax() { d_numVariables++; }
@@ -228,6 +222,7 @@ private:
     IntStat d_attemptAfterVarOrderSearch, d_successAfterVarOrderSearch;
 
     IntStat d_simplexConflicts;
+    IntStat d_recentViolationCatches;
 
     Statistics();
     ~Statistics();

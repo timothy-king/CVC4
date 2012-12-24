@@ -63,8 +63,6 @@ TheoryArith::TheoryArith(context::Context* c, context::UserContext* u, OutputCha
   d_unknownsInARow(0),
   d_hasDoneWorkSinceCut(false),
   d_learner(u),
-  //d_numberOfVariables(0),
-  //d_pool(),
   d_setupLiteralCallback(this),
   d_assertionsThatDoNotMatchTheirLiterals(c),
   d_nextIntegerCheckVar(0),
@@ -2318,17 +2316,6 @@ void TheoryArith::presolve(){
     Debug("arith::oldprop") << " lemma lemma duck " <<lem << endl;
     d_out->lemma(lem);
   }
-
-  // if(options::arithUnateLemmaMode() == Options::ALL_UNATE){
-  //   vector<Node> lemmas;
-  //   d_constraintDatabase.outputAllUnateLemmas(lemmas);
-  //   vector<Node>::const_iterator i = lemmas.begin(), i_end = lemmas.end();
-  //   for(; i != i_end; ++i){
-  //     Node lem = *i;
-  //     Debug("arith::oldprop") << " lemma lemma duck " <<lem << endl;
-  //     d_out->lemma(lem);
-  //   }
-  // }
 }
 
 EqualityStatus TheoryArith::getEqualityStatus(TNode a, TNode b) {

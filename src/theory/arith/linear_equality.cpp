@@ -160,8 +160,6 @@ void LinearEqualityModule::pivotAndUpdate(ArithVar x_i, ArithVar x_j, const Delt
       DeltaRational nextAssignment = d_variables.getAssignment(x_k) + (theta * a_kj);
       d_variables.setAssignment(x_k, nextAssignment);
 
-      d_basicVariableUpdates(x_k);
-
       if(basicIsTracked(x_k)){
         BoundCounts next_bc_k = d_boundTracking[x_k];
         next_bc_k -= before.multiplyBySgn(a_kj.sgn());
@@ -169,6 +167,8 @@ void LinearEqualityModule::pivotAndUpdate(ArithVar x_i, ArithVar x_j, const Delt
         
         d_boundTracking.set(x_k, next_bc_k);
       }
+
+      d_basicVariableUpdates(x_k);
     }
   }
 
