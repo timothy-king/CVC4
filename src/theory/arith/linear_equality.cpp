@@ -193,6 +193,7 @@ void LinearEqualityModule::pivotAndUpdate(ArithVar x_i, ArithVar x_j, const Delt
     d_tableau.printMatrix();
   }
 }
+
 void LinearEqualityModule::debugCheckTracking(){
   Tableau::BasicIterator basicIter = d_tableau.beginBasic(),
     endIter = d_tableau.endBasic();
@@ -630,6 +631,19 @@ bool LinearEqualityModule::nonbasicsAtUpperBounds(ArithVar x_i) const {
 
   return bcs.atUpperBounds() + 1 == length;
 }
+
+void LinearEqualityModule::trackingFinishedRow(RowIndex ridx){
+  ArithVar basic = d_tableau.rowIndexToBasic(ridx);
+  if(basicIsTracked(basic)){
+    uint32_t length = d_tableau.getRowLength(ridx);
+    BoundCounts bcs = d_boundTracking[basic];
+    if(bcs.atLowerBounds() + 1 == length ||
+       bcs.atUpperBounds() + 1 == length){
+      d_basicVariableUpdates(basic);
+    }
+  }
+}
+
 void LinearEqualityModule::trackingSwap(ArithVar basic, ArithVar nb, int nbSgn) {
   Assert(basicIsTracked(basic));
 

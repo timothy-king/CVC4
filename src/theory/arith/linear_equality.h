@@ -229,7 +229,7 @@ public:
   void trackingCoefficientChange(RowIndex ridx, ArithVar nb, int oldSgn, int currSgn);
 
   void trackingSwap(ArithVar basic, ArithVar nb, int sgn);
-
+  void trackingFinishedRow(RowIndex ridx);
 
   bool nonbasicsAtLowerBounds(ArithVar x_i) const;
   bool nonbasicsAtUpperBounds(ArithVar x_i) const;
@@ -253,7 +253,9 @@ private:
     void swap(ArithVar basic, ArithVar nb, int oldNbSgn){
       d_linEq->trackingSwap(basic, nb, oldNbSgn);
     }
-
+    void finishedRow(RowIndex ridx){
+      return d_linEq->trackingFinishedRow(ridx);
+    }
  } d_trackCallback;
 
   /**

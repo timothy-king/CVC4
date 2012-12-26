@@ -46,12 +46,14 @@ class CoefficientChangeCallback {
 public:
   virtual void update(RowIndex basic, ArithVar nb, int oldSgn, int currSgn) = 0;
   virtual void swap(ArithVar basic, ArithVar nb, int nbSgn) = 0;
+  virtual void finishedRow(RowIndex ridx) = 0;
 };
 
 class NoEffectCCCB : public CoefficientChangeCallback {
 public:
   void update(RowIndex ridx, ArithVar nb, int oldSgn, int currSgn);
   void swap(ArithVar basic, ArithVar nb, int nbSgn);
+  void finishedRow(RowIndex ridx);
 };
 
 template<class T>

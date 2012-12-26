@@ -25,6 +25,7 @@ namespace arith {
 
 void NoEffectCCCB::update(RowIndex ridx, ArithVar nb, int oldSgn, int currSgn) {}
 void NoEffectCCCB::swap(ArithVar basic, ArithVar nb, int nbSgn){}
+void NoEffectCCCB::finishedRow(RowIndex ridx){}
 
 void Tableau::pivot(ArithVar oldBasic, ArithVar newBasic, CoefficientChangeCallback& cb){
   Assert(isBasic(oldBasic));
@@ -50,8 +51,9 @@ void Tableau::pivot(ArithVar oldBasic, ArithVar newBasic, CoefficientChangeCallb
 
     RowIndex to = entry.getRowIndex();
     Rational coeff = entry.getCoefficient();
-
     rowPlusBufferTimesConstant(to, coeff, cb);
+
+    cb.finishedRow(to);
   }
   clearBuffer();
 

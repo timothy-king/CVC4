@@ -177,10 +177,9 @@ Result::Sat SimplexDecisionProcedure::dualFindModel(bool exactResult){
 
   if(d_queue.empty()){
     result = Result::SAT;
-  }else if(d_queue.size() > 1){
-    if(findConflictOnTheQueue(BeforeDiffSearch)){
-      result = Result::UNSAT;
-    }
+  }else if(findConflictOnTheQueue(BeforeDiffSearch)){
+    Debug("arith::earliest") << "earliest " << instance << endl;
+    result = Result::UNSAT;
   }
 
   static const bool verbose = false;
