@@ -9,7 +9,8 @@
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
- ** \brief This is an implementation of the Simplex Module for the Simplex for DPLL(T) decision procedure.
+ ** \brief This is an implementation of the Simplex Module for the Simplex for DPLL(T)
+ ** decision procedure.
  **
  ** This implements the Simplex module for the Simpelx for DPLL(T) decision procedure.
  ** See the Simplex for DPLL(T) technical report for more background.(citation?)
@@ -22,19 +23,24 @@
  ** During the Simplex search we maintain a queue of variables.
  ** The queue is required to contain all of the basic variables that voilate their bounds.
  ** As elimination from the queue is more efficient to be done lazily,
- ** we do not maintain that the queue of variables needs to be only basic variables or only variables that satisfy their bounds.
+ ** we do not maintain that the queue of variables needs to be only basic variables or only
+ ** variables that satisfy their bounds.
  **
  ** The simplex procedure roughly follows Alberto's thesis. (citation?)
- ** There is one round of selecting using a heuristic pivoting rule. (See PreferenceFunction Documentation for the available options.)
- ** The non-basic variable is the one that appears in the fewest pivots. (Bruno says that Leonardo invented this first.)
+ ** There is one round of selecting using a heuristic pivoting rule. (See PreferenceFunction
+ ** Documentation for the available options.)
+ ** The non-basic variable is the one that appears in the fewest pivots. (Bruno says that
+ ** Leonardo invented this first.)
  ** After this, Bland's pivot rule is invoked.
  **
  ** During this proccess, we periodically inspect the queue of variables to
  ** 1) remove now extraneous extries,
- ** 2) detect conflicts that are "waiting" on the queue but may not be detected by the current queue heuristics, and
+ ** 2) detect conflicts that are "waiting" on the queue but may not be detected by the
+ **  current queue heuristics, and
  ** 3) detect multiple conflicts.
  **
- ** Conflicts are greedily slackened to use the weakest bounds that still produce the conflict.
+ ** Conflicts are greedily slackened to use the weakest bounds that still produce the
+ ** conflict.
  **
  ** Extra things tracked atm: (Subject to change at Tim's whims)
  ** - A superset of all of the newly pivoted variables.
@@ -70,8 +76,11 @@ namespace arith {
 
 class SimplexDecisionProcedure {
 private:
-  ArithVar d_conflictVariable;
-  DenseSet d_successes;
+  /** The set of variables that are in conflict in this round. */
+  DenseSet d_conflictVariables;
+
+  /** */
+  ErrorSelectionRule d_heuristicRule;
 
   /** Linear equality module. */
   LinearEqualityModule& d_linEq;
@@ -90,7 +99,7 @@ private:
   Tableau& d_tableau;
 
   /** Contains a superset of the basic variables in violation of their bounds. */
-  ArithPriorityQueue d_queue;
+  ErrorSet d_queue;
 
   /** Number of variables in the system. This is used for tuning heuristics. */
   ArithVar d_numVariables;
@@ -107,16 +116,17 @@ private:
   /** Used for requesting d_opt, bound and error variables for primal.*/
   ArithVarMalloc& d_arithVarMalloc;
 
-  std::vector<ArithVar> d_recentlyViolated;
-
 public:
   SimplexDecisionProcedure(LinearEqualityModule& linEq, NodeCallBack& conflictChannel, ArithVarMalloc& variables);
 
   /**
-   * This must be called when the value of a basic variable may now voilate one
-   * of its bounds.
+   * This must be called when the value of a basic variable may have transitioned
+   * from voilating one of its bounds.
    */
-  void updateBasic(ArithVar x);
+  inline void signal(ArithVar x) { d_queue.signalVariable(x); }
+
+  /** Post condition: !d_queue.moreSignals() */
+  bool processSignals();
 
   /**
    * Tries to update the assignments of variables such that all of the
@@ -166,37 +176,34 @@ public:
   }
 
 
-  bool debugIsInCollectionQueue(ArithVar var) const{
-    Assert(d_queue.inCollectionMode());
-    return d_queue.collectionModeContains(var);
-  }
+  /* bool debugIsInCollectionQueue(ArithVar var) const{ */
+  /*   Assert(d_queue.inCollectionMode()); */
+  /*   return d_queue.collectionModeContains(var); */
+  /* } */
 
-  void reduceQueue(){
-    d_queue.reduce();
-  }
+  /* void reduceQueue(){ */
+  /*   d_queue.reduce(); */
+  /* } */
 
-  ArithPriorityQueue::const_iterator queueBegin() const{
-    return d_queue.begin();
-  }
+  /* ArithPriorityQueue::const_iterator queueBegin() const{ */
+  /*   return d_queue.begin(); */
+  /* } */
 
-  ArithPriorityQueue::const_iterator queueEnd() const{
-    return d_queue.end();
-  }
+  /* ArithPriorityQueue::const_iterator queueEnd() const{ */
+  /*   return d_queue.end(); */
+  /* } */
 
 private:
 
   /** Reports a conflict to on the output channel. */
-  void reportConflict(Node conflict){
-    d_conflictChannel(conflict);
-    ++(d_statistics.d_simplexConflicts);
-  }
+  void reportConflict(ArithVar basic);
 
   /**
    * Checks a basic variable, b, to see if it is in conflict.
    * If a conflict is discovered a node summarizing the conflict is returned.
    * Otherwise, Node::null() is returned.
    */
-  Node checkBasicForConflict(ArithVar b);
+  Node checkBasicForConflict(ArithVar b) const;
 
   /** Gets a fresh variable from TheoryArith. */
   ArithVar requestVariable(){
@@ -212,15 +219,7 @@ private:
   class Statistics {
   public:
     IntStat d_statUpdateConflicts;
-
-    TimerStat d_findConflictOnTheQueueTime;
-
-    IntStat d_attemptBeforeDiffSearch, d_successBeforeDiffSearch;
-    IntStat d_attemptAfterDiffSearch, d_successAfterDiffSearch;
-    IntStat d_attemptDuringDiffSearch, d_successDuringDiffSearch;
-    IntStat d_attemptDuringVarOrderSearch, d_successDuringVarOrderSearch;
-    IntStat d_attemptAfterVarOrderSearch, d_successAfterVarOrderSearch;
-
+    TimerStat d_processSignalsTime;
     IntStat d_simplexConflicts;
     IntStat d_recentViolationCatches;
 

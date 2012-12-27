@@ -22,6 +22,7 @@
 #ifndef __CVC4__THEORY__ARITH__ARITHVAR_H
 #define __CVC4__THEORY__ARITH__ARITHVAR_H
 
+#include <vector>
 #include <ext/hash_map>
 #include "expr/node.h"
 #include "context/cdhashset.h"
@@ -39,6 +40,7 @@ extern const ArithVar ARITHVAR_SENTINEL;
 //Maps from Nodes -> ArithVars, and vice versa
 typedef __gnu_cxx::hash_map<Node, ArithVar, NodeHashFunction> NodeToArithVarMap;
 typedef DenseMap<Node> ArithVarToNodeMap;
+typedef std::vector<ArithVar> ArithVarVec;
 
 /**
  * ArithVarCallBack provides a mechanism for agreeing on callbacks while

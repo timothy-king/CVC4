@@ -52,8 +52,11 @@ namespace CVC4 {
 namespace theory {
 namespace arith {
 
-const uint32_t RESET_START = 2;
+class TAInternal {
+public:
+  static const uint32_t RESET_START = 2;
 
+};
 
 TheoryArith::TheoryArith(context::Context* c, context::UserContext* u, OutputChannel& out, Valuation valuation, const LogicInfo& logicInfo, QuantifiersEngine* qe) :
   Theory(THEORY_ARITH, c, u, out, valuation, logicInfo, qe),
@@ -71,6 +74,7 @@ TheoryArith::TheoryArith(context::Context* c, context::UserContext* u, OutputCha
   d_currentPropagationList(),
   d_learnedBounds(c),
   d_partialModel(c, d_deltaComputeCallback),
+  d_errorSet(d_partialModel),
   d_tableau(),
   d_linEq(d_partialModel, d_tableau, d_basicVarModelUpdateCallBack),
   d_diosolver(c),
@@ -369,7 +373,7 @@ bool TheoryArith::AssertLower(Constraint constraint){
       d_linEq.update(x_i, c_i);
     }
   }else{
-    d_simplex.updateBasic(x_i);
+    d_simplex.signal(x_i);
   }
 
   if(Debug.isOn("model")) {
@@ -490,7 +494,7 @@ bool TheoryArith::AssertUpper(Constraint constraint){
       d_linEq.update(x_i, c_i);
     }
   }else{
-    d_simplex.updateBasic(x_i);
+    d_simplex.signal(x_i);
   }
 
   if(Debug.isOn("model")) {
@@ -585,7 +589,7 @@ bool TheoryArith::AssertEquality(Constraint constraint){
       d_linEq.update(x_i, c_i);
     }
   }else{
-    d_simplex.updateBasic(x_i);
+    d_simplex.signal(x_i);
   }
 
   if(Debug.isOn("model")) {
@@ -2184,11 +2188,12 @@ void TheoryArith::collectModelInfo( TheoryModel* m, bool fullModel ){
 
 bool TheoryArith::safeToReset() const {
   Assert(!d_tableauSizeHasBeenModified);
+  Assert(d_errorSet.noSignals());
 
-  ArithPriorityQueue::const_iterator conf_iter = d_simplex.queueBegin();
-  ArithPriorityQueue::const_iterator conf_end = d_simplex.queueEnd();
-  for(; conf_iter != conf_end; ++conf_iter){
-    ArithVar basic = *conf_iter;
+  ErrorSet::error_iterator error_iter = d_errorSet.errorBegin();
+  ErrorSet::error_iterator error_end = d_errorSet.errorEnd();
+  for(; error_iter != error_end; ++error_iter){
+    ArithVar basic = *error_iter;
     if(!d_smallTableauCopy.isBasic(basic)){
       return false;
     }
@@ -2215,13 +2220,13 @@ void TheoryArith::notifyRestart(){
     Debug("arith::reset") << "row has been added must copy " << d_restartsCounter << endl;
     d_smallTableauCopy = d_tableau;
     d_tableauSizeHasBeenModified = false;
-  }else if( d_restartsCounter >= RESET_START){
+  }else if( d_restartsCounter >= TAInternal::RESET_START){
     if(copySize >= currSize * 1.1 ){
       Debug("arith::reset") << "size has shrunk " << d_restartsCounter << endl;
       ++d_statistics.d_smallerSetToCurr;
       d_smallTableauCopy = d_tableau;
     }else if(d_tableauResetDensity * copySize <=  currSize){
-      d_simplex.reduceQueue();
+      d_errorSet.popAllSignals();
       if(safeToReset()){
         Debug("arith::reset") << "resetting " << d_restartsCounter << endl;
         ++d_statistics.d_currSetToSmaller;
@@ -2257,7 +2262,7 @@ bool TheoryArith::unenqueuedVariablesAreConsistent(){
   for(var_iterator vi = var_begin(), vend = var_end(); vi != vend; ++vi){
     ArithVar var = *vi;
     if(!d_partialModel.assignmentIsConsistent(var)){
-      if(!d_simplex.debugIsInCollectionQueue(var)){
+      if(!d_errorSet.inError(var)){
 
         d_partialModel.printModel(var);
         Warning() << "Unenqueued var is not consistent for " << var <<  d_partialModel.asNode(var);

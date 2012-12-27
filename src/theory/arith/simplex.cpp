@@ -26,161 +26,93 @@ namespace theory {
 namespace arith {
 
 SimplexDecisionProcedure::SimplexDecisionProcedure(LinearEqualityModule& linEq, NodeCallBack& conflictChannel, ArithVarMalloc& variables) :
-  d_conflictVariable(ARITHVAR_SENTINEL),
+  d_conflictVariables(),
   d_linEq(linEq),
   d_variables(d_linEq.getVariables()),
   d_tableau(d_linEq.getTableau()),
-  d_queue(d_variables, d_tableau),
+  d_queue(d_variables),
   d_numVariables(0),
   d_conflictChannel(conflictChannel),
   d_pivotsInRound(),
   d_DELTA_ZERO(0,0),
-  d_arithVarMalloc(variables),
-  d_recentlyViolated()
+  d_arithVarMalloc(variables)
 {
-  switch(ArithHeuristicPivotRule rule = options::arithHeuristicPivotRule()) {
-  case MINIMUM:
-    d_queue.setPivotRule(ArithPriorityQueue::MINIMUM);
-    break;
-  case BREAK_TIES:
-    d_queue.setPivotRule(ArithPriorityQueue::BREAK_TIES);
-    break;
-  case MAXIMUM:
-    d_queue.setPivotRule(ArithPriorityQueue::MAXIMUM);
-    break;
-  default:
-    Unhandled(rule);
-  }
+  d_heuristicRule = options::arithErrorSelectionRule();
+  d_queue.setSelectionRule(d_heuristicRule);
 }
 
 SimplexDecisionProcedure::Statistics::Statistics():
   d_statUpdateConflicts("theory::arith::UpdateConflicts", 0),
-  d_findConflictOnTheQueueTime("theory::arith::findConflictOnTheQueueTime"),
-  d_attemptBeforeDiffSearch("theory::arith::qi::BeforeDiffSearch::attempt",0),
-  d_successBeforeDiffSearch("theory::arith::qi::BeforeDiffSearch::success",0),
-  d_attemptAfterDiffSearch("theory::arith::qi::AfterDiffSearch::attempt",0),
-  d_successAfterDiffSearch("theory::arith::qi::AfterDiffSearch::success",0),
-  d_attemptDuringDiffSearch("theory::arith::qi::DuringDiffSearch::attempt",0),
-  d_successDuringDiffSearch("theory::arith::qi::DuringDiffSearch::success",0),
-  d_attemptDuringVarOrderSearch("theory::arith::qi::DuringVarOrderSearch::attempt",0),
-  d_successDuringVarOrderSearch("theory::arith::qi::DuringVarOrderSearch::success",0),
-  d_attemptAfterVarOrderSearch("theory::arith::qi::AfterVarOrderSearch::attempt",0),
-  d_successAfterVarOrderSearch("theory::arith::qi::AfterVarOrderSearch::success",0),
+  d_processSignalsTime("theory::arith::findConflictOnTheQueueTime"),
   d_simplexConflicts("theory::arith::simplexConflicts",0),
   d_recentViolationCatches("theory::arith::recentViolationCatches",0)
 {
   StatisticsRegistry::registerStat(&d_statUpdateConflicts);
-
-  StatisticsRegistry::registerStat(&d_findConflictOnTheQueueTime);
-
-  StatisticsRegistry::registerStat(&d_attemptBeforeDiffSearch);
-  StatisticsRegistry::registerStat(&d_successBeforeDiffSearch);
-  StatisticsRegistry::registerStat(&d_attemptAfterDiffSearch);
-  StatisticsRegistry::registerStat(&d_successAfterDiffSearch);
-  StatisticsRegistry::registerStat(&d_attemptDuringDiffSearch);
-  StatisticsRegistry::registerStat(&d_successDuringDiffSearch);
-  StatisticsRegistry::registerStat(&d_attemptDuringVarOrderSearch);
-  StatisticsRegistry::registerStat(&d_successDuringVarOrderSearch);
-  StatisticsRegistry::registerStat(&d_attemptAfterVarOrderSearch);
-  StatisticsRegistry::registerStat(&d_successAfterVarOrderSearch);
-
+  StatisticsRegistry::registerStat(&d_processSignalsTime);
   StatisticsRegistry::registerStat(&d_simplexConflicts);
-
   StatisticsRegistry::registerStat(&d_recentViolationCatches);
 }
 
 SimplexDecisionProcedure::Statistics::~Statistics(){
   StatisticsRegistry::unregisterStat(&d_statUpdateConflicts);
-
-  StatisticsRegistry::unregisterStat(&d_findConflictOnTheQueueTime);
-
-  StatisticsRegistry::unregisterStat(&d_attemptBeforeDiffSearch);
-  StatisticsRegistry::unregisterStat(&d_successBeforeDiffSearch);
-  StatisticsRegistry::unregisterStat(&d_attemptAfterDiffSearch);
-  StatisticsRegistry::unregisterStat(&d_successAfterDiffSearch);
-  StatisticsRegistry::unregisterStat(&d_attemptDuringDiffSearch);
-  StatisticsRegistry::unregisterStat(&d_successDuringDiffSearch);
-  StatisticsRegistry::unregisterStat(&d_attemptDuringVarOrderSearch);
-  StatisticsRegistry::unregisterStat(&d_successDuringVarOrderSearch);
-  StatisticsRegistry::unregisterStat(&d_attemptAfterVarOrderSearch);
-  StatisticsRegistry::unregisterStat(&d_successAfterVarOrderSearch);
-
+  StatisticsRegistry::unregisterStat(&d_processSignalsTime);
   StatisticsRegistry::unregisterStat(&d_simplexConflicts);
-
   StatisticsRegistry::unregisterStat(&d_recentViolationCatches);
 }
 
-void SimplexDecisionProcedure::updateBasic(ArithVar x){
-  if(!d_variables.assignmentIsConsistent(x)){
-    d_queue.enqueueIfInconsistent(x);
-    d_linEq.maybeTrackVariable(x);
-    d_recentlyViolated.push_back(x);
-  }
-}
+bool SimplexDecisionProcedure::processSignals() {
+  TimerStat::CodeTimer codeTimer(d_statistics.d_processSignalsTime);
+  Assert( d_conflictVariables.empty() );
 
-bool SimplexDecisionProcedure::findConflictOnTheQueue(SearchPeriod type) {
-  TimerStat::CodeTimer codeTimer(d_statistics.d_findConflictOnTheQueueTime);
-  Assert(d_successes.empty());
 
-  switch(type){
-  case BeforeDiffSearch:     ++(d_statistics.d_attemptBeforeDiffSearch); break;
-  case DuringDiffSearch:     ++(d_statistics.d_attemptDuringDiffSearch); break;
-  case AfterDiffSearch:      ++(d_statistics.d_attemptAfterDiffSearch); break;
-  case DuringVarOrderSearch: ++(d_statistics.d_attemptDuringVarOrderSearch); break;
-  case AfterVarOrderSearch:  ++(d_statistics.d_attemptAfterVarOrderSearch); break;
-  }
+  while(!d_queue.moreSignals()){
+    ArithVar curr = d_queue.topSignal();
+    d_queue.popSignal();
+    d_linEq.maybeTrackVariable(curr);
 
-  ArithPriorityQueue::const_iterator i = d_queue.begin();
-  ArithPriorityQueue::const_iterator end = d_queue.end();
-  for(; i != end; ++i){
-    ArithVar x_i = *i;
+    if(d_tableau.isBasic(curr) &&
+       !d_variables.assignmentIsConsistent(curr) &&
+       !d_conflictVariables.isMember(curr)){
 
-    if(x_i != d_conflictVariable && d_tableau.isBasic(x_i) && !d_successes.isMember(x_i)){
-      Node possibleConflict = checkBasicForConflict(x_i);
-      if(!possibleConflict.isNull()){
-        d_successes.add(x_i);
-        reportConflict(possibleConflict);
-      }
+      Debug("recentlyViolated")
+        << "It worked? "
+        << d_statistics.d_recentViolationCatches.getData()
+        << " " << curr
+        << " "  << checkBasicForConflict(curr) << endl;
+      reportConflict(curr);
+      ++(d_statistics.d_recentViolationCatches);
     }
   }
-  if(!d_successes.empty()){
-    switch(type){
-    case BeforeDiffSearch:     ++(d_statistics.d_successBeforeDiffSearch); break;
-    case DuringDiffSearch:     ++(d_statistics.d_successDuringDiffSearch); break;
-    case AfterDiffSearch:      ++(d_statistics.d_successAfterDiffSearch); break;
-    case DuringVarOrderSearch: ++(d_statistics.d_successDuringVarOrderSearch); break;
-    case AfterVarOrderSearch:  ++(d_statistics.d_successAfterVarOrderSearch); break;
-    }
-    d_successes.purge();
-    return true;
-  }else{
-    return false;
-  }
+  return !d_conflictVariables.empty();
 }
 
 Result::Sat SimplexDecisionProcedure::dualFindModel(bool exactResult){
-  Assert(d_conflictVariable == ARITHVAR_SENTINEL);
-  Assert(d_queue.inCollectionMode());
+  Assert(d_conflictVariables.empty());
 
-  if(d_queue.empty()){
-    return Result::SAT;
-  }
   static CVC4_THREADLOCAL(unsigned int) instance = 0;
   instance = instance + 1;
-  Debug("arith::findModel") << "begin findModel()" << instance << endl;
 
+  if(d_queue.empty() && !d_queue.moreSignals()){
+    Debug("arith::findModel") << "dualFindModel("<< instance <<") trivial" << endl;
+    return Result::SAT;
+  }
 
-  d_recentlyViolated.clear();
-  d_queue.transitionToDifferenceMode();
+  d_queue.setSelectionRule(d_heuristicRule);
+
+  if(processSignals()){
+    d_conflictVariables.purge();
+
+    Debug("arith::findModel") << "dualFindModel("<< instance <<") early conflict" << endl;
+    return Result::UNSAT;
+  }else if(d_queue.empty()){
+    Debug("arith::findModel") << "dualFindModel("<< instance <<") fixed itself" << endl;
+    Assert(!d_queue.moreSignals());
+    return Result::SAT;
+  }
+
+  Debug("arith::findModel") << "dualFindModel(" << instance <<") start non-trivial" << endl;
 
   Result::Sat result = Result::SAT_UNKNOWN;
-
-  if(d_queue.empty()){
-    result = Result::SAT;
-  }else if(findConflictOnTheQueue(BeforeDiffSearch)){
-    Debug("arith::earliest") << "earliest " << instance << endl;
-    result = Result::UNSAT;
-  }
 
   static const bool verbose = false;
   exactResult |= options::arithStandardCheckVarOrderPivots() < 0;
@@ -191,21 +123,25 @@ Result::Sat SimplexDecisionProcedure::dualFindModel(bool exactResult){
     uint32_t numDifferencePivots = options::arithHeuristicPivots() < 0 ?
       d_numVariables + 1 : options::arithHeuristicPivots();
     // The signed to unsigned conversion is safe.
-    uint32_t pivotsRemaining = numDifferencePivots;
-    while(!d_queue.empty() &&
-          result != Result::UNSAT &&
-          pivotsRemaining > 0){
-      uint32_t pivotsToDo = min(checkPeriod, pivotsRemaining);
-      pivotsRemaining -= pivotsToDo;
-      if(searchForFeasibleSolution(pivotsToDo)){
-        result = Result::UNSAT;
-      }//Once every CHECK_PERIOD examine the entire queue for conflicts
-      if(result != Result::UNSAT){
-        if(findConflictOnTheQueue(DuringDiffSearch)) { result = Result::UNSAT; }
-      }else{
-        findConflictOnTheQueue(AfterDiffSearch); // already unsat
-      }
+    
+    if(searchForFeasibleSolution(numDifferencePivots)){
+      result = Result::UNSAT;
     }
+
+    // while(!d_queue.empty() &&
+    //       result != Result::UNSAT &&
+    //       pivotsRemaining > 0){
+    //   uint32_t pivotsToDo = min(checkPeriod, pivotsRemaining);
+    //   pivotsRemaining -= pivotsToDo;
+    //   if(searchForFeasibleSolution(pivotsToDo)){
+    //     result = Result::UNSAT;
+    //   }//Once every CHECK_PERIOD examine the entire queue for conflicts
+    //   if(result != Result::UNSAT){
+    //     if(findConflictOnTheQueue(DuringDiffSearch)) { result = Result::UNSAT; }
+    //   }else{
+    //     findConflictOnTheQueue(AfterDiffSearch); // already unsat
+    //   }
+    // }
 
     if(verbose && numDifferencePivots > 0){
       if(result ==  Result::UNSAT){
@@ -217,56 +153,71 @@ Result::Sat SimplexDecisionProcedure::dualFindModel(bool exactResult){
       }
     }
   }
+  Assert(d_queue.moreSignals());
 
   if(!d_queue.empty() && result != Result::UNSAT){
     if(exactResult){
-      d_queue.transitionToVariableOrderMode();
-
+      d_queue.setSelectionRule(VAR_ORDER);
       while(!d_queue.empty() && result != Result::UNSAT){
         if(searchForFeasibleSolution(checkPeriod)){
           result = Result::UNSAT;
         }
-
-        //Once every CHECK_PERIOD examine the entire queue for conflicts
-        if(result != Result::UNSAT){
-          if(findConflictOnTheQueue(DuringVarOrderSearch)){
-            result = Result::UNSAT;
-          }
-        } else{
-          findConflictOnTheQueue(AfterVarOrderSearch);
-        }
-      }
-      if(verbose){
-        if(result ==  Result::UNSAT){
-          Message() << "bland found unsat" << endl;
-        }else if(d_queue.empty()){
-          Message() << "bland found model" << endl;
-        }else{
-          Message() << "bland order missed" << endl;
-        }
       }
     }else{
-      d_queue.transitionToVariableOrderMode();
-
       if(searchForFeasibleSolution(inexactResultsVarOrderPivots)){
         result = Result::UNSAT;
-        findConflictOnTheQueue(AfterVarOrderSearch); // already unsat
-      }else{
-        if(findConflictOnTheQueue(AfterVarOrderSearch)) { result = Result::UNSAT; }
-      }
-
-      if(verbose){
-        if(result ==  Result::UNSAT){
-          Message() << "restricted var order found unsat" << endl;
-        }else if(d_queue.empty()){
-          Message() << "restricted var order found model" << endl;
-        }else{
-          Message() << "restricted var order missed" << endl;
-        }
       }
     }
   }
 
+  //     d_queue.transitionToVariableOrderMode();
+
+  //     while(!d_queue.empty() && result != Result::UNSAT){
+  //       if(searchForFeasibleSolution(checkPeriod)){
+  //         result = Result::UNSAT;
+  //       }
+
+  //       //Once every CHECK_PERIOD examine the entire queue for conflicts
+  //       if(result != Result::UNSAT){
+  //         if(findConflictOnTheQueue(DuringVarOrderSearch)){
+  //           result = Result::UNSAT;
+  //         }
+  //       } else{
+  //         findConflictOnTheQueue(AfterVarOrderSearch);
+  //       }
+  //     }
+  //     if(verbose){
+  //       if(result ==  Result::UNSAT){
+  //         Message() << "bland found unsat" << endl;
+  //       }else if(d_queue.empty()){
+  //         Message() << "bland found model" << endl;
+  //       }else{
+  //         Message() << "bland order missed" << endl;
+  //       }
+  //     }
+  //   }else{
+  //     d_queue.transitionToVariableOrderMode();
+
+  //     if(searchForFeasibleSolution(inexactResultsVarOrderPivots)){
+  //       result = Result::UNSAT;
+  //       findConflictOnTheQueue(AfterVarOrderSearch); // already unsat
+  //     }else{
+  //       if(findConflictOnTheQueue(AfterVarOrderSearch)) { result = Result::UNSAT; }
+  //     }
+
+  //     if(verbose){
+  //       if(result ==  Result::UNSAT){
+  //         Message() << "restricted var order found unsat" << endl;
+  //       }else if(d_queue.empty()){
+  //         Message() << "restricted var order found model" << endl;
+  //       }else{
+  //         Message() << "restricted var order missed" << endl;
+  //       }
+  //     }
+  //   }
+  // }
+
+  Assert(!d_queue.moreSignals());
   if(result == Result::SAT_UNKNOWN && d_queue.empty()){
     result = Result::SAT;
   }
@@ -275,21 +226,25 @@ Result::Sat SimplexDecisionProcedure::dualFindModel(bool exactResult){
 
   d_pivotsInRound.purge();
   // ensure that the conflict variable is still in the queue.
-  if(d_conflictVariable != ARITHVAR_SENTINEL){
-    d_queue.enqueueIfInconsistent(d_conflictVariable);
-  }
-  d_conflictVariable = ARITHVAR_SENTINEL;
+  d_conflictVariables.purge();
 
-  d_queue.transitionToCollectionMode();
-  Assert(d_queue.inCollectionMode());
   Debug("arith::findModel") << "end findModel() " << instance << " " << result <<  endl;
   return result;
 }
 
-Node SimplexDecisionProcedure::checkBasicForConflict(ArithVar basic){
+/** Reports a conflict to on the output channel. */
+void SimplexDecisionProcedure::reportConflict(ArithVar basic){
+  Assert(!d_conflictVariables.isMember(basic));
+  Node conflict = checkBasicForConflict(basic);
+  Assert(!conflict.isNull());
+  d_conflictChannel(conflict);
+  d_conflictVariables.add(basic);
+  ++(d_statistics.d_simplexConflicts);
+}
+
+Node SimplexDecisionProcedure::checkBasicForConflict(ArithVar basic) const {
 
   Assert(d_tableau.isBasic(basic));
-  d_linEq.countBounds(basic);
 
   if(d_variables.cmpAssignmentLowerBound(basic) < 0){
     // ArithVar x_j = d_linEq.anySlackUpperBound(basic);
@@ -320,10 +275,12 @@ bool SimplexDecisionProcedure::searchForFeasibleSolution(uint32_t remainingItera
   while(remainingIterations > 0){
     if(Debug.isOn("paranoid:check_tableau")){ d_linEq.debugCheckTableau(); }
 
-    ArithVar x_i = d_queue.dequeueInconsistentBasicVariable();
+    ArithVar x_i = d_queue.topFocusVariable();
+
+    //ArithVar x_i = d_queue.dequeueInconsistentBasicVariable();
     Debug("arith::update::select") << "selectSmallestInconsistentVar()=" << x_i << endl;
     if(x_i == ARITHVAR_SENTINEL){
-      Debug("arith_update") << "No inconsistent variables" << endl;
+      Debug("arith::update") << "No inconsistent variables" << endl;
       return false; //sat
     }
 
@@ -335,10 +292,11 @@ bool SimplexDecisionProcedure::searchForFeasibleSolution(uint32_t remainingItera
     }
 
 
-    Debug("playground") << "pivots in rounds: " <<  d_pivotsInRound.count(x_i)
-                        << " use " << useVarOrderPivot
-                        << " threshold " << options::arithPivotThreshold()
-                        << endl;
+    Debug("arith::update")
+      << "pivots in rounds: " <<  d_pivotsInRound.count(x_i)
+      << " use " << useVarOrderPivot
+      << " threshold " << options::arithPivotThreshold()
+      << endl;
 
     LinearEqualityModule::PreferenceFunction pf = useVarOrderPivot ?
       &LinearEqualityModule::minVarOrder : &LinearEqualityModule::minBoundAndColLength;
@@ -349,45 +307,52 @@ bool SimplexDecisionProcedure::searchForFeasibleSolution(uint32_t remainingItera
     if(d_variables.cmpAssignmentLowerBound(x_i) < 0 ){
       x_j = d_linEq.selectSlackUpperBound(x_i, pf);
       if(x_j == ARITHVAR_SENTINEL ){
+        Unreachable();
         ++(d_statistics.d_statUpdateConflicts);
-        Node conflict = d_linEq.generateConflictBelowLowerBound(x_i); //unsat
-        d_conflictVariable = x_i;
-        reportConflict(conflict);
+        reportConflict(x_i);
+        // Node conflict = d_linEq.generateConflictBelowLowerBound(x_i); //unsat
+        // d_conflictVariable = x_i;
+        // reportConflict(conflict);
         return true;
+      }else{
+        const DeltaRational& l_i = d_variables.getLowerBound(x_i);
+        d_linEq.pivotAndUpdate(x_i, x_j, l_i);
       }
-      const DeltaRational& l_i = d_variables.getLowerBound(x_i);
-      d_linEq.pivotAndUpdate(x_i, x_j, l_i);
-
     }else if(d_variables.cmpAssignmentUpperBound(x_i) > 0){
       x_j = d_linEq.selectSlackLowerBound(x_i, pf);
       if(x_j == ARITHVAR_SENTINEL ){
+        Unreachable();
         ++(d_statistics.d_statUpdateConflicts);
-        Node conflict = d_linEq.generateConflictAboveUpperBound(x_i); //unsat
-
-        d_conflictVariable = x_i;
-        reportConflict(conflict);
+        reportConflict(x_i);
+        // Node conflict = d_linEq.generateConflictAboveUpperBound(x_i); //unsat
+        // d_conflictVariable = x_i;
+        // reportConflict(conflict);
         return true;
+      }else{
+        const DeltaRational& u_i = d_variables.getUpperBound(x_i);
+        d_linEq.pivotAndUpdate(x_i, x_j, u_i);
       }
-      const DeltaRational& u_i = d_variables.getUpperBound(x_i);
-      d_linEq.pivotAndUpdate(x_i, x_j, u_i);
     }
     Assert(x_j != ARITHVAR_SENTINEL);
 
-    //Check to see if we already have a conflict with x_j to prevent wasteful work
-    while(!d_recentlyViolated.empty()){
-      ArithVar back = d_recentlyViolated.back();
-      d_recentlyViolated.pop_back();
-
-      Node possibleConflict = checkBasicForConflict(back);
-      if(!possibleConflict.isNull()){
-        ++(d_statistics.d_recentViolationCatches);
-        Debug("recentlyViolated") << "It worked? " << d_statistics.d_recentViolationCatches.getData()
-                                  << " " << back << " "  << possibleConflict << endl;
-        d_conflictVariable = back;
-        reportConflict(possibleConflict);
-        return true; // unsat
-      }
+    if(processSignals()){
+      return true;
     }
+    // //Check to see if we already have a conflict with x_j to prevent wasteful work
+    // while(!d_recentlyViolated.empty()){
+    //   ArithVar back = d_recentlyViolated.back();
+    //   d_recentlyViolated.pop_back();
+
+    //   Node possibleConflict = checkBasicForConflict(back);
+    //   if(!possibleConflict.isNull()){
+    //     ++(d_statistics.d_recentViolationCatches);
+    //     Debug("recentlyViolated") << "It worked? " << d_statistics.d_recentViolationCatches.getData()
+    //                               << " " << back << " "  << possibleConflict << endl;
+    //     d_conflictVariable = back;
+    //     reportConflict(possibleConflict);
+    //     return true; // unsat
+    //   }
+    // }
   }
   Assert(remainingIterations == 0);
 

@@ -604,6 +604,20 @@ public:
   /** The node must have a proof already and be eligible for propagation! */
   void propagate();
 
+  bool satisfiedBy(const DeltaRational& dr) const{
+    switch(getType()){
+    case LowerBound:
+      return getValue() >= dr;
+    case Equality:
+      return getValue() == dr;
+    case UpperBound:
+      return getValue() <= dr;
+    case Disequality:
+      return getValue() != dr;
+    }
+    Unreachable();
+  }
+
 private:
   /**
    * Marks the node as having a proof and being selfExplaining.
@@ -619,11 +633,6 @@ private:
 
   void markAsTrue(Constraint a, Constraint b);
   void markAsTrue(const std::vector<Constraint>& b);
-
-public:
-
-
-private:
 
   void debugPrint() const;
 

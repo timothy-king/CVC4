@@ -36,6 +36,7 @@
 #include "theory/arith/linear_equality.h"
 #include "theory/arith/simplex.h"
 #include "theory/arith/arith_static_learner.h"
+#include "theory/arith/arith_priority_queue.h"
 //#include "theory/arith/arithvar_node_map.h"
 #include "theory/arith/dio_solver.h"
 #include "theory/arith/congruence_manager.h"
@@ -215,6 +216,9 @@ private:
    */
   ArithVariables d_partialModel;
 
+  /** The set of variables in error in the partial model. */
+  ErrorSet d_errorSet;
+
   /**
    * The tableau for all of the constraints seen thus far in the system.
    */
@@ -386,7 +390,7 @@ private:
     {}
 
     void operator()(ArithVar x){
-      d_simplex.updateBasic(x);
+      d_simplex.signal(x);
     }
   };
 

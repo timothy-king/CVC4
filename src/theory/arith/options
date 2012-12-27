@@ -25,7 +25,7 @@ option arithHeuristicPivots --heuristic-pivots=N int16_t :default 0 :read-write
 expert-option arithStandardCheckVarOrderPivots --standard-effort-variable-order-pivots=N int16_t :default -1 :read-write
  limits the number of pivots in a single invocation of check() at a non-full effort level using Bland's pivot rule
 
-option arithHeuristicPivotRule --heuristic-pivot-rule=RULE ArithHeuristicPivotRule :handler CVC4::theory::arith::stringToArithHeuristicPivotRule :default MINIMUM :handler-include "theory/arith/options_handlers.h" :include "theory/arith/arith_heuristic_pivot_rule.h"
+option arithErrorSelectionRule --error-selection-rule=RULE ErrorSelectionRule :handler CVC4::theory::arith::stringToErrorSelectionRule :default MINIMUM_AMOUNT :handler-include "theory/arith/options_handlers.h" :include "theory/arith/arith_heuristic_pivot_rule.h"
  change the pivot rule for the basic variable (default is 'min', see --pivot-rule help)
 
 # The number of pivots before simplex rechecks every basic variable for a conflict

@@ -23,10 +23,12 @@
 
 #include "theory/arith/arithvar.h"
 #include "theory/arith/delta_rational.h"
-#include "theory/arith/matrix.h"
 #include "theory/arith/partial_model.h"
+#include "theory/arith/arith_heuristic_pivot_rule.h"
 
 #include "util/statistics_registry.h"
+#include <boost/heap/d_ary_heap.hpp>
+
 
 #include <vector>
 
@@ -58,255 +60,255 @@ namespace arith {
  *
  * The queue begins in Collection mode.
  */
-class ArithPriorityQueue {
-public:
-  enum PivotRule {MINIMUM, BREAK_TIES, MAXIMUM};
 
+
+
+class ErrorInfoMap;
+
+class ComparatorPivotRule {
 private:
-  class VarDRatPair {
-  private:
-    ArithVar d_variable;
-    DeltaRational d_orderBy;
-  public:
-    VarDRatPair(ArithVar var, const DeltaRational& dr):
-      d_variable(var), d_orderBy(dr)
-    { }
+  const ErrorInfoMap* d_errInfo;
+  ErrorSelectionRule d_rule;
+ 
+public:
+  ComparatorPivotRule();
+  ComparatorPivotRule(const ErrorInfoMap* es, ErrorSelectionRule r);
 
-    ArithVar variable() const {
-      return d_variable;
-    }
+  bool operator()(ArithVar v, ArithVar u) const;
+  ErrorSelectionRule getRule() const { return d_rule; }
+};
 
-    static bool minimumRule(const VarDRatPair& a, const VarDRatPair& b){
-      return a.d_orderBy > b.d_orderBy;
-    }
-    static bool maximumRule(const VarDRatPair& a, const VarDRatPair& b){
-      return a.d_orderBy < b.d_orderBy;
-    }
+typedef boost::heap::d_ary_heap<
+  ArithVar,
+  boost::heap::arity<2>,
+  boost::heap::compare<ComparatorPivotRule>,
+  boost::heap::mutable_<true> > ErrorSetHeap;
 
-    static bool breakTiesRules(const VarDRatPair& a, const VarDRatPair& b){
-      const Rational& nonInfA = a.d_orderBy.getNoninfinitesimalPart();
-      const Rational& nonInfB = b.d_orderBy.getNoninfinitesimalPart();
-      int cmpNonInf = nonInfA.cmp(nonInfB);
-      if(cmpNonInf == 0){
-        const Rational& infA = a.d_orderBy.getInfinitesimalPart();
-        const Rational& infB = b.d_orderBy.getInfinitesimalPart();
-        int cmpInf = infA.cmp(infB);
-        if(cmpInf == 0){
-          return a.d_variable > b.d_variable;
-        }else{
-          return cmpInf > 0;
-        }
-      }else{
-        return cmpNonInf > 0;
-      }
+typedef ErrorSetHeap::handle_type ErrorSetHandle;
 
-      return a.d_orderBy > b.d_orderBy;
-    }
-  };
-
-  typedef std::vector<VarDRatPair> DifferenceArray;
-  typedef std::vector<ArithVar> ArithVarArray;
-
-  PivotRule d_pivotRule;
+class ErrorInformation {
+private:
+  /** The variable that is in error. */
+  ArithVar d_variable;
 
   /**
-   * An unordered array with no heap structure for use during collection mode.
+   * The constraint that was violated.
+   * This needs to be saved in case that the 
+   * violated constraint  
    */
-  ArithVarArray d_candidates;
+  Constraint d_violated;
 
   /**
-   * Priority Queue of the basic variables that may be inconsistent.
-   * Variables are ordered according to which violates its bound the most.
-   * This is a heuristic and makes no guarantees to terminate!
-   * This heuristic comes from Alberto Griggio's thesis.
+   * This is the sgn of the first derivate the variable must move to satisfy
+   * the bound violated.
+   * If d_sgn > 0, then d_violated was a lowerbound.
+   * If d_sgn < 0, then d_violated was an upperbound.
    */
-  DifferenceArray d_diffQueue;
+  int d_sgn;
 
   /**
-   * Priority Queue of the basic variables that may be inconsistent.
-   *
-   * This is required to contain at least 1 instance of every inconsistent
-   * basic variable. This is only required to be a superset though so its
-   * contents must be checked to still be basic and inconsistent.
-   *
-   * This is also required to agree with the row on variable order for termination.
-   * Effectively this means that this must be a min-heap.
+   * If this is true, then the bound is no longer set on d_variables.
+   * This MUST be undone before this is deleted.
    */
-  ArithVarArray d_varOrderQueue;
+  bool d_relaxed;
 
   /**
-   * A superset of the basic variables that may be inconsistent.
-   * This is empty during DiffOrderMode, and otherwise it is the same set as candidates
-   * or varOrderQueue.
+   * If this is true, then the variable is in the focus set and the focus heap.
+   * d_handle is then a reasonable thing to interpret.
+   * If this is false, the variable is somewhere in 
    */
-  DenseSet d_varSet;
+  bool d_inFocus;
+  ErrorSetHandle d_handle;
 
+  DeltaRational* d_amount;
+
+public:
+  ErrorInformation()
+    : d_variable(ARITHVAR_SENTINEL)
+    , d_violated(NullConstraint)
+    , d_sgn(0)
+    , d_relaxed(false)
+    , d_inFocus(false)
+    , d_handle()
+    , d_amount(NULL)
+  {}
+
+  ErrorInformation(ArithVar var, Constraint vio, int sgn)
+    : d_variable(var)
+    , d_violated(vio)
+    , d_sgn(sgn)
+    , d_relaxed(false)
+    , d_inFocus(false)
+    , d_handle()
+    , d_amount(NULL)
+  {
+    Assert(debugInitialized());
+  }
+
+  ~ErrorInformation() {
+   Assert(d_relaxed != true);
+   if(d_amount != NULL){
+     delete d_amount;
+   }
+  }
+
+  inline ArithVar getVariable() const { return d_variable; }
+
+  bool isRelaxed() const { return d_relaxed; }
+  void setRelaxed(){ Assert(!d_relaxed); d_relaxed = true; }
+  void setUnrelaxed(){ Assert(d_relaxed); d_relaxed = false; }
+
+  inline int sgn() const { return d_sgn; }
+ 
+  inline bool inFocus() const { return d_inFocus; }
+  inline void setInFocus(bool inFocus) { d_inFocus = inFocus; }
+
+  const DeltaRational& getAmount() const {
+    Assert(d_amount != NULL);
+    return *d_amount;
+  }
+  void setAmount(const DeltaRational& am){
+    if(d_amount == NULL){
+      d_amount = new DeltaRational(am);
+    }else{
+      *d_amount = DeltaRational(am);
+    }
+  }
+
+  inline void setHandle(ErrorSetHandle h) {
+    Assert(d_inFocus);
+    d_handle = h;
+  }
+  inline const ErrorSetHandle& getHandle() const{ return d_handle; }
+
+  inline Constraint getViolated() const { return d_violated; }
+
+  bool debugInitialized() const {
+    return
+      d_variable != ARITHVAR_SENTINEL &&
+      d_violated != NullConstraint &&
+      d_sgn != 0;
+  }
+};
+
+class ErrorInfoMap : public DenseMap<ErrorInformation> {};
+
+class ErrorSet {
+private:
   /**
    * Reference to the arithmetic partial model for checking if a variable
    * is consistent with its upper and lower bounds.
    */
   ArithVariables& d_variables;
 
-  /** Reference to the Tableau for checking if a variable is basic. */
-  const Tableau& d_tableau;
-
-  enum Mode {Collection, Difference, VariableOrder};
   /**
-   * Controls which priority queue is in use.
-   * If true, d_griggioRuleQueue is used.
-   * If false, d_possiblyInconsistent is used.
+   * The set of all variables that violate exactly one of their bounds.
    */
-  Mode d_modeInUse;
+  ErrorInfoMap d_errInfo;
 
-  /** Storage of Delta Rational 0 */
-  DeltaRational d_ZERO_DELTA;
+  /**
+   * The ordered heap for the variables that are in ErrorSet.
+   */
+  ErrorSetHeap d_focus;
 
-  VarDRatPair computeDiff(ArithVar basic);
+  /**
+   * A strict subset of the error set.
+   *   d_outOfFocus \neq d_errInfo.
+   *
+   * Its symbolic complement is Focus.
+   *   d_outOfFocus \intersect Focus == \emptyset
+   *   d_outOfFocus \union Focus == d_errInfo
+   */
+  ArithVarVec d_outOfFocus;
+
+  /**
+   * Before a variable is added to the error set, it is added to the signals list.
+   * A variable may appear on the list multiple times.
+   * This introduces a delay.
+   */
+  ArithVarVec d_signals;
+
+  
+
+
+  /**
+   * Computes the difference between the assignment and its bound for x.
+   */
+  DeltaRational computeDiff(ArithVar x) const;
+  void recomputeAmount(ErrorInformation& ei);
+
+  void update(ErrorInformation& ei);
+  void transitionVariableOutOfError(ArithVar v);
+  void transitionVariableIntoError(ArithVar v);
+  void dropFromFocus(ArithVar v);
+  void addBackIntoFocus(ArithVar v);
+  void blur();
+
 
 public:
 
-  ArithPriorityQueue(ArithVariables& var, const Tableau& tableau);
+  ErrorSet(ArithVariables& var);
 
-  /** precondition: !inDifferenceMode() */
-  void setPivotRule(PivotRule rule);
+  typedef ErrorInfoMap::const_iterator error_iterator;
+  error_iterator errorBegin() const { return d_errInfo.begin(); }
+  error_iterator errorEnd() const { return d_errInfo.end(); }
 
-  ArithVar dequeueInconsistentBasicVariable();
+  bool inError(ArithVar v) const { return d_errInfo.isKey(v); }
 
-  void enqueueIfInconsistent(ArithVar basic);
+  ErrorSelectionRule getSelectionRule() const;
+  void setSelectionRule(ErrorSelectionRule rule);
 
-  inline bool basicAndInconsistent(ArithVar var) const{
-    return d_tableau.isBasic(var)
-      && !d_variables.assignmentIsConsistent(var) ;
+  inline ArithVar topFocusVariable() const{
+    Assert(!focusEmpty());
+    return d_focus.top();
   }
 
-  void transitionToDifferenceMode();
-  void transitionToVariableOrderMode();
-  void transitionToCollectionMode();
+  inline void signalVariable(ArithVar var){
+    d_signals.push_back(var);
+  }
 
-  inline bool inDifferenceMode() const{
-    return d_modeInUse == Difference;
+  inline void signalUnderCnd(ArithVar var, bool b){
+    if(b){ signalVariable(var); }
   }
-  inline bool inCollectionMode() const{
-    return d_modeInUse == Collection;
+
+  inline bool inconsistent(ArithVar var) const{
+    return !d_variables.assignmentIsConsistent(var) ;
   }
-  inline bool inVariableOrderMode() const{
-    return d_modeInUse == VariableOrder;
+  inline void signalIfInconsistent(ArithVar var){
+    signalUnderCnd(var, inconsistent(var));
   }
 
   inline bool empty() const{
-    switch(d_modeInUse){
-    case Collection:    return d_candidates.empty();
-    case VariableOrder: return d_varOrderQueue.empty();
-    case Difference:    return d_diffQueue.empty();
-    default: Unreachable();
-    }
+    return d_errInfo.empty();
   }
 
-  inline size_t size() const {
-    switch(d_modeInUse){
-    case Collection:    return d_candidates.size();
-    case VariableOrder: return d_varOrderQueue.size();
-    case Difference:    return d_diffQueue.size();
-    default: Unreachable();
-    }
+  inline bool focusEmpty() const {
+    return d_focus.empty();
   }
 
-  /** Clears the queue. */
+  /** Clears the set. */
   void clear();
 
-
+  bool noSignals() const {
+    return d_signals.empty();
+  }
+  bool moreSignals() const {
+    return !noSignals();
+  }
+  ArithVar topSignal() const {
+    Assert(moreSignals());
+    return d_signals.back();
+  }
   /**
-   * Reduces the queue to only contain the subset that is still basic
-   * and inconsistent.
-   *Currently, O(n log n) for an easy obviously correct implementation in all modes..
+   * Moves a variable out of the signals.
+   * This moves it into the error set.
+   * 
    */
-  void reduce();
+  void popSignal();
 
-  bool collectionModeContains(ArithVar v) const {
-    Assert(inCollectionMode());
-    return d_varSet.isMember(v);
-  }
-
-  class const_iterator {
-  private:
-    Mode d_mode;
-    ArithVarArray::const_iterator d_avIter;
-    DifferenceArray::const_iterator d_diffIter;
-  public:
-    const_iterator(Mode m,
-                   ArithVarArray::const_iterator av,
-                   DifferenceArray::const_iterator diff):
-      d_mode(m), d_avIter(av), d_diffIter(diff)
-    {}
-    const_iterator(const const_iterator& other):
-      d_mode(other.d_mode), d_avIter(other.d_avIter), d_diffIter(other.d_diffIter)
-    {}
-    bool operator==(const const_iterator& other) const{
-      AlwaysAssert(d_mode == other.d_mode);
-      switch(d_mode){
-      case Collection:
-      case VariableOrder:
-        return d_avIter == other.d_avIter;
-      case Difference:
-        return d_diffIter == other.d_diffIter;
-      default:
-        Unreachable();
-      }
-    }
-    bool operator!=(const const_iterator& other) const{
-      return !(*this == other);
-    }
-    const_iterator& operator++(){
-      switch(d_mode){
-      case Collection:
-      case VariableOrder:
-        ++d_avIter;
-        break;
-      case Difference:
-        ++d_diffIter;
-        break;
-      default:
-        Unreachable();
-      }
-      return *this;
-    }
-
-    ArithVar operator*() const{
-      switch(d_mode){
-      case Collection:
-      case VariableOrder:
-        return *d_avIter;
-      case Difference:
-        return (*d_diffIter).variable();
-      default:
-        Unreachable();
-      }
-    }
-  };
-
-  const_iterator begin() const{
-    switch(d_modeInUse){
-      case Collection:
-        return const_iterator(Collection, d_candidates.begin(), d_diffQueue.end());
-      case VariableOrder:
-        return const_iterator(VariableOrder, d_varOrderQueue.begin(), d_diffQueue.end());
-      case Difference:
-        return const_iterator(Difference, d_varOrderQueue.end(), d_diffQueue.begin());
-      default:
-        Unreachable();
-    }
-  }
-
-  const_iterator end() const{
-    switch(d_modeInUse){
-      case Collection:
-        return const_iterator(Collection, d_candidates.end(), d_diffQueue.end());
-      case VariableOrder:
-        return const_iterator(VariableOrder, d_varOrderQueue.end(), d_diffQueue.end());
-      case Difference:
-        return const_iterator(Difference, d_varOrderQueue.end(), d_diffQueue.end());
-      default:
-        Unreachable();
+  void popAllSignals(){
+    while(moreSignals()){
+      popSignal();
     }
   }
 
@@ -327,8 +329,6 @@ private:
 
   Statistics d_statistics;
 };
-
-std::ostream& operator<<(std::ostream& out, ArithPriorityQueue::PivotRule rule);
 
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */
