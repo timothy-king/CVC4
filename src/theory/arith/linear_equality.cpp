@@ -187,6 +187,7 @@ void LinearEqualityModule::pivotAndUpdate(ArithVar x_i, ArithVar x_j, const Delt
     debugCheckTracking();
   }
 
+  d_basicVariableUpdates(x_i);
   d_basicVariableUpdates(x_j);
 
   if(Debug.isOn("matrix")){

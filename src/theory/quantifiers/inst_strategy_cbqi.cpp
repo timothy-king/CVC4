@@ -14,6 +14,7 @@
 
 #include "theory/quantifiers/inst_strategy_cbqi.h"
 #include "theory/arith/theory_arith.h"
+#include "theory/arith/partial_model.h"
 #include "theory/arith/theory_arith_private.h"
 #include "theory/theory_engine.h"
 #include "theory/quantifiers/options.h"

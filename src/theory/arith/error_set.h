@@ -151,6 +151,17 @@ public:
    }
   }
 
+  void reset(Constraint c, int sgn){
+    Assert(!isRelaxed());
+    Assert(c != NullConstraint);
+    d_violated = c;
+    d_sgn = sgn;
+    
+    if(d_amount != NULL){
+      delete d_amount;
+      d_amount = NULL;
+    }
+  }
   inline ArithVar getVariable() const { return d_variable; }
 
   bool isRelaxed() const { return d_relaxed; }
@@ -227,7 +238,9 @@ private:
    */
   ArithVarVec d_signals;
 
-  
+
+  /** A buffer that is now consistent. */
+  ArithVarVec d_nowConsistent;
 
 
   /**
@@ -277,7 +290,7 @@ public:
     signalUnderCnd(var, inconsistent(var));
   }
 
-  inline bool empty() const{
+  inline bool errorEmpty() const{
     return d_errInfo.empty();
   }
 
@@ -287,6 +300,7 @@ public:
 
   /** Clears the set. */
   void clear();
+  void reduce();
 
   bool noSignals() const {
     return d_signals.empty();

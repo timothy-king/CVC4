@@ -104,7 +104,7 @@ private:
   ArithVar d_numVariables;
 
   /** This is the call back channel for Simplex to report conflicts. */
-  NodeCallBack& d_conflictChannel;
+  RaiseConflict d_conflictChannel;
 
   /** Maps a variable to how many times they have been used as a pivot in the simplex search. */
   DenseMultiset d_pivotsInRound;
@@ -113,7 +113,7 @@ private:
   DeltaRational d_DELTA_ZERO;
 
   /** Used for requesting d_opt, bound and error variables for primal.*/
-  ArithVarMalloc& d_arithVarMalloc;
+  TempVarMalloc d_arithVarMalloc;
 
 public:
   SimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc);
@@ -143,6 +143,7 @@ public:
    */
   Result::Sat dualFindModel(bool exactResult);
 
+  void increaseMax() { d_numVariables++; }
 
 private:
   
@@ -155,38 +156,6 @@ private:
    */
   bool searchForFeasibleSolution(uint32_t maxIterations);
 
-  //enum SearchPeriod {BeforeDiffSearch, DuringDiffSearch, AfterDiffSearch, DuringVarOrderSearch, AfterVarOrderSearch};
-
-  //bool findConflictOnTheQueue(SearchPeriod period);
-
-public:
-  void increaseMax() { d_numVariables++; }
-
-
-  /* void clearErrorSetQueue() { */
-  /*   d_errorSet.clear(); */
-  /* } */
-
-
-  /* bool debugIsInCollectionQueue(ArithVar var) const{ */
-  /*   Assert(d_queue.inCollectionMode()); */
-  /*   return d_queue.collectionModeContains(var); */
-  /* } */
-
-  /* void reduceQueue(){ */
-  /*   d_queue.reduce(); */
-  /* } */
-
-  /* ArithPriorityQueue::const_iterator queueBegin() const{ */
-  /*   return d_queue.begin(); */
-  /* } */
-
-  /* ArithPriorityQueue::const_iterator queueEnd() const{ */
-  /*   return d_queue.end(); */
-  /* } */
-
-private:
-
   /** Reports a conflict to on the output channel. */
   void reportConflict(ArithVar basic);
 
@@ -195,7 +164,11 @@ private:
    * If a conflict is discovered a node summarizing the conflict is returned.
    * Otherwise, Node::null() is returned.
    */
-  Node checkBasicForConflict(ArithVar b) const;
+  Node maybeGenerateConflictForBasic(ArithVar basic) const;
+
+  bool checkBasicForConflict(ArithVar b) const;
+  Node generatConflictForBasic(ArithVar basic) const;
+
 
   /** Gets a fresh variable from TheoryArith. */
   ArithVar requestVariable(){

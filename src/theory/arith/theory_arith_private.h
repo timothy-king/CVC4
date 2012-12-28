@@ -372,9 +372,6 @@ public:
 
 private:
 
-
-  //BasicVarModelUpdateCallBack d_basicVarModelUpdateCallBack;
-
   /** The constant zero. */
   DeltaRational d_DELTA_ZERO;
 

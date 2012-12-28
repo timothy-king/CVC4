@@ -602,19 +602,7 @@ public:
   /** The node must have a proof already and be eligible for propagation! */
   void propagate();
 
-  bool satisfiedBy(const DeltaRational& dr) const{
-    switch(getType()){
-    case LowerBound:
-      return getValue() >= dr;
-    case Equality:
-      return getValue() == dr;
-    case UpperBound:
-      return getValue() <= dr;
-    case Disequality:
-      return getValue() != dr;
-    }
-    Unreachable();
-  }
+  bool satisfiedBy(const DeltaRational& dr) const;
 
 private:
   /**

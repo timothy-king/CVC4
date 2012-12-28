@@ -371,6 +371,20 @@ void ConstraintValue::setAssertedToTheTheory(TNode witness) {
   d_database->pushAssertionOrderWatch(this, witness);
 }
 
+bool ConstraintValue::satisfiedBy(const DeltaRational& dr) const {
+  switch(getType()){
+  case LowerBound:
+    return getValue() <= dr;
+  case Equality:
+    return getValue() == dr;
+  case UpperBound:
+    return getValue() >= dr;
+  case Disequality:
+    return getValue() != dr;
+  }
+  Unreachable();
+}
+
 // bool ConstraintValue::isPsuedoConstraint() const {
 //   return d_proof == d_database->d_psuedoConstraintProof;
 // }
