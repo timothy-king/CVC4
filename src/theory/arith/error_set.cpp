@@ -26,6 +26,101 @@ namespace theory {
 namespace arith {
 
 
+ErrorInformation::ErrorInformation()
+  : d_variable(ARITHVAR_SENTINEL)
+  , d_violated(NullConstraint)
+  , d_sgn(0)
+  , d_relaxed(false)
+  , d_inFocus(false)
+  , d_handle()
+  , d_amount(NULL)
+{
+  Debug("arith::error::mem") << "def constructor " << d_variable << " "  << d_amount << endl;
+}
+
+ErrorInformation::ErrorInformation(ArithVar var, Constraint vio, int sgn)
+  : d_variable(var)
+  , d_violated(vio)
+  , d_sgn(sgn)
+  , d_relaxed(false)
+  , d_inFocus(false)
+  , d_handle()
+  , d_amount(NULL)
+{
+  Assert(debugInitialized());
+  Debug("arith::error::mem") << "constructor " << d_variable << " "  << d_amount << endl;
+}
+
+
+ErrorInformation::~ErrorInformation() {
+  Assert(d_relaxed != true);
+  if(d_amount != NULL){
+    Debug("arith::error::mem") << d_amount << endl;
+    Debug("arith::error::mem") << "destroy " << d_variable << " "  << d_amount << endl;
+    delete d_amount;
+    d_amount = NULL;
+  }
+}
+
+ErrorInformation::ErrorInformation(const ErrorInformation& ei)
+  : d_variable(ei.d_variable)
+  , d_violated(ei.d_violated)
+  , d_sgn(ei.d_sgn)
+  , d_relaxed(ei.d_relaxed)
+  , d_inFocus(ei.d_inFocus)
+  , d_handle(ei.d_handle)
+{
+  if(ei.d_amount == NULL){
+    d_amount = NULL;
+  }else{
+    d_amount = new DeltaRational(*ei.d_amount);
+  }
+  Debug("arith::error::mem") << "copy const " << d_variable << " "  << d_amount << endl;
+}
+
+ErrorInformation& ErrorInformation::operator=(const ErrorInformation& ei){
+  d_variable = ei.d_variable;
+  d_violated = ei.d_violated;
+  d_sgn = ei.d_sgn;
+  d_relaxed = (ei.d_relaxed);
+  d_inFocus = (ei.d_inFocus);
+  d_handle = (ei.d_handle);
+  if(d_amount != NULL && ei.d_amount != NULL){
+    Debug("arith::error::mem") << "assignment assign " << d_variable << " "  << d_amount << endl;
+    *d_amount = *ei.d_amount;
+  }else if(ei.d_amount != NULL){
+    d_amount = new DeltaRational(*ei.d_amount);
+    Debug("arith::error::mem") << "assignment alloc " << d_variable << " "  << d_amount << endl;
+  }else if(d_amount != NULL){
+    Debug("arith::error::mem") << "assignment release " << d_variable << " "  << d_amount << endl;
+    delete d_amount;
+    d_amount = NULL;
+  }else{
+    d_amount = NULL;
+  }
+  return *this;
+}
+
+void ErrorInformation::reset(Constraint c, int sgn){
+  Assert(!isRelaxed());
+  Assert(c != NullConstraint);
+  d_violated = c;
+  d_sgn = sgn;
+
+  if(d_amount != NULL){
+    delete d_amount;
+    Debug("arith::error::mem") << "reset " << d_variable << " "  << d_amount << endl;
+    d_amount = NULL;
+  }
+}
+
+void ErrorInformation::setAmount(const DeltaRational& am){
+  if(d_amount == NULL){
+    d_amount = new DeltaRational;
+    Debug("arith::error::mem") << "setAmount " << d_variable << " "  << d_amount << endl;
+  }
+  (*d_amount) = am;
+}
 
 ErrorSet::Statistics::Statistics():
   d_enqueues("theory::arith::pqueue::enqueues", 0),

@@ -122,46 +122,14 @@ private:
   DeltaRational* d_amount;
 
 public:
-  ErrorInformation()
-    : d_variable(ARITHVAR_SENTINEL)
-    , d_violated(NullConstraint)
-    , d_sgn(0)
-    , d_relaxed(false)
-    , d_inFocus(false)
-    , d_handle()
-    , d_amount(NULL)
-  {}
+  ErrorInformation();
+  ErrorInformation(ArithVar var, Constraint vio, int sgn);
+  ~ErrorInformation();
+  ErrorInformation(const ErrorInformation& ei);
+  ErrorInformation& operator=(const ErrorInformation& ei);
 
-  ErrorInformation(ArithVar var, Constraint vio, int sgn)
-    : d_variable(var)
-    , d_violated(vio)
-    , d_sgn(sgn)
-    , d_relaxed(false)
-    , d_inFocus(false)
-    , d_handle()
-    , d_amount(NULL)
-  {
-    Assert(debugInitialized());
-  }
+  void reset(Constraint c, int sgn);
 
-  ~ErrorInformation() {
-   Assert(d_relaxed != true);
-   if(d_amount != NULL){
-     delete d_amount;
-   }
-  }
-
-  void reset(Constraint c, int sgn){
-    Assert(!isRelaxed());
-    Assert(c != NullConstraint);
-    d_violated = c;
-    d_sgn = sgn;
-    
-    if(d_amount != NULL){
-      delete d_amount;
-      d_amount = NULL;
-    }
-  }
   inline ArithVar getVariable() const { return d_variable; }
 
   bool isRelaxed() const { return d_relaxed; }
@@ -177,13 +145,8 @@ public:
     Assert(d_amount != NULL);
     return *d_amount;
   }
-  void setAmount(const DeltaRational& am){
-    if(d_amount == NULL){
-      d_amount = new DeltaRational(am);
-    }else{
-      *d_amount = DeltaRational(am);
-    }
-  }
+
+  void setAmount(const DeltaRational& am);
 
   inline void setHandle(ErrorSetHandle h) {
     Assert(d_inFocus);

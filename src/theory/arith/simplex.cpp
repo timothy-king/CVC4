@@ -121,16 +121,17 @@ Result::Sat SimplexDecisionProcedure::dualFindModel(bool exactResult){
 
   static const bool verbose = false;
   exactResult |= options::arithStandardCheckVarOrderPivots() < 0;
-  const uint32_t inexactResultsVarOrderPivots = exactResult ? 0 : options::arithStandardCheckVarOrderPivots();
+
 
   uint32_t checkPeriod = options::arithSimplexCheckPeriod();
   if(result == Result::SAT_UNKNOWN){
     uint32_t numDifferencePivots = options::arithHeuristicPivots() < 0 ?
       d_numVariables + 1 : options::arithHeuristicPivots();
     // The signed to unsigned conversion is safe.
-    
-    if(searchForFeasibleSolution(numDifferencePivots)){
-      result = Result::UNSAT;
+    if(numDifferencePivots > 0){
+      if(searchForFeasibleSolution(numDifferencePivots)){
+        result = Result::UNSAT;
+      }
     }
 
     if(verbose && numDifferencePivots > 0){
@@ -149,12 +150,13 @@ Result::Sat SimplexDecisionProcedure::dualFindModel(bool exactResult){
     if(exactResult){
       d_errorSet.setSelectionRule(VAR_ORDER);
       while(!d_errorSet.errorEmpty() && result != Result::UNSAT){
+        Assert(checkPeriod > 0);
         if(searchForFeasibleSolution(checkPeriod)){
           result = Result::UNSAT;
         }
       }
-    }else{
-      if(searchForFeasibleSolution(inexactResultsVarOrderPivots)){
+    }else if( options::arithStandardCheckVarOrderPivots() > 0){
+      if(searchForFeasibleSolution(options::arithStandardCheckVarOrderPivots())){
         result = Result::UNSAT;
       }
     }
