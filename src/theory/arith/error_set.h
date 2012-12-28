@@ -18,8 +18,7 @@
 
 #include "cvc4_private.h"
 
-#ifndef __CVC4__THEORY__ARITH__ARITH_PRIORITY_QUEUE_H
-#define __CVC4__THEORY__ARITH__ARITH_PRIORITY_QUEUE_H
+#pragma once
 
 #include "theory/arith/arithvar.h"
 #include "theory/arith/delta_rational.h"
@@ -333,5 +332,3 @@ private:
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */
 }/* CVC4 namespace */
-
-#endif /* __CVC4__THEORY__ARITH_PRIORITY_QUEUE_H */

@@ -30,7 +30,7 @@ template void LinearEqualityModule::propagateNonbasics<false>(ArithVar basic, Co
 template ArithVar LinearEqualityModule::selectSlack<true>(ArithVar x_i, PreferenceFunction pf) const;
 template ArithVar LinearEqualityModule::selectSlack<false>(ArithVar x_i, PreferenceFunction pf) const;
 
-LinearEqualityModule::LinearEqualityModule(ArithVariables& vars, Tableau& t, ArithVarCallBack& f):
+LinearEqualityModule::LinearEqualityModule(ArithVariables& vars, Tableau& t, BasicVarModelUpdateCallBack f):
   d_variables(vars),
   d_tableau(t),
   d_basicVariableUpdates(f),

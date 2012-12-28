@@ -27,6 +27,7 @@
 #include "theory/arith/arith_utilities.h"
 #include "theory/arith/delta_rational.h"
 #include "theory/arith/constraint_forward.h"
+#include "theory/arith/callbacks.h"
 
 
 #include <vector>
@@ -198,12 +199,12 @@ private:
   // Cache of a value of delta to ensure a total order.
   Rational d_delta;
   // Function to call if the value of delta needs to be recomputed.
-  RationalCallBack& d_deltaComputingFunc;
+  DeltaComputeCallback d_deltaComputingFunc;
 
 
 public:
 
-  ArithVariables(context::Context* c, RationalCallBack& deltaComputation);
+  ArithVariables(context::Context* c, DeltaComputeCallback deltaComputation);
 
   /**
    * This sets the lower bound for a variable in the current context.

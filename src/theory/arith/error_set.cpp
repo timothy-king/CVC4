@@ -16,7 +16,7 @@
  **/
 
 
-#include "theory/arith/arith_priority_queue.h"
+#include "theory/arith/error_set.h"
 #include "theory/arith/constraint.h"
 
 using namespace std;

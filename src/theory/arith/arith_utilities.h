@@ -52,6 +52,12 @@ inline Node mkRealSkolem(const std::string& name){
   return NodeManager::currentNM()->mkSkolem(name, NodeManager::currentNM()->realType());
 }
 
+inline Node skolemFunction(const std::string& name, TypeNode dom, TypeNode range){
+  NodeManager* currNM = NodeManager::currentNM();
+  TypeNode functionType = currNM->mkFunctionType(dom, range);
+  return currNM->mkSkolem(name, functionType);
+}
+
 /**
  * (For the moment) the type hierarchy goes as:
  * Integer <: Real

@@ -28,14 +28,18 @@ libarith_la_SOURCES = \
 	partial_model.cpp \
 	linear_equality.h \
 	linear_equality.cpp \
+	callbacks.h \
+	callbacks.cpp \
 	matrix.h \
 	matrix.cpp \
-	arith_priority_queue.h \
-	arith_priority_queue.cpp \
+	error_set.h \
+	error_set.cpp \
 	simplex.h \
 	simplex.cpp \
 	theory_arith.h \
 	theory_arith.cpp \
+	theory_arith_private.h \
+	theory_arith_private.cpp \
 	dio_solver.h \
 	dio_solver.cpp \
 	arith_heuristic_pivot_rule.h \

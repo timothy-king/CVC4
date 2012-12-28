@@ -57,7 +57,7 @@ private:
   Tableau& d_tableau;
 
   /** Called whenever the value of a basic variable is updated. */
-  ArithVarCallBack& d_basicVariableUpdates;
+  BasicVarModelUpdateCallBack d_basicVariableUpdates;
 
 public:
 
@@ -65,7 +65,7 @@ public:
    * Initializes a LinearEqualityModule with a partial model, a tableau,
    * and a callback function for when basic variables update their values.
    */
-  LinearEqualityModule(ArithVariables& vars, Tableau& t, ArithVarCallBack& f);
+  LinearEqualityModule(ArithVariables& vars, Tableau& t, BasicVarModelUpdateCallBack f);
 
   /**
    * Updates the assignment of a nonbasic variable x_i to v.

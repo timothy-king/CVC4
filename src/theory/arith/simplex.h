@@ -51,11 +51,10 @@
 
 #include "cvc4_private.h"
 
-#ifndef __CVC4__THEORY__ARITH__SIMPLEX_H
-#define __CVC4__THEORY__ARITH__SIMPLEX_H
+#pragma once
 
 #include "theory/arith/arithvar.h"
-#include "theory/arith/arith_priority_queue.h"
+#include "theory/arith/error_set.h"
 #include "theory/arith/delta_rational.h"
 #include "theory/arith/matrix.h"
 #include "theory/arith/partial_model.h"
@@ -99,7 +98,7 @@ private:
   Tableau& d_tableau;
 
   /** Contains a superset of the basic variables in violation of their bounds. */
-  ErrorSet d_queue;
+  ErrorSet& d_errorSet;
 
   /** Number of variables in the system. This is used for tuning heuristics. */
   ArithVar d_numVariables;
@@ -117,13 +116,13 @@ private:
   ArithVarMalloc& d_arithVarMalloc;
 
 public:
-  SimplexDecisionProcedure(LinearEqualityModule& linEq, NodeCallBack& conflictChannel, ArithVarMalloc& variables);
+  SimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc);
 
   /**
    * This must be called when the value of a basic variable may have transitioned
    * from voilating one of its bounds.
    */
-  inline void signal(ArithVar x) { d_queue.signalVariable(x); }
+  //inline void signal(ArithVar x) { d_queue.signalVariable(x); }
 
   /** Post condition: !d_queue.moreSignals() */
   bool processSignals();
@@ -144,13 +143,6 @@ public:
    */
   Result::Sat dualFindModel(bool exactResult);
 
-  /**
-   * Tries to update the assignments of the variables s.t. all of the assignments
-   * are consistent with their bounds.
-   *
-   * This is a REALLY heavy hammer consider calling dualFindModel(false) first.
-   */
-  Result::Sat primalFindModel();
 
 private:
   
@@ -163,17 +155,17 @@ private:
    */
   bool searchForFeasibleSolution(uint32_t maxIterations);
 
-  enum SearchPeriod {BeforeDiffSearch, DuringDiffSearch, AfterDiffSearch, DuringVarOrderSearch, AfterVarOrderSearch};
+  //enum SearchPeriod {BeforeDiffSearch, DuringDiffSearch, AfterDiffSearch, DuringVarOrderSearch, AfterVarOrderSearch};
 
-  bool findConflictOnTheQueue(SearchPeriod period);
+  //bool findConflictOnTheQueue(SearchPeriod period);
 
 public:
   void increaseMax() { d_numVariables++; }
 
 
-  void clearQueue() {
-    d_queue.clear();
-  }
+  /* void clearErrorSetQueue() { */
+  /*   d_errorSet.clear(); */
+  /* } */
 
 
   /* bool debugIsInCollectionQueue(ArithVar var) const{ */
@@ -234,6 +226,4 @@ private:
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */
 }/* CVC4 namespace */
-
-#endif /* __CVC4__THEORY__ARITH__SIMPLEX_H */
 

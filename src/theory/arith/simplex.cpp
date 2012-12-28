@@ -25,20 +25,19 @@ namespace CVC4 {
 namespace theory {
 namespace arith {
 
-SimplexDecisionProcedure::SimplexDecisionProcedure(LinearEqualityModule& linEq, NodeCallBack& conflictChannel, ArithVarMalloc& variables) :
-  d_conflictVariables(),
-  d_linEq(linEq),
-  d_variables(d_linEq.getVariables()),
-  d_tableau(d_linEq.getTableau()),
-  d_queue(d_variables),
-  d_numVariables(0),
-  d_conflictChannel(conflictChannel),
-  d_pivotsInRound(),
-  d_DELTA_ZERO(0,0),
-  d_arithVarMalloc(variables)
+SimplexDecisionProcedure::SimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc)
+  : d_conflictVariables()
+  , d_linEq(linEq)
+  , d_variables(d_linEq.getVariables())
+  , d_tableau(d_linEq.getTableau())
+  , d_errorSet(errors)
+  , d_numVariables(0)
+  , d_conflictChannel(conflictChannel)
+  , d_pivotsInRound()
+  , d_arithVarMalloc(tvmalloc)
 {
   d_heuristicRule = options::arithErrorSelectionRule();
-  d_queue.setSelectionRule(d_heuristicRule);
+  d_errorSet.setSelectionRule(d_heuristicRule);
 }
 
 SimplexDecisionProcedure::Statistics::Statistics():
@@ -65,9 +64,9 @@ bool SimplexDecisionProcedure::processSignals() {
   Assert( d_conflictVariables.empty() );
 
 
-  while(!d_queue.moreSignals()){
-    ArithVar curr = d_queue.topSignal();
-    d_queue.popSignal();
+  while(!d_errorSet.moreSignals()){
+    ArithVar curr = d_errorSet.topSignal();
+    d_errorSet.popSignal();
     d_linEq.maybeTrackVariable(curr);
 
     if(d_tableau.isBasic(curr) &&
@@ -92,21 +91,21 @@ Result::Sat SimplexDecisionProcedure::dualFindModel(bool exactResult){
   static CVC4_THREADLOCAL(unsigned int) instance = 0;
   instance = instance + 1;
 
-  if(d_queue.empty() && !d_queue.moreSignals()){
+  if(d_errorSet.empty() && !d_errorSet.moreSignals()){
     Debug("arith::findModel") << "dualFindModel("<< instance <<") trivial" << endl;
     return Result::SAT;
   }
 
-  d_queue.setSelectionRule(d_heuristicRule);
+  d_errorSet.setSelectionRule(d_heuristicRule);
 
   if(processSignals()){
     d_conflictVariables.purge();
 
     Debug("arith::findModel") << "dualFindModel("<< instance <<") early conflict" << endl;
     return Result::UNSAT;
-  }else if(d_queue.empty()){
+  }else if(d_errorSet.empty()){
     Debug("arith::findModel") << "dualFindModel("<< instance <<") fixed itself" << endl;
-    Assert(!d_queue.moreSignals());
+    Assert(!d_errorSet.moreSignals());
     return Result::SAT;
   }
 
@@ -128,7 +127,7 @@ Result::Sat SimplexDecisionProcedure::dualFindModel(bool exactResult){
       result = Result::UNSAT;
     }
 
-    // while(!d_queue.empty() &&
+    // while(!d_errorSet.empty() &&
     //       result != Result::UNSAT &&
     //       pivotsRemaining > 0){
     //   uint32_t pivotsToDo = min(checkPeriod, pivotsRemaining);
@@ -146,19 +145,19 @@ Result::Sat SimplexDecisionProcedure::dualFindModel(bool exactResult){
     if(verbose && numDifferencePivots > 0){
       if(result ==  Result::UNSAT){
         Message() << "diff order found unsat" << endl;
-      }else if(d_queue.empty()){
+      }else if(d_errorSet.empty()){
         Message() << "diff order found model" << endl;
       }else{
         Message() << "diff order missed" << endl;
       }
     }
   }
-  Assert(d_queue.moreSignals());
+  Assert(d_errorSet.moreSignals());
 
-  if(!d_queue.empty() && result != Result::UNSAT){
+  if(!d_errorSet.empty() && result != Result::UNSAT){
     if(exactResult){
-      d_queue.setSelectionRule(VAR_ORDER);
-      while(!d_queue.empty() && result != Result::UNSAT){
+      d_errorSet.setSelectionRule(VAR_ORDER);
+      while(!d_errorSet.empty() && result != Result::UNSAT){
         if(searchForFeasibleSolution(checkPeriod)){
           result = Result::UNSAT;
         }
@@ -217,8 +216,8 @@ Result::Sat SimplexDecisionProcedure::dualFindModel(bool exactResult){
   //   }
   // }
 
-  Assert(!d_queue.moreSignals());
-  if(result == Result::SAT_UNKNOWN && d_queue.empty()){
+  Assert(!d_errorSet.moreSignals());
+  if(result == Result::SAT_UNKNOWN && d_errorSet.empty()){
     result = Result::SAT;
   }
 
@@ -275,7 +274,7 @@ bool SimplexDecisionProcedure::searchForFeasibleSolution(uint32_t remainingItera
   while(remainingIterations > 0){
     if(Debug.isOn("paranoid:check_tableau")){ d_linEq.debugCheckTableau(); }
 
-    ArithVar x_i = d_queue.topFocusVariable();
+    ArithVar x_i = d_errorSet.topFocusVariable();
 
     //ArithVar x_i = d_queue.dequeueInconsistentBasicVariable();
     Debug("arith::update::select") << "selectSmallestInconsistentVar()=" << x_i << endl;

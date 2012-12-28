@@ -72,12 +72,10 @@
 #include "context/cdqueue.h"
 
 #include "theory/arith/arithvar.h"
-//#include "theory/arith/arithvar_node_map.h"
 #include "theory/arith/delta_rational.h"
-
 #include "theory/arith/congruence_manager.h"
-
 #include "theory/arith/constraint_forward.h"
+#include "theory/arith/callbacks.h"
 
 #include <vector>
 #include <list>
@@ -793,12 +791,10 @@ private:
 
   ArithCongruenceManager& d_congruenceManager;
 
-  //Constraint allocateConstraintForLiteral(ArithVar v, Node literal);
-
   const context::Context * const d_satContext;
   const int d_satAllocationLevel;
 
-  NodeCallBack& d_raiseConflict;
+  RaiseConflict d_raiseConflict;
 
   friend class ConstraintValue;
 
@@ -808,7 +804,7 @@ public:
                       context::Context* userContext,
                       const ArithVariables& variables,
                       ArithCongruenceManager& dm,
-                      NodeCallBack& conflictCallBack);
+                      RaiseConflict conflictCallBack);
 
   ~ConstraintDatabase();
 

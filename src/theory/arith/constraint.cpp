@@ -469,7 +469,7 @@ Constraint ConstraintValue::makeNegation(ArithVar v, ConstraintType t, const Del
   }
 }
 
-ConstraintDatabase::ConstraintDatabase(context::Context* satContext, context::Context* userContext, const ArithVariables& avars, ArithCongruenceManager& cm, NodeCallBack& raiseConflict)
+ConstraintDatabase::ConstraintDatabase(context::Context* satContext, context::Context* userContext, const ArithVariables& avars, ArithCongruenceManager& cm, RaiseConflict raiseConflict)
   : d_varDatabases(),
     d_toPropagate(satContext),
     d_proofs(satContext, false),

@@ -14,6 +14,7 @@
 
 #include "theory/quantifiers/inst_strategy_cbqi.h"
 #include "theory/arith/theory_arith.h"
+#include "theory/arith/theory_arith_private.h"
 #include "theory/theory_engine.h"
 #include "theory/quantifiers/options.h"
 #include "theory/quantifiers/term_database.h"
@@ -46,11 +47,11 @@ void InstStrategySimplex::processResetInstantiationRound( Theory::Effort effort 
   d_tableaux.clear();
   d_ceTableaux.clear();
   //search for instantiation rows in simplex tableaux
-  ArithVariables& avnm = d_th->d_partialModel;
+  ArithVariables& avnm = d_th->d_internal->d_partialModel;
   ArithVariables::var_iterator vi, vend;
   for(vi = avnm.var_begin(), vend = avnm.var_end(); vi != vend; ++vi ){
     ArithVar x = *vi;
-    if( d_th->d_partialModel.hasEitherBound( x ) ){
+    if( avnm.hasEitherBound( x ) ){
       Node n = avnm.asNode(x);
       Node f;
       NodeBuilder<> t(kind::PLUS);
@@ -168,23 +169,23 @@ void InstStrategySimplex::addTermToRow( ArithVar x, Node n, Node& f, NodeBuilder
 }
 
 void InstStrategySimplex::debugPrint( const char* c ){
-  const ArithVariables& avnm = d_th->d_partialModel;
+  const ArithVariables& avnm = d_th->d_internal->d_partialModel;
   ArithVariables::var_iterator vi, vend;
   for(vi = avnm.var_begin(), vend = avnm.var_end(); vi != vend; ++vi ){
     ArithVar x = *vi;
     Node n = avnm.asNode(x);
     //if( ((TheoryArith*)getTheory())->d_partialModel.hasEitherBound( x ) ){
       Debug(c) << x << " : " << n << ", bounds = ";
-      if( d_th->d_partialModel.hasLowerBound( x ) ){
-        Debug(c) << d_th->d_partialModel.getLowerBound( x );
+      if( avnm.hasLowerBound( x ) ){
+        Debug(c) << avnm.getLowerBound( x );
       }else{
         Debug(c) << "-infty";
       }
       Debug(c) << " <= ";
-      Debug(c) << d_th->d_partialModel.getAssignment( x );
+      Debug(c) << avnm.getAssignment( x );
       Debug(c) << " <= ";
-      if( d_th->d_partialModel.hasUpperBound( x ) ){
-        Debug(c) << d_th->d_partialModel.getUpperBound( x );
+      if( avnm.hasUpperBound( x ) ){
+        Debug(c) << avnm.getUpperBound( x );
       }else{
         Debug(c) << "+infty";
       }
@@ -273,8 +274,9 @@ bool InstStrategySimplex::doInstantiation2( Node f, Node term, ArithVar x, InstM
 }
 
 Node InstStrategySimplex::getTableauxValue( Node n, bool minus_delta ){
-  if( d_th->d_partialModel.hasArithVar(n) ){
-    ArithVar v = d_th->d_partialModel.asArithVar( n );
+  const ArithVariables& avnm = d_th->d_internal->d_partialModel;
+  if( avnm.hasArithVar(n) ){
+    ArithVar v = avnm.asArithVar( n );
     return getTableauxValue( v, minus_delta );
   }else{
     return NodeManager::currentNM()->mkConst( Rational(0) );
@@ -282,8 +284,9 @@ Node InstStrategySimplex::getTableauxValue( Node n, bool minus_delta ){
 }
 
 Node InstStrategySimplex::getTableauxValue( ArithVar v, bool minus_delta ){
-  const Rational& delta = d_th->d_partialModel.getDelta();
-  DeltaRational drv = d_th->d_partialModel.getAssignment( v );
+  ArithVariables& avnm = d_th->d_internal->d_partialModel;
+  const Rational& delta = avnm.getDelta();
+  DeltaRational drv = avnm.getAssignment( v );
   Rational qmodel = drv.substituteDelta( minus_delta ? -delta : delta );
   return mkRationalNode(qmodel);
 }

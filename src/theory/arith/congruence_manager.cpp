@@ -24,7 +24,7 @@ namespace CVC4 {
 namespace theory {
 namespace arith {
 
-ArithCongruenceManager::ArithCongruenceManager(context::Context* c, ConstraintDatabase& cd, TNodeCallBack& setup, const ArithVariables& avars, NodeCallBack& raiseConflict)
+ArithCongruenceManager::ArithCongruenceManager(context::Context* c, ConstraintDatabase& cd, SetupLiteralCallBack setup, const ArithVariables& avars, RaiseConflict raiseConflict)
   : d_inConflict(c),
     d_raiseConflict(raiseConflict),
     d_notify(*this),

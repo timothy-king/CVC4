@@ -27,7 +27,7 @@ namespace CVC4 {
 namespace theory {
 namespace arith {
 
-ArithVariables::ArithVariables(context::Context* c, RationalCallBack& deltaComputingFunc)
+ArithVariables::ArithVariables(context::Context* c, DeltaComputeCallback deltaComputingFunc)
  : d_vars(),
    d_safeAssignment(),
    d_numberOfVariables(0),
