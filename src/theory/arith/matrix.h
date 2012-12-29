@@ -46,14 +46,14 @@ class CoefficientChangeCallback {
 public:
   virtual void update(RowIndex basic, ArithVar nb, int oldSgn, int currSgn) = 0;
   virtual void swap(ArithVar basic, ArithVar nb, int nbSgn) = 0;
-  virtual void finishedRow(RowIndex ridx) = 0;
+  virtual bool canUseRow(RowIndex ridx) const = 0;
 };
 
 class NoEffectCCCB : public CoefficientChangeCallback {
 public:
   void update(RowIndex ridx, ArithVar nb, int oldSgn, int currSgn);
   void swap(ArithVar basic, ArithVar nb, int nbSgn);
-  void finishedRow(RowIndex ridx);
+  bool canUseRow(RowIndex ridx) const;
 };
 
 template<class T>
@@ -560,6 +560,66 @@ public:
 
     d_rowInMergeBuffer = ROW_INDEX_SENTINEL;
     d_mergeBuffer.purge();
+  }
+
+  /**  to += mult * buffer. */
+  void rowPlusBufferTimesConstant(RowIndex to, const T& mult){
+    Assert(d_rowInMergeBuffer != ROW_INDEX_SENTINEL);
+    Assert(to != ROW_INDEX_SENTINEL);
+
+    Debug("tableau") << "rowPlusRowTimesConstant("
+                     << to << "," << mult << "," << d_rowInMergeBuffer << ")"
+                     << std::endl;
+
+    Assert(debugNoZeroCoefficients(to));
+    Assert(debugNoZeroCoefficients(d_rowInMergeBuffer));
+
+    Assert(mult != 0);
+
+
+    RowIterator i = getRow(to).begin();
+    RowIterator i_end = getRow(to).end();
+    while(i != i_end){
+      EntryID id = i.getID();
+      Entry& entry = d_entries.get(id);
+      ArithVar colVar = entry.getColVar();
+
+      ++i;
+
+      if(d_mergeBuffer.isKey(colVar)){
+        EntryID bufferEntry = d_mergeBuffer[colVar].first;
+        Assert(!d_mergeBuffer[colVar].second);
+        d_mergeBuffer.get(colVar).second = true;
+
+        const Entry& other = d_entries.get(bufferEntry);
+        T& coeff = entry.getCoefficient();
+        coeff += mult * other.getCoefficient();
+
+        if(coeff.sgn() == 0){
+          removeEntry(id);
+        }
+      }
+    }
+
+    i = getRow(d_rowInMergeBuffer).begin();
+    i_end = getRow(d_rowInMergeBuffer).end();
+
+    for(; i != i_end; ++i){
+      const Entry& entry = *i;
+      ArithVar colVar = entry.getColVar();
+
+      if(d_mergeBuffer[colVar].second){
+        d_mergeBuffer.get(colVar).second = false;
+      }else{
+        Assert(!(d_mergeBuffer[colVar]).second);
+        T newCoeff =  mult * entry.getCoefficient();
+        addEntry(to, colVar, newCoeff);
+      }
+    }
+
+    Assert(mergeBufferIsClear());
+
+    if(Debug.isOn("matrix")) { printMatrix(); }
   }
 
   /**  to += mult * buffer. */

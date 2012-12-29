@@ -79,7 +79,7 @@ public:
    * Updates the assignment of the other basic variables accordingly.
    */
   void pivotAndUpdate(ArithVar x_i, ArithVar x_j, const DeltaRational& v);
-
+  void pivotAndUpdateAdj(ArithVar x_i, ArithVar x_j, const DeltaRational& v);
 
   ArithVariables& getVariables() const{ return d_variables; }
   Tableau& getTableau() const{ return d_tableau; }
@@ -223,13 +223,18 @@ public:
       countBounds(x_i);
     }
   }
+  void trackVariable(ArithVar x_i){
+    Assert(d_areTracking);
+    if(!basicIsTracked(x_i)){
+      d_boundTracking.set(x_i,computeBoundCounts(x_i));
+    }
+  }
   BoundCounts computeBoundCounts(ArithVar x_i) const;
   BoundCounts cachingCountBounds(ArithVar x_i) const;
   BoundCounts countBounds(ArithVar x_i);
   void trackingCoefficientChange(RowIndex ridx, ArithVar nb, int oldSgn, int currSgn);
 
   void trackingSwap(ArithVar basic, ArithVar nb, int sgn);
-  void trackingFinishedRow(RowIndex ridx);
 
   bool nonbasicsAtLowerBounds(ArithVar x_i) const;
   bool nonbasicsAtUpperBounds(ArithVar x_i) const;
@@ -247,14 +252,15 @@ private:
     LinearEqualityModule* d_linEq;
   public:
     TrackingCallback(LinearEqualityModule* le) : d_linEq(le) {}
-    void update(ArithVar basic, ArithVar nb, int oldSgn, int currSgn){
-      d_linEq->trackingCoefficientChange(basic, nb, oldSgn, currSgn);
+    void update(RowIndex ridx, ArithVar nb, int oldSgn, int currSgn){
+      d_linEq->trackingCoefficientChange(ridx, nb, oldSgn, currSgn);
     }
     void swap(ArithVar basic, ArithVar nb, int oldNbSgn){
       d_linEq->trackingSwap(basic, nb, oldNbSgn);
     }
-    void finishedRow(RowIndex ridx){
-      return d_linEq->trackingFinishedRow(ridx);
+    bool canUseRow(RowIndex ridx) const {
+      ArithVar basic = d_linEq->getTableau().rowIndexToBasic(ridx);
+      return d_linEq->basicIsTracked(basic);
     }
  } d_trackCallback;
 
@@ -310,6 +316,7 @@ private:
   public:
     IntStat d_statPivots, d_statUpdates;
     TimerStat d_pivotTime;
+    TimerStat d_adjTime;
 
     IntStat d_weakeningAttempts, d_weakeningSuccesses, d_weakenings;
     TimerStat d_weakenTime;

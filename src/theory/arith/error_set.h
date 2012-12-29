@@ -263,7 +263,7 @@ public:
 
   /** Clears the set. */
   void clear();
-  void reduce();
+  void reduceToSignals();
 
   bool noSignals() const {
     return d_signals.empty();

@@ -70,11 +70,10 @@ bool SimplexDecisionProcedure::processSignals() {
   while(d_errorSet.moreSignals()){
     ArithVar curr = d_errorSet.topSignal();
     d_errorSet.popSignal();
-    if(d_tableau.isBasic(curr)){
-      d_linEq.maybeTrackVariable(curr);
+    if(d_tableau.isBasic(curr) && !d_variables.assignmentIsConsistent(curr)){
+      d_linEq.trackVariable(curr);
 
-      if(!d_variables.assignmentIsConsistent(curr) &&
-         !d_conflictVariables.isMember(curr) &&
+      if(!d_conflictVariables.isMember(curr) &&
          checkBasicForConflict(curr)){
 
         Debug("recentlyViolated")
@@ -97,13 +96,13 @@ Result::Sat SimplexDecisionProcedure::dualFindModel(bool exactResult){
   static CVC4_THREADLOCAL(unsigned int) instance = 0;
   instance = instance + 1;
 
-  // We need to reduce this because of
-  d_errorSet.reduce();
-
   if(d_errorSet.errorEmpty() && !d_errorSet.moreSignals()){
     Debug("arith::findModel") << "dualFindModel("<< instance <<") trivial" << endl;
     return Result::SAT;
   }
+
+  // We need to reduce this because of
+  d_errorSet.reduceToSignals();
 
   if(processSignals()){
     d_conflictVariables.purge();
@@ -120,7 +119,7 @@ Result::Sat SimplexDecisionProcedure::dualFindModel(bool exactResult){
 
   Result::Sat result = Result::SAT_UNKNOWN;
 
-  static const bool verbose = true;
+  static const bool verbose = false;
   exactResult |= options::arithStandardCheckVarOrderPivots() < 0;
 
 
@@ -162,6 +161,15 @@ Result::Sat SimplexDecisionProcedure::dualFindModel(bool exactResult){
       d_errorSet.setSelectionRule(VAR_ORDER);
       if(searchForFeasibleSolution(options::arithStandardCheckVarOrderPivots())){
         result = Result::UNSAT;
+      }
+      if(verbose){
+        if(result ==  Result::UNSAT){
+          Message() << "restricted var order found unsat" << endl;
+        }else if(d_errorSet.errorEmpty()){
+          Message() << "restricted var order found model" << endl;
+        }else{
+          Message() << "restricted var order missed" << endl;
+        }
       }
     }
   }
@@ -241,7 +249,7 @@ bool SimplexDecisionProcedure::searchForFeasibleSolution(uint32_t remainingItera
 
   while(remainingIterations > 0 && !d_errorSet.focusEmpty()){
     if(Debug.isOn("paranoid:check_tableau")){ d_linEq.debugCheckTableau(); }
-
+    Assert(d_conflictVariables.empty());
     ArithVar x_i = d_errorSet.topFocusVariable();
 
     Debug("arith::update::select") << "selectSmallestInconsistentVar()=" << x_i << endl;

@@ -91,8 +91,13 @@ public:
 
   bool operator==(BoundCounts bc) const {
     return d_atLowerBounds == bc.d_atLowerBounds 
-    && d_atUpperBounds == bc.d_atUpperBounds;     
+      && d_atUpperBounds == bc.d_atUpperBounds;     
   }
+  bool operator!=(BoundCounts bc) const {
+    return  d_atLowerBounds != bc.d_atLowerBounds 
+      || d_atUpperBounds != bc.d_atUpperBounds;
+  }
+  inline bool isZero() const{ return d_atLowerBounds == 0 && d_atUpperBounds == 0; }
   inline uint32_t atLowerBounds() const{
     return d_atLowerBounds;
   }
@@ -110,6 +115,41 @@ public:
     Assert(d_atUpperBounds >= bc.d_atUpperBounds);
     return BoundCounts(d_atLowerBounds - bc.d_atLowerBounds,
                        d_atUpperBounds - bc.d_atUpperBounds);
+  }
+  
+  inline void addInChange(int sgn, BoundCounts before, BoundCounts after){
+    Assert(before != after);
+    if(sgn < 0){
+      Assert(d_atUpperBounds >= before.d_atLowerBounds);
+      Assert(d_atLowerBounds >= before.d_atUpperBounds);
+      d_atUpperBounds += after.d_atLowerBounds - before.d_atLowerBounds;
+      d_atLowerBounds += after.d_atUpperBounds - before.d_atUpperBounds;
+    }else if(sgn > 0){
+      Assert(d_atUpperBounds >= before.d_atUpperBounds);
+      Assert(d_atLowerBounds >= before.d_atLowerBounds);
+      d_atUpperBounds += after.d_atUpperBounds - before.d_atUpperBounds;
+      d_atLowerBounds += after.d_atLowerBounds - before.d_atLowerBounds;
+    }
+  }
+
+  inline void addInSgn(BoundCounts bc, int before, int after){
+    Assert(before != after);
+    Assert(!bc.isZero());
+    
+    if(before < 0){
+      d_atUpperBounds -= bc.d_atLowerBounds;
+      d_atLowerBounds -= bc.d_atUpperBounds;
+    }else if(before > 0){
+      d_atUpperBounds -= bc.d_atUpperBounds;
+      d_atLowerBounds -= bc.d_atLowerBounds;
+    }
+    if(after < 0){
+      d_atUpperBounds += bc.d_atLowerBounds;
+      d_atLowerBounds += bc.d_atUpperBounds;
+    }else if(after > 0){
+      d_atUpperBounds += bc.d_atUpperBounds;
+      d_atLowerBounds += bc.d_atLowerBounds;
+    }
   }
 
   inline BoundCounts& operator+=(BoundCounts bc) {

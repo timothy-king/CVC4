@@ -259,6 +259,7 @@ void ErrorSet::transitionVariableOutOfError(ArithVar v) {
   }
   if(ei.inFocus()){
     d_focus.erase(ei.getHandle());
+    ei.setInFocus(false);
   }
   d_errInfo.remove(v);
 }
@@ -358,20 +359,14 @@ void ErrorSet::clear(){
   d_focus.clear();
 }
 
-void ErrorSet::reduce(){
-  Assert(d_nowConsistent.empty());
+void ErrorSet::reduceToSignals(){
   for(error_iterator ei=errorBegin(), ei_end=errorEnd(); ei != ei_end; ++ei){
     ArithVar curr = *ei;
-    if(!inconsistent(curr)){
-      d_nowConsistent.push_back(curr);
-    }
+    signalVariable(curr);
   }
-  while(!d_nowConsistent.empty()){
-    ArithVar back = d_nowConsistent.back();
-    d_nowConsistent.pop_back();
-    transitionVariableOutOfError(back);
-  }
-  Assert(d_nowConsistent.empty());
+  
+  d_errInfo.purge();
+  d_focus.clear();
 }
 
 DeltaRational ErrorSet::computeDiff(ArithVar v) const{

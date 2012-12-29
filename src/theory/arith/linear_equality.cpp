@@ -34,6 +34,8 @@ LinearEqualityModule::LinearEqualityModule(ArithVariables& vars, Tableau& t, Bas
   d_variables(vars),
   d_tableau(t),
   d_basicVariableUpdates(f),
+  d_boundTracking(),
+  d_areTracking(false),
   d_trackCallback(this)
 {}
 
@@ -41,6 +43,7 @@ LinearEqualityModule::Statistics::Statistics():
   d_statPivots("theory::arith::pivots",0),
   d_statUpdates("theory::arith::updates",0),
   d_pivotTime("theory::arith::pivotTime"),
+  d_adjTime("theory::arith::adjTime"),
   d_weakeningAttempts("theory::arith::weakening::attempts",0),
   d_weakeningSuccesses("theory::arith::weakening::success",0),
   d_weakenings("theory::arith::weakening::total",0),
@@ -50,6 +53,7 @@ LinearEqualityModule::Statistics::Statistics():
   StatisticsRegistry::registerStat(&d_statUpdates);
 
   StatisticsRegistry::registerStat(&d_pivotTime);
+  StatisticsRegistry::registerStat(&d_adjTime);
 
   StatisticsRegistry::registerStat(&d_weakeningAttempts);
   StatisticsRegistry::registerStat(&d_weakeningSuccesses);
@@ -61,6 +65,7 @@ LinearEqualityModule::Statistics::~Statistics(){
   StatisticsRegistry::unregisterStat(&d_statPivots);
   StatisticsRegistry::unregisterStat(&d_statUpdates);
   StatisticsRegistry::unregisterStat(&d_pivotTime);
+  StatisticsRegistry::unregisterStat(&d_adjTime);
 
 
   StatisticsRegistry::unregisterStat(&d_weakeningAttempts);
@@ -104,21 +109,8 @@ void LinearEqualityModule::update(ArithVar x_i, const DeltaRational& v){
   //(d_statistics.d_avgNumRowsNotContainingOnUpdate).addEntry(difference);
   if(Debug.isOn("paranoid:check_tableau")){  debugCheckTableau(); }
 }
-
-void LinearEqualityModule::pivotAndUpdate(ArithVar x_i, ArithVar x_j, const DeltaRational& v){
-  Assert(x_i != x_j);
-
-  TimerStat::CodeTimer codeTimer(d_statistics.d_pivotTime);
-
-  static int instance = 0;
-
-  if(Debug.isOn("arith::tracking::pre")){
-    ++instance;
-    Debug("arith::tracking")  << "pre update #" << instance << endl;
-    debugCheckTracking();
-  }
-
-  if(Debug.isOn("arith::simplex:row")){ debugPivot(x_i, x_j); }
+void LinearEqualityModule::pivotAndUpdateAdj(ArithVar x_i, ArithVar x_j, const DeltaRational& v){
+  TimerStat::CodeTimer codeTimer(d_statistics.d_adjTime);
 
   RowIndex ridx = d_tableau.basicToRowIndex(x_i);
   const Tableau::Entry& entry_ij =  d_tableau.findEntry(ridx, x_j);
@@ -138,17 +130,18 @@ void LinearEqualityModule::pivotAndUpdate(ArithVar x_i, ArithVar x_j, const Delt
 
   Assert(d_areTracking);
   Assert(d_boundTracking.isKey(x_i));
-  BoundCounts bc_i = d_boundTracking[x_i];
-  BoundCounts before = (d_variables.boundCounts(x_j));
+  BoundCounts& bc_i = d_boundTracking.get(x_i);
+  BoundCounts before = d_variables.boundCounts(x_j);
 
   DeltaRational tmp = d_variables.getAssignment(x_j) + theta;
   d_variables.setAssignment(x_j, tmp);
 
-  BoundCounts after = (d_variables.boundCounts(x_j));
+  BoundCounts after = d_variables.boundCounts(x_j);
   
-  BoundCounts next_bc_i = (bc_i - before.multiplyBySgn(a_ij.sgn()))
-    + after.multiplyBySgn(a_ij.sgn());
-  d_boundTracking.set(x_i, next_bc_i);
+  bool anyChange = before != after;
+  if(anyChange){
+    bc_i.addInChange(a_ij.sgn(), before, after);
+  }
 
   //Assert(matchingSets(d_tableau, x_j));
   for(Tableau::ColIterator iter = d_tableau.colIterator(x_j); !iter.atEnd(); ++iter){
@@ -161,17 +154,31 @@ void LinearEqualityModule::pivotAndUpdate(ArithVar x_i, ArithVar x_j, const Delt
       DeltaRational nextAssignment = d_variables.getAssignment(x_k) + (theta * a_kj);
       d_variables.setAssignment(x_k, nextAssignment);
 
-      if(basicIsTracked(x_k)){
-        BoundCounts next_bc_k = d_boundTracking[x_k];
-        next_bc_k -= before.multiplyBySgn(a_kj.sgn());
-        next_bc_k += after.multiplyBySgn(a_kj.sgn());
-        
-        d_boundTracking.set(x_k, next_bc_k);
+      if(anyChange && basicIsTracked(x_k)){
+        BoundCounts& next_bc_k = d_boundTracking.get(x_k);
+        next_bc_k.addInChange(a_kj.sgn(), before, after);
       }
 
       d_basicVariableUpdates(x_k);
     }
   }
+}
+void LinearEqualityModule::pivotAndUpdate(ArithVar x_i, ArithVar x_j, const DeltaRational& v){
+  Assert(x_i != x_j);
+
+  TimerStat::CodeTimer codeTimer(d_statistics.d_pivotTime);
+
+  static int instance = 0;
+
+  if(Debug.isOn("arith::tracking::pre")){
+    ++instance;
+    Debug("arith::tracking")  << "pre update #" << instance << endl;
+    debugCheckTracking();
+  }
+
+  if(Debug.isOn("arith::simplex:row")){ debugPivot(x_i, x_j); }
+
+  pivotAndUpdateAdj(x_i, x_j, v);
 
   if(Debug.isOn("arith::tracking::mid")){
     Debug("arith::tracking")  << "postupdate prepivot #" << instance << endl;
@@ -534,9 +541,9 @@ ArithVar LinearEqualityModule::minBoundAndColLength(ArithVar x, ArithVar y) cons
   Assert(y != ARITHVAR_SENTINEL);
   Assert(!d_tableau.isBasic(x));
   Assert(!d_tableau.isBasic(y));
-  if(d_variables.hasEitherBound(x) && d_variables.hasEitherBound(y)){
+  if(d_variables.hasEitherBound(x) && !d_variables.hasEitherBound(y)){
     return y;
-  }else if(d_variables.hasEitherBound(x) && d_variables.hasEitherBound(y)){
+  }else if(!d_variables.hasEitherBound(x) && d_variables.hasEitherBound(y)){
     return x;
   }else {
     return minColLength(x, y);
@@ -619,7 +626,8 @@ BoundCounts LinearEqualityModule::countBounds(ArithVar x_i){
 }
 
 bool LinearEqualityModule::nonbasicsAtLowerBounds(ArithVar x_i) const {
-  BoundCounts bcs = cachingCountBounds(x_i);
+  Assert(basicIsTracked(x_i));
+  BoundCounts bcs = d_boundTracking[x_i];
   RowIndex ridx = d_tableau.basicToRowIndex(x_i);
   uint32_t length = d_tableau.getRowLength(ridx);
 
@@ -627,24 +635,25 @@ bool LinearEqualityModule::nonbasicsAtLowerBounds(ArithVar x_i) const {
 }
 
 bool LinearEqualityModule::nonbasicsAtUpperBounds(ArithVar x_i) const {
-  BoundCounts bcs = cachingCountBounds(x_i);
+  Assert(basicIsTracked(x_i));
+  BoundCounts bcs = d_boundTracking[x_i];
   RowIndex ridx = d_tableau.basicToRowIndex(x_i);
   uint32_t length = d_tableau.getRowLength(ridx);
 
   return bcs.atUpperBounds() + 1 == length;
 }
 
-void LinearEqualityModule::trackingFinishedRow(RowIndex ridx){
-  ArithVar basic = d_tableau.rowIndexToBasic(ridx);
-  if(basicIsTracked(basic)){
-    uint32_t length = d_tableau.getRowLength(ridx);
-    BoundCounts bcs = d_boundTracking[basic];
-    if(bcs.atLowerBounds() + 1 == length ||
-       bcs.atUpperBounds() + 1 == length){
-      d_basicVariableUpdates(basic);
-    }
-  }
-}
+// void LinearEqualityModule::trackingFinishedRow(RowIndex ridx){
+//   ArithVar basic = d_tableau.rowIndexToBasic(ridx);
+//   if(basicIsTracked(basic)){
+//     uint32_t length = d_tableau.getRowLength(ridx);
+//     BoundCounts bcs = d_boundTracking[basic];
+//     if(bcs.atLowerBounds() + 1 == length ||
+//        bcs.atUpperBounds() + 1 == length){
+//       d_basicVariableUpdates(basic);
+//     }
+//   }
+// }
 
 void LinearEqualityModule::trackingSwap(ArithVar basic, ArithVar nb, int nbSgn) {
   Assert(basicIsTracked(basic));
@@ -671,14 +680,16 @@ void LinearEqualityModule::trackingSwap(ArithVar basic, ArithVar nb, int nbSgn) 
 }
 
 void LinearEqualityModule::trackingCoefficientChange(RowIndex ridx, ArithVar nb, int oldSgn, int currSgn){
-  ArithVar basic = d_tableau.rowIndexToBasic(ridx);
-  if(basicIsTracked(basic) && oldSgn != currSgn){
-    BoundCounts nb_bc = d_variables.boundCounts(nb);
-    BoundCounts basic_bc = d_boundTracking[basic];
-    basic_bc -= nb_bc.multiplyBySgn(oldSgn);
-    basic_bc += nb_bc.multiplyBySgn(currSgn);
-    d_boundTracking.set(basic, basic_bc);
-  }  
+  Assert(oldSgn != currSgn);
+  BoundCounts nb_bc = d_variables.boundCounts(nb);
+
+  if(!nb_bc.isZero()){
+    ArithVar basic = d_tableau.rowIndexToBasic(ridx);
+    Assert(basicIsTracked(basic));
+
+    BoundCounts& basic_bc = d_boundTracking.get(basic);
+    basic_bc.addInSgn(nb_bc, oldSgn, currSgn);
+  }
 }
 
 }/* CVC4::theory::arith namespace */
