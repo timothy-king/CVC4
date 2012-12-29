@@ -44,12 +44,14 @@ SimplexDecisionProcedure::Statistics::Statistics():
   d_statUpdateConflicts("theory::arith::UpdateConflicts", 0),
   d_processSignalsTime("theory::arith::findConflictOnTheQueueTime"),
   d_simplexConflicts("theory::arith::simplexConflicts",0),
-  d_recentViolationCatches("theory::arith::recentViolationCatches",0)
+  d_recentViolationCatches("theory::arith::recentViolationCatches",0),
+  d_searchTime("theory::arith::searchTime")
 {
   StatisticsRegistry::registerStat(&d_statUpdateConflicts);
   StatisticsRegistry::registerStat(&d_processSignalsTime);
   StatisticsRegistry::registerStat(&d_simplexConflicts);
   StatisticsRegistry::registerStat(&d_recentViolationCatches);
+  StatisticsRegistry::registerStat(&d_searchTime);
 }
 
 SimplexDecisionProcedure::Statistics::~Statistics(){
@@ -57,6 +59,7 @@ SimplexDecisionProcedure::Statistics::~Statistics(){
   StatisticsRegistry::unregisterStat(&d_processSignalsTime);
   StatisticsRegistry::unregisterStat(&d_simplexConflicts);
   StatisticsRegistry::unregisterStat(&d_recentViolationCatches);
+  StatisticsRegistry::unregisterStat(&d_searchTime);
 }
 
 bool SimplexDecisionProcedure::processSignals() {
@@ -102,8 +105,6 @@ Result::Sat SimplexDecisionProcedure::dualFindModel(bool exactResult){
     return Result::SAT;
   }
 
-  d_errorSet.setSelectionRule(d_heuristicRule);
-
   if(processSignals()){
     d_conflictVariables.purge();
 
@@ -119,7 +120,7 @@ Result::Sat SimplexDecisionProcedure::dualFindModel(bool exactResult){
 
   Result::Sat result = Result::SAT_UNKNOWN;
 
-  static const bool verbose = false;
+  static const bool verbose = true;
   exactResult |= options::arithStandardCheckVarOrderPivots() < 0;
 
 
@@ -129,6 +130,8 @@ Result::Sat SimplexDecisionProcedure::dualFindModel(bool exactResult){
       d_numVariables + 1 : options::arithHeuristicPivots();
     // The signed to unsigned conversion is safe.
     if(numDifferencePivots > 0){
+
+      d_errorSet.setSelectionRule(d_heuristicRule);
       if(searchForFeasibleSolution(numDifferencePivots)){
         result = Result::UNSAT;
       }
@@ -156,6 +159,7 @@ Result::Sat SimplexDecisionProcedure::dualFindModel(bool exactResult){
         }
       }
     }else if( options::arithStandardCheckVarOrderPivots() > 0){
+      d_errorSet.setSelectionRule(VAR_ORDER);
       if(searchForFeasibleSolution(options::arithStandardCheckVarOrderPivots())){
         result = Result::UNSAT;
       }
@@ -230,6 +234,8 @@ bool SimplexDecisionProcedure::checkBasicForConflict(ArithVar basic) const {
 //corresponds to Check() in dM06
 //template <SimplexDecisionProcedure::PreferenceFunction pf>
 bool SimplexDecisionProcedure::searchForFeasibleSolution(uint32_t remainingIterations){
+  TimerStat::CodeTimer codeTimer(d_statistics.d_searchTime);
+
   Debug("arith") << "searchForFeasibleSolution" << endl;
   Assert(remainingIterations > 0);
 

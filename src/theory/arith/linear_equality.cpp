@@ -137,7 +137,8 @@ void LinearEqualityModule::pivotAndUpdate(ArithVar x_i, ArithVar x_j, const Delt
   Assert(inv_aij.sgn() != 0);
 
   Assert(d_areTracking);
-  BoundCounts bc_i = countBounds(x_i);
+  Assert(d_boundTracking.isKey(x_i));
+  BoundCounts bc_i = d_boundTracking[x_i];
   BoundCounts before = (d_variables.boundCounts(x_j));
 
   DeltaRational tmp = d_variables.getAssignment(x_j) + theta;

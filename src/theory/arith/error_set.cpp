@@ -187,6 +187,7 @@ void ErrorSet::setSelectionRule(ErrorSelectionRule rule){
     }
     d_focus.swap(into);
   }
+  Assert(getSelectionRule() == rule);
 }
 
 ComparatorPivotRule::ComparatorPivotRule(const ErrorInfoMap* es, ErrorSelectionRule r):

@@ -187,6 +187,7 @@ private:
     TimerStat d_processSignalsTime;
     IntStat d_simplexConflicts;
     IntStat d_recentViolationCatches;
+    TimerStat d_searchTime;
 
     Statistics();
     ~Statistics();
