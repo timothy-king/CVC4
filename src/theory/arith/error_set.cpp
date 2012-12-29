@@ -159,8 +159,8 @@ ErrorSelectionRule ErrorSet::getSelectionRule() const{
   return d_focus.value_comp().getRule();
 }
 
-void ErrorSet::recomputeAmount(ErrorInformation& ei){
-  switch(getSelectionRule()){
+void ErrorSet::recomputeAmount(ErrorInformation& ei, ErrorSelectionRule rule){
+  switch(rule){
   case MINIMUM_AMOUNT:
   case MAXIMUM_AMOUNT:
     ei.setAmount(computeDiff(ei.getVariable()));
@@ -180,7 +180,7 @@ void ErrorSet::setSelectionRule(ErrorSelectionRule rule){
       ArithVar v = *iter;
       ErrorInformation& ei = d_errInfo.get(v);
       if(ei.inFocus()){
-        recomputeAmount(ei);
+        recomputeAmount(ei, rule);
         ErrorSetHandle handle = into.push(v);
         ei.setHandle(handle);
       }
@@ -196,16 +196,17 @@ ComparatorPivotRule::ComparatorPivotRule(const ErrorInfoMap* es, ErrorSelectionR
 bool ComparatorPivotRule::operator()(ArithVar v, ArithVar u) const {
   switch(d_rule){
   case VAR_ORDER:
-    return v < u;
+    // This needs to be the reverse of the minVariableOrder
+    return v > u;
   case MINIMUM_AMOUNT:
     {
       const DeltaRational& vamt = (*d_errInfo)[v].getAmount();
       const DeltaRational& uamt = (*d_errInfo)[u].getAmount();
       int cmp = vamt.cmp(uamt);
       if(cmp == 0){
-        return v < u;
+        return v > u;
       }else{
-        return cmp < 0;
+        return cmp > 0;
       }
     }
   case MAXIMUM_AMOUNT:
@@ -214,9 +215,9 @@ bool ComparatorPivotRule::operator()(ArithVar v, ArithVar u) const {
       const DeltaRational& uamt = (*d_errInfo)[u].getAmount();
       int cmp = vamt.cmp(uamt);
       if(cmp == 0){
-        return v < u;
+        return v > u;
       }else{
-        return cmp > 0;
+        return cmp < 0;
       }
     }
   default:
@@ -352,7 +353,7 @@ void ErrorSet::popSignal() {
 void ErrorSet::clear(){
   // Nothing should be relaxed!
   d_signals.clear();
-  d_errInfo.clear();
+  d_errInfo.purge();
   d_focus.clear();
 }
 

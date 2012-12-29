@@ -671,7 +671,7 @@ void LinearEqualityModule::trackingSwap(ArithVar basic, ArithVar nb, int nbSgn) 
 
 void LinearEqualityModule::trackingCoefficientChange(RowIndex ridx, ArithVar nb, int oldSgn, int currSgn){
   ArithVar basic = d_tableau.rowIndexToBasic(ridx);
-  if(basicIsTracked(basic)){
+  if(basicIsTracked(basic) && oldSgn != currSgn){
     BoundCounts nb_bc = d_variables.boundCounts(nb);
     BoundCounts basic_bc = d_boundTracking[basic];
     basic_bc -= nb_bc.multiplyBySgn(oldSgn);

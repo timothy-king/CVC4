@@ -210,7 +210,7 @@ private:
    * Computes the difference between the assignment and its bound for x.
    */
   DeltaRational computeDiff(ArithVar x) const;
-  void recomputeAmount(ErrorInformation& ei);
+  void recomputeAmount(ErrorInformation& ei, ErrorSelectionRule r);
 
   void update(ErrorInformation& ei);
   void transitionVariableOutOfError(ArithVar v);

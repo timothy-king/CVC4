@@ -597,11 +597,12 @@ public:
         coeff += mult * other.getCoefficient();
         int coeffNewSgn = coeff.sgn();
 
-        cb.update(to, colVar, coeffOldSgn,  coeffNewSgn);
+        if(coeffOldSgn != coeffNewSgn){
+          cb.update(to, colVar, coeffOldSgn,  coeffNewSgn);
 
-
-        if(coeffNewSgn == 0){
-          removeEntry(id);
+          if(coeffNewSgn == 0){
+            removeEntry(id);
+          }
         }
       }
     }
