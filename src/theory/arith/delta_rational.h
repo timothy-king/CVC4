@@ -196,10 +196,17 @@ public:
     return *(this);
   }
 
-  DeltaRational& operator+=(DeltaRational& other){
+  DeltaRational& operator+=(const DeltaRational& other){
     c += other.c;
     k += other.k;
 
+    return *(this);
+  }
+
+  DeltaRational& operator/=(const Rational& a){
+    Assert(!a.isZero());
+    c /= a;
+    k /= a;
     return *(this);
   }
 

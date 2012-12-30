@@ -25,6 +25,12 @@ namespace CVC4 {
 namespace theory {
 namespace arith {
 
+DualSimplexDecisionProcedure::DualSimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc)
+  : SimplexDecisionProcedure(linEq, errors, conflictChannel, tvmalloc)
+  , d_pivotsInRound()
+  , d_statistics()
+{ }
+
 SimplexDecisionProcedure::SimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc)
   : d_conflictVariables()
   , d_linEq(linEq)
@@ -33,19 +39,18 @@ SimplexDecisionProcedure::SimplexDecisionProcedure(LinearEqualityModule& linEq, 
   , d_errorSet(errors)
   , d_numVariables(0)
   , d_conflictChannel(conflictChannel)
-  , d_pivotsInRound()
   , d_arithVarMalloc(tvmalloc)
 {
   d_heuristicRule = options::arithErrorSelectionRule();
   d_errorSet.setSelectionRule(d_heuristicRule);
 }
 
-SimplexDecisionProcedure::Statistics::Statistics():
-  d_statUpdateConflicts("theory::arith::UpdateConflicts", 0),
-  d_processSignalsTime("theory::arith::findConflictOnTheQueueTime"),
-  d_simplexConflicts("theory::arith::simplexConflicts",0),
-  d_recentViolationCatches("theory::arith::recentViolationCatches",0),
-  d_searchTime("theory::arith::searchTime")
+DualSimplexDecisionProcedure::Statistics::Statistics():
+  d_statUpdateConflicts("theory::arith::dual::UpdateConflicts", 0),
+  d_processSignalsTime("theory::arith::dual::findConflictOnTheQueueTime"),
+  d_simplexConflicts("theory::arith::dual::simplexConflicts",0),
+  d_recentViolationCatches("theory::arith::dual::recentViolationCatches",0),
+  d_searchTime("theory::arith::dual::searchTime")
 {
   StatisticsRegistry::registerStat(&d_statUpdateConflicts);
   StatisticsRegistry::registerStat(&d_processSignalsTime);
@@ -54,7 +59,7 @@ SimplexDecisionProcedure::Statistics::Statistics():
   StatisticsRegistry::registerStat(&d_searchTime);
 }
 
-SimplexDecisionProcedure::Statistics::~Statistics(){
+DualSimplexDecisionProcedure::Statistics::~Statistics(){
   StatisticsRegistry::unregisterStat(&d_statUpdateConflicts);
   StatisticsRegistry::unregisterStat(&d_processSignalsTime);
   StatisticsRegistry::unregisterStat(&d_simplexConflicts);
@@ -62,8 +67,8 @@ SimplexDecisionProcedure::Statistics::~Statistics(){
   StatisticsRegistry::unregisterStat(&d_searchTime);
 }
 
-bool SimplexDecisionProcedure::processSignals() {
-  TimerStat::CodeTimer codeTimer(d_statistics.d_processSignalsTime);
+bool SimplexDecisionProcedure::standardProcessSignals(TimerStat &timer, IntStat& conflicts) {
+  TimerStat::CodeTimer codeTimer(timer);
   Assert( d_conflictVariables.empty() );
 
 
@@ -78,11 +83,11 @@ bool SimplexDecisionProcedure::processSignals() {
 
         Debug("recentlyViolated")
           << "It worked? "
-          << d_statistics.d_recentViolationCatches.getData()
+          << conflicts.getData()
           << " " << curr
           << " "  << checkBasicForConflict(curr) << endl;
         reportConflict(curr);
-        ++(d_statistics.d_recentViolationCatches);
+        ++conflicts;
       }
     }
   }
@@ -90,7 +95,7 @@ bool SimplexDecisionProcedure::processSignals() {
   return !d_conflictVariables.empty();
 }
 
-Result::Sat SimplexDecisionProcedure::dualFindModel(bool exactResult){
+Result::Sat DualSimplexDecisionProcedure::dualFindModel(bool exactResult){
   Assert(d_conflictVariables.empty());
 
   static CVC4_THREADLOCAL(unsigned int) instance = 0;
@@ -198,7 +203,6 @@ void SimplexDecisionProcedure::reportConflict(ArithVar basic){
   Assert(!conflict.isNull());
   d_conflictChannel(conflict);
   d_conflictVariables.add(basic);
-  ++(d_statistics.d_simplexConflicts);
 }
 
 Node SimplexDecisionProcedure::generatConflictForBasic(ArithVar basic) const {
@@ -241,7 +245,7 @@ bool SimplexDecisionProcedure::checkBasicForConflict(ArithVar basic) const {
 
 //corresponds to Check() in dM06
 //template <SimplexDecisionProcedure::PreferenceFunction pf>
-bool SimplexDecisionProcedure::searchForFeasibleSolution(uint32_t remainingIterations){
+bool DualSimplexDecisionProcedure::searchForFeasibleSolution(uint32_t remainingIterations){
   TimerStat::CodeTimer codeTimer(d_statistics.d_searchTime);
 
   Debug("arith") << "searchForFeasibleSolution" << endl;
@@ -284,6 +288,7 @@ bool SimplexDecisionProcedure::searchForFeasibleSolution(uint32_t remainingItera
         Unreachable();
         ++(d_statistics.d_statUpdateConflicts);
         reportConflict(x_i);
+        ++(d_statistics.d_simplexConflicts);
         // Node conflict = d_linEq.generateConflictBelowLowerBound(x_i); //unsat
         // d_conflictVariable = x_i;
         // reportConflict(conflict);
@@ -298,6 +303,7 @@ bool SimplexDecisionProcedure::searchForFeasibleSolution(uint32_t remainingItera
         Unreachable();
         ++(d_statistics.d_statUpdateConflicts);
         reportConflict(x_i);
+        ++(d_statistics.d_simplexConflicts);
         // Node conflict = d_linEq.generateConflictAboveUpperBound(x_i); //unsat
         // d_conflictVariable = x_i;
         // reportConflict(conflict);
@@ -318,6 +324,261 @@ bool SimplexDecisionProcedure::searchForFeasibleSolution(uint32_t remainingItera
   Assert(d_errorSet.noSignals());
 
   return false;
+}
+
+PureUpdateSimplexDecisionProcedure::PureUpdateSimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc)
+  : SimplexDecisionProcedure(linEq, errors, conflictChannel, tvmalloc)
+  , d_focusErrorVar(ARITHVAR_SENTINEL)
+  , d_focusThreshold(0)
+{ }
+
+Result::Sat PureUpdateSimplexDecisionProcedure::findModel(bool exactResult){
+  Assert(d_conflictVariables.empty());
+
+  static CVC4_THREADLOCAL(unsigned int) instance = 0;
+  instance = instance + 1;
+
+  if(d_errorSet.errorEmpty() && !d_errorSet.moreSignals()){
+    Debug("arith::findModel") << "fcFindModel("<< instance <<") trivial" << endl;
+    return Result::SAT;
+  }
+
+  // We need to reduce this because of
+  d_errorSet.reduceToSignals();
+
+  if(processSignals()){
+    d_conflictVariables.purge();
+
+    Debug("arith::findModel") << "fcFindModel("<< instance <<") early conflict" << endl;
+    return Result::UNSAT;
+  }else if(d_errorSet.errorEmpty()){
+    Debug("arith::findModel") << "fcFindModel("<< instance <<") fixed itself" << endl;
+    Assert(!d_errorSet.moreSignals());
+    return Result::SAT;
+  }
+
+  Debug("arith::findModel") << "fcFindModel(" << instance <<") start non-trivial" << endl;
+
+  static const bool verbose = false;
+  Result::Sat result = Result::SAT_UNKNOWN;
+
+  if(result == Result::SAT_UNKNOWN){
+    if(attemptPureUpdates()){
+      result = Result::UNSAT;
+    }
+    if(result ==  Result::UNSAT){
+      ++(d_statistics.d_pureUpdateFoundUnsat);
+      if(verbose){ Message() << "pure updates found unsat" << endl; }
+    }else if(d_errorSet.errorEmpty()){
+      ++(d_statistics.d_pureUpdateFoundSat);
+      if(verbose){ Message() << "pure updates found model" << endl; }
+    }else{
+      ++(d_statistics.d_pureUpdateMissed);
+      if(verbose){ Message() << "pure updates missed" << endl; }
+    }
+  }
+
+  Assert(!d_errorSet.moreSignals());
+  if(result == Result::SAT_UNKNOWN && d_errorSet.errorEmpty()){
+    result = Result::SAT;
+  }
+
+  // ensure that the conflict variable is still in the queue.
+  d_conflictVariables.purge();
+
+  Debug("arith::findModel") << "end findModel() " << instance << " " << result <<  endl;
+
+  return result;
+}
+
+void PureUpdateSimplexDecisionProcedure::tearDownFocusErrorFunction(){
+  Assert(d_focusErrorVar != ARITHVAR_SENTINEL);
+  d_tableau.removeBasicRow(d_focusErrorVar);
+  d_focusThreshold = DeltaRational(0);
+  releaseVariable(d_focusErrorVar);
+
+  d_focusErrorVar = ARITHVAR_SENTINEL;
+  
+  Assert(d_focusErrorVar == ARITHVAR_SENTINEL);
+}
+void PureUpdateSimplexDecisionProcedure::constructFocusErrorFunction(){
+  Assert(d_focusErrorVar == ARITHVAR_SENTINEL);
+  Assert(!d_errorSet.focusEmpty());
+  Assert(d_focusThreshold.sgn() == 0);
+  d_focusErrorVar = requestVariable();
+  
+
+  std::vector<Rational> coeffs;
+  std::vector<ArithVar> variables;
+
+  DeltaRational diff;
+  for(ErrorSet::focus_iterator iter = d_errorSet.focusBegin(), end = d_errorSet.focusEnd(); iter != end; ++iter){
+    ArithVar e = *iter;
+    
+    Assert(d_tableau.isBasic(e));
+    Assert(!d_variables.assignmentIsConsistent(e));
+
+    int sgn = d_errorSet.getSgn(e);
+    coeffs.push_back(Rational(sgn));
+    variables.push_back(e);
+
+    if(sgn > 0) {
+      diff = d_variables.getLowerBound(e) - d_variables.getAssignment(e);
+    }else if(sgn < 0){
+      diff = d_variables.getAssignment(e) - d_variables.getUpperBound(e);
+    }
+    Assert(diff.sgn() > 0);
+    Debug("pu") << e << " " << sgn << " " << diff << endl;
+    d_focusThreshold += diff;
+  }
+  d_tableau.addRow(d_focusErrorVar, coeffs, variables);
+  DeltaRational newAssignment = d_linEq.computeRowValue(d_focusErrorVar, false);
+  d_variables.setAssignment(d_focusErrorVar, newAssignment);
+
+  Debug("pu") << d_focusErrorVar << " " << newAssignment
+       << " " << d_focusThreshold << " " << endl;
+  Assert(d_focusErrorVar != ARITHVAR_SENTINEL);
+}
+
+
+PureUpdateSimplexDecisionProcedure::Statistics::Statistics():
+  d_pureUpdateFoundUnsat("theory::arith::PureUpdate::FoundUnsat", 0),
+  d_pureUpdateFoundSat("theory::arith::PureUpdate::FoundSat", 0),
+  d_pureUpdateMissed("theory::arith::PureUpdate::Missed", 0),
+  d_pureUpdates("theory::arith::PureUpdate::updates", 0),
+  d_pureUpdateDropped("theory::arith::PureUpdate::dropped", 0),
+  d_pureUpdateConflicts("theory::arith::PureUpdate::conflicts", 0),
+  d_foundConflicts("theory::arith::PureUpdate::foundConflicts", 0),
+  d_attemptPureUpdatesTimer("theory::arith::PureUpdate::timer"),
+  d_processSignalsTime("theory::arith::PureUpdate::process::timer")
+{
+  StatisticsRegistry::registerStat(&d_pureUpdateFoundUnsat);
+  StatisticsRegistry::registerStat(&d_pureUpdateFoundSat);
+  StatisticsRegistry::registerStat(&d_pureUpdateMissed);
+  StatisticsRegistry::registerStat(&d_pureUpdates);
+  StatisticsRegistry::registerStat(&d_pureUpdateDropped);
+  StatisticsRegistry::registerStat(&d_pureUpdateConflicts);
+
+  StatisticsRegistry::registerStat(&d_foundConflicts);
+
+  StatisticsRegistry::registerStat(&d_attemptPureUpdatesTimer);
+  StatisticsRegistry::registerStat(&d_processSignalsTime);
+}
+
+PureUpdateSimplexDecisionProcedure::Statistics::~Statistics(){
+  StatisticsRegistry::unregisterStat(&d_pureUpdateFoundUnsat);
+  StatisticsRegistry::unregisterStat(&d_pureUpdateFoundSat);
+  StatisticsRegistry::unregisterStat(&d_pureUpdateMissed);
+  StatisticsRegistry::unregisterStat(&d_pureUpdates);
+  StatisticsRegistry::unregisterStat(&d_pureUpdateDropped);
+  StatisticsRegistry::unregisterStat(&d_pureUpdateConflicts);
+
+  StatisticsRegistry::unregisterStat(&d_foundConflicts);
+
+  StatisticsRegistry::unregisterStat(&d_attemptPureUpdatesTimer);
+  StatisticsRegistry::unregisterStat(&d_processSignalsTime);
+}
+
+bool PureUpdateSimplexDecisionProcedure::attemptPureUpdates(){
+  TimerStat::CodeTimer codeTimer(d_statistics.d_attemptPureUpdatesTimer);
+
+  Assert(!d_errorSet.focusEmpty());
+  Assert(d_errorSet.noSignals());
+
+  constructFocusErrorFunction();
+
+  DeltaRational dr;
+  int boundImprovements = 0;
+  int dropped = 0;
+  int computations = 0;
+
+  for( Tableau::RowIterator ri = d_tableau.basicRowIterator(d_focusErrorVar); !ri.atEnd(); ++ri){
+    const Tableau::Entry& e = *ri;
+
+    ArithVar curr = e.getColVar();
+    if(curr == d_focusErrorVar){ continue; }
+    
+    int dir = e.getCoefficient().sgn();
+    Assert(dir != 0);
+
+    bool worthwhile  = false;
+
+    if( (dir > 0 && d_variables.cmpAssignmentUpperBound(curr) < 0) ||
+	(dir < 0 && d_variables.cmpAssignmentLowerBound(curr) > 0) ){
+      
+      ++computations;
+      pair<bool, Constraint> p = d_linEq.computeSafeUpdate(curr, dir, dr);
+      worthwhile = p.first;
+      if(worthwhile && p.second == NullConstraint){
+        uint32_t fixed = d_linEq.computeUnconstrainedUpdate(curr, dir, dr);
+        if( fixed == 0 ){
+          worthwhile = false;
+        }
+        Debug("pu") << "podsfjio!! " << fixed << endl;
+      }
+    }
+    if(worthwhile){
+      Debug("pu") << d_variables.getAssignment(d_focusErrorVar) << endl;
+
+      BoundCounts before = d_variables.boundCounts(curr);
+      d_linEq.updateTracked(curr, dr);
+      BoundCounts after = d_variables.boundCounts(curr);
+
+      ++d_statistics.d_pureUpdates;
+      ++boundImprovements;
+      Debug("pu") << boundImprovements  << ": " << curr << " before: " << before << " after: " << after << endl;
+      Debug("pu") << e.getCoefficient() << endl;
+      Debug("pu") << d_variables.getAssignment(d_focusErrorVar) << endl;
+
+      uint32_t prevSize = d_errorSet.errorSize();
+      Assert(d_errorSet.moreSignals());
+      if(Debug.isOn("pu")){  d_errorSet.debugPrint(); }
+      while(d_errorSet.moreSignals()){
+        ArithVar updated = d_errorSet.topSignal();
+        bool wasInError = d_errorSet.inError(updated);
+        d_errorSet.popSignal();
+        if(updated == curr){ continue; }
+        Assert(d_tableau.isBasic(updated));        
+        if(!d_linEq.basicIsTracked(updated)){continue;}
+
+
+        Assert(d_linEq.basicIsTracked(updated));
+        Assert(wasInError || d_variables.assignmentIsConsistent(updated));
+
+        if(!d_variables.assignmentIsConsistent(updated)
+           && checkBasicForConflict(updated)){
+          Assert(!d_conflictVariables.isMember(updated) );
+          Debug("pu")
+            << "It worked? "
+            << d_statistics.d_pureUpdateConflicts.getData()
+            << " " << curr
+            << " "  << checkBasicForConflict(updated) << endl;
+          reportConflict(updated);
+          ++(d_statistics.d_foundConflicts);
+          ++(d_statistics.d_pureUpdateConflicts);
+        }
+      }
+      if(d_conflictVariables.empty()){
+        if(Debug.isOn("pu")){  d_errorSet.debugPrint(); }
+        uint32_t currSize = d_errorSet.errorSize();
+        Assert(currSize <= prevSize);
+        if(currSize < prevSize){
+          dropped+= prevSize - currSize;
+          if(currSize == 0){
+            break;
+          }
+        }
+      }else{
+        break;
+      }
+    }
+  }
+  tearDownFocusErrorFunction();
+
+  (d_statistics.d_pureUpdateDropped) += dropped;
+
+  Assert(d_errorSet.noSignals());
+  return !d_conflictVariables.empty();
 }
 
 }/* CVC4::theory::arith namespace */

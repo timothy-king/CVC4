@@ -95,6 +95,10 @@ void ArithVariables::VarInfo::setAssignment(const DeltaRational& a){
 void ArithVariables::releaseArithVar(ArithVar v){
   VarInfo& vi = d_vars.get(v);
   vi.uninitialize();
+
+  if(d_safeAssignment.isKey(v)){
+    d_safeAssignment.remove(v);
+  }
   if(vi.canBeReclaimed()){
     d_pool.push_back(v);
   }else{

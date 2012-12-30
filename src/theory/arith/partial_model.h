@@ -126,13 +126,20 @@ private:
   ArithVar allocateVariable();
 
   class var_iterator {
-  private: 
+  private:
+    const VarInfoVec* d_vars;
     VarInfoVec::const_iterator d_wrapped;
   public:
     var_iterator(){}
-    var_iterator(VarInfoVec::const_iterator ci) : d_wrapped(ci){}
+    var_iterator(const VarInfoVec* vars, VarInfoVec::const_iterator ci)
+      : d_vars(vars), d_wrapped(ci)
+    {
+      nextInitialized();
+    }
+
     var_iterator& operator++(){
       ++d_wrapped;
+      nextInitialized();
       return *this;
     }
     bool operator==(const var_iterator& other) const{
@@ -144,13 +151,21 @@ private:
     ArithVar operator*() const{
       return *d_wrapped;
     }
+  private:
+    void nextInitialized(){
+      VarInfoVec::const_iterator end = d_vars->end();
+      while(d_wrapped != end &&
+            !((*d_vars)[*d_wrapped].initialized())){
+        ++d_wrapped;
+      }
+    }
   };
   var_iterator var_begin() const {
-    return var_iterator(d_vars.begin());
+    return var_iterator(&d_vars, d_vars.begin());
   }
 
   var_iterator var_end() const {
-    return var_iterator(d_vars.end());
+    return var_iterator(&d_vars, d_vars.end());
   }
 
 
@@ -366,6 +381,10 @@ public:
     d_delta = d;
     d_deltaIsSafe = true;
   }
+
+  // inline bool initialized(ArithVar x) const {
+  //   return d_vars[x].initialized();
+  // }
 
 private:
 

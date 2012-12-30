@@ -74,11 +74,11 @@ namespace theory {
 namespace arith {
 
 class SimplexDecisionProcedure {
-private:
+protected:
   /** The set of variables that are in conflict in this round. */
   DenseSet d_conflictVariables;
 
-  /** */
+  /** The rule to use for heuristic selection mode. */
   ErrorSelectionRule d_heuristicRule;
 
   /** Linear equality module. */
@@ -106,26 +106,11 @@ private:
   /** This is the call back channel for Simplex to report conflicts. */
   RaiseConflict d_conflictChannel;
 
-  /** Maps a variable to how many times they have been used as a pivot in the simplex search. */
-  DenseMultiset d_pivotsInRound;
-
-  /** Stores to the DeltaRational constant 0. */
-  DeltaRational d_DELTA_ZERO;
-
   /** Used for requesting d_opt, bound and error variables for primal.*/
   TempVarMalloc d_arithVarMalloc;
 
 public:
   SimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc);
-
-  /**
-   * This must be called when the value of a basic variable may have transitioned
-   * from voilating one of its bounds.
-   */
-  //inline void signal(ArithVar x) { d_queue.signalVariable(x); }
-
-  /** Post condition: !d_queue.moreSignals() */
-  bool processSignals();
 
   /**
    * Tries to update the assignments of variables such that all of the
@@ -141,20 +126,11 @@ public:
    *
    * Corresponds to the "check()" procedure in [Cav06].
    */
-  Result::Sat dualFindModel(bool exactResult);
+  virtual Result::Sat findModel(bool exactResult) = 0;
 
   void increaseMax() { d_numVariables++; }
 
-private:
-  
-  /**
-   * This is the main simplex for DPLL(T) loop.
-   * It runs for at most maxIterations.
-   *
-   * Returns true iff it has found a conflict.
-   * d_conflictVariable will be set and the conflict for this row is reported.
-   */
-  bool searchForFeasibleSolution(uint32_t maxIterations);
+protected:
 
   /** Reports a conflict to on the output channel. */
   void reportConflict(ArithVar basic);
@@ -180,6 +156,44 @@ private:
     d_arithVarMalloc.release(v);
   }
 
+  /** Post condition: !d_queue.moreSignals() */
+  bool standardProcessSignals(TimerStat &timer, IntStat& conflictStat);
+
+};/* class SimplexDecisionProcedure */
+
+class DualSimplexDecisionProcedure : public SimplexDecisionProcedure{
+public:
+  DualSimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc);
+
+  Result::Sat findModel(bool exactResult) {
+    return dualFindModel(exactResult);
+  }
+
+private:
+
+  /**
+   * Maps a variable to how many times they have been used as a pivot in the
+   * simplex search.
+   */
+  DenseMultiset d_pivotsInRound;
+
+  Result::Sat dualFindModel(bool exactResult);
+
+  /**
+   * This is the main simplex for DPLL(T) loop.
+   * It runs for at most maxIterations.
+   *
+   * Returns true iff it has found a conflict.
+   * d_conflictVariable will be set and the conflict for this row is reported.
+   */
+  bool searchForFeasibleSolution(uint32_t maxIterations);
+  
+
+  bool processSignals(){
+    TimerStat &timer = d_statistics.d_processSignalsTime;
+    IntStat& conflictStat  = d_statistics.d_recentViolationCatches;
+    return standardProcessSignals(timer, conflictStat);
+  }
   /** These fields are designed to be accessible to TheoryArith methods. */
   class Statistics {
   public:
@@ -191,11 +205,60 @@ private:
 
     Statistics();
     ~Statistics();
-  };
+  } d_statistics;
+};/* class DualSimplexDecisionProcedure */
 
-  Statistics d_statistics;
 
-};/* class SimplexDecisionProcedure */
+class PureUpdateSimplexDecisionProcedure : public SimplexDecisionProcedure{
+public:
+  PureUpdateSimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc);
+
+  Result::Sat findModel(bool exactResult);
+
+private:
+  ArithVar d_focusErrorVar;
+  DeltaRational d_focusThreshold;
+
+  bool attemptPureUpdates();
+
+  void constructFocusErrorFunction();
+  void tearDownFocusErrorFunction();
+
+  /**
+   * This is the main simplex for DPLL(T) loop.
+   * It runs for at most maxIterations.
+   *
+   * Returns true iff it has found a conflict.
+   * d_conflictVariable will be set and the conflict for this row is reported.
+   */
+  bool searchForFeasibleSolution(uint32_t maxIterations);
+
+  bool processSignals(){
+    TimerStat &timer = d_statistics.d_processSignalsTime;
+    IntStat& conflictStat  = d_statistics.d_foundConflicts;
+    return standardProcessSignals(timer, conflictStat);
+  }
+
+  /** These fields are designed to be accessible to TheoryArith methods. */
+  class Statistics {
+  public:
+    IntStat d_pureUpdateFoundUnsat;
+    IntStat d_pureUpdateFoundSat;
+    IntStat d_pureUpdateMissed;
+    IntStat d_pureUpdates;
+    IntStat d_pureUpdateDropped;
+    IntStat d_pureUpdateConflicts;
+
+    IntStat d_foundConflicts;
+
+    TimerStat d_attemptPureUpdatesTimer;
+    TimerStat d_processSignalsTime;
+    
+
+    Statistics();
+    ~Statistics();
+  } d_statistics;
+};/* class FCSimplexDecisionProcedure */
 
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */

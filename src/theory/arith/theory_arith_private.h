@@ -309,7 +309,8 @@ private:
   ArithCongruenceManager d_congruenceManager;
 
   /** This implements the Simplex decision procedure. */
-  SimplexDecisionProcedure d_simplex;
+  DualSimplexDecisionProcedure d_dualSimplex;
+  PureUpdateSimplexDecisionProcedure d_pureUpdate;
 
   class ModelException : public Exception {
   public:

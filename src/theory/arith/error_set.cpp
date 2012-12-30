@@ -173,15 +173,15 @@ void ErrorSet::recomputeAmount(ErrorInformation& ei, ErrorSelectionRule rule){
 
 void ErrorSet::setSelectionRule(ErrorSelectionRule rule){
   if(rule != getSelectionRule()){
-    ErrorSetHeap into(ComparatorPivotRule(&d_errInfo, rule));
-    ErrorSetHeap::iterator iter = d_focus.begin();
-    ErrorSetHeap::iterator i_end = d_focus.end();
+    FocusSet into(ComparatorPivotRule(&d_errInfo, rule));
+    FocusSet::const_iterator iter = d_focus.begin();
+    FocusSet::const_iterator i_end = d_focus.end();
     for(; iter != i_end; ++iter){
       ArithVar v = *iter;
       ErrorInformation& ei = d_errInfo.get(v);
       if(ei.inFocus()){
         recomputeAmount(ei, rule);
-        ErrorSetHandle handle = into.push(v);
+        FocusSetHandle handle = into.push(v);
         ei.setHandle(handle);
       }
     }
@@ -284,7 +284,7 @@ void ErrorSet::transitionVariableIntoError(ArithVar v) {
     break;
   }
   ei.setInFocus(true);
-  ErrorSetHandle handle = d_focus.push(v);
+  FocusSetHandle handle = d_focus.push(v);
   ei.setHandle(handle);
 }
 
@@ -312,7 +312,7 @@ void ErrorSet::addBackIntoFocus(ArithVar v) {
   }
     
   ei.setInFocus(true);
-  ErrorSetHandle handle = d_focus.push(v);
+  FocusSetHandle handle = d_focus.push(v);
   ei.setHandle(handle);
 }
 
@@ -396,6 +396,24 @@ ostream& operator<<(ostream& out, ErrorSelectionRule rule) {
   }
 
   return out;
+}
+
+void ErrorSet::debugPrint() const {
+  static int instance = 0;
+  ++instance;
+  Debug("error") << "error set debugprint " << instance << endl;
+  for(error_iterator i = errorBegin(), i_end = errorEnd();
+      i != i_end; ++i){
+    ArithVar e = *i;
+    const ErrorInformation& ei = d_errInfo[e];
+    ei.print(Debug("error"));
+  }
+  Debug("error") << "focus ";
+  for(focus_iterator i = focusBegin(), i_end = focusEnd();
+      i != i_end; ++i){
+    Debug("error") << *i << " ";
+  }
+  Debug("error") << ";" << endl;
 }
 
 }/* CVC4::theory::arith namespace */

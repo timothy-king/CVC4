@@ -71,7 +71,15 @@ public:
    * Updates the assignment of a nonbasic variable x_i to v.
    * Also updates the assignment of basic variables accordingly.
    */
-  void update(ArithVar x_i, const DeltaRational& v);
+  void updateUntracked(ArithVar x_i, const DeltaRational& v);
+  void updateTracked(ArithVar x_i, const DeltaRational& v);
+  void update(ArithVar x_i, const DeltaRational& v){
+    if(d_areTracking){
+      updateTracked(x_i,v);
+    }else{
+      updateUntracked(x_i,v);
+    }
+  }
 
   /**
    * Updates the value of a basic variable x_i to v,
@@ -97,6 +105,8 @@ public:
   void startTrackingBoundCounts();
   void stopTrackingBoundCounts();
 
+  std::pair<bool, Constraint> computeSafeUpdate(ArithVar nb, int sgn, DeltaRational& am);
+  uint32_t computeUnconstrainedUpdate(ArithVar nb, int sgn, DeltaRational& am);
 private:
 
   // RowIndex -> BoundCount

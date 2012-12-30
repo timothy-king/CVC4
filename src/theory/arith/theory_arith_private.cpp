@@ -104,7 +104,8 @@ TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context
   d_tableauResetPeriod(10),
   d_conflicts(c),
   d_congruenceManager(c, d_constraintDatabase, SetupLiteralCallBack(*this), d_partialModel, RaiseConflict(*this)),
-  d_simplex(d_linEq, d_errorSet, RaiseConflict(*this), TempVarMalloc(*this)),
+  d_dualSimplex(d_linEq, d_errorSet, RaiseConflict(*this), TempVarMalloc(*this)),
+  d_pureUpdate(d_linEq, d_errorSet, RaiseConflict(*this), TempVarMalloc(*this)),
   d_DELTA_ZERO(0),
   d_statistics()
 {
@@ -1179,7 +1180,7 @@ ArithVar TheoryArithPrivate::requestArithVar(TNode x, bool slack){
     // d_slackVars.push_back(true);
     // d_variableTypes.push_back(ATReal);
 
-    d_simplex.increaseMax();
+    d_dualSimplex.increaseMax();
 
     d_tableau.increaseSize();
     d_tableauSizeHasBeenModified = true;
@@ -1630,7 +1631,10 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
   Assert(d_conflicts.empty());
 
   d_linEq.startTrackingBoundCounts();
-  d_qflraStatus = d_simplex.dualFindModel(Theory::fullEffort(effortLevel));
+  d_qflraStatus = d_pureUpdate.findModel(Theory::fullEffort(effortLevel));
+  if(d_qflraStatus == Result::SAT_UNKNOWN){
+    d_qflraStatus = d_dualSimplex.findModel(Theory::fullEffort(effortLevel));
+  }
   // TODO Save zeroes with no conflicts
   d_linEq.stopTrackingBoundCounts();
 
@@ -2176,6 +2180,7 @@ void TheoryArithPrivate::collectModelInfo( TheoryModel* m, bool fullModel ){
   // Revisit when implementing push/pop
   for(var_iterator vi = var_begin(), vend = var_end(); vi != vend; ++vi){
     ArithVar v = *vi;
+
     if(!isSlackVariable(v)){
       Node term = d_partialModel.asNode(v);
 

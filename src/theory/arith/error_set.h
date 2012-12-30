@@ -81,9 +81,9 @@ typedef boost::heap::d_ary_heap<
   ArithVar,
   boost::heap::arity<2>,
   boost::heap::compare<ComparatorPivotRule>,
-  boost::heap::mutable_<true> > ErrorSetHeap;
+  boost::heap::mutable_<true> > FocusSet;
 
-typedef ErrorSetHeap::handle_type ErrorSetHandle;
+typedef FocusSet::handle_type FocusSetHandle;
 
 class ErrorInformation {
 private:
@@ -117,7 +117,7 @@ private:
    * If this is false, the variable is somewhere in 
    */
   bool d_inFocus;
-  ErrorSetHandle d_handle;
+  FocusSetHandle d_handle;
 
   DeltaRational* d_amount;
 
@@ -148,11 +148,11 @@ public:
 
   void setAmount(const DeltaRational& am);
 
-  inline void setHandle(ErrorSetHandle h) {
+  inline void setHandle(FocusSetHandle h) {
     Assert(d_inFocus);
     d_handle = h;
   }
-  inline const ErrorSetHandle& getHandle() const{ return d_handle; }
+  inline const FocusSetHandle& getHandle() const{ return d_handle; }
 
   inline Constraint getViolated() const { return d_violated; }
 
@@ -161,6 +161,19 @@ public:
       d_variable != ARITHVAR_SENTINEL &&
       d_violated != NullConstraint &&
       d_sgn != 0;
+  }
+  void print(std::ostream& os) const {
+    os << "{ErrorInfo: " << d_variable
+       << ", " << d_violated
+       << ", " << d_sgn
+       << ", " << d_relaxed
+       << ", " << d_inFocus;
+    if(d_amount == NULL){
+      os << "NULL";
+    }else{
+      os << (*d_amount);
+    }
+    os << "}";
   }
 };
 
@@ -182,7 +195,7 @@ private:
   /**
    * The ordered heap for the variables that are in ErrorSet.
    */
-  ErrorSetHeap d_focus;
+  FocusSet d_focus;
 
   /**
    * A strict subset of the error set.
@@ -256,9 +269,20 @@ public:
   inline bool errorEmpty() const{
     return d_errInfo.empty();
   }
+  inline uint32_t errorSize() const{
+    return d_errInfo.size();
+  }
 
   inline bool focusEmpty() const {
     return d_focus.empty();
+  }
+  inline uint32_t focusSize() const{
+    return d_focus.size();
+  }
+
+  inline int getSgn(ArithVar x) const {
+    Assert(inError(x));
+    return d_errInfo[x].sgn();
   }
 
   /** Clears the set. */
@@ -287,6 +311,12 @@ public:
       popSignal();
     }
   }
+
+  typedef FocusSet::const_iterator focus_iterator;
+  focus_iterator focusBegin() const { return d_focus.begin(); }
+  focus_iterator focusEnd() const { return d_focus.end(); }
+
+  void debugPrint() const;
 
 private:
   class Statistics {
