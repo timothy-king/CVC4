@@ -1,5 +1,5 @@
 #include "theory/arith/tableau_sizes.h"
-#include "theory/arith/matrix.h"
+#include "theory/arith/tableau.h"
 
 namespace CVC4 {
 namespace theory {

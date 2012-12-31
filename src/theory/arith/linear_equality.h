@@ -32,7 +32,7 @@
 #include "theory/arith/delta_rational.h"
 #include "theory/arith/arithvar.h"
 #include "theory/arith/partial_model.h"
-#include "theory/arith/matrix.h"
+#include "theory/arith/tableau.h"
 #include "theory/arith/constraint.h"
 
 #include "util/statistics_registry.h"

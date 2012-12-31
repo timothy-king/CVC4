@@ -33,6 +33,8 @@ libarith_la_SOURCES = \
 	callbacks.cpp \
 	matrix.h \
 	matrix.cpp \
+	tableau.h \
+	tableau.cpp \
 	tableau_sizes.h \
 	tableau_sizes.cpp \
 	error_set.h \
