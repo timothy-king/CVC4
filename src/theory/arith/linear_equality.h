@@ -42,9 +42,21 @@ namespace theory {
 namespace arith {
 
 
+struct UpdateInfo {
+  ArithVar d_nonbasic;
+  int d_sgn;
+  uint32_t d_errorsFixed;
+  bool d_degenerate;
+  Constraint d_limiting;
+  DeltaRational d_value;
+};
+
 class LinearEqualityModule {
 public:
-  typedef ArithVar (LinearEqualityModule::*PreferenceFunction)(ArithVar, ArithVar) const;
+  typedef ArithVar (LinearEqualityModule::*VarPreferenceFunction)(ArithVar, ArithVar) const;
+
+
+  typedef bool (LinearEqualityModule::*UpdatePreferenceFunction)(const UpdateInfo&, const UpdateInfo&) const;
 
 private:  
   /**
@@ -65,7 +77,7 @@ public:
    * Initializes a LinearEqualityModule with a partial model, a tableau,
    * and a callback function for when basic variables update their values.
    */
-  LinearEqualityModule(ArithVariables& vars, Tableau& t, BasicVarModelUpdateCallBack f);
+  LinearEqualityModule(ArithVariables& vars, Tableau& t, BoundCountingVector& boundTracking, BasicVarModelUpdateCallBack f);
 
   /**
    * Updates the assignment of a nonbasic variable x_i to v.
@@ -105,14 +117,65 @@ public:
   void startTrackingBoundCounts();
   void stopTrackingBoundCounts();
 
-  struct UpdateInfo {
-    uint32_t d_errorsFixed;
-    bool d_degenerate;
-    Constraint d_limiting;
-    DeltaRational d_value;
-  };
+  void computeSafeUpdate(UpdateInfo& inf, VarPreferenceFunction basic);
 
-  void computeSafeUpdate(ArithVar nb, int sgn, UpdateInfo& inf);
+
+
+  uint32_t updateProduct(const UpdateInfo& inf) const {
+    Assert(inf.d_limiting != NullConstraint);
+    Assert(inf.d_limiting->getVariable() != inf.d_nonbasic);
+    
+    return
+      d_tableau.getColLength(inf.d_nonbasic) *
+      d_tableau.getRowLength(inf.d_limiting->getVariable());
+  }
+
+
+  bool minNonBasicVarOrder(const UpdateInfo& a, const UpdateInfo& b) const{
+    return a.d_nonbasic < b.d_nonbasic;
+  }
+  
+  bool minProduct(const UpdateInfo& a, const UpdateInfo& b) const{
+    uint32_t aprod = updateProduct(a);
+    uint32_t bprod = updateProduct(b);
+
+    if(aprod == bprod){
+      return minNonBasicVarOrder(a,b);
+    }else{
+      return aprod < bprod;
+    }
+  }
+
+  bool preferNeitherBound(const UpdateInfo& a, const UpdateInfo& b) const {
+    if(d_variables.hasEitherBound(a.d_nonbasic) == d_variables.hasEitherBound(b.d_nonbasic)){
+      return minProduct(a,b);
+    }else{
+      return d_variables.hasEitherBound(b.d_nonbasic);
+    }
+  }
+  
+  template<bool heuristic>
+  bool preferNonDegenerate(const UpdateInfo& a, const UpdateInfo& b) const{
+    if(a.d_degenerate == b.d_degenerate){
+      if(heuristic){
+        return minNonBasicVarOrder(a,b);
+      }else{
+        return preferNeitherBound(a,b);
+      }
+    }else{
+      return a.d_degenerate;
+    }
+  }
+
+  template <bool heuristic>
+  bool preferErrorsFixed(const UpdateInfo& a, const UpdateInfo& b) const{
+    if( a.d_errorsFixed == b.d_errorsFixed){
+      return preferNonDegenerate<heuristic>(a,b);
+    }else{
+      return a.d_errorsFixed < b.d_errorsFixed;
+    }
+  }
+
 private:
   typedef std::vector<const Tableau::Entry*> EntryPointerVector;
   EntryPointerVector d_relevantErrorBuffer;
@@ -121,8 +184,7 @@ private:
   uint32_t computedFixed(ArithVar nb, int sgn, const DeltaRational& am);
 
   // RowIndex -> BoundCount
-  typedef DenseMap<BoundCounts> BoundCountingVector;
-  BoundCountingVector d_boundTracking;
+  BoundCountingVector& d_boundTracking;
   bool d_areTracking;
 
   /**
@@ -227,11 +289,11 @@ public:
    * - !lowerBound && a_ij < 0 && assignment(x_j) > lowerbound(x_j)
    *
    */
-  template <bool lowerBound>  ArithVar selectSlack(ArithVar x_i, PreferenceFunction pf) const;
-  ArithVar selectSlackLowerBound(ArithVar x_i, PreferenceFunction pf) const {
+  template <bool lowerBound>  ArithVar selectSlack(ArithVar x_i, VarPreferenceFunction pf) const;
+  ArithVar selectSlackLowerBound(ArithVar x_i, VarPreferenceFunction pf) const {
     return selectSlack<true>(x_i, pf);
   }
-  ArithVar selectSlackUpperBound(ArithVar x_i, PreferenceFunction pf) const {
+  ArithVar selectSlackUpperBound(ArithVar x_i, VarPreferenceFunction pf) const {
     return selectSlack<false>(x_i, pf);
   }
 

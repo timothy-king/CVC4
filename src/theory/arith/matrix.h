@@ -19,14 +19,10 @@
 
 #pragma once
 
-#include "expr/node.h"
-
 #include "util/index.h"
 #include "util/dense_map.h"
-
+#include "util/rational.h"
 #include "theory/arith/arithvar.h"
-//#include "theory/arith/arithvar_node_map.h"
-#include "theory/arith/normal_form.h"
 
 #include <queue>
 #include <vector>
@@ -984,6 +980,8 @@ private:
   void rowPivot(ArithVar basicOld, ArithVar basicNew, CoefficientChangeCallback& cb);
 
 };/* class Tableau */
+
+
 
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */

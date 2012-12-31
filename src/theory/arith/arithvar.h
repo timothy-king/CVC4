@@ -19,16 +19,11 @@
 
 #include "cvc4_private.h"
 
-#ifndef __CVC4__THEORY__ARITH__ARITHVAR_H
-#define __CVC4__THEORY__ARITH__ARITHVAR_H
+#pragma once
 
 #include <vector>
-#include <ext/hash_map>
-#include "expr/node.h"
-#include "context/cdhashset.h"
-
 #include "util/index.h"
-#include "util/dense_map.h"
+
 
 namespace CVC4 {
 namespace theory {
@@ -37,13 +32,9 @@ namespace arith {
 typedef Index ArithVar;
 extern const ArithVar ARITHVAR_SENTINEL;
 
-//Maps from Nodes -> ArithVars, and vice versa
-typedef __gnu_cxx::hash_map<Node, ArithVar, NodeHashFunction> NodeToArithVarMap;
-typedef DenseMap<Node> ArithVarToNodeMap;
 typedef std::vector<ArithVar> ArithVarVec;
 
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */
 }/* CVC4 namespace */
 
-#endif /* __CVC4__THEORY__ARITH__ARITHVAR_H */

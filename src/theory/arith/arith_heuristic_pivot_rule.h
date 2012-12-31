@@ -25,7 +25,10 @@
 namespace CVC4 {
 
 typedef enum {
-  VAR_ORDER, MINIMUM_AMOUNT, MAXIMUM_AMOUNT
+  VAR_ORDER,
+  MINIMUM_AMOUNT,
+  MAXIMUM_AMOUNT,
+  SUM_METRIC
 } ErrorSelectionRule;
 
 std::ostream& operator<<(std::ostream& out, ErrorSelectionRule rule) CVC4_PUBLIC;

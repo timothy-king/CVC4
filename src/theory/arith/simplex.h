@@ -260,6 +260,90 @@ private:
   } d_statistics;
 };/* class FCSimplexDecisionProcedure */
 
+// Heuristic =  { prefererrorfunctions, prefernondegenerate, preferNeitherBound,
+//                minimizeProdct, minimizeOrder};
+// ModifiedBlands =
+//   { prefererrorfunctions, prefernondegenerate, minimizeOrder};
+
+// HeuristicBasicPreference =
+//   {rowLength, varorder};
+
+// ModifiedBlands =
+//   {varorder};
+
+class FCSimplexDecisionProcedure : public SimplexDecisionProcedure{
+public:
+  FCSimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc);
+
+  Result::Sat findModel(bool exactResult);
+
+  // other error variables are dropping
+  // 
+  uint32_t dualLikeImproveError(ArithVar evar, int& budget);
+  uint32_t primalImproveError(ArithVar evar, int& budget){
+    Unimplemented(); 
+    return 0;
+  }
+
+  // dual like
+  // - found conflict
+  // - satisfied focus set
+  Result::Sat dualLike(int& budget);
+
+private:
+  uint32_t d_degenerateHeuristicBudget;
+  ArithVar d_focusErrorVar;
+  DeltaRational d_focusThreshold;
+
+  DenseMap<int> d_focusSgns;
+  ArithVarVec d_sgnDisagreement;
+
+  bool attemptPureUpdates();
+
+  void constructFocusErrorFunction();
+  void tearDownFocusErrorFunction();
+
+  
+  int focusSgn(ArithVar nb) const {
+    return d_focusSgns[nb];
+  }
+
+  /**
+   * This is the main simplex for DPLL(T) loop.
+   * It runs for at most maxIterations.
+   *
+   * Returns true iff it has found a conflict.
+   * d_conflictVariable will be set and the conflict for this row is reported.
+   */
+  bool searchForFeasibleSolution(uint32_t maxIterations);
+
+  bool processSignals(){
+    TimerStat &timer = d_statistics.d_processSignalsTime;
+    IntStat& conflictStat  = d_statistics.d_foundConflicts;
+    return standardProcessSignals(timer, conflictStat);
+  }
+
+  /** These fields are designed to be accessible to TheoryArith methods. */
+  class Statistics {
+  public:
+    IntStat d_pureUpdateFoundUnsat;
+    IntStat d_pureUpdateFoundSat;
+    IntStat d_pureUpdateMissed;
+    IntStat d_pureUpdates;
+    IntStat d_pureUpdateDropped;
+    IntStat d_pureUpdateConflicts;
+
+    IntStat d_foundConflicts;
+
+    TimerStat d_attemptPureUpdatesTimer;
+    TimerStat d_processSignalsTime;
+    
+
+    Statistics();
+    ~Statistics();
+  } d_statistics;
+};/* class FCSimplexDecisionProcedure */
+
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */
 }/* CVC4 namespace */

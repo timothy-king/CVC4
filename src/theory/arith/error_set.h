@@ -21,9 +21,11 @@
 #pragma once
 
 #include "theory/arith/arithvar.h"
+#include "theory/arith/bound_counts.h"
 #include "theory/arith/delta_rational.h"
 #include "theory/arith/partial_model.h"
 #include "theory/arith/arith_heuristic_pivot_rule.h"
+#include "theory/arith/tableau_sizes.h"
 
 #include "util/statistics_registry.h"
 #include <boost/heap/d_ary_heap.hpp>
@@ -61,17 +63,18 @@ namespace arith {
  */
 
 
-
+class ErrorSet;
 class ErrorInfoMap;
 
 class ComparatorPivotRule {
 private:
-  const ErrorInfoMap* d_errInfo;
+  const ErrorSet* d_errorSet;
+
   ErrorSelectionRule d_rule;
  
 public:
   ComparatorPivotRule();
-  ComparatorPivotRule(const ErrorInfoMap* es, ErrorSelectionRule r);
+  ComparatorPivotRule(const ErrorSet* es, ErrorSelectionRule r);
 
   bool operator()(ArithVar v, ArithVar u) const;
   ErrorSelectionRule getRule() const { return d_rule; }
@@ -214,10 +217,9 @@ private:
    */
   ArithVarVec d_signals;
 
+  TableauSizes d_tableauSizes;
 
-  /** A buffer that is now consistent. */
-  ArithVarVec d_nowConsistent;
-
+  BoundCountingLookup d_boundLookup;
 
   /**
    * Computes the difference between the assignment and its bound for x.
@@ -228,14 +230,22 @@ private:
   void update(ErrorInformation& ei);
   void transitionVariableOutOfError(ArithVar v);
   void transitionVariableIntoError(ArithVar v);
-  void dropFromFocus(ArithVar v);
   void addBackIntoFocus(ArithVar v);
-  void blur();
-
 
 public:
+  
+  /** The new focus set is the entire error set. */
+  void blur();
+  void dropFromFocus(ArithVar v);
 
-  ErrorSet(ArithVariables& var);
+  void dropFromFocusAll(const ArithVarVec& vec) {
+    for(ArithVarVec::const_iterator i = vec.begin(), i_end = vec.end(); i != i_end; ++i){
+      ArithVar v = *i;
+      dropFromFocus(v);
+    }
+  }
+
+  ErrorSet(ArithVariables& var, TableauSizes tabSizes, BoundCountingLookup boundLookup);
 
   typedef ErrorInfoMap::const_iterator error_iterator;
   error_iterator errorBegin() const { return d_errInfo.begin(); }
@@ -285,6 +295,8 @@ public:
     return d_errInfo[x].sgn();
   }
 
+  void focusDownToJust(ArithVar v);
+
   /** Clears the set. */
   void clear();
   void reduceToSignals();
@@ -311,6 +323,21 @@ public:
       popSignal();
     }
   }
+
+  const DeltaRational& getAmount(ArithVar v) const {
+    return d_errInfo[v].getAmount();
+  }
+
+  uint32_t sumMetric(ArithVar a) const{
+    Assert(inError(a));
+    BoundCounts bcs = d_boundLookup.boundCounts(a);
+    uint32_t count = getSgn(a) > 0 ? bcs.atUpperBounds() : bcs.atLowerBounds();
+
+    uint32_t length = d_tableauSizes.getRowLength(a);
+
+    return length + (length - count);
+  }
+
 
   typedef FocusSet::const_iterator focus_iterator;
   focus_iterator focusBegin() const { return d_focus.begin(); }

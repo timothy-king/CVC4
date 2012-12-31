@@ -10,6 +10,7 @@ libarith_la_SOURCES = \
 	type_enumerator.h \
 	arithvar.h \
 	arithvar.cpp \
+	bound_counts.h \
 	arith_rewriter.h \
 	arith_rewriter.cpp \
 	arith_static_learner.h \
@@ -32,6 +33,8 @@ libarith_la_SOURCES = \
 	callbacks.cpp \
 	matrix.h \
 	matrix.cpp \
+	tableau_sizes.h \
+	tableau_sizes.cpp \
 	error_set.h \
 	error_set.cpp \
 	simplex.h \

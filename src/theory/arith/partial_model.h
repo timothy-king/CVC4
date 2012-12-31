@@ -28,6 +28,7 @@
 #include "theory/arith/delta_rational.h"
 #include "theory/arith/constraint_forward.h"
 #include "theory/arith/callbacks.h"
+#include "theory/arith/bound_counts.h"
 
 
 #include <vector>

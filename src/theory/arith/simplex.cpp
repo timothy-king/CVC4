@@ -276,7 +276,7 @@ bool DualSimplexDecisionProcedure::searchForFeasibleSolution(uint32_t remainingI
       << " threshold " << options::arithPivotThreshold()
       << endl;
 
-    LinearEqualityModule::PreferenceFunction pf = useVarOrderPivot ?
+    LinearEqualityModule::VarPreferenceFunction pf = useVarOrderPivot ?
       &LinearEqualityModule::minVarOrder : &LinearEqualityModule::minBoundAndColLength;
     
     //DeltaRational beta_i = d_variables.getAssignment(x_i);
@@ -487,7 +487,7 @@ bool PureUpdateSimplexDecisionProcedure::attemptPureUpdates(){
 
   constructFocusErrorFunction();
 
-  LinearEqualityModule::UpdateInfo proposal;
+  UpdateInfo proposal;
   int boundImprovements = 0;
   int dropped = 0;
   int computations = 0;
@@ -507,14 +507,16 @@ bool PureUpdateSimplexDecisionProcedure::attemptPureUpdates(){
 	(dir < 0 && d_variables.cmpAssignmentLowerBound(curr) > 0) ){
       
       ++computations;
-      d_linEq.computeSafeUpdate(curr, dir, proposal);
-      if(proposal.d_errorsFixed > 0){
-        worthwhile = true;
-      }else if(!proposal.d_degenerate && proposal.d_limiting != NULL){
-        if(proposal.d_limiting->getVariable() == curr){
-          worthwhile = true;
-        }
-      }
+      proposal.d_nonbasic = curr;
+      proposal.d_sgn = dir;
+      d_linEq.computeSafeUpdate(proposal, &LinearEqualityModule::noPreference);
+
+      worthwhile = proposal.d_errorsFixed > 0 ||
+        (!proposal.d_degenerate &&
+         d_variables.boundCounts(curr).isZero() &&
+         proposal.d_limiting != NULL &&
+         proposal.d_limiting->getVariable() == curr);
+
       Debug("pu::refined")
         << "pure update proposal "
         << curr << " "
@@ -605,6 +607,151 @@ bool PureUpdateSimplexDecisionProcedure::attemptPureUpdates(){
 
   Assert(d_errorSet.noSignals());
   return !d_conflictVariables.empty();
+}
+
+uint32_t FCSimplexDecisionProcedure::dualLikeImproveError(ArithVar evar, int& budget){
+  uint32_t dropped = 0;
+
+  int sgn = d_errorSet.getSgn(evar);
+  UpdateInfo currProposal;
+  UpdateInfo bestProposal;
+  bestProposal.d_nonbasic = ARITHVAR_SENTINEL;
+
+  for(Tableau::RowIterator ri = d_tableau.basicRowIterator(evar); !ri.atEnd(); ++ri){
+    const Tableau::Entry& e = *ri;
+    ArithVar curr = e.getColVar();
+    if(curr == evar){ continue; }
+
+    int curr_movement = sgn * e.getCoefficient().sgn();
+
+    bool candidate = 
+      (curr_movement > 0 && d_variables.cmpAssignmentUpperBound(curr) < 0) ||
+      (curr_movement < 0 && d_variables.cmpAssignmentLowerBound(curr) > 0);
+    if(!candidate) { continue; }
+
+    if(curr_movement != focusSgn(curr)){
+      d_sgnDisagreement.push_back(curr);
+      continue;
+    }
+    currProposal.d_nonbasic = curr;
+    currProposal.d_sgn = curr_movement;
+    d_linEq.computeSafeUpdate(currProposal, &LinearEqualityModule::minRowLength);
+
+    if(bestProposal.d_nonbasic == ARITHVAR_SENTINEL ||
+       d_linEq.preferErrorsFixed<true>(bestProposal, currProposal)){
+      bestProposal = currProposal;
+      if(bestProposal.d_errorsFixed > 0){
+        break;
+      }
+    }
+  }
+
+  if(bestProposal.d_nonbasic == ARITHVAR_SENTINEL){
+    // we found no proposals
+    if(!d_sgnDisagreement.empty()){
+      //nb = select the variable with the shorted column
+      //remove from focus sgn disagreements
+      Unimplemented();
+    }else{
+      // Nothing found
+      // must have an error on this variable!
+      // this should not be possible
+      Assert(!checkBasicForConflict(evar));
+    }
+  }else if(bestProposal.d_degenerate){
+    if(d_degenerateHeuristicBudget > 0){
+      --d_degenerateHeuristicBudget;
+    }else{
+      d_errorSet.focusDownToJust(evar);
+      return 0;
+    }
+  }
+
+  ArithVar nonbasic = bestProposal.d_nonbasic;
+  Constraint limiting = bestProposal.d_limiting;
+  if(limiting == NULL){
+    // This must drop at least 1
+    d_linEq.updateTracked(nonbasic, bestProposal.d_value);
+  }else if(nonbasic == limiting->getVariable()){
+    d_linEq.updateTracked(nonbasic, bestProposal.d_value);
+  }else{
+    ArithVar basic = limiting->getVariable();
+    d_linEq.trackVariable(basic);
+    d_linEq.pivotAndUpdate(basic, nonbasic, limiting->getValue());
+  }
+
+  uint32_t prevSize = d_errorSet.errorSize();
+  while(d_errorSet.moreSignals()){
+    ArithVar updated = d_errorSet.topSignal();
+    d_errorSet.popSignal();
+
+    if(d_tableau.isBasic(updated) &&
+       !d_variables.assignmentIsConsistent(updated) &&
+       checkBasicForConflict(updated)){
+      reportConflict(updated);
+    }
+  }
+  uint32_t finalSize = d_errorSet.errorSize();
+  Assert(finalSize <= prevSize);
+  Assert(prevSize - finalSize == bestProposal.d_errorsFixed);
+
+  return bestProposal.d_errorsFixed;
+}
+
+Result::Sat FCSimplexDecisionProcedure::dualLike(int& budget){
+  const static bool verbose = true;
+  static int instance = 0;
+
+  while(budget != 0  && !d_errorSet.errorEmpty() && !d_conflictVariables.empty()){
+    ++instance;
+    Debug("dualLike") << "dualLike " << instance << endl;
+
+    Assert(d_errorSet.noSignals());
+
+    if(d_errorSet.focusEmpty()){
+      d_errorSet.blur();
+    }else{
+      uint32_t dropped;
+      ArithVar e = d_errorSet.topFocusVariable();
+
+      // Possible outcomes:
+      // - errorSet size shrunk
+      // -- fixed v
+      // -- fixed something other than v
+      // - conflict
+      // - budget was exhausted
+      // (dualLike only) focus went down
+      if(d_errorSet.focusSize() == 1){
+        dropped = primalImproveError(e, budget);
+      }else{
+        Assert(d_errorSet.focusSize() > 1);
+        dropped = dualLikeImproveError(e, budget);
+      }
+
+      if(verbose){
+        if(!d_conflictVariables.empty()){
+          cout << "found conflict" << endl;
+        }else if(budget == 0){
+          cout << "budget exhausted" << endl;
+        }else if(dropped > 0){
+          cout << "dropped " << dropped << endl;
+        }else {
+          // focus went down
+          cout << "focus went down" << endl;
+        }
+      }
+    }
+  }
+
+  if(!d_conflictVariables.empty()){
+    return Result::UNSAT;
+  }else if(d_errorSet.errorEmpty()){
+    Assert(d_errorSet.noSignals());
+    return Result::SAT;
+  }else{
+    Assert(budget == 0);
+    return Result::SAT_UNKNOWN;      
+  }
 }
 
 }/* CVC4::theory::arith namespace */

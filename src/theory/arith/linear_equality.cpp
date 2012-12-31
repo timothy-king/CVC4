@@ -27,15 +27,15 @@ namespace arith {
 template void LinearEqualityModule::propagateNonbasics<true>(ArithVar basic, Constraint c);
 template void LinearEqualityModule::propagateNonbasics<false>(ArithVar basic, Constraint c);
 
-template ArithVar LinearEqualityModule::selectSlack<true>(ArithVar x_i, PreferenceFunction pf) const;
-template ArithVar LinearEqualityModule::selectSlack<false>(ArithVar x_i, PreferenceFunction pf) const;
+template ArithVar LinearEqualityModule::selectSlack<true>(ArithVar x_i, VarPreferenceFunction pf) const;
+template ArithVar LinearEqualityModule::selectSlack<false>(ArithVar x_i, VarPreferenceFunction pf) const;
 
-LinearEqualityModule::LinearEqualityModule(ArithVariables& vars, Tableau& t, BasicVarModelUpdateCallBack f):
+LinearEqualityModule::LinearEqualityModule(ArithVariables& vars, Tableau& t, BoundCountingVector& boundTracking, BasicVarModelUpdateCallBack f):
   d_variables(vars),
   d_tableau(t),
   d_basicVariableUpdates(f),
   d_relevantErrorBuffer(),
-  d_boundTracking(),
+  d_boundTracking(boundTracking),
   d_areTracking(false),
   d_trackCallback(this)
 {}
@@ -575,6 +575,25 @@ ArithVar LinearEqualityModule::minColLength(ArithVar x, ArithVar y) const {
   }
 }
 
+ArithVar LinearEqualityModule::minRowLength(ArithVar x, ArithVar y) const {
+  Assert(x != ARITHVAR_SENTINEL);
+  Assert(y != ARITHVAR_SENTINEL);
+  Assert(d_tableau.isBasic(x));
+  Assert(d_tableau.isBasic(y));
+
+  RowIndex x_ridx = d_tableau.basicToRowIndex(x);
+  RowIndex y_ridx = d_tableau.basicToRowIndex(y);
+  uint32_t xLen = d_tableau.getRowLength(x_ridx);
+  uint32_t yLen = d_tableau.getRowLength(y_ridx);
+  if( xLen > yLen){
+     return y;
+  } else if( xLen== yLen ){
+    return minVarOrder(x,y);
+  }else{
+    return x;
+  }
+}
+
 ArithVar LinearEqualityModule::minBoundAndColLength(ArithVar x, ArithVar y) const{
   Assert(x != ARITHVAR_SENTINEL);
   Assert(y != ARITHVAR_SENTINEL);
@@ -590,7 +609,7 @@ ArithVar LinearEqualityModule::minBoundAndColLength(ArithVar x, ArithVar y) cons
 }
 
 template <bool above>
-ArithVar LinearEqualityModule::selectSlack(ArithVar x_i, PreferenceFunction pref) const{
+ArithVar LinearEqualityModule::selectSlack(ArithVar x_i, VarPreferenceFunction pref) const{
   ArithVar slack = ARITHVAR_SENTINEL;
 
   for(Tableau::RowIterator iter = d_tableau.basicRowIterator(x_i); !iter.atEnd();  ++iter){
@@ -731,7 +750,9 @@ void LinearEqualityModule::trackingCoefficientChange(RowIndex ridx, ArithVar nb,
   }
 }
 
-void LinearEqualityModule::computeSafeUpdate(ArithVar nb, int sgn, UpdateInfo& inf){
+void LinearEqualityModule::computeSafeUpdate(UpdateInfo& inf, VarPreferenceFunction pref){
+  ArithVar nb = inf.d_nonbasic;
+  int sgn = inf.d_sgn;
   Assert(sgn != 0);
   Assert(!d_tableau.isBasic(nb));
   

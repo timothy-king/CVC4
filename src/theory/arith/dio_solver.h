@@ -21,9 +21,9 @@
 
 #include "context/context.h"
 
-#include "theory/arith/matrix.h"
 #include "theory/arith/partial_model.h"
 #include "util/rational.h"
+#include "theory/arith/normal_form.h"
 
 #include "util/statistics_registry.h"
 

@@ -29,6 +29,7 @@
 #include <vector>
 #include <boost/integer_traits.hpp>
 #include "util/index.h"
+#include "util/cvc4_assert.h"
 
 namespace CVC4 {
 

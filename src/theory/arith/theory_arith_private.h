@@ -100,6 +100,7 @@ private:
   // TODO A better would be:
   //context::CDO<bool> d_nlIncomplete;
 
+  BoundCountingVector d_boundTracking;
 
   /**
    * The constraint database associated with the theory.
