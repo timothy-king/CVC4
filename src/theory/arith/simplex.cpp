@@ -18,6 +18,7 @@
 
 #include "theory/arith/simplex.h"
 #include "theory/arith/options.h"
+#include "theory/arith/constraint.h"
 
 using namespace std;
 

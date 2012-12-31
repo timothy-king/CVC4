@@ -16,6 +16,7 @@
 
 
 #include "theory/arith/linear_equality.h"
+#include "theory/arith/constraint.h"
 
 using namespace std;
 
@@ -242,6 +243,15 @@ void LinearEqualityModule::pivotAndUpdate(ArithVar x_i, ArithVar x_j, const Delt
   }
 }
 
+uint32_t LinearEqualityModule::updateProduct(const UpdateInfo& inf) const {
+  Assert(inf.d_limiting != NullConstraint);
+  Assert(inf.d_limiting->getVariable() != inf.d_nonbasic);
+    
+  return
+    d_tableau.getColLength(inf.d_nonbasic) *
+    d_tableau.getRowLength(inf.d_limiting->getVariable());
+}
+
 void LinearEqualityModule::debugCheckTracking(){
   Tableau::BasicIterator basicIter = d_tableau.beginBasic(),
     endIter = d_tableau.endBasic();
@@ -416,6 +426,8 @@ void LinearEqualityModule::propagateNonbasics(ArithVar basic, Constraint c){
   Assert(d_tableau.isBasic(basic));
   Assert(c->getVariable() == basic);
   Assert(!c->assertedToTheTheory());
+  Assert(!upperBound || c->isUpperBound()); // upperbound implies c is an upperbound
+  Assert(upperBound || c->isLowerBound()); // !upperbound implies c is a lowerbound
   //Assert(c->canBePropagated());
   Assert(!c->hasProof());
 

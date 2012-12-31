@@ -33,7 +33,7 @@
 #include "theory/arith/arithvar.h"
 #include "theory/arith/partial_model.h"
 #include "theory/arith/tableau.h"
-#include "theory/arith/constraint.h"
+#include "theory/arith/constraint_forward.h"
 
 #include "util/statistics_registry.h"
 
@@ -120,15 +120,7 @@ public:
   void computeSafeUpdate(UpdateInfo& inf, VarPreferenceFunction basic);
 
 
-
-  uint32_t updateProduct(const UpdateInfo& inf) const {
-    Assert(inf.d_limiting != NullConstraint);
-    Assert(inf.d_limiting->getVariable() != inf.d_nonbasic);
-    
-    return
-      d_tableau.getColLength(inf.d_nonbasic) *
-      d_tableau.getRowLength(inf.d_limiting->getVariable());
-  }
+  uint32_t updateProduct(const UpdateInfo& inf) const;
 
 
   bool minNonBasicVarOrder(const UpdateInfo& a, const UpdateInfo& b) const{
@@ -196,11 +188,9 @@ private:
 
 public:
   void propagateNonbasicsLowerBound(ArithVar basic, Constraint c){
-    Assert(c->isLowerBound());
     propagateNonbasics<false>(basic, c);
   }
   void propagateNonbasicsUpperBound(ArithVar basic, Constraint c){
-    Assert(c->isUpperBound());
     propagateNonbasics<true>(basic, c);
   }
 
