@@ -105,9 +105,20 @@ public:
   void startTrackingBoundCounts();
   void stopTrackingBoundCounts();
 
-  std::pair<bool, Constraint> computeSafeUpdate(ArithVar nb, int sgn, DeltaRational& am);
-  uint32_t computeUnconstrainedUpdate(ArithVar nb, int sgn, DeltaRational& am);
+  struct UpdateInfo {
+    uint32_t d_errorsFixed;
+    bool d_degenerate;
+    Constraint d_limiting;
+    DeltaRational d_value;
+  };
+
+  void computeSafeUpdate(ArithVar nb, int sgn, UpdateInfo& inf);
 private:
+  typedef std::vector<const Tableau::Entry*> EntryPointerVector;
+  EntryPointerVector d_relevantErrorBuffer;
+
+  uint32_t computeUnconstrainedUpdate(ArithVar nb, int sgn,  DeltaRational& am);
+  uint32_t computedFixed(ArithVar nb, int sgn, const DeltaRational& am);
 
   // RowIndex -> BoundCount
   typedef DenseMap<BoundCounts> BoundCountingVector;

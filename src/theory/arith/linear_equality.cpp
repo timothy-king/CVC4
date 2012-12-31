@@ -34,6 +34,7 @@ LinearEqualityModule::LinearEqualityModule(ArithVariables& vars, Tableau& t, Bas
   d_variables(vars),
   d_tableau(t),
   d_basicVariableUpdates(f),
+  d_relevantErrorBuffer(),
   d_boundTracking(),
   d_areTracking(false),
   d_trackCallback(this)
@@ -730,24 +731,33 @@ void LinearEqualityModule::trackingCoefficientChange(RowIndex ridx, ArithVar nb,
   }
 }
 
-pair<bool, Constraint> LinearEqualityModule::computeSafeUpdate(ArithVar nb, int sgn, DeltaRational& am){
+void LinearEqualityModule::computeSafeUpdate(ArithVar nb, int sgn, UpdateInfo& inf){
   Assert(sgn != 0);
   Assert(!d_tableau.isBasic(nb));
-  Constraint c = NullConstraint;
+  
+  inf.d_errorsFixed = 0;
+  inf.d_degenerate = false;
+  inf.d_limiting = NullConstraint;
+
+  // Error variables moving in the correct direction
+  Assert(d_relevantErrorBuffer.empty());
+  
 
   static int instance = 0;
   Debug("computeSafeUpdate") << "computeSafeUpdate " <<  (++instance) << endl;
 
   if(sgn > 0 && d_variables.hasUpperBound(nb)){
-    c = d_variables.getUpperBoundConstraint(nb);
-    am = c->getValue() - d_variables.getAssignment(nb);
+    inf.d_limiting = d_variables.getUpperBoundConstraint(nb);
+    inf.d_value = inf.d_limiting->getValue() - d_variables.getAssignment(nb);
+    Assert(inf.d_value.sgn() == sgn);
 
-    Debug("computeSafeUpdate") << "computeSafeUpdate " <<  c << endl;
+    Debug("computeSafeUpdate") << "computeSafeUpdate " <<  inf.d_limiting << endl;
   }else if(sgn < 0 && d_variables.hasLowerBound(nb)){
-    c = d_variables.getLowerBoundConstraint(nb);
-    am = c->getValue() - d_variables.getAssignment(nb);
+    inf.d_limiting = d_variables.getLowerBoundConstraint(nb);
+    inf.d_value = inf.d_limiting->getValue() - d_variables.getAssignment(nb);
+    Assert(inf.d_value.sgn() == sgn);
 
-    Debug("computeSafeUpdate") << "computeSafeUpdate " <<  c << endl;
+    Debug("computeSafeUpdate") << "computeSafeUpdate " <<  inf.d_limiting << endl;
   }
 
   Tableau::ColIterator basicIter = d_tableau.colIterator(nb);
@@ -764,70 +774,124 @@ pair<bool, Constraint> LinearEqualityModule::computeSafeUpdate(ArithVar nb, int 
       << basic << ", "
       <<  basic_movement << ", "
       << d_variables.cmpAssignmentUpperBound(basic) << ", "
-      << d_variables.cmpAssignmentLowerBound(basic) << endl;
-      
-    if(basic_movement > 0 && d_variables.hasUpperBound(basic)){
-      if(d_variables.cmpAssignmentUpperBound(basic) < 0){
-        DeltaRational diff = d_variables.getUpperBound(basic) - d_variables.getAssignment(basic);
-        diff /= entry.getCoefficient();
-        Assert(diff.sgn() == sgn);
-        if(c == NullConstraint ||
-           (sgn > 0 && diff < am) ||
-           (sgn < 0 && diff > am)){
-          c = d_variables.getUpperBoundConstraint(basic);
-          am = diff;
-        }
-      }else if(d_variables.cmpAssignmentUpperBound(basic) == 0){
-        c = d_variables.getUpperBoundConstraint(basic);
-        am = DeltaRational(0);
-        break;
-      }// otherwise it is in violated already. ignore!
-    }else if(basic_movement < 0 && d_variables.hasLowerBound(basic)){
-      if(d_variables.cmpAssignmentLowerBound(basic) > 0){
-        DeltaRational diff = d_variables.getLowerBound(basic) - d_variables.getAssignment(basic);
-        diff /= entry.getCoefficient();
-        Assert(diff.sgn() == sgn);
-        if(c == NullConstraint ||
-           (sgn > 0 && diff < am) ||
-           (sgn < 0 && diff > am)){
-          c = d_variables.getLowerBoundConstraint(basic);
-          am = diff;
-        }
-      }else if(d_variables.cmpAssignmentLowerBound(basic) == 0){
-        c = d_variables.getLowerBoundConstraint(basic);
-        am = DeltaRational(0);
-        break;
-      }// otherwise it is in violated already. ignore!
+      << d_variables.cmpAssignmentLowerBound(basic) << ", "
+      << a_ji << ", " 
+      << d_variables.getAssignment(basic) << endl;
+    if(basic_movement > 0){
+      if(d_variables.cmpAssignmentLowerBound(basic) < 0){
+        d_relevantErrorBuffer.push_back(&entry);
+      }
+      if(d_variables.hasUpperBound(basic)){
+        if(d_variables.cmpAssignmentUpperBound(basic) < 0){
+          DeltaRational diff = d_variables.getUpperBound(basic) - d_variables.getAssignment(basic);
+          diff /= entry.getCoefficient();
+          Assert(diff.sgn() == sgn);
+          if(inf.d_limiting == NullConstraint ||
+             (sgn > 0 && diff < inf.d_value) ||
+             (sgn < 0 && diff > inf.d_value)){
+            inf.d_limiting = d_variables.getUpperBoundConstraint(basic);
+            inf.d_value = diff;
+          }
+        }else if(d_variables.cmpAssignmentUpperBound(basic) == 0){
+          inf.d_limiting = d_variables.getUpperBoundConstraint(basic);
+          inf.d_value = DeltaRational(0);
+          inf.d_degenerate = true;
+          break;
+        }// otherwise it is in violated already. ignore!
+      }
+    }else if(basic_movement < 0){
+      if(d_variables.cmpAssignmentUpperBound(basic) > 0){
+        d_relevantErrorBuffer.push_back(&entry);
+      }
+      if(d_variables.hasLowerBound(basic)){
+        if(d_variables.cmpAssignmentLowerBound(basic) > 0){
+          DeltaRational diff = d_variables.getLowerBound(basic) - d_variables.getAssignment(basic);
+          diff /= entry.getCoefficient();
+          Assert(diff.sgn() == sgn);
+          if(inf.d_limiting == NullConstraint ||
+             (sgn > 0 && diff < inf.d_value) ||
+             (sgn < 0 && diff > inf.d_value)){
+            inf.d_limiting = d_variables.getLowerBoundConstraint(basic);
+            inf.d_value = diff;
+          }
+        }else if(d_variables.cmpAssignmentLowerBound(basic) == 0){
+          inf.d_limiting = d_variables.getLowerBoundConstraint(basic);
+          inf.d_value = DeltaRational(0);
+          inf.d_degenerate = true;
+          break;
+        }// otherwise it is in violated already. ignore!
+      }
     }
   }
 
-  if(c == NullConstraint){
-    return make_pair(true, NullConstraint);
-  }else if(am.sgn() != 0){
-    am += (d_variables.getAssignment(nb));
-    return make_pair(true, c);
-  }else{
-    return make_pair(false, c);
+  if(!inf.d_degenerate){
+    if(inf.d_limiting == NullConstraint){
+      inf.d_errorsFixed = computeUnconstrainedUpdate(nb, sgn, inf.d_value);
+    }else{
+      Assert(inf.d_value.sgn() != 0);
+      inf.d_errorsFixed = computedFixed(nb, sgn, inf.d_value);
+    }
+    Assert(inf.d_value.sgn() == sgn);
+    inf.d_value += (d_variables.getAssignment(nb));
   }
+
+  d_relevantErrorBuffer.clear();
 }
 
-uint32_t LinearEqualityModule::computeUnconstrainedUpdate(ArithVar nb, int sgn, DeltaRational& am){
+uint32_t LinearEqualityModule::computedFixed(ArithVar nb, int sgn, const DeltaRational& diff){
   Assert(sgn != 0);
   Assert(!d_tableau.isBasic(nb));
+  Assert(diff.sgn() == sgn);
 
   uint32_t fixes = 0;
-
-  Tableau::ColIterator colIter = d_tableau.colIterator(nb);
-  for(; !colIter.atEnd(); ++colIter){
-    const Tableau::Entry& entry = *colIter;
+  EntryPointerVector::const_iterator i = d_relevantErrorBuffer.begin();
+  EntryPointerVector::const_iterator i_end = d_relevantErrorBuffer.end();
+  for(; i != i_end; ++i){
+    const Tableau::Entry& entry = *(*i);
     Assert(entry.getColVar() == nb);
 
     ArithVar basic = d_tableau.rowIndexToBasic(entry.getRowIndex());
     const Rational& a_ji = entry.getCoefficient();
     int basic_movement = sgn * a_ji.sgn();
 
-    if(basic_movement < 0 &&
-       d_variables.cmpAssignmentUpperBound(basic) > 0){
+    DeltaRational theta = diff * entry.getCoefficient();
+    DeltaRational proposedValue = theta + d_variables.getAssignment(basic);
+
+    if(basic_movement < 0){
+      Assert(d_variables.cmpAssignmentUpperBound(basic) > 0);
+
+      if(d_variables.cmpToUpperBound(basic, proposedValue) <= 0){
+        ++fixes;
+      }
+    }else if(basic_movement > 0){
+      Assert(d_variables.cmpAssignmentLowerBound(basic) < 0);
+
+      if(d_variables.cmpToLowerBound(basic, proposedValue) >= 0){
+        ++fixes;
+      }
+    }
+  }
+  return fixes;
+}
+uint32_t LinearEqualityModule::computeUnconstrainedUpdate(ArithVar nb, int sgn, DeltaRational& am){
+  Assert(sgn != 0);
+  Assert(!d_tableau.isBasic(nb));
+
+  am = Rational(sgn);
+
+  uint32_t fixes = 0;
+  EntryPointerVector::const_iterator i = d_relevantErrorBuffer.begin();
+  EntryPointerVector::const_iterator i_end = d_relevantErrorBuffer.end();
+  for(; i != i_end; ++i){
+    const Tableau::Entry& entry = *(*i);
+    Assert(entry.getColVar() == nb);
+
+    ArithVar basic = d_tableau.rowIndexToBasic(entry.getRowIndex());
+    const Rational& a_ji = entry.getCoefficient();
+    int basic_movement = sgn * a_ji.sgn();
+
+    if(basic_movement < 0){
+      Assert(d_variables.cmpAssignmentUpperBound(basic) > 0);
       DeltaRational diff = d_variables.getUpperBound(basic) - d_variables.getAssignment(basic);
       diff /= entry.getCoefficient();
       Assert(diff.sgn() == sgn);
@@ -837,8 +901,8 @@ uint32_t LinearEqualityModule::computeUnconstrainedUpdate(ArithVar nb, int sgn, 
         am = diff;
         ++fixes;
       }
-    }else if(basic_movement > 0 &&
-       d_variables.cmpAssignmentLowerBound(basic) < 0){
+    }else if(basic_movement > 0){
+      Assert(d_variables.cmpAssignmentLowerBound(basic) < 0);
       DeltaRational diff = d_variables.getLowerBound(basic) - d_variables.getAssignment(basic);
       diff /= entry.getCoefficient();
       Assert(diff.sgn() == sgn);
@@ -849,9 +913,6 @@ uint32_t LinearEqualityModule::computeUnconstrainedUpdate(ArithVar nb, int sgn, 
         ++fixes;
       }
     }
-  }
-  if(fixes > 0){
-    am += (d_variables.getAssignment(nb));
   }
   return fixes;
 }

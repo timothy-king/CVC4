@@ -487,7 +487,7 @@ bool PureUpdateSimplexDecisionProcedure::attemptPureUpdates(){
 
   constructFocusErrorFunction();
 
-  DeltaRational dr;
+  LinearEqualityModule::UpdateInfo proposal;
   int boundImprovements = 0;
   int dropped = 0;
   int computations = 0;
@@ -507,21 +507,47 @@ bool PureUpdateSimplexDecisionProcedure::attemptPureUpdates(){
 	(dir < 0 && d_variables.cmpAssignmentLowerBound(curr) > 0) ){
       
       ++computations;
-      pair<bool, Constraint> p = d_linEq.computeSafeUpdate(curr, dir, dr);
-      worthwhile = p.first;
-      if(worthwhile && p.second == NullConstraint){
-        uint32_t fixed = d_linEq.computeUnconstrainedUpdate(curr, dir, dr);
-        if( fixed == 0 ){
-          worthwhile = false;
+      d_linEq.computeSafeUpdate(curr, dir, proposal);
+      if(proposal.d_errorsFixed > 0){
+        worthwhile = true;
+      }else if(!proposal.d_degenerate && proposal.d_limiting != NULL){
+        if(proposal.d_limiting->getVariable() == curr){
+          worthwhile = true;
         }
-        Debug("pu") << "podsfjio!! " << fixed << endl;
       }
+      Debug("pu::refined")
+        << "pure update proposal "
+        << curr << " "
+        << worthwhile << " "
+        << proposal.d_errorsFixed << " "
+        << proposal.d_degenerate<< " "
+        << proposal.d_limiting << " "
+        << proposal.d_value << endl;
+
+      // worthwhile = p.first;
+      // if(worthwhile && p.second == NullConstraint){
+      //   uint32_t fixed = d_linEq.computeUnconstrainedUpdate(curr, dir, dr);
+      //   if( fixed == 0 ){
+      //     worthwhile = false;
+      //   }
+      //   Debug("pu") << "podsfjio!! " << fixed << endl;
+      // }else if(worthwhile){
+      //   Constraint c = p.second;
+      //   Debug("pu::refine") << curr;
+      //   if(c->getVariable() != curr){
+      //     worthwhile = false;
+      //     Debug("pu::refine") << " dropping ";
+      //   }else{
+      //     Debug("pu::refine") << " keeping ";
+      //   }
+      //   Debug("pu::refine") << c << endl;
+      // }
     }
     if(worthwhile){
       Debug("pu") << d_variables.getAssignment(d_focusErrorVar) << endl;
 
       BoundCounts before = d_variables.boundCounts(curr);
-      d_linEq.updateTracked(curr, dr);
+      d_linEq.updateTracked(curr, proposal.d_value);
       BoundCounts after = d_variables.boundCounts(curr);
 
       ++d_statistics.d_pureUpdates;
