@@ -6,8 +6,7 @@ namespace theory {
 namespace arith {
 
 uint32_t TableauSizes::getRowLength(ArithVar b) const {
-  RowIndex ridx = d_tab->basicToRowIndex(b);
-  return d_tab->getRowLength(ridx);
+  return d_tab->basicRowLength(b);
 }
 
 uint32_t TableauSizes::getColumnLength(ArithVar x) const {

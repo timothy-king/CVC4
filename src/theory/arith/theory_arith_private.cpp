@@ -2456,7 +2456,7 @@ void TheoryArithPrivate::propagateCandidates(){
   for(; i != end; ++i){
     ArithVar var = *i;
     if(d_tableau.isBasic(var) &&
-       d_tableau.getRowLength(d_tableau.basicToRowIndex(var)) <= options::arithPropagateMaxLength()){
+       d_tableau.basicRowLength(var) <= options::arithPropagateMaxLength()){
       d_candidateBasics.softAdd(var);
     }else{
       Tableau::ColIterator basicIter = d_tableau.colIterator(var);

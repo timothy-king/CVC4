@@ -252,6 +252,7 @@ public:
   error_iterator errorEnd() const { return d_errInfo.end(); }
 
   bool inError(ArithVar v) const { return d_errInfo.isKey(v); }
+  bool inFocus(ArithVar v) const { return d_errInfo[v].inFocus(); }
 
   ErrorSelectionRule getSelectionRule() const;
   void setSelectionRule(ErrorSelectionRule rule);

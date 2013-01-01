@@ -224,6 +224,11 @@ private:
   void constructFocusErrorFunction();
   void tearDownFocusErrorFunction();
 
+  void reconstructFocus(){
+    tearDownFocusErrorFunction();
+    constructFocusErrorFunction();
+  }
+
   /**
    * This is the main simplex for DPLL(T) loop.
    * It runs for at most maxIterations.
@@ -279,19 +284,35 @@ public:
 
   // other error variables are dropping
   // 
-  uint32_t dualLikeImproveError(ArithVar evar, int& budget);
-  uint32_t primalImproveError(ArithVar evar, int& budget){
-    Unimplemented(); 
-    return 0;
-  }
+  uint32_t dualLikeImproveError(ArithVar evar);
+  uint32_t primalImproveError(ArithVar evar);
 
   // dual like
   // - found conflict
   // - satisfied focus set
-  Result::Sat dualLike(int& budget);
+  Result::Sat dualLike();
 
 private:
-  uint32_t d_degenerateHeuristicBudget;
+
+  int32_t d_pivotBudget;
+  enum PivotImprovement {
+    ErrorDropped,
+    NonDegenerate,
+    HeuristicDegenerate,
+    BlandsDegenerate
+  };
+  static const uint32_t s_focusThreshold = 6;
+
+  PivotImprovement d_prevPivotImprovement;
+  uint32_t d_pivotImprovementInARow;
+
+  uint32_t d_dualDegenerateHeuristicBudget;
+
+  uint32_t maxDegeneratePivotsBeforeBlands;
+  uint32_t degeneratePivotsInARow;
+
+  uint32_t d_errorSize;
+  uint32_t d_focusSize;
   ArithVar d_focusErrorVar;
   DeltaRational d_focusThreshold;
 
@@ -299,14 +320,80 @@ private:
   ArithVarVec d_sgnDisagreement;
 
   bool attemptPureUpdates();
+  void storeFocusSigns();
+  int focusSgn(ArithVar nb) const;
 
-  void constructFocusErrorFunction();
-  void tearDownFocusErrorFunction();
-
-  
-  int focusSgn(ArithVar nb) const {
-    return d_focusSgns[nb];
+  static PivotImprovement pivotImprovement(const UpdateInfo& selected, bool useBlands = false) {
+    if(selected.d_errorsFixed > 0){
+      return ErrorDropped;
+    }else if(selected.d_degenerate){
+      if(useBlands){
+        return BlandsDegenerate;
+      }else{
+        return HeuristicDegenerate;
+      }
+    }else{
+      return NonDegenerate;
+    }
   }
+  void logPivot(const UpdateInfo& selected, bool useBlands = false){
+    if(d_pivotBudget > 0) {
+      --d_pivotBudget;
+    }
+    PivotImprovement curr = pivotImprovement(selected, useBlands);
+    if(curr == d_prevPivotImprovement){
+      ++d_pivotImprovementInARow;
+      if(d_pivotImprovementInARow == 0){
+        --d_pivotImprovementInARow;
+      }
+    }else{
+      d_prevPivotImprovement = curr;
+      d_pivotImprovementInARow = 1;
+    }
+  }
+
+  void updateAndSignal(const UpdateInfo& selected);
+  UpdateInfo selectPrimalUpdate(ArithVar error, int sgn, LinearEqualityModule::UpdatePreferenceFunction upf, LinearEqualityModule::VarPreferenceFunction bpf, bool storeDisagreements);
+
+
+  UpdateInfo selectUpdateForDualLike(ArithVar basic, int sgn){
+    LinearEqualityModule::UpdatePreferenceFunction upf =
+      &LinearEqualityModule::preferErrorsFixed<true>;
+    LinearEqualityModule::VarPreferenceFunction bpf =
+      &LinearEqualityModule::minRowLength;
+    return selectPrimalUpdate(basic, sgn, upf, bpf, true);
+  }
+
+  UpdateInfo selectUpdateForPrimal(ArithVar basic, int sgn, bool useBlands){
+    LinearEqualityModule::UpdatePreferenceFunction upf = useBlands ?
+      &LinearEqualityModule::preferErrorsFixed<false>:
+      &LinearEqualityModule::preferErrorsFixed<true>;
+
+    LinearEqualityModule::VarPreferenceFunction bpf = useBlands ?
+      &LinearEqualityModule::minVarOrder :
+      &LinearEqualityModule::minRowLength;
+
+    return selectPrimalUpdate(basic, sgn, upf, bpf, false);
+  }
+
+  void focusUsingSignDisagreements(ArithVar basic, int dir);
+  void reajustSizesAfterSignals();
+
+  void constructFocusErrorFunction(){
+    std::cout << "need to steal the Pureupdate code " << std::endl;
+    Unimplemented();
+  }
+  void tearDownFocusErrorFunction(){
+    std::cout << "need to steal the Pureupdate code " << std::endl;
+    Unimplemented();
+  }
+
+  void reconstructFocusErrorFunction(){
+    tearDownFocusErrorFunction();
+    constructFocusErrorFunction();
+  }
+
+
 
   /**
    * This is the main simplex for DPLL(T) loop.

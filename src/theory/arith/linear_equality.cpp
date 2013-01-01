@@ -87,9 +87,9 @@ void LinearEqualityModule::updateUntracked(ArithVar x_i, const DeltaRational& v)
                  << assignment_x_i << "|-> " << v << endl;
   DeltaRational diff = v - assignment_x_i;
 
-  Tableau::ColIterator basicIter = d_tableau.colIterator(x_i);
-  for(; !basicIter.atEnd(); ++basicIter){
-    const Tableau::Entry& entry = *basicIter;
+  Tableau::ColIterator colIter = d_tableau.colIterator(x_i);
+  for(; !colIter.atEnd(); ++colIter){
+    const Tableau::Entry& entry = *colIter;
     Assert(entry.getColVar() == x_i);
 
     ArithVar x_j = d_tableau.rowIndexToBasic(entry.getRowIndex());
@@ -104,9 +104,6 @@ void LinearEqualityModule::updateUntracked(ArithVar x_i, const DeltaRational& v)
 
   d_variables.setAssignment(x_i, v);
 
-  //double difference = ((double)d_tableau.getNumRows()) - ((double) d_tableau.getRowLength(x_i));
-
-  //(d_statistics.d_avgNumRowsNotContainingOnUpdate).addEntry(difference);
   if(Debug.isOn("paranoid:check_tableau")){  debugCheckTableau(); }
 }
 
@@ -249,7 +246,7 @@ uint32_t LinearEqualityModule::updateProduct(const UpdateInfo& inf) const {
     
   return
     d_tableau.getColLength(inf.d_nonbasic) *
-    d_tableau.getRowLength(inf.d_limiting->getVariable());
+    d_tableau.basicRowLength(inf.d_limiting->getVariable());
 }
 
 void LinearEqualityModule::debugCheckTracking(){
@@ -592,11 +589,8 @@ ArithVar LinearEqualityModule::minRowLength(ArithVar x, ArithVar y) const {
   Assert(y != ARITHVAR_SENTINEL);
   Assert(d_tableau.isBasic(x));
   Assert(d_tableau.isBasic(y));
-
-  RowIndex x_ridx = d_tableau.basicToRowIndex(x);
-  RowIndex y_ridx = d_tableau.basicToRowIndex(y);
-  uint32_t xLen = d_tableau.getRowLength(x_ridx);
-  uint32_t yLen = d_tableau.getRowLength(y_ridx);
+  uint32_t xLen = d_tableau.basicRowLength(x);
+  uint32_t yLen = d_tableau.basicRowLength(y);
   if( xLen > yLen){
      return y;
   } else if( xLen== yLen ){
@@ -695,35 +689,21 @@ BoundCounts LinearEqualityModule::countBounds(ArithVar x_i){
   }
 }
 
-bool LinearEqualityModule::nonbasicsAtLowerBounds(ArithVar x_i) const {
-  Assert(basicIsTracked(x_i));
-  BoundCounts bcs = d_boundTracking[x_i];
-  RowIndex ridx = d_tableau.basicToRowIndex(x_i);
-  uint32_t length = d_tableau.getRowLength(ridx);
+bool LinearEqualityModule::nonbasicsAtLowerBounds(ArithVar basic) const {
+  Assert(basicIsTracked(basic));
+  BoundCounts bcs = d_boundTracking[basic];
+  uint32_t length = d_tableau.basicRowLength(basic);
 
   return bcs.atLowerBounds() + 1 == length;
 }
 
-bool LinearEqualityModule::nonbasicsAtUpperBounds(ArithVar x_i) const {
-  Assert(basicIsTracked(x_i));
-  BoundCounts bcs = d_boundTracking[x_i];
-  RowIndex ridx = d_tableau.basicToRowIndex(x_i);
-  uint32_t length = d_tableau.getRowLength(ridx);
+bool LinearEqualityModule::nonbasicsAtUpperBounds(ArithVar basic) const {
+  Assert(basicIsTracked(basic));
+  BoundCounts bcs = d_boundTracking[basic];
+  uint32_t length = d_tableau.basicRowLength(basic);
 
   return bcs.atUpperBounds() + 1 == length;
 }
-
-// void LinearEqualityModule::trackingFinishedRow(RowIndex ridx){
-//   ArithVar basic = d_tableau.rowIndexToBasic(ridx);
-//   if(basicIsTracked(basic)){
-//     uint32_t length = d_tableau.getRowLength(ridx);
-//     BoundCounts bcs = d_boundTracking[basic];
-//     if(bcs.atLowerBounds() + 1 == length ||
-//        bcs.atUpperBounds() + 1 == length){
-//       d_basicVariableUpdates(basic);
-//     }
-//   }
-// }
 
 void LinearEqualityModule::trackingSwap(ArithVar basic, ArithVar nb, int nbSgn) {
   Assert(basicIsTracked(basic));
@@ -948,6 +928,20 @@ uint32_t LinearEqualityModule::computeUnconstrainedUpdate(ArithVar nb, int sgn, 
     }
   }
   return fixes;
+}
+
+ArithVar LinearEqualityModule::minBy(const ArithVarVec& vec, VarPreferenceFunction pf) const{
+  if(vec.empty()) {
+    return ARITHVAR_SENTINEL;
+  }else {
+    ArithVar sel = vec.front();
+    ArithVarVec::const_iterator i = vec.begin() + 1;
+    ArithVarVec::const_iterator i_end = vec.end();
+    for(; i != i_end; ++i){
+      sel = (this->*pf)(sel, *i);
+    }
+    return sel;
+  }
 }
 
 }/* CVC4::theory::arith namespace */

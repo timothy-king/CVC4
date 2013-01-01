@@ -76,6 +76,10 @@ public:
     return getRow(basicToRowIndex(basic)).begin();
   }
 
+  const Entry& basicFindEntry(ArithVar basic, ArithVar col) const {
+    return findEntry(basicToRowIndex(basic), col);
+  }
+
   /**
    * Adds a row to the tableau.
    * The new row is equivalent to:
@@ -100,6 +104,11 @@ public:
   void pivot(ArithVar basicOld, ArithVar basicNew, CoefficientChangeCallback& cb);
 
   void removeBasicRow(ArithVar basic);
+
+  uint32_t basicRowLength(ArithVar basic) const{
+    RowIndex ridx = basicToRowIndex(basic);
+    return getRowLength(ridx);
+  }
 
 private:
   /* Changes the basic variable on the row for basicOld to basicNew. */

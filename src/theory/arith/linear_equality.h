@@ -383,6 +383,8 @@ public:
   bool debugEntireLinEqIsConsistent(const std::string& s);
 
 
+  ArithVar minBy(const ArithVarVec& vec, VarPreferenceFunction pf) const;
+
 private:
   /** These fields are designed to be accessible to TheoryArith methods. */
   class Statistics {

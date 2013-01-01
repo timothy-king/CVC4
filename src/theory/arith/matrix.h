@@ -699,7 +699,7 @@ public:
 
 protected:
 
-  EntryID findOnRow(RowIndex rid, ArithVar column){
+  EntryID findOnRow(RowIndex rid, ArithVar column) const {
     RowIterator i = d_rows[rid].begin(), i_end = d_rows[rid].end();
     for(; i != i_end; ++i){
       EntryID id = i.getID();
@@ -713,7 +713,7 @@ protected:
     return ENTRYID_SENTINEL;
   }
 
-  EntryID findOnCol(RowIndex rid, ArithVar column){
+  EntryID findOnCol(RowIndex rid, ArithVar column) const{
     ColIterator i = d_columns[column].begin(), i_end = d_columns[column].end();
     for(; i != i_end; ++i){
       EntryID id = i.getID();
@@ -731,13 +731,13 @@ protected:
 public:
 
   /** If the find fails, isUnused is true on the entry. */
-  const MatrixEntry<T>& findEntry(RowIndex rid, ArithVar col){
+  const MatrixEntry<T>& findEntry(RowIndex rid, ArithVar col) const{
     bool colIsShorter = getColLength(col) < getRowLength(rid);
     EntryID id = colIsShorter ? findOnCol(rid, col) : findOnRow(rid,col);
     if(id == ENTRYID_SENTINEL){
       return d_failedFind;
     }else{
-      return d_entries.get(id);
+      return d_entries[id];
     }
   }
 
