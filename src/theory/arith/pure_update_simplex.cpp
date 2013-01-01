@@ -348,8 +348,6 @@ namespace arith {
 
 PureUpdateSimplexDecisionProcedure::PureUpdateSimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc)
   : SimplexDecisionProcedure(linEq, errors, conflictChannel, tvmalloc)
-  , d_focusErrorVar(ARITHVAR_SENTINEL)
-  , d_focusThreshold(0)
 { }
 
 Result::Sat PureUpdateSimplexDecisionProcedure::findModel(bool exactResult){

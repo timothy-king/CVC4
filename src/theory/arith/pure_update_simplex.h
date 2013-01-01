@@ -60,7 +60,6 @@
 #include "theory/arith/arithvar.h"
 #include "theory/arith/delta_rational.h"
 
-
 namespace CVC4 {
 namespace theory {
 namespace arith {
@@ -72,8 +71,6 @@ public:
   Result::Sat findModel(bool exactResult);
 
 private:
-  ArithVar d_focusErrorVar;
-  DeltaRational d_focusThreshold;
 
   bool attemptPureUpdates();
 
