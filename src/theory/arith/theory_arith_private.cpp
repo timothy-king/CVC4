@@ -107,6 +107,7 @@ TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context
   d_congruenceManager(c, d_constraintDatabase, SetupLiteralCallBack(*this), d_partialModel, RaiseConflict(*this)),
   d_dualSimplex(d_linEq, d_errorSet, RaiseConflict(*this), TempVarMalloc(*this)),
   d_pureUpdate(d_linEq, d_errorSet, RaiseConflict(*this), TempVarMalloc(*this)),
+  d_fcSimplex(d_linEq, d_errorSet, RaiseConflict(*this), TempVarMalloc(*this)),
   d_DELTA_ZERO(0),
   d_statistics()
 {

@@ -109,6 +109,44 @@ protected:
   /** Used for requesting d_opt, bound and error variables for primal.*/
   TempVarMalloc d_arithVarMalloc;
 
+  /** The size of the error set. */
+  uint32_t d_errorSize;
+
+  /** The size of the focus set. */
+  uint32_t d_focusSize;
+
+  /** The current error focus variable. */
+  ArithVar d_focusErrorVar;
+
+  void constructFocusErrorFunction();
+  void tearDownFocusErrorFunction();
+
+  void reconstructFocusErrorFunction(){
+    tearDownFocusErrorFunction();
+    constructFocusErrorFunction();
+  }
+
+  /**
+   * The signs of the coefficients in the focus set.
+   * This is empty until this has been loaded.
+   */
+  DenseMap<int> d_focusSgns;
+
+  /**
+   * Loads the signs of the coefficients of the variables on the row d_focusErrorVar
+   * into d_focusSgns.
+   */
+  void loadFocusSigns();
+
+  /** Unloads the information from d_focusSgns. */
+  void unloadFocusSigns();
+
+  /** 
+   * The signs of a variable in the row of d_focusErrorVar.
+   * d_focusSgns must be loaded.
+   */
+  int focusSgn(ArithVar nb) const;
+
 public:
   SimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc);
 
@@ -221,14 +259,6 @@ private:
 
   bool attemptPureUpdates();
 
-  void constructFocusErrorFunction();
-  void tearDownFocusErrorFunction();
-
-  void reconstructFocus(){
-    tearDownFocusErrorFunction();
-    constructFocusErrorFunction();
-  }
-
   /**
    * This is the main simplex for DPLL(T) loop.
    * It runs for at most maxIterations.
@@ -263,24 +293,13 @@ private:
     Statistics();
     ~Statistics();
   } d_statistics;
-};/* class FCSimplexDecisionProcedure */
-
-// Heuristic =  { prefererrorfunctions, prefernondegenerate, preferNeitherBound,
-//                minimizeProdct, minimizeOrder};
-// ModifiedBlands =
-//   { prefererrorfunctions, prefernondegenerate, minimizeOrder};
-
-// HeuristicBasicPreference =
-//   {rowLength, varorder};
-
-// ModifiedBlands =
-//   {varorder};
+};/* class PureUpdateSimplexDecisionProcedure */
 
 class FCSimplexDecisionProcedure : public SimplexDecisionProcedure{
 public:
   FCSimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc);
 
-  Result::Sat findModel(bool exactResult);
+  Result::Sat findModel(bool exactResult) { Unreachable(); }
 
   // other error variables are dropping
   // 
@@ -289,7 +308,7 @@ public:
 
   // dual like
   // - found conflict
-  // - satisfied focus set
+  // - satisfied error set
   Result::Sat dualLike();
 
 private:
@@ -301,27 +320,26 @@ private:
     HeuristicDegenerate,
     BlandsDegenerate
   };
-  static const uint32_t s_focusThreshold = 6;
 
   PivotImprovement d_prevPivotImprovement;
   uint32_t d_pivotImprovementInARow;
 
-  uint32_t d_dualDegenerateHeuristicBudget;
+  uint32_t degeneratePivotsInARow() const {
+    switch(d_prevPivotImprovement){
+    case ErrorDropped:
+    case NonDegenerate:
+      return 0;
+    case HeuristicDegenerate:
+    case BlandsDegenerate:
+      return d_pivotImprovementInARow;
+    }
+    Unreachable();
+  }
 
-  uint32_t maxDegeneratePivotsBeforeBlands;
-  uint32_t degeneratePivotsInARow;
+  static const uint32_t s_focusThreshold = 6;
+  static const uint32_t s_maxDegeneratePivotsBeforeBlands = 10;
 
-  uint32_t d_errorSize;
-  uint32_t d_focusSize;
-  ArithVar d_focusErrorVar;
-  DeltaRational d_focusThreshold;
-
-  DenseMap<int> d_focusSgns;
   ArithVarVec d_sgnDisagreement;
-
-  bool attemptPureUpdates();
-  void storeFocusSigns();
-  int focusSgn(ArithVar nb) const;
 
   static PivotImprovement pivotImprovement(const UpdateInfo& selected, bool useBlands = false) {
     if(selected.d_errorsFixed > 0){
@@ -346,6 +364,9 @@ private:
       if(d_pivotImprovementInARow == 0){
         --d_pivotImprovementInARow;
       }
+    }else if(useBlands){
+      // keep d_pivotImprovementInARow as the same
+      d_prevPivotImprovement = curr;
     }else{
       d_prevPivotImprovement = curr;
       d_pivotImprovementInARow = 1;
@@ -379,22 +400,6 @@ private:
   void focusUsingSignDisagreements(ArithVar basic, int dir);
   void reajustSizesAfterSignals();
 
-  void constructFocusErrorFunction(){
-    std::cout << "need to steal the Pureupdate code " << std::endl;
-    Unimplemented();
-  }
-  void tearDownFocusErrorFunction(){
-    std::cout << "need to steal the Pureupdate code " << std::endl;
-    Unimplemented();
-  }
-
-  void reconstructFocusErrorFunction(){
-    tearDownFocusErrorFunction();
-    constructFocusErrorFunction();
-  }
-
-
-
   /**
    * This is the main simplex for DPLL(T) loop.
    * It runs for at most maxIterations.
@@ -413,18 +418,8 @@ private:
   /** These fields are designed to be accessible to TheoryArith methods. */
   class Statistics {
   public:
-    IntStat d_pureUpdateFoundUnsat;
-    IntStat d_pureUpdateFoundSat;
-    IntStat d_pureUpdateMissed;
-    IntStat d_pureUpdates;
-    IntStat d_pureUpdateDropped;
-    IntStat d_pureUpdateConflicts;
-
-    IntStat d_foundConflicts;
-
-    TimerStat d_attemptPureUpdatesTimer;
     TimerStat d_processSignalsTime;
-    
+    IntStat d_foundConflicts;
 
     Statistics();
     ~Statistics();

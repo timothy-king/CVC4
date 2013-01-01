@@ -41,6 +41,10 @@ SimplexDecisionProcedure::SimplexDecisionProcedure(LinearEqualityModule& linEq, 
   , d_numVariables(0)
   , d_conflictChannel(conflictChannel)
   , d_arithVarMalloc(tvmalloc)
+  , d_errorSize(0)
+  , d_focusSize(0)
+  , d_focusErrorVar(ARITHVAR_SENTINEL)
+  , d_focusSgns()
 {
   d_heuristicRule = options::arithErrorSelectionRule();
   d_errorSet.setSelectionRule(d_heuristicRule);
@@ -68,6 +72,18 @@ DualSimplexDecisionProcedure::Statistics::~Statistics(){
   StatisticsRegistry::unregisterStat(&d_searchTime);
 }
 
+FCSimplexDecisionProcedure::Statistics::Statistics():
+  d_processSignalsTime("theory::arith::fc::initialProcessTime"),
+  d_foundConflicts("theory::arith::fc::UpdateConflicts", 0)
+{
+  StatisticsRegistry::registerStat(&d_processSignalsTime);
+  StatisticsRegistry::registerStat(&d_foundConflicts);
+}
+
+FCSimplexDecisionProcedure::Statistics::~Statistics(){
+  StatisticsRegistry::unregisterStat(&d_processSignalsTime);
+  StatisticsRegistry::unregisterStat(&d_foundConflicts);
+}
 bool SimplexDecisionProcedure::standardProcessSignals(TimerStat &timer, IntStat& conflicts) {
   TimerStat::CodeTimer codeTimer(timer);
   Assert( d_conflictVariables.empty() );
@@ -92,6 +108,10 @@ bool SimplexDecisionProcedure::standardProcessSignals(TimerStat &timer, IntStat&
       }
     }
   }
+
+  d_errorSize = d_errorSet.errorSize();
+  d_focusSize = d_errorSet.focusSize();
+
   Assert(d_errorSet.noSignals());
   return !d_conflictVariables.empty();
 }
@@ -184,8 +204,6 @@ Result::Sat DualSimplexDecisionProcedure::dualFindModel(bool exactResult){
   if(result == Result::SAT_UNKNOWN && d_errorSet.errorEmpty()){
     result = Result::SAT;
   }
-
-
 
   d_pivotsInRound.purge();
   // ensure that the conflict variable is still in the queue.
@@ -392,27 +410,24 @@ Result::Sat PureUpdateSimplexDecisionProcedure::findModel(bool exactResult){
   return result;
 }
 
-void PureUpdateSimplexDecisionProcedure::tearDownFocusErrorFunction(){
+void SimplexDecisionProcedure::tearDownFocusErrorFunction(){
   Assert(d_focusErrorVar != ARITHVAR_SENTINEL);
   d_tableau.removeBasicRow(d_focusErrorVar);
-  d_focusThreshold = DeltaRational(0);
   releaseVariable(d_focusErrorVar);
 
   d_focusErrorVar = ARITHVAR_SENTINEL;
   
   Assert(d_focusErrorVar == ARITHVAR_SENTINEL);
 }
-void PureUpdateSimplexDecisionProcedure::constructFocusErrorFunction(){
+void SimplexDecisionProcedure::constructFocusErrorFunction(){
   Assert(d_focusErrorVar == ARITHVAR_SENTINEL);
   Assert(!d_errorSet.focusEmpty());
-  Assert(d_focusThreshold.sgn() == 0);
   d_focusErrorVar = requestVariable();
   
 
   std::vector<Rational> coeffs;
   std::vector<ArithVar> variables;
 
-  DeltaRational diff;
   for(ErrorSet::focus_iterator iter = d_errorSet.focusBegin(), end = d_errorSet.focusEnd(); iter != end; ++iter){
     ArithVar e = *iter;
     
@@ -422,22 +437,12 @@ void PureUpdateSimplexDecisionProcedure::constructFocusErrorFunction(){
     int sgn = d_errorSet.getSgn(e);
     coeffs.push_back(Rational(sgn));
     variables.push_back(e);
-
-    if(sgn > 0) {
-      diff = d_variables.getLowerBound(e) - d_variables.getAssignment(e);
-    }else if(sgn < 0){
-      diff = d_variables.getAssignment(e) - d_variables.getUpperBound(e);
-    }
-    Assert(diff.sgn() > 0);
-    Debug("pu") << e << " " << sgn << " " << diff << endl;
-    d_focusThreshold += diff;
   }
   d_tableau.addRow(d_focusErrorVar, coeffs, variables);
   DeltaRational newAssignment = d_linEq.computeRowValue(d_focusErrorVar, false);
   d_variables.setAssignment(d_focusErrorVar, newAssignment);
 
-  Debug("pu") << d_focusErrorVar << " " << newAssignment
-       << " " << d_focusThreshold << " " << endl;
+  Debug("pu") << d_focusErrorVar << " " << newAssignment << endl;
   Assert(d_focusErrorVar != ARITHVAR_SENTINEL);
 }
 
@@ -625,7 +630,16 @@ void FCSimplexDecisionProcedure::reajustSizesAfterSignals(){
   d_focusSize = newFocusSize;
 }
 
-void FCSimplexDecisionProcedure::storeFocusSigns(){
+FCSimplexDecisionProcedure::FCSimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc)
+  : SimplexDecisionProcedure(linEq, errors, conflictChannel, tvmalloc)
+  , d_pivotBudget(-1)
+  , d_prevPivotImprovement(ErrorDropped)
+  , d_pivotImprovementInARow(0)
+  , d_sgnDisagreement()
+  , d_statistics()
+{ }
+
+void SimplexDecisionProcedure::loadFocusSigns(){
   Assert(d_focusSgns.empty());
   Assert(d_focusErrorVar != ARITHVAR_SENTINEL);
   for(Tableau::RowIterator ri = d_tableau.basicRowIterator(d_focusErrorVar); !ri.atEnd(); ++ri){
@@ -635,7 +649,11 @@ void FCSimplexDecisionProcedure::storeFocusSigns(){
   }
 }
 
-int FCSimplexDecisionProcedure::focusSgn(ArithVar nb) const {
+void SimplexDecisionProcedure::unloadFocusSigns(){
+  d_focusSgns.purge();
+}
+
+int SimplexDecisionProcedure::focusSgn(ArithVar nb) const {
   if(d_focusSgns.isKey(nb)){
     return d_focusSgns[nb];
   }else{
@@ -648,7 +666,7 @@ UpdateInfo FCSimplexDecisionProcedure::selectPrimalUpdate(ArithVar basic, int sg
   UpdateInfo selected;
 
   if(storeDisagreements){
-    storeFocusSigns();
+    loadFocusSigns();
   }
   
   selected.d_nonbasic = ARITHVAR_SENTINEL;
@@ -682,7 +700,7 @@ UpdateInfo FCSimplexDecisionProcedure::selectPrimalUpdate(ArithVar basic, int sg
   }
 
   if(storeDisagreements){
-    d_focusSgns.purge();
+    unloadFocusSigns();
   }
   
   return selected;
@@ -691,26 +709,15 @@ UpdateInfo FCSimplexDecisionProcedure::selectPrimalUpdate(ArithVar basic, int sg
 uint32_t FCSimplexDecisionProcedure::primalImproveError(ArithVar errorVar){
   int sgn = d_errorSet.getSgn(errorVar);
 
-
-  while(d_pivotBudget != 0){
-
-    bool useBlands = degeneratePivotsInARow >= maxDegeneratePivotsBeforeBlands;
+  while(d_pivotBudget != 0 && !d_conflictVariables.empty()){
+    bool useBlands = degeneratePivotsInARow() >= s_maxDegeneratePivotsBeforeBlands;
     UpdateInfo selected = selectUpdateForPrimal (errorVar, sgn, useBlands);
     updateAndSignal(selected);
     logPivot(selected, useBlands);
 
-    if(!d_conflictVariables.empty()){
-      return 0;
-    }else if(selected.d_errorsFixed > 0){
+    if(selected.d_errorsFixed > 0){
       // implicit subcase is if evar is no longer in error
       return selected.d_errorsFixed > 0;
-    }else if(!selected.d_degenerate){
-      degeneratePivotsInARow = 0;
-    }else{
-      ++degeneratePivotsInARow;
-      if(degeneratePivotsInARow == 0){
-        degeneratePivotsInARow = maxDegeneratePivotsBeforeBlands;
-      }
     }
   }
   return 0;

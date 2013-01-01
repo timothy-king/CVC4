@@ -312,6 +312,7 @@ private:
   /** This implements the Simplex decision procedure. */
   DualSimplexDecisionProcedure d_dualSimplex;
   PureUpdateSimplexDecisionProcedure d_pureUpdate;
+  FCSimplexDecisionProcedure d_fcSimplex;
 
   class ModelException : public Exception {
   public:

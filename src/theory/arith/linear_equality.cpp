@@ -31,6 +31,13 @@ template void LinearEqualityModule::propagateNonbasics<false>(ArithVar basic, Co
 template ArithVar LinearEqualityModule::selectSlack<true>(ArithVar x_i, VarPreferenceFunction pf) const;
 template ArithVar LinearEqualityModule::selectSlack<false>(ArithVar x_i, VarPreferenceFunction pf) const;
 
+template bool LinearEqualityModule::preferNonDegenerate<true>(const UpdateInfo& a, const UpdateInfo& b) const;
+template bool LinearEqualityModule::preferNonDegenerate<false>(const UpdateInfo& a, const UpdateInfo& b) const;
+
+template bool LinearEqualityModule::preferErrorsFixed<true>(const UpdateInfo& a, const UpdateInfo& b) const;
+template bool LinearEqualityModule::preferErrorsFixed<false>(const UpdateInfo& a, const UpdateInfo& b) const;
+
+
 LinearEqualityModule::LinearEqualityModule(ArithVariables& vars, Tableau& t, BoundCountingVector& boundTracking, BasicVarModelUpdateCallBack f):
   d_variables(vars),
   d_tableau(t),
