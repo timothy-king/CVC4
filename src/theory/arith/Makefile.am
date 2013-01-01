@@ -41,6 +41,12 @@ libarith_la_SOURCES = \
 	error_set.cpp \
 	simplex.h \
 	simplex.cpp \
+	dual_simplex.h \
+	dual_simplex.cpp \
+	fc_simplex.h \
+	fc_simplex.cpp \
+	pure_update_simplex.h \
+	pure_update_simplex.cpp \
 	theory_arith.h \
 	theory_arith.cpp \
 	theory_arith_private.h \

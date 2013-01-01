@@ -50,10 +50,14 @@
 #include "theory/arith/arith_rewriter.h"
 #include "theory/arith/partial_model.h"
 #include "theory/arith/linear_equality.h"
-#include "theory/arith/simplex.h"
 #include "theory/arith/arith_static_learner.h"
 #include "theory/arith/dio_solver.h"
 #include "theory/arith/congruence_manager.h"
+
+#include "theory/arith/simplex.h"
+#include "theory/arith/dual_simplex.h"
+#include "theory/arith/fc_simplex.h"
+#include "theory/arith/pure_update_simplex.h"
 
 #include "theory/arith/constraint.h"
 
