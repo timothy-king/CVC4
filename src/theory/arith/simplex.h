@@ -61,7 +61,6 @@
 #include "theory/arith/linear_equality.h"
 
 #include "util/dense_map.h"
-//#include "util/statistics_registry.h"
 #include "util/result.h"
 
 namespace CVC4 {
@@ -175,7 +174,13 @@ protected:
    */
   Node maybeGenerateConflictForBasic(ArithVar basic) const;
 
+  /** Returns true if a tracked basic variable has a conflict on it. */
   bool checkBasicForConflict(ArithVar b) const;
+
+  /**
+   * If a basic variable has a conflict on its row,
+   * this produces a minimized row.
+   */
   Node generatConflictForBasic(ArithVar basic) const;
 
 

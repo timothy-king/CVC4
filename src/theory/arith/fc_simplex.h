@@ -65,7 +65,7 @@ class FCSimplexDecisionProcedure : public SimplexDecisionProcedure{
 public:
   FCSimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc);
 
-  Result::Sat findModel(bool exactResult) { Unreachable(); }
+  Result::Sat findModel(bool exactResult);
 
   // other error variables are dropping
   // 
@@ -90,54 +90,16 @@ private:
   PivotImprovement d_prevPivotImprovement;
   uint32_t d_pivotImprovementInARow;
 
-  uint32_t degeneratePivotsInARow() const {
-    switch(d_prevPivotImprovement){
-    case ErrorDropped:
-    case NonDegenerate:
-      return 0;
-    case HeuristicDegenerate:
-    case BlandsDegenerate:
-      return d_pivotImprovementInARow;
-    }
-    Unreachable();
-  }
+  uint32_t degeneratePivotsInARow() const;
 
   static const uint32_t s_focusThreshold = 6;
   static const uint32_t s_maxDegeneratePivotsBeforeBlands = 10;
 
-  ArithVarVec d_sgnDisagreement;
+  ArithVarVec d_sgnDisagreements;
 
-  static PivotImprovement pivotImprovement(const UpdateInfo& selected, bool useBlands = false) {
-    if(selected.d_errorsFixed > 0){
-      return ErrorDropped;
-    }else if(selected.d_degenerate){
-      if(useBlands){
-        return BlandsDegenerate;
-      }else{
-        return HeuristicDegenerate;
-      }
-    }else{
-      return NonDegenerate;
-    }
-  }
-  void logPivot(const UpdateInfo& selected, bool useBlands = false){
-    if(d_pivotBudget > 0) {
-      --d_pivotBudget;
-    }
-    PivotImprovement curr = pivotImprovement(selected, useBlands);
-    if(curr == d_prevPivotImprovement){
-      ++d_pivotImprovementInARow;
-      if(d_pivotImprovementInARow == 0){
-        --d_pivotImprovementInARow;
-      }
-    }else if(useBlands){
-      // keep d_pivotImprovementInARow as the same
-      d_prevPivotImprovement = curr;
-    }else{
-      d_prevPivotImprovement = curr;
-      d_pivotImprovementInARow = 1;
-    }
-  }
+  static PivotImprovement pivotImprovement(const UpdateInfo& selected, bool useBlands = false);
+
+  void logPivot(const UpdateInfo& selected, bool useBlands = false);
 
   void updateAndSignal(const UpdateInfo& selected);
   UpdateInfo selectPrimalUpdate(ArithVar error, int sgn, LinearEqualityModule::UpdatePreferenceFunction upf, LinearEqualityModule::VarPreferenceFunction bpf, bool storeDisagreements);
@@ -163,8 +125,8 @@ private:
     return selectPrimalUpdate(basic, sgn, upf, bpf, false);
   }
 
-  void focusUsingSignDisagreements(ArithVar basic, int dir);
-  void reajustSizesAfterSignals();
+  void focusUsingSignDisagreements(ArithVar basic);
+  void adjustFocusAndError();
 
   /**
    * This is the main simplex for DPLL(T) loop.
@@ -175,18 +137,22 @@ private:
    */
   bool searchForFeasibleSolution(uint32_t maxIterations);
 
-  bool processSignals(){
-    TimerStat &timer = d_statistics.d_processSignalsTime;
-    IntStat& conflictStat  = d_statistics.d_foundConflicts;
+  bool initialProcessSignals(){
+    TimerStat &timer = d_statistics.d_initialSignalsTime;
+    IntStat& conflictStat  = d_statistics.d_initialConflicts;
     return standardProcessSignals(timer, conflictStat);
   }
 
   /** These fields are designed to be accessible to TheoryArith methods. */
   class Statistics {
   public:
-    TimerStat d_processSignalsTime;
-    IntStat d_foundConflicts;
+    TimerStat d_initialSignalsTime;
+    IntStat d_initialConflicts;
 
+    IntStat d_fcFoundUnsat;
+    IntStat d_fcFoundSat;
+    IntStat d_fcMissed;
+    
     Statistics();
     ~Statistics();
   } d_statistics;

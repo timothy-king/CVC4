@@ -762,6 +762,15 @@ void LinearEqualityModule::computeSafeUpdate(UpdateInfo& inf, VarPreferenceFunct
   // Error variables moving in the correct direction
   Assert(d_relevantErrorBuffer.empty());
   
+  // phases :
+  enum ComputeSafePhase {
+    NoBoundSelected,
+    NbsBoundSelected,
+    BasicBoundSelected,
+    DegenerateBoundSelected
+  } phase;
+
+  phase = NoBoundSelected;
 
   static int instance = 0;
   Debug("computeSafeUpdate") << "computeSafeUpdate " <<  (++instance) << endl;
@@ -770,14 +779,16 @@ void LinearEqualityModule::computeSafeUpdate(UpdateInfo& inf, VarPreferenceFunct
     inf.d_limiting = d_variables.getUpperBoundConstraint(nb);
     inf.d_value = inf.d_limiting->getValue() - d_variables.getAssignment(nb);
     Assert(inf.d_value.sgn() == sgn);
-
+    
     Debug("computeSafeUpdate") << "computeSafeUpdate " <<  inf.d_limiting << endl;
+    phase = NbsBoundSelected;
   }else if(sgn < 0 && d_variables.hasLowerBound(nb)){
     inf.d_limiting = d_variables.getLowerBoundConstraint(nb);
     inf.d_value = inf.d_limiting->getValue() - d_variables.getAssignment(nb);
     Assert(inf.d_value.sgn() == sgn);
 
     Debug("computeSafeUpdate") << "computeSafeUpdate " <<  inf.d_limiting << endl;
+    phase = NbsBoundSelected;
   }
 
   Tableau::ColIterator basicIter = d_tableau.colIterator(nb);
@@ -797,62 +808,71 @@ void LinearEqualityModule::computeSafeUpdate(UpdateInfo& inf, VarPreferenceFunct
       << d_variables.cmpAssignmentLowerBound(basic) << ", "
       << a_ji << ", " 
       << d_variables.getAssignment(basic) << endl;
+
+    Constraint proposal = NullConstraint;
+
     if(basic_movement > 0){
       if(d_variables.cmpAssignmentLowerBound(basic) < 0){
         d_relevantErrorBuffer.push_back(&entry);
       }
-      if(d_variables.hasUpperBound(basic)){
-        if(d_variables.cmpAssignmentUpperBound(basic) < 0){
-          DeltaRational diff = d_variables.getUpperBound(basic) - d_variables.getAssignment(basic);
-          diff /= entry.getCoefficient();
-          Assert(diff.sgn() == sgn);
-          if(inf.d_limiting == NullConstraint ||
-             (sgn > 0 && diff < inf.d_value) ||
-             (sgn < 0 && diff > inf.d_value)){
-            inf.d_limiting = d_variables.getUpperBoundConstraint(basic);
-            inf.d_value = diff;
-          }
-        }else if(d_variables.cmpAssignmentUpperBound(basic) == 0){
-          inf.d_limiting = d_variables.getUpperBoundConstraint(basic);
-          inf.d_value = DeltaRational(0);
-          inf.d_degenerate = true;
-          break;
-        }// otherwise it is in violated already. ignore!
+      if(d_variables.hasUpperBound(basic) &&
+         d_variables.cmpAssignmentUpperBound(basic) <= 0){
+        proposal = d_variables.getUpperBoundConstraint(basic);
       }
     }else if(basic_movement < 0){
       if(d_variables.cmpAssignmentUpperBound(basic) > 0){
         d_relevantErrorBuffer.push_back(&entry);
       }
-      if(d_variables.hasLowerBound(basic)){
-        if(d_variables.cmpAssignmentLowerBound(basic) > 0){
-          DeltaRational diff = d_variables.getLowerBound(basic) - d_variables.getAssignment(basic);
-          diff /= entry.getCoefficient();
-          Assert(diff.sgn() == sgn);
-          if(inf.d_limiting == NullConstraint ||
-             (sgn > 0 && diff < inf.d_value) ||
-             (sgn < 0 && diff > inf.d_value)){
-            inf.d_limiting = d_variables.getLowerBoundConstraint(basic);
-            inf.d_value = diff;
-          }
-        }else if(d_variables.cmpAssignmentLowerBound(basic) == 0){
-          inf.d_limiting = d_variables.getLowerBoundConstraint(basic);
-          inf.d_value = DeltaRational(0);
-          inf.d_degenerate = true;
-          break;
-        }// otherwise it is in violated already. ignore!
+      if(d_variables.hasLowerBound(basic) &&
+         d_variables.cmpAssignmentLowerBound(basic) >= 0){
+        proposal = d_variables.getLowerBoundConstraint(basic);
+      }
+    }
+    if(proposal != NullConstraint){
+      DeltaRational diff = proposal->getValue() - d_variables.getAssignment(basic);
+      diff /= entry.getCoefficient();
+      int cmp = diff.cmp(inf.d_value);
+      Assert(diff.sgn() == sgn || diff.sgn() == 0);
+      bool prefer;
+      switch(phase){
+      case NoBoundSelected:
+        prefer = true;
+        break;
+      case NbsBoundSelected:
+        prefer = (sgn > 0 && cmp < 0 ) || (sgn < 0 && cmp > 0);
+        break;
+      case BasicBoundSelected:
+        prefer =
+          (sgn > 0 && cmp < 0 ) ||
+          (sgn < 0 && cmp > 0) ||
+          (cmp == 0 && basic == (this->*pref)(basic, inf.d_limiting->getVariable()));
+        break;
+      case DegenerateBoundSelected:
+        prefer = cmp == 0 && basic == (this->*pref)(basic, inf.d_limiting->getVariable());
+        break;
+      }
+      if(prefer){
+        inf.d_limiting = proposal;
+        inf.d_value = diff;
+
+        phase = (diff.sgn() != 0) ? BasicBoundSelected : DegenerateBoundSelected;
       }
     }
   }
 
-  if(!inf.d_degenerate){
-    if(inf.d_limiting == NullConstraint){
-      inf.d_errorsFixed = computeUnconstrainedUpdate(nb, sgn, inf.d_value);
-    }else{
-      Assert(inf.d_value.sgn() != 0);
-      inf.d_errorsFixed = computedFixed(nb, sgn, inf.d_value);
-    }
-    Assert(inf.d_value.sgn() == sgn);
-    inf.d_value += (d_variables.getAssignment(nb));
+  switch(phase){
+  case NoBoundSelected:
+    inf.d_errorsFixed = computeUnconstrainedUpdate(nb, sgn, inf.d_value);
+    inf.d_value += d_variables.getAssignment(nb);
+    break;
+  case NbsBoundSelected:
+  case BasicBoundSelected:    
+    inf.d_errorsFixed = computedFixed(nb, sgn, inf.d_value);
+    inf.d_value += d_variables.getAssignment(nb);
+    break;
+  case DegenerateBoundSelected:
+    inf.d_degenerate = true;
+    break;
   }
 
   d_relevantErrorBuffer.clear();

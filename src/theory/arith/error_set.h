@@ -122,7 +122,14 @@ private:
   bool d_inFocus;
   FocusSetHandle d_handle;
 
+  /**
+   * Auxillary information for storing the difference between a variable and its bound.
+   * Only set on signals.
+   */
   DeltaRational* d_amount;
+
+  /** */
+  uint32_t d_metric;
 
 public:
   ErrorInformation();
@@ -150,6 +157,8 @@ public:
   }
 
   void setAmount(const DeltaRational& am);
+  void setMetric(uint32_t m) { d_metric = m; }
+  uint32_t getMetric() const { return d_metric; }
 
   inline void setHandle(FocusSetHandle h) {
     Assert(d_inFocus);
@@ -337,6 +346,10 @@ public:
     uint32_t length = d_tableauSizes.getRowLength(a);
 
     return length + (length - count);
+  }
+
+  uint32_t getMetric(ArithVar a) const {
+    return d_errInfo[a].getMetric();
   }
 
 

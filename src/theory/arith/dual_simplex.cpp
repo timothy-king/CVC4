@@ -130,6 +130,7 @@ Result::Sat DualSimplexDecisionProcedure::dualFindModel(bool exactResult){
 
   // We need to reduce this because of
   d_errorSet.reduceToSignals();
+  d_errorSet.setSelectionRule(VAR_ORDER);
 
   if(processSignals()){
     d_conflictVariables.purge();

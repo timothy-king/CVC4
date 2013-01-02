@@ -34,6 +34,7 @@ ErrorInformation::ErrorInformation()
   , d_inFocus(false)
   , d_handle()
   , d_amount(NULL)
+  , d_metric(0)
 {
   Debug("arith::error::mem") << "def constructor " << d_variable << " "  << d_amount << endl;
 }
@@ -46,6 +47,7 @@ ErrorInformation::ErrorInformation(ArithVar var, Constraint vio, int sgn)
   , d_inFocus(false)
   , d_handle()
   , d_amount(NULL)
+  , d_metric(0)
 {
   Assert(debugInitialized());
   Debug("arith::error::mem") << "constructor " << d_variable << " "  << d_amount << endl;
@@ -69,6 +71,7 @@ ErrorInformation::ErrorInformation(const ErrorInformation& ei)
   , d_relaxed(ei.d_relaxed)
   , d_inFocus(ei.d_inFocus)
   , d_handle(ei.d_handle)
+  , d_metric(0)
 {
   if(ei.d_amount == NULL){
     d_amount = NULL;
@@ -85,6 +88,7 @@ ErrorInformation& ErrorInformation::operator=(const ErrorInformation& ei){
   d_relaxed = (ei.d_relaxed);
   d_inFocus = (ei.d_inFocus);
   d_handle = (ei.d_handle);
+  d_metric = ei.d_metric;
   if(d_amount != NULL && ei.d_amount != NULL){
     Debug("arith::error::mem") << "assignment assign " << d_variable << " "  << d_amount << endl;
     *d_amount = *ei.d_amount;
@@ -168,6 +172,8 @@ void ErrorSet::recomputeAmount(ErrorInformation& ei, ErrorSelectionRule rule){
     ei.setAmount(computeDiff(ei.getVariable()));
     break;
   case SUM_METRIC:
+    ei.setMetric(sumMetric(ei.getVariable()));
+    break;
   case VAR_ORDER:
     //do nothing
     break;
@@ -204,8 +210,8 @@ bool ComparatorPivotRule::operator()(ArithVar v, ArithVar u) const {
     return v > u;
   case SUM_METRIC:
     {
-      uint32_t v_metric = d_errorSet->sumMetric(v);
-      uint32_t u_metric = d_errorSet->sumMetric(u);
+      uint32_t v_metric = d_errorSet->getMetric(v);
+      uint32_t u_metric = d_errorSet->getMetric(u);
       if(v_metric == u_metric){
         return v > u;
       }else{
@@ -247,8 +253,11 @@ void ErrorSet::update(ErrorInformation& ei){
       ei.setAmount(computeDiff(ei.getVariable()));
       d_focus.update(ei.getHandle());
       break;
-    case  VAR_ORDER:
     case  SUM_METRIC:
+      ei.setMetric(sumMetric(ei.getVariable()));
+      d_focus.update(ei.getHandle());
+      break;
+    case  VAR_ORDER:
       //do nothing
       break;
     }
@@ -293,6 +302,8 @@ void ErrorSet::transitionVariableIntoError(ArithVar v) {
     ei.setAmount(computeDiff(v));
     break;
   case SUM_METRIC:
+    ei.setMetric(sumMetric(ei.getVariable()));
+    break;
   case VAR_ORDER:
     //do nothing
     break;
@@ -321,11 +332,13 @@ void ErrorSet::addBackIntoFocus(ArithVar v) {
     ei.setAmount(computeDiff(v));
     break;
   case SUM_METRIC:
+    ei.setMetric(sumMetric(v));
+    break;
   case VAR_ORDER:
     //do nothing
     break;
   }
-    
+
   ei.setInFocus(true);
   FocusSetHandle handle = d_focus.push(v);
   ei.setHandle(handle);
@@ -382,6 +395,7 @@ void ErrorSet::reduceToSignals(){
   
   d_errInfo.purge();
   d_focus.clear();
+  d_outOfFocus.clear();
 }
 
 DeltaRational ErrorSet::computeDiff(ArithVar v) const{
@@ -437,13 +451,14 @@ void ErrorSet::focusDownToJust(ArithVar v) {
     ArithVar f = *i;
     ErrorInformation& fei = d_errInfo.get(f);
     fei.setInFocus(false);
+    d_outOfFocus.push_back(f);
   }
   d_focus.clear();
 
   ErrorInformation& vei = d_errInfo.get(v);
+  vei.setInFocus(true);
   FocusSetHandle handle = d_focus.push(v);
   vei.setHandle(handle);
-  vei.setInFocus(true);
 }
 
 }/* CVC4::theory::arith namespace */

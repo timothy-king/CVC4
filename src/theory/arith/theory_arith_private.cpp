@@ -1633,7 +1633,10 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
   Assert(d_conflicts.empty());
 
   d_linEq.startTrackingBoundCounts();
-  d_qflraStatus = d_pureUpdate.findModel(Theory::fullEffort(effortLevel));
+  d_qflraStatus = d_pureUpdate.findModel(false);
+  if(d_qflraStatus == Result::SAT_UNKNOWN){
+    d_qflraStatus = d_fcSimplex.findModel(Theory::fullEffort(effortLevel));
+  }
   if(d_qflraStatus == Result::SAT_UNKNOWN){
     d_qflraStatus = d_dualSimplex.findModel(Theory::fullEffort(effortLevel));
   }
