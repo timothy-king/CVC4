@@ -886,13 +886,14 @@ void LinearEqualityModule::computeSafeUpdate(UpdateInfo& inf, VarPreferenceFunct
   }
 
   switch(phase){
+  // case NoBoundSelected:
+  //   inf.d_errorsFixed = computeUnconstrainedUpdate(nb, sgn, inf.d_value);
+  //   inf.d_value += d_variables.getAssignment(nb);
+  //   break;
   case NoBoundSelected:
-    inf.d_errorsFixed = computeUnconstrainedUpdate(nb, sgn, inf.d_value);
-    inf.d_value += d_variables.getAssignment(nb);
-    break;
   case NbsBoundSelected:
-  case BasicBoundSelected:    
-    inf.d_errorsFixed = computedFixed(nb, sgn, inf.d_value);
+  case BasicBoundSelected:
+    computedFixed(inf);
     inf.d_value += d_variables.getAssignment(nb);
     break;
   case DegenerateBoundSelected:
@@ -903,84 +904,116 @@ void LinearEqualityModule::computeSafeUpdate(UpdateInfo& inf, VarPreferenceFunct
   d_relevantErrorBuffer.clear();
 }
 
-uint32_t LinearEqualityModule::computedFixed(ArithVar nb, int sgn, const DeltaRational& diff){
-  Assert(sgn != 0);
-  Assert(!d_tableau.isBasic(nb));
-  Assert(diff.sgn() == sgn);
+void LinearEqualityModule::computedFixed(UpdateInfo& proposal){
+  Assert(proposal.d_sgn != 0);
+  Assert(!d_tableau.isBasic(proposal.d_nonbasic));
+
+  if(proposal.d_limiting == NullConstraint){
+    proposal.d_value = Rational(proposal.d_sgn);
+  }
+  Assert(proposal.d_value.sgn() == proposal.d_sgn);
+
+  // proposal.d_value is the max
 
   uint32_t fixes = 0;
+  Constraint maxFix = NullConstraint;
+  DeltaRational maxAmount;
+
   EntryPointerVector::const_iterator i = d_relevantErrorBuffer.begin();
   EntryPointerVector::const_iterator i_end = d_relevantErrorBuffer.end();
   for(; i != i_end; ++i){
     const Tableau::Entry& entry = *(*i);
-    Assert(entry.getColVar() == nb);
+    Assert(entry.getColVar() == proposal.d_nonbasic);
 
     ArithVar basic = d_tableau.rowIndexToBasic(entry.getRowIndex());
     const Rational& a_ji = entry.getCoefficient();
-    int basic_movement = sgn * a_ji.sgn();
+    int basic_movement = proposal.d_sgn * a_ji.sgn();
 
-    DeltaRational theta = diff * entry.getCoefficient();
+    DeltaRational theta = proposal.d_value * a_ji;
     DeltaRational proposedValue = theta + d_variables.getAssignment(basic);
+
+    Constraint fixed = NullConstraint;
 
     if(basic_movement < 0){
       Assert(d_variables.cmpAssignmentUpperBound(basic) > 0);
 
       if(d_variables.cmpToUpperBound(basic, proposedValue) <= 0){
         ++fixes;
+        fixed = d_variables.getUpperBoundConstraint(basic);
       }
     }else if(basic_movement > 0){
       Assert(d_variables.cmpAssignmentLowerBound(basic) < 0);
 
       if(d_variables.cmpToLowerBound(basic, proposedValue) >= 0){
         ++fixes;
+        fixed = d_variables.getLowerBoundConstraint(basic);
+      }
+    }
+    if(fixed != NullConstraint){
+      DeltaRational amount = fixed->getValue() - d_variables.getAssignment(basic);
+      amount /= a_ji;
+      Assert(amount.sgn() == proposal.d_sgn);
+      bool prefer = (fixes == 1) ||
+        (proposal.d_sgn < 0 && amount < maxAmount) ||
+        (proposal.d_sgn > 0 && amount > maxAmount) ||
+        (amount == maxAmount && fixed->getVariable() < maxFix->getVariable());
+      
+      if(prefer){
+        maxAmount = amount;
+        maxFix = fixed;
       }
     }
   }
-  return fixes;
-}
-uint32_t LinearEqualityModule::computeUnconstrainedUpdate(ArithVar nb, int sgn, DeltaRational& am){
-  Assert(sgn != 0);
-  Assert(!d_tableau.isBasic(nb));
 
-  am = Rational(sgn);
-
-  uint32_t fixes = 0;
-  EntryPointerVector::const_iterator i = d_relevantErrorBuffer.begin();
-  EntryPointerVector::const_iterator i_end = d_relevantErrorBuffer.end();
-  for(; i != i_end; ++i){
-    const Tableau::Entry& entry = *(*i);
-    Assert(entry.getColVar() == nb);
-
-    ArithVar basic = d_tableau.rowIndexToBasic(entry.getRowIndex());
-    const Rational& a_ji = entry.getCoefficient();
-    int basic_movement = sgn * a_ji.sgn();
-
-    if(basic_movement < 0){
-      Assert(d_variables.cmpAssignmentUpperBound(basic) > 0);
-      DeltaRational diff = d_variables.getUpperBound(basic) - d_variables.getAssignment(basic);
-      diff /= entry.getCoefficient();
-      Assert(diff.sgn() == sgn);
-      if(fixes == 0 ||
-         (sgn > 0 && diff >= am) ||
-         (sgn < 0 && diff <= am) ){
-        am = diff;
-        ++fixes;
-      }
-    }else if(basic_movement > 0){
-      Assert(d_variables.cmpAssignmentLowerBound(basic) < 0);
-      DeltaRational diff = d_variables.getLowerBound(basic) - d_variables.getAssignment(basic);
-      diff /= entry.getCoefficient();
-      Assert(diff.sgn() == sgn);
-      if(fixes == 0 ||
-         (sgn > 0 && diff >= am) ||
-         (sgn < 0 && diff <= am) ){
-        am = diff;
-        ++fixes;
-      }
-    }
+  if(fixes > 0){
+    proposal.d_limiting = maxFix;
+    proposal.d_value = maxAmount;
+    proposal.d_errorsFixed = fixes;
   }
-  return fixes;
 }
+// uint32_t LinearEqualityModule::computeUnconstrainedUpdate(ArithVar nb, int sgn, DeltaRational& am){
+//   Assert(sgn != 0);
+//   Assert(!d_tableau.isBasic(nb));
+
+//   am = Rational(sgn);
+
+//   uint32_t fixes = 0;
+//   EntryPointerVector::const_iterator i = d_relevantErrorBuffer.begin();
+//   EntryPointerVector::const_iterator i_end = d_relevantErrorBuffer.end();
+//   for(; i != i_end; ++i){
+//     const Tableau::Entry& entry = *(*i);
+//     Assert(entry.getColVar() == nb);
+
+//     ArithVar basic = d_tableau.rowIndexToBasic(entry.getRowIndex());
+//     const Rational& a_ji = entry.getCoefficient();
+//     int basic_movement = sgn * a_ji.sgn();
+
+//     if(basic_movement < 0){
+//       Assert(d_variables.cmpAssignmentUpperBound(basic) > 0);
+//       DeltaRational diff = d_variables.getUpperBound(basic) - d_variables.getAssignment(basic);
+//       diff /= entry.getCoefficient();
+//       Assert(diff.sgn() == sgn);
+//       if(fixes == 0 ||
+//          (sgn > 0 && diff >= am) ||
+//          (sgn < 0 && diff <= am) ){
+//         am = diff;
+//         ++fixes;
+//       }
+//     }else if(basic_movement > 0){
+//       Assert(d_variables.cmpAssignmentLowerBound(basic) < 0);
+//       DeltaRational diff = d_variables.getLowerBound(basic) - d_variables.getAssignment(basic);
+//       diff /= entry.getCoefficient();
+//       Assert(diff.sgn() == sgn);
+//       if(fixes == 0 ||
+//          (sgn > 0 && diff >= am) ||
+//          (sgn < 0 && diff <= am) ){
+//         am = diff;
+//         ++fixes;
+//       }
+//     }
+//   }
+//   return fixes;
+// }
 
 ArithVar LinearEqualityModule::minBy(const ArithVarVec& vec, VarPreferenceFunction pf) const{
   if(vec.empty()) {

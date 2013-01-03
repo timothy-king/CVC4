@@ -110,6 +110,8 @@ private:
       &LinearEqualityModule::preferErrorsFixed<true>;
     LinearEqualityModule::VarPreferenceFunction bpf =
       &LinearEqualityModule::minRowLength;
+    
+    bpf = &LinearEqualityModule::minVarOrder;
     return selectPrimalUpdate(basic, sgn, upf, bpf, true);
   }
 
@@ -121,6 +123,7 @@ private:
     LinearEqualityModule::VarPreferenceFunction bpf = useBlands ?
       &LinearEqualityModule::minVarOrder :
       &LinearEqualityModule::minRowLength;
+    bpf = &LinearEqualityModule::minVarOrder;
 
     return selectPrimalUpdate(basic, sgn, upf, bpf, false);
   }

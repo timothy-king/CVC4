@@ -349,7 +349,7 @@ void ErrorSet::blur(){
     ArithVar v = d_outOfFocus.back();
     d_outOfFocus.pop_back();
 
-    if(inError(v)){
+    if(inError(v) && !inFocus(v)){
       addBackIntoFocus(v);
     }
   }

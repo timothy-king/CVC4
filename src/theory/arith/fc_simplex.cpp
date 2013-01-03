@@ -37,11 +37,11 @@ FCSimplexDecisionProcedure::FCSimplexDecisionProcedure(LinearEqualityModule& lin
 { }
 
 FCSimplexDecisionProcedure::Statistics::Statistics():
-  d_initialSignalsTime("theory::arith::fc::initialProcessTime"),
-  d_initialConflicts("theory::arith::fc::UpdateConflicts", 0),
-  d_fcFoundUnsat("theory::arith::fc::FoundUnsat", 0),
+  d_initialSignalsTime("theory::arith::FC::initialProcessTime"),
+  d_initialConflicts("theory::arith::FC::UpdateConflicts", 0),
+  d_fcFoundUnsat("theory::arith::FC::FoundUnsat", 0),
   d_fcFoundSat("theory::arith::FC::FoundSat", 0),
-  d_fcMissed("theory::arith::fc::FC::Missed", 0)
+  d_fcMissed("theory::arith::FC::Missed", 0)
 {
   StatisticsRegistry::registerStat(&d_initialSignalsTime);
   StatisticsRegistry::registerStat(&d_initialConflicts);
@@ -76,7 +76,7 @@ Result::Sat FCSimplexDecisionProcedure::findModel(bool exactResult){
   d_errorSet.reduceToSignals();
 
   // We must start tracking NOW
-  d_errorSet.setSelectionRule(VAR_ORDER);
+  d_errorSet.setSelectionRule(SUM_METRIC);
 
   if(initialProcessSignals()){
     d_conflictVariables.purge();

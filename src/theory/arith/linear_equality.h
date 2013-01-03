@@ -176,8 +176,9 @@ private:
   typedef std::vector<const Tableau::Entry*> EntryPointerVector;
   EntryPointerVector d_relevantErrorBuffer;
 
-  uint32_t computeUnconstrainedUpdate(ArithVar nb, int sgn,  DeltaRational& am);
-  uint32_t computedFixed(ArithVar nb, int sgn, const DeltaRational& am);
+  //uint32_t computeUnconstrainedUpdate(ArithVar nb, int sgn,  DeltaRational& am);
+  //uint32_t computedFixed(ArithVar nb, int sgn, const DeltaRational& am);
+  void computedFixed(UpdateInfo&);
 
   // RowIndex -> BoundCount
   BoundCountingVector& d_boundTracking;
