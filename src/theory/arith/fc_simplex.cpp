@@ -503,7 +503,7 @@ Result::Sat FCSimplexDecisionProcedure::dualLike(){
       // - focus went down
       Assert(d_focusSize > 1);
       ArithVar e = d_errorSet.topFocusVariable();
-      if(d_errorSet.sumMetric(e) <= 2){
+      if(d_errorSet.sumMetric(e) <= 20){
         Debug("dualLike") << "dualLikeImproveError " << e << endl;
 
         dropped = dualLikeImproveError(e);

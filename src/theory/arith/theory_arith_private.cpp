@@ -1633,12 +1633,12 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
   Assert(d_conflicts.empty());
 
   d_linEq.startTrackingBoundCounts();
-  d_qflraStatus = d_pureUpdate.findModel(false);
+  //d_qflraStatus = d_pureUpdate.findModel(false);
   if(d_qflraStatus == Result::SAT_UNKNOWN){
     d_qflraStatus = d_fcSimplex.findModel(Theory::fullEffort(effortLevel));
   }
   if(d_qflraStatus == Result::SAT_UNKNOWN){
-    d_qflraStatus = d_dualSimplex.findModel(Theory::fullEffort(effortLevel));
+    //d_qflraStatus = d_dualSimplex.findModel(Theory::fullEffort(effortLevel));
   }
   // TODO Save zeroes with no conflicts
   d_linEq.stopTrackingBoundCounts();
@@ -1666,7 +1666,7 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
     break;
   case Result::UNSAT:
     d_unknownsInARow = 0;
-    if(previous == Result::SAT){
+    if(false && previous == Result::SAT){
       ++d_statistics.d_revertsOnConflicts;
       Debug("arith::bt") << "clearing on conflict" << " " << newFacts << " " << previous << " " << d_qflraStatus  << endl;
       revertOutOfConflict();

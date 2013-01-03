@@ -908,10 +908,11 @@ void LinearEqualityModule::computedFixed(UpdateInfo& proposal){
   Assert(proposal.d_sgn != 0);
   Assert(!d_tableau.isBasic(proposal.d_nonbasic));
 
-  if(proposal.d_limiting == NullConstraint){
-    proposal.d_value = Rational(proposal.d_sgn);
-  }
-  Assert(proposal.d_value.sgn() == proposal.d_sgn);
+  bool unconstrained = (proposal.d_limiting == NullConstraint);
+
+  Assert(!unconstrained || !d_relevantErrorBuffer.empty());
+
+  Assert(unconstrained || proposal.d_value.sgn() == proposal.d_sgn);
 
   // proposal.d_value is the max
 
@@ -937,14 +938,14 @@ void LinearEqualityModule::computedFixed(UpdateInfo& proposal){
     if(basic_movement < 0){
       Assert(d_variables.cmpAssignmentUpperBound(basic) > 0);
 
-      if(d_variables.cmpToUpperBound(basic, proposedValue) <= 0){
+      if(unconstrained || d_variables.cmpToUpperBound(basic, proposedValue) <= 0){
         ++fixes;
         fixed = d_variables.getUpperBoundConstraint(basic);
       }
     }else if(basic_movement > 0){
       Assert(d_variables.cmpAssignmentLowerBound(basic) < 0);
 
-      if(d_variables.cmpToLowerBound(basic, proposedValue) >= 0){
+      if(unconstrained || d_variables.cmpToLowerBound(basic, proposedValue) >= 0){
         ++fixes;
         fixed = d_variables.getLowerBoundConstraint(basic);
       }
@@ -964,6 +965,7 @@ void LinearEqualityModule::computedFixed(UpdateInfo& proposal){
       }
     }
   }
+  Assert(fixes > 0 || !unconstrained);
 
   if(fixes > 0){
     proposal.d_limiting = maxFix;
