@@ -37,6 +37,26 @@ template bool LinearEqualityModule::preferNonDegenerate<false>(const UpdateInfo&
 template bool LinearEqualityModule::preferErrorsFixed<true>(const UpdateInfo& a, const UpdateInfo& b) const;
 template bool LinearEqualityModule::preferErrorsFixed<false>(const UpdateInfo& a, const UpdateInfo& b) const;
 
+UpdateInfo::UpdateInfo():
+  d_nonbasic(ARITHVAR_SENTINEL),
+  d_sgn(0),
+  d_errorsFixed(0),
+  d_degenerate(false),
+  d_limiting(NullConstraint),
+  d_value()
+{}
+
+std::ostream& operator<<(std::ostream& out, const UpdateInfo& up){
+  out << "{UpdateInfo"
+      << ", nb = " << up.d_nonbasic
+      << ", sgn = " << up.d_sgn
+      << ", fixes = " << up.d_errorsFixed
+      << ", degenerate = " << up.d_degenerate
+      << ", constraint = " << up.d_limiting
+      << ", value = " << up.d_value
+      << "}";
+  return out;
+}
 
 LinearEqualityModule::LinearEqualityModule(ArithVariables& vars, Tableau& t, BoundCountingVector& boundTracking, BasicVarModelUpdateCallBack f):
   d_variables(vars),
@@ -248,12 +268,16 @@ void LinearEqualityModule::pivotAndUpdate(ArithVar x_i, ArithVar x_j, const Delt
 }
 
 uint32_t LinearEqualityModule::updateProduct(const UpdateInfo& inf) const {
-  Assert(inf.d_limiting != NullConstraint);
-  Assert(inf.d_limiting->getVariable() != inf.d_nonbasic);
+  if(inf.d_limiting == NullConstraint ||
+     inf.d_limiting->getVariable() == inf.d_nonbasic){
+    return d_tableau.getColLength(inf.d_nonbasic);
+  }else{
+    Assert(inf.d_limiting->getVariable() != inf.d_nonbasic);
     
-  return
-    d_tableau.getColLength(inf.d_nonbasic) *
-    d_tableau.basicRowLength(inf.d_limiting->getVariable());
+    return
+      d_tableau.getColLength(inf.d_nonbasic) *
+      d_tableau.basicRowLength(inf.d_limiting->getVariable());
+  }
 }
 
 void LinearEqualityModule::debugCheckTracking(){
@@ -759,6 +783,7 @@ void LinearEqualityModule::computeSafeUpdate(UpdateInfo& inf, VarPreferenceFunct
   inf.d_degenerate = false;
   inf.d_limiting = NullConstraint;
 
+
   // Error variables moving in the correct direction
   Assert(d_relevantErrorBuffer.empty());
   
@@ -833,7 +858,7 @@ void LinearEqualityModule::computeSafeUpdate(UpdateInfo& inf, VarPreferenceFunct
       diff /= entry.getCoefficient();
       int cmp = diff.cmp(inf.d_value);
       Assert(diff.sgn() == sgn || diff.sgn() == 0);
-      bool prefer;
+      bool prefer = false;
       switch(phase){
       case NoBoundSelected:
         prefer = true;
@@ -936,8 +961,8 @@ uint32_t LinearEqualityModule::computeUnconstrainedUpdate(ArithVar nb, int sgn, 
       diff /= entry.getCoefficient();
       Assert(diff.sgn() == sgn);
       if(fixes == 0 ||
-         (sgn > 0 && diff > am) ||
-         (sgn < 0 && diff < am) ){
+         (sgn > 0 && diff >= am) ||
+         (sgn < 0 && diff <= am) ){
         am = diff;
         ++fixes;
       }
@@ -947,8 +972,8 @@ uint32_t LinearEqualityModule::computeUnconstrainedUpdate(ArithVar nb, int sgn, 
       diff /= entry.getCoefficient();
       Assert(diff.sgn() == sgn);
       if(fixes == 0 ||
-         (sgn > 0 && diff > am) ||
-         (sgn < 0 && diff < am) ){
+         (sgn > 0 && diff >= am) ||
+         (sgn < 0 && diff <= am) ){
         am = diff;
         ++fixes;
       }

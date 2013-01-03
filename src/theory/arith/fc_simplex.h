@@ -124,8 +124,11 @@ private:
 
     return selectPrimalUpdate(basic, sgn, upf, bpf, false);
   }
+  uint32_t selectFocusImproving() ;
 
   void focusUsingSignDisagreements(ArithVar basic);
+  void focusDownToLastHalf();
+
   void adjustFocusAndError();
 
   /**

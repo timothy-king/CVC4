@@ -387,6 +387,16 @@ void ErrorSet::clear(){
   d_focus.clear();
 }
 
+void ErrorSet::clearFocus(){
+  for(ErrorSet::focus_iterator i =focusBegin(), i_end = focusEnd(); i != i_end; ++i){
+    ArithVar f = *i;
+    ErrorInformation& fei = d_errInfo.get(f);
+    fei.setInFocus(false);
+    d_outOfFocus.push_back(f);
+  }
+  d_focus.clear();
+}
+
 void ErrorSet::reduceToSignals(){
   for(error_iterator ei=errorBegin(), ei_end=errorEnd(); ei != ei_end; ++ei){
     ArithVar curr = *ei;
@@ -447,13 +457,7 @@ void ErrorSet::debugPrint() const {
 }
 
 void ErrorSet::focusDownToJust(ArithVar v) {
-  for(ErrorSet::focus_iterator i =focusBegin(), i_end = focusEnd(); i != i_end; ++i){
-    ArithVar f = *i;
-    ErrorInformation& fei = d_errInfo.get(f);
-    fei.setInFocus(false);
-    d_outOfFocus.push_back(f);
-  }
-  d_focus.clear();
+  clearFocus();
 
   ErrorInformation& vei = d_errInfo.get(v);
   vei.setInFocus(true);

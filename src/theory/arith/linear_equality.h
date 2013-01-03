@@ -49,7 +49,11 @@ struct UpdateInfo {
   bool d_degenerate;
   Constraint d_limiting;
   DeltaRational d_value;
+
+  UpdateInfo();
 };
+
+std::ostream& operator<<(std::ostream& out, const UpdateInfo& update) ;
 
 class LinearEqualityModule {
 public:
@@ -124,7 +128,7 @@ public:
 
 
   bool minNonBasicVarOrder(const UpdateInfo& a, const UpdateInfo& b) const{
-    return a.d_nonbasic < b.d_nonbasic;
+    return a.d_nonbasic >= b.d_nonbasic;
   }
   
   bool minProduct(const UpdateInfo& a, const UpdateInfo& b) const{
@@ -134,7 +138,7 @@ public:
     if(aprod == bprod){
       return minNonBasicVarOrder(a,b);
     }else{
-      return aprod < bprod;
+      return aprod > bprod;
     }
   }
 
@@ -142,7 +146,7 @@ public:
     if(d_variables.hasEitherBound(a.d_nonbasic) == d_variables.hasEitherBound(b.d_nonbasic)){
       return minProduct(a,b);
     }else{
-      return d_variables.hasEitherBound(b.d_nonbasic);
+      return d_variables.hasEitherBound(a.d_nonbasic);
     }
   }
   
@@ -150,9 +154,9 @@ public:
   bool preferNonDegenerate(const UpdateInfo& a, const UpdateInfo& b) const{
     if(a.d_degenerate == b.d_degenerate){
       if(heuristic){
-        return minNonBasicVarOrder(a,b);
-      }else{
         return preferNeitherBound(a,b);
+      }else{
+        return minNonBasicVarOrder(a,b);
       }
     }else{
       return a.d_degenerate;

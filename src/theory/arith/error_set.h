@@ -307,6 +307,8 @@ public:
 
   void focusDownToJust(ArithVar v);
 
+  void clearFocus();
+
   /** Clears the set. */
   void clear();
   void reduceToSignals();
@@ -345,7 +347,7 @@ public:
 
     uint32_t length = d_tableauSizes.getRowLength(a);
 
-    return length + (length - count);
+    return (length - count);
   }
 
   uint32_t getMetric(ArithVar a) const {
