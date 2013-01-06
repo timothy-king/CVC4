@@ -408,6 +408,17 @@ private:
 
 };/* class LinearEqualityModule */
 
+class CompColLength {
+private:
+  LinearEqualityModule* d_mod;
+public:
+  CompColLength(LinearEqualityModule* mod): d_mod(mod){}
+
+  bool operator()(std::pair<ArithVar, int> x, std::pair<ArithVar, int> y) const {
+    return x.first == d_mod->minColLength(x.first,y.first);
+  }
+};
+
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */
 }/* CVC4 namespace */

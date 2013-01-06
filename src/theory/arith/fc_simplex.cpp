@@ -44,7 +44,10 @@ FCSimplexDecisionProcedure::Statistics::Statistics():
   d_fcFoundUnsat("theory::arith::FC::FoundUnsat", 0),
   d_fcFoundSat("theory::arith::FC::FoundSat", 0),
   d_fcMissed("theory::arith::FC::Missed", 0),
-  d_fcTimer("theory::arith::FC::Timer")
+  d_fcTimer("theory::arith::FC::Timer"),
+  d_fcFocusConstructionTimer("theory::arith::FC::Construction"),
+  d_selectUpdateForDualLike("theory::arith::FC::selectUpdateForDualLike"),
+  d_selectUpdateForPrimal("theory::arith::FC::selectUpdateForPrimal")
 {
   StatisticsRegistry::registerStat(&d_initialSignalsTime);
   StatisticsRegistry::registerStat(&d_initialConflicts);
@@ -54,6 +57,10 @@ FCSimplexDecisionProcedure::Statistics::Statistics():
   StatisticsRegistry::registerStat(&d_fcMissed);
 
   StatisticsRegistry::registerStat(&d_fcTimer);
+  StatisticsRegistry::registerStat(&d_fcFocusConstructionTimer);
+
+  StatisticsRegistry::registerStat(&d_selectUpdateForDualLike);
+  StatisticsRegistry::registerStat(&d_selectUpdateForPrimal);
 }
 
 FCSimplexDecisionProcedure::Statistics::~Statistics(){
@@ -65,6 +72,10 @@ FCSimplexDecisionProcedure::Statistics::~Statistics(){
   StatisticsRegistry::unregisterStat(&d_fcMissed);
 
   StatisticsRegistry::unregisterStat(&d_fcTimer);
+  StatisticsRegistry::unregisterStat(&d_fcFocusConstructionTimer);
+
+  StatisticsRegistry::unregisterStat(&d_selectUpdateForDualLike);
+  StatisticsRegistry::unregisterStat(&d_selectUpdateForPrimal);
 }
 
 Result::Sat FCSimplexDecisionProcedure::findModel(bool exactResult){
@@ -193,9 +204,9 @@ void FCSimplexDecisionProcedure::adjustFocusAndError(){
   Assert(newFocusSize <= d_focusSize);
   Assert(newErrorSize <= d_errorSize);
   if( newFocusSize == 0 ){
-    tearDownFocusErrorFunction();
+    tearDownFocusErrorFunction(d_statistics.d_fcFocusConstructionTimer);
   }else if(newFocusSize < d_focusSize){
-    reconstructFocusErrorFunction();
+    reconstructFocusErrorFunction(d_statistics.d_fcFocusConstructionTimer);
   }
   d_errorSize = newErrorSize;
   d_focusSize = newFocusSize;
@@ -216,6 +227,8 @@ UpdateInfo FCSimplexDecisionProcedure::selectPrimalUpdate(ArithVar basic, int di
   if(storeDisagreements){
     loadFocusSigns();
   }
+
+  std::vector<std::pair<ArithVar,int> > candidates;
 
   for(Tableau::RowIterator ri = d_tableau.basicRowIterator(basic); !ri.atEnd(); ++ri){
     const Tableau::Entry& e = *ri;
@@ -242,7 +255,17 @@ UpdateInfo FCSimplexDecisionProcedure::selectPrimalUpdate(ArithVar basic, int di
       Debug("arith::selectPrimalUpdate") << "sgn disagreement " << curr << endl;
       d_sgnDisagreements.push_back(curr);
       continue;
+    }else{
+      candidates.push_back(make_pair(curr, curr_movement));
     }
+  }
+
+  std::sort(candidates.begin(), candidates.end(), CompColLength(&d_linEq));
+
+  for(std::vector<std::pair<ArithVar, int> >::const_iterator i = candidates.begin(),
+        iend = candidates.end(); i != iend; ++i){
+    ArithVar curr = (*i).first;
+    int curr_movement = (*i).second;
     
     currProposal.d_nonbasic = curr;
     currProposal.d_sgn = curr_movement;
@@ -257,15 +280,20 @@ UpdateInfo FCSimplexDecisionProcedure::selectPrimalUpdate(ArithVar basic, int di
        (d_linEq.*upf)(selected, currProposal)){
       Debug("arith::selectPrimalUpdate") << "selected "<< endl;
       selected = currProposal;
+
+      PivotImprovement selectImprove = pivotImprovement(selected, false);
+      if(selectImprove == ErrorDropped || selectImprove == NonDegenerate){
+        break;
+      }
     }else{
       Debug("arith::selectPrimalUpdate") << "dropped "<< endl;
     }
+
   }
 
   if(storeDisagreements){
     unloadFocusSigns();
   }
-  
   return selected;
 }
 
@@ -480,7 +508,7 @@ Result::Sat FCSimplexDecisionProcedure::dualLike(){
   Assert(d_conflictVariables.empty());
   Assert(d_focusErrorVar == ARITHVAR_SENTINEL);
 
-  constructFocusErrorFunction();
+  constructFocusErrorFunction(d_statistics.d_fcFocusConstructionTimer);
 
   while(d_pivotBudget != 0  && d_errorSize > 0 && d_conflictVariables.empty()){
     ++instance;
@@ -502,7 +530,7 @@ Result::Sat FCSimplexDecisionProcedure::dualLike(){
       Assert( d_errorSize == d_focusSize);
       Assert( d_errorSize >= 1 );
 
-      constructFocusErrorFunction();
+      constructFocusErrorFunction(d_statistics.d_fcFocusConstructionTimer);
 
       Debug("dualLike") << "blur " << d_focusSize << endl;
     }else if(d_focusSize == 1){
@@ -564,7 +592,7 @@ Result::Sat FCSimplexDecisionProcedure::dualLike(){
 
 
   if(d_focusErrorVar != ARITHVAR_SENTINEL){
-    tearDownFocusErrorFunction();
+    tearDownFocusErrorFunction(d_statistics.d_fcFocusConstructionTimer);
   }
 
   Assert(d_focusErrorVar == ARITHVAR_SENTINEL);

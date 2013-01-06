@@ -102,7 +102,8 @@ PureUpdateSimplexDecisionProcedure::Statistics::Statistics():
   d_pureUpdateConflicts("theory::arith::PureUpdate::conflicts", 0),
   d_foundConflicts("theory::arith::PureUpdate::foundConflicts", 0),
   d_attemptPureUpdatesTimer("theory::arith::PureUpdate::timer"),
-  d_processSignalsTime("theory::arith::PureUpdate::process::timer")
+  d_processSignalsTime("theory::arith::PureUpdate::process::timer"),
+  d_constructionTimer("theory::arith::PureUpdate::construction::timer")
 {
   StatisticsRegistry::registerStat(&d_pureUpdateFoundUnsat);
   StatisticsRegistry::registerStat(&d_pureUpdateFoundSat);
@@ -115,6 +116,7 @@ PureUpdateSimplexDecisionProcedure::Statistics::Statistics():
 
   StatisticsRegistry::registerStat(&d_attemptPureUpdatesTimer);
   StatisticsRegistry::registerStat(&d_processSignalsTime);
+  StatisticsRegistry::registerStat(&d_constructionTimer);
 }
 
 PureUpdateSimplexDecisionProcedure::Statistics::~Statistics(){
@@ -129,6 +131,7 @@ PureUpdateSimplexDecisionProcedure::Statistics::~Statistics(){
 
   StatisticsRegistry::unregisterStat(&d_attemptPureUpdatesTimer);
   StatisticsRegistry::unregisterStat(&d_processSignalsTime);
+  StatisticsRegistry::unregisterStat(&d_constructionTimer);
 }
 
 bool PureUpdateSimplexDecisionProcedure::attemptPureUpdates(){
@@ -137,7 +140,7 @@ bool PureUpdateSimplexDecisionProcedure::attemptPureUpdates(){
   Assert(!d_errorSet.focusEmpty());
   Assert(d_errorSet.noSignals());
 
-  constructFocusErrorFunction();
+  constructFocusErrorFunction(d_statistics.d_constructionTimer);
 
   UpdateInfo proposal;
   int boundImprovements = 0;
@@ -253,7 +256,7 @@ bool PureUpdateSimplexDecisionProcedure::attemptPureUpdates(){
       }
     }
   }
-  tearDownFocusErrorFunction();
+  tearDownFocusErrorFunction(d_statistics.d_constructionTimer);
 
   (d_statistics.d_pureUpdateDropped) += dropped;
 

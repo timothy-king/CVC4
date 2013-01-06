@@ -115,12 +115,12 @@ protected:
   /** The current error focus variable. */
   ArithVar d_focusErrorVar;
 
-  void constructFocusErrorFunction();
-  void tearDownFocusErrorFunction();
+  void constructFocusErrorFunction(TimerStat& timer);
+  void tearDownFocusErrorFunction(TimerStat& timer);
 
-  void reconstructFocusErrorFunction(){
-    tearDownFocusErrorFunction();
-    constructFocusErrorFunction();
+  void reconstructFocusErrorFunction(TimerStat& timer){
+    tearDownFocusErrorFunction(timer);
+    constructFocusErrorFunction(timer);
   }
 
   /**

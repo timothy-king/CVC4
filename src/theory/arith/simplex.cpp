@@ -126,7 +126,8 @@ bool SimplexDecisionProcedure::checkBasicForConflict(ArithVar basic) const {
   return false;
 }
 
-void SimplexDecisionProcedure::tearDownFocusErrorFunction(){
+void SimplexDecisionProcedure::tearDownFocusErrorFunction(TimerStat& timer){
+  TimerStat::CodeTimer codeTimer(timer);  
   Assert(d_focusErrorVar != ARITHVAR_SENTINEL);
   d_tableau.removeBasicRow(d_focusErrorVar);
   releaseVariable(d_focusErrorVar);
@@ -135,7 +136,8 @@ void SimplexDecisionProcedure::tearDownFocusErrorFunction(){
   
   Assert(d_focusErrorVar == ARITHVAR_SENTINEL);
 }
-void SimplexDecisionProcedure::constructFocusErrorFunction(){
+void SimplexDecisionProcedure::constructFocusErrorFunction(TimerStat& timer){
+  TimerStat::CodeTimer codeTimer(timer);
   Assert(d_focusErrorVar == ARITHVAR_SENTINEL);
   Assert(!d_errorSet.focusEmpty());
   d_focusErrorVar = requestVariable();

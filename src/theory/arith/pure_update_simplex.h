@@ -104,6 +104,7 @@ private:
     TimerStat d_attemptPureUpdatesTimer;
     TimerStat d_processSignalsTime;
     
+    TimerStat d_constructionTimer;
 
     Statistics();
     ~Statistics();

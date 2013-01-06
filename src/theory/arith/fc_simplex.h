@@ -106,6 +106,8 @@ private:
 
 
   UpdateInfo selectUpdateForDualLike(ArithVar basic, int sgn){
+    TimerStat::CodeTimer codeTimer(d_statistics.d_selectUpdateForDualLike);
+
     LinearEqualityModule::UpdatePreferenceFunction upf =
       &LinearEqualityModule::preferErrorsFixed<true>;
     LinearEqualityModule::VarPreferenceFunction bpf =
@@ -116,6 +118,8 @@ private:
   }
 
   UpdateInfo selectUpdateForPrimal(ArithVar basic, int sgn, bool useBlands){
+    TimerStat::CodeTimer codeTimer(d_statistics.d_selectUpdateForPrimal);
+
     LinearEqualityModule::UpdatePreferenceFunction upf = useBlands ?
       &LinearEqualityModule::preferErrorsFixed<false>:
       &LinearEqualityModule::preferErrorsFixed<true>;
@@ -160,6 +164,10 @@ private:
     IntStat d_fcMissed;
     
     TimerStat d_fcTimer;
+    TimerStat d_fcFocusConstructionTimer;
+
+    TimerStat d_selectUpdateForDualLike;
+    TimerStat d_selectUpdateForPrimal;
 
     Statistics();
     ~Statistics();
