@@ -185,7 +185,10 @@ TheoryArithPrivate::Statistics::Statistics():
   d_avgUnknownsInARow("theory::arith::status::avgUnknownsInARow"),
   d_revertsOnConflicts("theory::arith::status::revertsOnConflicts",0),
   d_commitsOnConflicts("theory::arith::status::commitsOnConflicts",0),
-  d_nontrivialSatChecks("theory::arith::status::nontrivialSatChecks",0)
+  d_nontrivialSatChecks("theory::arith::status::nontrivialSatChecks",0),
+  d_satPivots("pivots::sat"),
+  d_unsatPivots("pivots::unsat"),
+  d_unknownPivots("pivots::unkown")
 {
   StatisticsRegistry::registerStat(&d_statAssertUpperConflicts);
   StatisticsRegistry::registerStat(&d_statAssertLowerConflicts);
@@ -217,6 +220,11 @@ TheoryArithPrivate::Statistics::Statistics():
   StatisticsRegistry::registerStat(&d_revertsOnConflicts);
   StatisticsRegistry::registerStat(&d_commitsOnConflicts);
   StatisticsRegistry::registerStat(&d_nontrivialSatChecks);
+
+
+  StatisticsRegistry::registerStat(&d_satPivots);
+  StatisticsRegistry::registerStat(&d_unsatPivots);
+  StatisticsRegistry::registerStat(&d_unknownPivots);
 }
 
 TheoryArithPrivate::Statistics::~Statistics(){
@@ -250,6 +258,10 @@ TheoryArithPrivate::Statistics::~Statistics(){
   StatisticsRegistry::unregisterStat(&d_revertsOnConflicts);
   StatisticsRegistry::unregisterStat(&d_commitsOnConflicts);
   StatisticsRegistry::unregisterStat(&d_nontrivialSatChecks);
+
+  StatisticsRegistry::unregisterStat(&d_satPivots);
+  StatisticsRegistry::unregisterStat(&d_unsatPivots);
+  StatisticsRegistry::unregisterStat(&d_unknownPivots);
 }
 
 void TheoryArithPrivate::revertOutOfConflict(){
@@ -1640,6 +1652,7 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
   if(d_qflraStatus == Result::SAT_UNKNOWN){
     //d_qflraStatus = d_dualSimplex.findModel(Theory::fullEffort(effortLevel));
   }
+
   // TODO Save zeroes with no conflicts
   d_linEq.stopTrackingBoundCounts();
 
@@ -1655,6 +1668,8 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
     if(Debug.isOn("arith::consistency")){
       Assert(entireStateIsConsistent("sat comit"));
     }
+    //d_statistics.d_satPivots << d_fcSimplex.getPivots();
+    //d_statistics.d_satPivots << d_dualSimplex.getPivots();
     break;
   case Result::SAT_UNKNOWN:
     ++d_unknownsInARow;
@@ -1663,6 +1678,9 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
     Debug("arith::bt") << "committing unknown"  << " " << newFacts << " " << previous << " " << d_qflraStatus  << endl;
     d_partialModel.commitAssignmentChanges();
     d_statistics.d_maxUnknownsInARow.maxAssign(d_unknownsInARow);
+
+    //d_statistics.d_unknownPivots << d_fcSimplex.getPivots();
+    //d_statistics.d_unknownPivots << d_dualSimplex.getPivots();
     break;
   case Result::UNSAT:
     d_unknownsInARow = 0;
@@ -1684,6 +1702,9 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
     }
     outputConflicts();
     emmittedConflictOrSplit = true;
+
+    //d_statistics.d_unsatPivots << d_fcSimplex.getPivots();
+    //d_statistics.d_unsatPivots << d_dualSimplex.getPivots();
     break;
   default:
     Unimplemented();

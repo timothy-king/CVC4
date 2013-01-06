@@ -571,6 +571,11 @@ private:
     IntStat d_commitsOnConflicts;
     IntStat d_nontrivialSatChecks;
 
+
+    ListStat<uint32_t> d_satPivots;
+    ListStat<uint32_t> d_unsatPivots;
+    ListStat<uint32_t> d_unknownPivots;
+
     Statistics();
     ~Statistics();
   };

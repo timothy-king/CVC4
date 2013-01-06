@@ -59,6 +59,7 @@ Result::Sat DualSimplexDecisionProcedure::dualFindModel(bool exactResult){
 
   static CVC4_THREADLOCAL(unsigned int) instance = 0;
   instance = instance + 1;
+  d_pivots = 0;
 
   if(d_errorSet.errorEmpty() && !d_errorSet.moreSignals()){
     Debug("arith::findModel") << "dualFindModel("<< instance <<") trivial" << endl;
@@ -192,6 +193,8 @@ bool DualSimplexDecisionProcedure::searchForFeasibleSolution(uint32_t remainingI
     //DeltaRational beta_i = d_variables.getAssignment(x_i);
     ArithVar x_j = ARITHVAR_SENTINEL;
 
+    int32_t prevErrorSize = d_errorSet.errorSize();
+
     if(d_variables.cmpAssignmentLowerBound(x_i) < 0 ){
       x_j = d_linEq.selectSlackUpperBound(x_i, pf);
       if(x_j == ARITHVAR_SENTINEL ){
@@ -225,7 +228,19 @@ bool DualSimplexDecisionProcedure::searchForFeasibleSolution(uint32_t remainingI
     }
     Assert(x_j != ARITHVAR_SENTINEL);
 
-    if(processSignals()){
+    bool conflict = processSignals();
+    int32_t currErrorSize = d_errorSet.errorSize();
+    d_pivots++;
+
+    // cout << "#" << d_pivots
+    //      << " c" << conflict
+    //      << " d" << (prevErrorSize - currErrorSize)
+    //      << " f"  << d_errorSet.inError(x_j)
+    //      << " h" << d_conflictVariables.isMember(x_j)
+    //      << " " << x_i << "->" << x_j
+    //      << endl;
+
+    if(conflict){
       return true;
     }
   }

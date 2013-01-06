@@ -159,6 +159,8 @@ private:
     IntStat d_fcFoundSat;
     IntStat d_fcMissed;
     
+    TimerStat d_fcTimer;
+
     Statistics();
     ~Statistics();
   } d_statistics;

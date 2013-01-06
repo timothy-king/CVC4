@@ -69,6 +69,9 @@ namespace arith {
 
 class SimplexDecisionProcedure {
 protected:
+  /** */
+  uint32_t d_pivots;
+
   /** The set of variables that are in conflict in this round. */
   DenseSet d_conflictVariables;
 
@@ -162,6 +165,8 @@ public:
 
   void increaseMax() { d_numVariables++; }
 
+
+  uint32_t getPivots() const { return d_pivots; }
 protected:
 
   /** Reports a conflict to on the output channel. */

@@ -20,6 +20,8 @@
 #include "theory/arith/options.h"
 #include "theory/arith/constraint.h"
 
+#include "util/statistics_registry.h"
+
 using namespace std;
 
 namespace CVC4 {
@@ -41,7 +43,8 @@ FCSimplexDecisionProcedure::Statistics::Statistics():
   d_initialConflicts("theory::arith::FC::UpdateConflicts", 0),
   d_fcFoundUnsat("theory::arith::FC::FoundUnsat", 0),
   d_fcFoundSat("theory::arith::FC::FoundSat", 0),
-  d_fcMissed("theory::arith::FC::Missed", 0)
+  d_fcMissed("theory::arith::FC::Missed", 0),
+  d_fcTimer("theory::arith::FC::Timer")
 {
   StatisticsRegistry::registerStat(&d_initialSignalsTime);
   StatisticsRegistry::registerStat(&d_initialConflicts);
@@ -49,6 +52,8 @@ FCSimplexDecisionProcedure::Statistics::Statistics():
   StatisticsRegistry::registerStat(&d_fcFoundUnsat);
   StatisticsRegistry::registerStat(&d_fcFoundSat);
   StatisticsRegistry::registerStat(&d_fcMissed);
+
+  StatisticsRegistry::registerStat(&d_fcTimer);
 }
 
 FCSimplexDecisionProcedure::Statistics::~Statistics(){
@@ -58,12 +63,15 @@ FCSimplexDecisionProcedure::Statistics::~Statistics(){
   StatisticsRegistry::unregisterStat(&d_fcFoundUnsat);
   StatisticsRegistry::unregisterStat(&d_fcFoundSat);
   StatisticsRegistry::unregisterStat(&d_fcMissed);
+
+  StatisticsRegistry::unregisterStat(&d_fcTimer);
 }
 
 Result::Sat FCSimplexDecisionProcedure::findModel(bool exactResult){
   Assert(d_conflictVariables.empty());
   Assert(d_sgnDisagreements.empty());
 
+  d_pivots = 0;
   static CVC4_THREADLOCAL(unsigned int) instance = 0;
   instance = instance + 1;
 
@@ -315,6 +323,8 @@ void FCSimplexDecisionProcedure::focusUsingSignDisagreements(ArithVar basic){
 void FCSimplexDecisionProcedure::updateAndSignal(const UpdateInfo& selected){
   ArithVar nonbasic = selected.d_nonbasic;
   Constraint limiting = selected.d_limiting;
+  
+  ArithVar basic = ARITHVAR_SENTINEL;
   if(limiting == NULL){
     // This must drop at least the current variable
     Assert(selected.d_errorsFixed > 0);
@@ -322,11 +332,13 @@ void FCSimplexDecisionProcedure::updateAndSignal(const UpdateInfo& selected){
   }else if(nonbasic == limiting->getVariable()){
     d_linEq.updateTracked(nonbasic, selected.d_value);
   }else{
-    ArithVar basic = limiting->getVariable();
+    basic = limiting->getVariable();
     d_linEq.trackVariable(basic);
     d_linEq.pivotAndUpdate(basic, nonbasic, limiting->getValue());
   }
 
+
+  int32_t prevErrorSize = d_errorSet.errorSize();
   while(d_errorSet.moreSignals()){
     ArithVar updated = d_errorSet.topSignal();
     d_errorSet.popSignal();
@@ -337,6 +349,16 @@ void FCSimplexDecisionProcedure::updateAndSignal(const UpdateInfo& selected){
       reportConflict(updated);
     }
   }
+  d_pivots++;
+  int32_t currErrorSize = d_errorSet.errorSize();
+  // cout << "#" << d_pivots
+  //      << " c" << !d_conflictVariables.empty()
+  //      << " d" << (prevErrorSize - currErrorSize)
+  //      << " f"  << d_errorSet.inError(nonbasic)
+  //      << " h" << d_conflictVariables.isMember(nonbasic)
+  //      << " " << basic << "->" << nonbasic
+  //      << endl;
+
   adjustFocusAndError();
 }
 
@@ -446,6 +468,8 @@ uint32_t FCSimplexDecisionProcedure::selectFocusImproving() {
 Result::Sat FCSimplexDecisionProcedure::dualLike(){
   const static bool verbose = false;
   static int instance = 0;
+
+  TimerStat::CodeTimer codeTimer(d_statistics.d_fcTimer);
 
   Assert(d_sgnDisagreements.empty());
   Assert(d_pivotBudget != 0);
