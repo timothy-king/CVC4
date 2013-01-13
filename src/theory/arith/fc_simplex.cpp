@@ -260,13 +260,16 @@ UpdateInfo FCSimplexDecisionProcedure::selectPrimalUpdate(ArithVar basic, int di
     }
   }
 
-  std::sort(candidates.begin(), candidates.end(), CompColLength(&d_linEq));
+  std::vector<std::pair<ArithVar, int> >::iterator i = candidates.begin();
+  std::vector<std::pair<ArithVar, int> >::iterator end = candidates.end();
+  std::make_heap(i,end, CompColLength(&d_linEq));
 
-  for(std::vector<std::pair<ArithVar, int> >::const_iterator i = candidates.begin(),
-        iend = candidates.end(); i != iend; ++i){
-    ArithVar curr = (*i).first;
-    int curr_movement = (*i).second;
-    
+  while(i != end){
+    std::pop_heap(i,end,CompColLength(&d_linEq));
+    --end;
+    ArithVar curr = (*end).first;
+    int curr_movement = (*end).second;
+
     currProposal.d_nonbasic = curr;
     currProposal.d_sgn = curr_movement;
     d_linEq.computeSafeUpdate(currProposal, bpf);
@@ -274,7 +277,7 @@ UpdateInfo FCSimplexDecisionProcedure::selectPrimalUpdate(ArithVar basic, int di
     Debug("arith::selectPrimalUpdate")
       << "selected " << selected << endl
       << "currProp " << currProposal << endl;
-    
+
 
     if(selected.d_nonbasic == ARITHVAR_SENTINEL ||
        (d_linEq.*upf)(selected, currProposal)){
