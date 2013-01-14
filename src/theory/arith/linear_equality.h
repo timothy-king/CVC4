@@ -102,6 +102,7 @@ struct UpdateInfo {
 
   UpdateInfo();
   UpdateInfo(ArithVar nb, int dir);
+  UpdateInfo(ArithVar nb, const DeltaRational& delta);
 };
 
 std::ostream& operator<<(std::ostream& out, const UpdateInfo& update) ;
@@ -225,7 +226,7 @@ public:
     if( a.d_errorsChange == b.d_errorsChange){
       return preferNonDegenerate<heuristic>(a,b);
     }else{
-      return a.d_errorsChange < b.d_errorsChange;
+      return a.d_errorsChange > b.d_errorsChange;
     }
   }
 

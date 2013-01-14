@@ -159,14 +159,14 @@ bool PureUpdateSimplexDecisionProcedure::attemptPureUpdates(){
     bool worthwhile  = false;
 
     if( (dir > 0 && d_variables.cmpAssignmentUpperBound(curr) < 0) ||
-	(dir < 0 && d_variables.cmpAssignmentLowerBound(curr) > 0) ){
-      
+        (dir < 0 && d_variables.cmpAssignmentLowerBound(curr) > 0) ){
+
       ++computations;
       proposal.d_nonbasic = curr;
       proposal.d_nonbasicDirection = dir;
       d_linEq.computeSafeUpdate(proposal, &LinearEqualityModule::noPreference);
 
-      worthwhile = proposal.d_errorsChange > 0 ||
+      worthwhile = proposal.d_errorsChange < 0 ||
         (proposal.d_focusDirection > 0 &&
          d_variables.boundCounts(curr).isZero() &&
          proposal.d_limiting != NULL &&
@@ -178,25 +178,6 @@ bool PureUpdateSimplexDecisionProcedure::attemptPureUpdates(){
         << worthwhile << " "
         << proposal
         << endl;
-
-      // worthwhile = p.first;
-      // if(worthwhile && p.second == NullConstraint){
-      //   uint32_t fixed = d_linEq.computeUnconstrainedUpdate(curr, dir, dr);
-      //   if( fixed == 0 ){
-      //     worthwhile = false;
-      //   }
-      //   Debug("pu") << "podsfjio!! " << fixed << endl;
-      // }else if(worthwhile){
-      //   Constraint c = p.second;
-      //   Debug("pu::refine") << curr;
-      //   if(c->getVariable() != curr){
-      //     worthwhile = false;
-      //     Debug("pu::refine") << " dropping ";
-      //   }else{
-      //     Debug("pu::refine") << " keeping ";
-      //   }
-      //   Debug("pu::refine") << c << endl;
-      // }
     }
     if(worthwhile){
       Debug("pu") << d_variables.getAssignment(d_focusErrorVar) << endl;

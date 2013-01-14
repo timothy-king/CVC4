@@ -1592,8 +1592,8 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
   //If previous == SAT, then reverts on conflicts are safe
   //Otherwise, they are not and must be committed.
   Result::Sat previous = d_qflraStatus;
+  d_qflraStatus = Result::SAT_UNKNOWN;
   if(newFacts){
-    d_qflraStatus = Result::SAT_UNKNOWN;
     d_hasDoneWorkSinceCut = true;
   }
 

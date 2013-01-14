@@ -68,9 +68,8 @@ public:
   Result::Sat findModel(bool exactResult);
 
   // other error variables are dropping
-  // 
-  uint32_t dualLikeImproveError(ArithVar evar);
-  uint32_t primalImproveError(ArithVar evar);
+  int dualLikeImproveError(ArithVar evar);
+  int primalImproveError(ArithVar evar);
 
   // dual like
   // - found conflict
@@ -131,7 +130,7 @@ private:
 
     return selectPrimalUpdate(basic, sgn, upf, bpf, false);
   }
-  uint32_t selectFocusImproving() ;
+  int selectFocusImproving() ;
 
   void focusUsingSignDisagreements(ArithVar basic);
   void focusDownToLastHalf();

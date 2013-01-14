@@ -55,6 +55,14 @@ UpdateInfo::UpdateInfo(ArithVar nb, int dir):
   d_limiting(NullConstraint)
 {}
 
+UpdateInfo::UpdateInfo(ArithVar nb, const DeltaRational& delta):
+  d_nonbasic(nb),
+  d_nonbasicDirection(delta.sgn()),
+  d_nonbasicDelta(delta),
+  d_errorsChange(),
+  d_focusDirection(),
+  d_limiting(NullConstraint)
+{}
 
 
 std::ostream& operator<<(std::ostream& out, const UpdateInfo& up){
@@ -188,48 +196,6 @@ void LinearEqualityModule::updateTracked(ArithVar x_i, const DeltaRational& v){
   if(Debug.isOn("paranoid:check_tableau")){  debugCheckTableau(); }
 }
 
-// void LinearEqualityModule::update_tracked(ArithVar x_j, const DeltaRational& theta){
-//   TimerStat::CodeTimer codeTimer(d_statistics.d_adjTime);
-//   Assert(!d_tableau.isBasic(x_j));
-
-
-//   const DeltaRational& betaX_i = d_variables.getAssignment(x_i);
-
-//   Assert(inv_aij.sgn() != 0);
-
-//   Assert(d_areTracking);
-//   BoundCounts before = d_variables.boundCounts(x_j);
-
-//   DeltaRational tmp = d_variables.getAssignment(x_j) + theta;
-//   d_variables.setAssignment(x_j, tmp);
-
-//   BoundCounts after = d_variables.boundCounts(x_j);
-  
-//   bool anyChange = before != after;
-//   if(anyChange){
-//     bc_i.addInChange(a_ij.sgn(), before, after);
-//   }
-
-//   //Assert(matchingSets(d_tableau, x_j));
-//   for(Tableau::ColIterator iter = d_tableau.colIterator(x_j); !iter.atEnd(); ++iter){
-//     const Tableau::Entry& entry = *iter;
-//     Assert(entry.getColVar() == x_j);
-//     RowIndex currRow = entry.getRowIndex();
-//     if(ridx != currRow ){
-//       ArithVar x_k = d_tableau.rowIndexToBasic(currRow);
-//       const Rational& a_kj = entry.getCoefficient();
-//       DeltaRational nextAssignment = d_variables.getAssignment(x_k) + (theta * a_kj);
-//       d_variables.setAssignment(x_k, nextAssignment);
-
-//       if(anyChange && basicIsTracked(x_k)){
-//         BoundCounts& next_bc_k = d_boundTracking.get(x_k);
-//         next_bc_k.addInChange(a_kj.sgn(), before, after);
-//       }
-
-//       d_basicVariableUpdates(x_k);
-//     }
-//   }
-// }
 void LinearEqualityModule::pivotAndUpdate(ArithVar x_i, ArithVar x_j, const DeltaRational& x_i_value){
   Assert(x_i != x_j);
 
@@ -865,7 +831,7 @@ void LinearEqualityModule::computeSafeUpdate(UpdateInfo& inf, VarPreferenceFunct
     if(proposal != NullConstraint){
       DeltaRational diff = proposal->getValue() - d_variables.getAssignment(basic);
       diff /= entry.getCoefficient();
-      int cmp = diff.cmp(inf.d_nonbasicDelta);
+      int cmp = phase == NoBoundSelected ? 0 : diff.cmp(inf.d_nonbasicDelta);
       Assert(diff.sgn() == sgn || diff.sgn() == 0);
       bool prefer = false;
       switch(phase){
@@ -899,8 +865,10 @@ void LinearEqualityModule::computeSafeUpdate(UpdateInfo& inf, VarPreferenceFunct
   case NbsBoundSelected:
   case BasicBoundSelected:
     computedFixed(inf);
-    inf.d_nonbasicDelta = d_variables.getAssignment(nb);
-    inf.d_focusDirection = inf.d_nonbasicDelta.constValue().sgn();
+    // if inf.d_nonbasicDelta.constValue().sgn() == d_nonbasicDirection.constValue()
+    // then 1
+    // else -1
+    inf.d_focusDirection = (inf.d_nonbasicDirection) * inf.d_nonbasicDelta.constValue().sgn();
     break;
   case DegenerateBoundSelected:
     inf.d_focusDirection = 0;
@@ -923,7 +891,7 @@ void LinearEqualityModule::computedFixed(UpdateInfo& proposal){
 
   // proposal.d_value is the max
 
-  int fixes = 0;
+  int dropped = 0;
   Constraint maxFix = NullConstraint;
   DeltaRational maxAmount;
 
@@ -937,8 +905,12 @@ void LinearEqualityModule::computedFixed(UpdateInfo& proposal){
     const Rational& a_ji = entry.getCoefficient();
     int basic_movement = proposal.d_nonbasicDirection * a_ji.sgn();
 
-    DeltaRational theta = proposal.d_nonbasicDelta.constValue() * a_ji;
-    DeltaRational proposedValue = theta + d_variables.getAssignment(basic);
+    DeltaRational theta;
+    DeltaRational proposedValue;
+    if(!unconstrained){
+      theta = proposal.d_nonbasicDelta.constValue() * a_ji;
+      proposedValue = theta + d_variables.getAssignment(basic);
+    }
 
     Constraint fixed = NullConstraint;
 
@@ -946,14 +918,14 @@ void LinearEqualityModule::computedFixed(UpdateInfo& proposal){
       Assert(d_variables.cmpAssignmentUpperBound(basic) > 0);
 
       if(unconstrained || d_variables.cmpToUpperBound(basic, proposedValue) <= 0){
-        ++fixes;
+        --dropped;
         fixed = d_variables.getUpperBoundConstraint(basic);
       }
     }else if(basic_movement > 0){
       Assert(d_variables.cmpAssignmentLowerBound(basic) < 0);
 
       if(unconstrained || d_variables.cmpToLowerBound(basic, proposedValue) >= 0){
-        ++fixes;
+        --dropped;
         fixed = d_variables.getLowerBoundConstraint(basic);
       }
     }
@@ -961,7 +933,7 @@ void LinearEqualityModule::computedFixed(UpdateInfo& proposal){
       DeltaRational amount = fixed->getValue() - d_variables.getAssignment(basic);
       amount /= a_ji;
       Assert(amount.sgn() == proposal.d_nonbasicDirection);
-      bool prefer = (fixes == 1) ||
+      bool prefer = (dropped == -1) ||
         (proposal.d_nonbasicDirection < 0 && amount < maxAmount) ||
         (proposal.d_nonbasicDirection > 0 && amount > maxAmount) ||
         (amount == maxAmount && fixed->getVariable() < maxFix->getVariable());
@@ -972,57 +944,14 @@ void LinearEqualityModule::computedFixed(UpdateInfo& proposal){
       }
     }
   }
-  Assert(fixes > 0 || !unconstrained);
+  Assert(dropped < 0 || !unconstrained);
 
-  if(fixes > 0){
+  if(dropped < 0){
     proposal.d_limiting = maxFix;
     proposal.d_nonbasicDelta = maxAmount;
-    proposal.d_errorsChange = fixes;
+    proposal.d_errorsChange = dropped;
   }
 }
-// uint32_t LinearEqualityModule::computeUnconstrainedUpdate(ArithVar nb, int sgn, DeltaRational& am){
-//   Assert(sgn != 0);
-//   Assert(!d_tableau.isBasic(nb));
-
-//   am = Rational(sgn);
-
-//   uint32_t fixes = 0;
-//   EntryPointerVector::const_iterator i = d_relevantErrorBuffer.begin();
-//   EntryPointerVector::const_iterator i_end = d_relevantErrorBuffer.end();
-//   for(; i != i_end; ++i){
-//     const Tableau::Entry& entry = *(*i);
-//     Assert(entry.getColVar() == nb);
-
-//     ArithVar basic = d_tableau.rowIndexToBasic(entry.getRowIndex());
-//     const Rational& a_ji = entry.getCoefficient();
-//     int basic_movement = sgn * a_ji.sgn();
-
-//     if(basic_movement < 0){
-//       Assert(d_variables.cmpAssignmentUpperBound(basic) > 0);
-//       DeltaRational diff = d_variables.getUpperBound(basic) - d_variables.getAssignment(basic);
-//       diff /= entry.getCoefficient();
-//       Assert(diff.sgn() == sgn);
-//       if(fixes == 0 ||
-//          (sgn > 0 && diff >= am) ||
-//          (sgn < 0 && diff <= am) ){
-//         am = diff;
-//         ++fixes;
-//       }
-//     }else if(basic_movement > 0){
-//       Assert(d_variables.cmpAssignmentLowerBound(basic) < 0);
-//       DeltaRational diff = d_variables.getLowerBound(basic) - d_variables.getAssignment(basic);
-//       diff /= entry.getCoefficient();
-//       Assert(diff.sgn() == sgn);
-//       if(fixes == 0 ||
-//          (sgn > 0 && diff >= am) ||
-//          (sgn < 0 && diff <= am) ){
-//         am = diff;
-//         ++fixes;
-//       }
-//     }
-//   }
-//   return fixes;
-// }
 
 ArithVar LinearEqualityModule::minBy(const ArithVarVec& vec, VarPreferenceFunction pf) const{
   if(vec.empty()) {
