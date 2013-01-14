@@ -41,16 +41,67 @@ namespace CVC4 {
 namespace theory {
 namespace arith {
 
+/**
+ * Optimization order:
+ * - Conflict
+ * - Error Size Change
+ * - Focus Set Value Change
+ * -
+ */
+template <class T>
+class Maybe {
+private:
+  bool d_just;
+  T d_value;
+
+public:
+  Maybe() : d_just(false), d_value(){}
+  Maybe(const T& val): d_just(true), d_value(val){}
+
+  Maybe& operator=(const T& v){
+    d_just = true;
+    d_value = v;
+    return *this;
+  }
+
+  inline bool nothing() const { return !d_just; }
+  inline bool just() const { return d_just; }
+
+  void setNothing() {
+    d_just = false;
+    d_value();
+  }
+
+  T& value() { Assert(just()); return d_value; }
+  const T& constValue() const { Assert(just()); return d_value; }
+
+  operator const T&() const { return constValue(); }
+};
+
+template <class T>
+inline std::ostream& operator<<(std::ostream& out, const Maybe<T>& m){
+  out << "{";
+  if(m.nothing()){
+    out << "Nothing";
+  }else{
+    out << m.constValue();
+  }
+  out << "}";
+  return out;
+}
 
 struct UpdateInfo {
   ArithVar d_nonbasic;
-  int d_sgn;
-  uint32_t d_errorsFixed;
-  bool d_degenerate;
+  Maybe<int> d_nonbasicDirection;
+  Maybe<DeltaRational> d_nonbasicDelta;
+
+  Maybe<int> d_errorsChange;
+  Maybe<int> d_focusDirection;
+
   Constraint d_limiting;
-  DeltaRational d_value;
 
   UpdateInfo();
+  UpdateInfo(ArithVar nb, int dir);
 };
 
 std::ostream& operator<<(std::ostream& out, const UpdateInfo& update) ;
@@ -62,7 +113,7 @@ public:
 
   typedef bool (LinearEqualityModule::*UpdatePreferenceFunction)(const UpdateInfo&, const UpdateInfo&) const;
 
-private:  
+private:
   /**
    * Manages information about the assignment and upper and lower bounds on the
    * variables.
@@ -149,26 +200,32 @@ public:
       return d_variables.hasEitherBound(a.d_nonbasic);
     }
   }
-  
+
   template<bool heuristic>
   bool preferNonDegenerate(const UpdateInfo& a, const UpdateInfo& b) const{
-    if(a.d_degenerate == b.d_degenerate){
+    Assert(a.d_focusDirection.just());
+    Assert(b.d_focusDirection.just());
+
+    if(a.d_focusDirection == b.d_focusDirection){
       if(heuristic){
         return preferNeitherBound(a,b);
       }else{
         return minNonBasicVarOrder(a,b);
       }
     }else{
-      return a.d_degenerate;
+      return a.d_focusDirection > 0;
     }
   }
 
   template <bool heuristic>
   bool preferErrorsFixed(const UpdateInfo& a, const UpdateInfo& b) const{
-    if( a.d_errorsFixed == b.d_errorsFixed){
+    Assert(a.d_errorsChange.just());
+    Assert(b.d_errorsChange.just());
+
+    if( a.d_errorsChange == b.d_errorsChange){
       return preferNonDegenerate<heuristic>(a,b);
     }else{
-      return a.d_errorsFixed < b.d_errorsFixed;
+      return a.d_errorsChange < b.d_errorsChange;
     }
   }
 

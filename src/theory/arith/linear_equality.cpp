@@ -39,21 +39,32 @@ template bool LinearEqualityModule::preferErrorsFixed<false>(const UpdateInfo& a
 
 UpdateInfo::UpdateInfo():
   d_nonbasic(ARITHVAR_SENTINEL),
-  d_sgn(0),
-  d_errorsFixed(0),
-  d_degenerate(false),
-  d_limiting(NullConstraint),
-  d_value()
+  d_nonbasicDirection(),
+  d_nonbasicDelta(),
+  d_errorsChange(),
+  d_focusDirection(),
+  d_limiting(NullConstraint)
 {}
+
+UpdateInfo::UpdateInfo(ArithVar nb, int dir):
+  d_nonbasic(nb),
+  d_nonbasicDirection(dir),
+  d_nonbasicDelta(),
+  d_errorsChange(),
+  d_focusDirection(),
+  d_limiting(NullConstraint)
+{}
+
+
 
 std::ostream& operator<<(std::ostream& out, const UpdateInfo& up){
   out << "{UpdateInfo"
       << ", nb = " << up.d_nonbasic
-      << ", sgn = " << up.d_sgn
-      << ", fixes = " << up.d_errorsFixed
-      << ", degenerate = " << up.d_degenerate
-      << ", constraint = " << up.d_limiting
-      << ", value = " << up.d_value
+      << ", dir = " << up.d_nonbasicDirection
+      << ", delta = " << up.d_nonbasicDelta
+      << ", errorChange = " << up.d_errorsChange
+      << ", focusDir = " << up.d_focusDirection
+      << ", limiting = " << up.d_limiting
       << "}";
   return out;
 }
@@ -775,18 +786,17 @@ void LinearEqualityModule::trackingCoefficientChange(RowIndex ridx, ArithVar nb,
 
 void LinearEqualityModule::computeSafeUpdate(UpdateInfo& inf, VarPreferenceFunction pref){
   ArithVar nb = inf.d_nonbasic;
-  int sgn = inf.d_sgn;
+  int sgn = inf.d_nonbasicDirection;
   Assert(sgn != 0);
   Assert(!d_tableau.isBasic(nb));
-  
-  inf.d_errorsFixed = 0;
-  inf.d_degenerate = false;
+
+  inf.d_errorsChange = 0;
   inf.d_limiting = NullConstraint;
 
 
   // Error variables moving in the correct direction
   Assert(d_relevantErrorBuffer.empty());
-  
+
   // phases :
   enum ComputeSafePhase {
     NoBoundSelected,
@@ -802,15 +812,14 @@ void LinearEqualityModule::computeSafeUpdate(UpdateInfo& inf, VarPreferenceFunct
 
   if(sgn > 0 && d_variables.hasUpperBound(nb)){
     inf.d_limiting = d_variables.getUpperBoundConstraint(nb);
-    inf.d_value = inf.d_limiting->getValue() - d_variables.getAssignment(nb);
-    Assert(inf.d_value.sgn() == sgn);
-    
+    inf.d_nonbasicDelta = inf.d_limiting->getValue() - d_variables.getAssignment(nb);
+    Assert(inf.d_nonbasicDelta.constValue().sgn() == sgn);
     Debug("computeSafeUpdate") << "computeSafeUpdate " <<  inf.d_limiting << endl;
     phase = NbsBoundSelected;
   }else if(sgn < 0 && d_variables.hasLowerBound(nb)){
     inf.d_limiting = d_variables.getLowerBoundConstraint(nb);
-    inf.d_value = inf.d_limiting->getValue() - d_variables.getAssignment(nb);
-    Assert(inf.d_value.sgn() == sgn);
+    inf.d_nonbasicDelta = inf.d_limiting->getValue() - d_variables.getAssignment(nb);
+    Assert(inf.d_nonbasicDelta.constValue().sgn() == sgn);
 
     Debug("computeSafeUpdate") << "computeSafeUpdate " <<  inf.d_limiting << endl;
     phase = NbsBoundSelected;
@@ -828,10 +837,10 @@ void LinearEqualityModule::computeSafeUpdate(UpdateInfo& inf, VarPreferenceFunct
     Debug("computeSafeUpdate")
       << "computeSafeUpdate: "
       << basic << ", "
-      <<  basic_movement << ", "
+      << basic_movement << ", "
       << d_variables.cmpAssignmentUpperBound(basic) << ", "
       << d_variables.cmpAssignmentLowerBound(basic) << ", "
-      << a_ji << ", " 
+      << a_ji << ", "
       << d_variables.getAssignment(basic) << endl;
 
     Constraint proposal = NullConstraint;
@@ -856,7 +865,7 @@ void LinearEqualityModule::computeSafeUpdate(UpdateInfo& inf, VarPreferenceFunct
     if(proposal != NullConstraint){
       DeltaRational diff = proposal->getValue() - d_variables.getAssignment(basic);
       diff /= entry.getCoefficient();
-      int cmp = diff.cmp(inf.d_value);
+      int cmp = diff.cmp(inf.d_nonbasicDelta);
       Assert(diff.sgn() == sgn || diff.sgn() == 0);
       bool prefer = false;
       switch(phase){
@@ -878,7 +887,7 @@ void LinearEqualityModule::computeSafeUpdate(UpdateInfo& inf, VarPreferenceFunct
       }
       if(prefer){
         inf.d_limiting = proposal;
-        inf.d_value = diff;
+        inf.d_nonbasicDelta = diff;
 
         phase = (diff.sgn() != 0) ? BasicBoundSelected : DegenerateBoundSelected;
       }
@@ -886,18 +895,15 @@ void LinearEqualityModule::computeSafeUpdate(UpdateInfo& inf, VarPreferenceFunct
   }
 
   switch(phase){
-  // case NoBoundSelected:
-  //   inf.d_errorsFixed = computeUnconstrainedUpdate(nb, sgn, inf.d_value);
-  //   inf.d_value += d_variables.getAssignment(nb);
-  //   break;
   case NoBoundSelected:
   case NbsBoundSelected:
   case BasicBoundSelected:
     computedFixed(inf);
-    inf.d_value += d_variables.getAssignment(nb);
+    inf.d_nonbasicDelta = d_variables.getAssignment(nb);
+    inf.d_focusDirection = inf.d_nonbasicDelta.constValue().sgn();
     break;
   case DegenerateBoundSelected:
-    inf.d_degenerate = true;
+    inf.d_focusDirection = 0;
     break;
   }
 
@@ -905,18 +911,19 @@ void LinearEqualityModule::computeSafeUpdate(UpdateInfo& inf, VarPreferenceFunct
 }
 
 void LinearEqualityModule::computedFixed(UpdateInfo& proposal){
-  Assert(proposal.d_sgn != 0);
+  Assert(proposal.d_nonbasicDirection != 0);
   Assert(!d_tableau.isBasic(proposal.d_nonbasic));
 
   bool unconstrained = (proposal.d_limiting == NullConstraint);
 
   Assert(!unconstrained || !d_relevantErrorBuffer.empty());
 
-  Assert(unconstrained || proposal.d_value.sgn() == proposal.d_sgn);
+  Assert(unconstrained ||
+         proposal.d_nonbasicDelta.constValue().sgn() == proposal.d_nonbasicDirection);
 
   // proposal.d_value is the max
 
-  uint32_t fixes = 0;
+  int fixes = 0;
   Constraint maxFix = NullConstraint;
   DeltaRational maxAmount;
 
@@ -928,9 +935,9 @@ void LinearEqualityModule::computedFixed(UpdateInfo& proposal){
 
     ArithVar basic = d_tableau.rowIndexToBasic(entry.getRowIndex());
     const Rational& a_ji = entry.getCoefficient();
-    int basic_movement = proposal.d_sgn * a_ji.sgn();
+    int basic_movement = proposal.d_nonbasicDirection * a_ji.sgn();
 
-    DeltaRational theta = proposal.d_value * a_ji;
+    DeltaRational theta = proposal.d_nonbasicDelta.constValue() * a_ji;
     DeltaRational proposedValue = theta + d_variables.getAssignment(basic);
 
     Constraint fixed = NullConstraint;
@@ -953,12 +960,12 @@ void LinearEqualityModule::computedFixed(UpdateInfo& proposal){
     if(fixed != NullConstraint){
       DeltaRational amount = fixed->getValue() - d_variables.getAssignment(basic);
       amount /= a_ji;
-      Assert(amount.sgn() == proposal.d_sgn);
+      Assert(amount.sgn() == proposal.d_nonbasicDirection);
       bool prefer = (fixes == 1) ||
-        (proposal.d_sgn < 0 && amount < maxAmount) ||
-        (proposal.d_sgn > 0 && amount > maxAmount) ||
+        (proposal.d_nonbasicDirection < 0 && amount < maxAmount) ||
+        (proposal.d_nonbasicDirection > 0 && amount > maxAmount) ||
         (amount == maxAmount && fixed->getVariable() < maxFix->getVariable());
-      
+
       if(prefer){
         maxAmount = amount;
         maxFix = fixed;
@@ -969,8 +976,8 @@ void LinearEqualityModule::computedFixed(UpdateInfo& proposal){
 
   if(fixes > 0){
     proposal.d_limiting = maxFix;
-    proposal.d_value = maxAmount;
-    proposal.d_errorsFixed = fixes;
+    proposal.d_nonbasicDelta = maxAmount;
+    proposal.d_errorsChange = fixes;
   }
 }
 // uint32_t LinearEqualityModule::computeUnconstrainedUpdate(ArithVar nb, int sgn, DeltaRational& am){

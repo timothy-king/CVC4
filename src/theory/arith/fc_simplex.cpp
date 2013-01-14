@@ -184,15 +184,16 @@ uint32_t FCSimplexDecisionProcedure::degeneratePivotsInARow() const {
 }
 
 FCSimplexDecisionProcedure::PivotImprovement FCSimplexDecisionProcedure::pivotImprovement(const UpdateInfo& selected, bool useBlands) {
-  if(selected.d_errorsFixed > 0){
+  if(selected.d_errorsChange > 0){
     return ErrorDropped;
-  }else if(selected.d_degenerate){
+  }else if(selected.d_focusDirection == 0){
     if(useBlands){
       return BlandsDegenerate;
     }else{
       return HeuristicDegenerate;
     }
   }else{
+    Assert(selected.d_focusDirection > 0);
     return NonDegenerate;
   }
 }
@@ -271,7 +272,7 @@ UpdateInfo FCSimplexDecisionProcedure::selectPrimalUpdate(ArithVar basic, int di
     int curr_movement = (*end).second;
 
     currProposal.d_nonbasic = curr;
-    currProposal.d_sgn = curr_movement;
+    currProposal.d_nonbasicDirection = curr_movement;
     d_linEq.computeSafeUpdate(currProposal, bpf);
 
     Debug("arith::selectPrimalUpdate")
@@ -308,7 +309,7 @@ uint32_t FCSimplexDecisionProcedure::primalImproveError(ArithVar errorVar){
   updateAndSignal(selected);
   logPivot(selected, useBlands);
 
-  return selected.d_errorsFixed;
+  return selected.d_errorsChange;
 }
 
 
@@ -354,14 +355,17 @@ void FCSimplexDecisionProcedure::focusUsingSignDisagreements(ArithVar basic){
 void FCSimplexDecisionProcedure::updateAndSignal(const UpdateInfo& selected){
   ArithVar nonbasic = selected.d_nonbasic;
   Constraint limiting = selected.d_limiting;
-  
+
   ArithVar basic = ARITHVAR_SENTINEL;
+  DeltaRational newAssignment =
+    d_variables.getAssignment(nonbasic) + selected.d_nonbasicDelta;
+
   if(limiting == NULL){
     // This must drop at least the current variable
-    Assert(selected.d_errorsFixed > 0);
-    d_linEq.updateTracked(nonbasic, selected.d_value);
+    Assert(selected.d_errorsChange > 0);
+    d_linEq.updateTracked(nonbasic, newAssignment);
   }else if(nonbasic == limiting->getVariable()){
-    d_linEq.updateTracked(nonbasic, selected.d_value);
+    d_linEq.updateTracked(nonbasic, newAssignment);
   }else{
     basic = limiting->getVariable();
     d_linEq.trackVariable(basic);
@@ -415,9 +419,9 @@ uint32_t FCSimplexDecisionProcedure::dualLikeImproveError(ArithVar errorVar){
     Assert(d_errorSet.focusSize() >= 1);
     adjustFocusAndError();
     return 0;
-  }else if(selected.d_degenerate &&
-           d_prevPivotImprovement == HeuristicDegenerate && 
-           d_pivotImprovementInARow >= s_focusThreshold){      
+  }else if(selected.d_focusDirection == 0 &&
+           d_prevPivotImprovement == HeuristicDegenerate &&
+           d_pivotImprovementInARow >= s_focusThreshold){
     d_errorSet.focusDownToJust(errorVar);
     Assert(d_focusSize > d_errorSet.focusSize());
     Assert(d_errorSet.focusSize() == 1);
@@ -426,7 +430,7 @@ uint32_t FCSimplexDecisionProcedure::dualLikeImproveError(ArithVar errorVar){
   }else{
     updateAndSignal(selected);
     logPivot(selected);
-    return selected.d_errorsFixed;
+    return selected.d_errorsChange;
   }
 }
 
@@ -475,10 +479,10 @@ uint32_t FCSimplexDecisionProcedure::selectFocusImproving() {
     return 0;
   }
   Assert(selected.d_nonbasic != ARITHVAR_SENTINEL);
-  
-  if(selected.d_degenerate){
+
+  if(selected.d_focusDirection == 0){
     Debug("selectFocusImproving") << "only degenerate" << endl;
-    if(d_prevPivotImprovement == HeuristicDegenerate && 
+    if(d_prevPivotImprovement == HeuristicDegenerate &&
        d_pivotImprovementInARow >= s_focusThreshold){
       Debug("selectFocusImproving") << "focus down been degenerate too long" << endl;
       focusDownToLastHalf();
@@ -493,7 +497,7 @@ uint32_t FCSimplexDecisionProcedure::selectFocusImproving() {
 
   updateAndSignal(selected);
   logPivot(selected);
-  return selected.d_errorsFixed;
+  return selected.d_errorsChange;
 }
 
 Result::Sat FCSimplexDecisionProcedure::dualLike(){

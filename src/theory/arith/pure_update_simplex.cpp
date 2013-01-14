@@ -163,11 +163,11 @@ bool PureUpdateSimplexDecisionProcedure::attemptPureUpdates(){
       
       ++computations;
       proposal.d_nonbasic = curr;
-      proposal.d_sgn = dir;
+      proposal.d_nonbasicDirection = dir;
       d_linEq.computeSafeUpdate(proposal, &LinearEqualityModule::noPreference);
 
-      worthwhile = proposal.d_errorsFixed > 0 ||
-        (!proposal.d_degenerate &&
+      worthwhile = proposal.d_errorsChange > 0 ||
+        (proposal.d_focusDirection > 0 &&
          d_variables.boundCounts(curr).isZero() &&
          proposal.d_limiting != NULL &&
          proposal.d_limiting->getVariable() == curr);
@@ -176,10 +176,8 @@ bool PureUpdateSimplexDecisionProcedure::attemptPureUpdates(){
         << "pure update proposal "
         << curr << " "
         << worthwhile << " "
-        << proposal.d_errorsFixed << " "
-        << proposal.d_degenerate<< " "
-        << proposal.d_limiting << " "
-        << proposal.d_value << endl;
+        << proposal
+        << endl;
 
       // worthwhile = p.first;
       // if(worthwhile && p.second == NullConstraint){
@@ -204,7 +202,9 @@ bool PureUpdateSimplexDecisionProcedure::attemptPureUpdates(){
       Debug("pu") << d_variables.getAssignment(d_focusErrorVar) << endl;
 
       BoundCounts before = d_variables.boundCounts(curr);
-      d_linEq.updateTracked(curr, proposal.d_value);
+      DeltaRational newAssignment =
+        d_variables.getAssignment(curr) + proposal.d_nonbasicDelta;
+      d_linEq.updateTracked(curr, newAssignment);
       BoundCounts after = d_variables.boundCounts(curr);
 
       ++d_statistics.d_pureUpdates;
@@ -221,7 +221,7 @@ bool PureUpdateSimplexDecisionProcedure::attemptPureUpdates(){
         bool wasInError = d_errorSet.inError(updated);
         d_errorSet.popSignal();
         if(updated == curr){ continue; }
-        Assert(d_tableau.isBasic(updated));        
+        Assert(d_tableau.isBasic(updated));
         if(!d_linEq.basicIsTracked(updated)){continue;}
 
 
