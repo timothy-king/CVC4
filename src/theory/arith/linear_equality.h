@@ -252,7 +252,6 @@ public:
 
   uint32_t updateProduct(const UpdateInfo& inf) const;
 
-
   inline bool minNonBasicVarOrder(const UpdateInfo& a, const UpdateInfo& b) const{
     return a.nonbasic() >= b.nonbasic();
   }
@@ -305,38 +304,92 @@ public:
     }
   }
 
+  // template<bool heuristic>
+  // bool preferNonDegenerate(const UpdateInfo& a, const UpdateInfo& b) const{
+  //   if(a.focusDirection() == b.focusDirection()){
+  //     if(heuristic){
+  //       return preferNeitherBound(a,b);
+  //     }else{
+  //       return minNonBasicVarOrder(a,b);
+  //     }
+  //   }else{
+  //     return a.focusDirection() < b.focusDirection();
+  //   }
+  // }
 
-  template<bool heuristic>
-  bool preferNonDegenerate(const UpdateInfo& a, const UpdateInfo& b) const{
-    if(a.focusDirection() == b.focusDirection()){
-      if(heuristic){
-        return preferNeitherBound(a,b);
+  // template <bool heuristic>
+  // bool preferErrorsFixed(const UpdateInfo& a, const UpdateInfo& b) const{
+  //   if( a.errorsChange() == b.errorsChange() ){
+  //     return preferNonDegenerate<heuristic>(a,b);
+  //   }else{
+  //     return a.errorsChange() > b.errorsChange();
+  //   }
+  // }
+
+  // template <bool heuristic>
+  // bool preferConflictFound(const UpdateInfo& a, const UpdateInfo& b) const{
+  //   if(a.d_foundConflict && b.d_foundConflict){
+  //     // if both are true, determinize the preference
+  //     return minNonBasicVarOrder(a,b);
+  //   }else if( a.d_foundConflict || b.d_foundConflict ){
+  //     return b.d_foundConflict;
+  //   }else{
+  //     return preferErrorsFixed<heuristic>(a,b);
+  //   }
+  // }
+
+  bool modifiedBlands(const UpdateInfo& a, const UpdateInfo& b) const {
+    Assert(a.focusDirection() == 0 && b.focusDirection() == 0);
+    Assert(a.describesPivot());
+    Assert(b.describesPivot());
+    if(a.nonbasic() == b.nonbasic()){
+      bool aIsZero = a.nonbasicDelta().sgn() == 0;
+      bool bIsZero = b.nonbasicDelta().sgn() == 0;
+
+      if((aIsZero || bIsZero) && (!aIsZero || !bIsZero)){
+        return bIsZero;
       }else{
-        return minNonBasicVarOrder(a,b);
+        return a.leaving() >= b.leaving();
       }
     }else{
-      return a.focusDirection() < b.focusDirection();
+      return a.nonbasic() > b.nonbasic();
     }
   }
 
   template <bool heuristic>
-  bool preferErrorsFixed(const UpdateInfo& a, const UpdateInfo& b) const{
-    if( a.errorsChange() == b.errorsChange() ){
-      return preferNonDegenerate<heuristic>(a,b);
-    }else{
-      return a.errorsChange() > b.errorsChange();
-    }
-  }
+  bool preferWitness(const UpdateInfo& a, const UpdateInfo& b) const{
+    WitnessImprovement aImp = a.getWitness(!heuristic);
+    WitnessImprovement bImp = b.getWitness(!heuristic);
 
-  template <bool heuristic>
-  bool preferConflictFound(const UpdateInfo& a, const UpdateInfo& b) const{
-    if(a.d_foundConflict && b.d_foundConflict){
-      // if both are true, determinize the preference
-      return minNonBasicVarOrder(a,b);
-    }else if( a.d_foundConflict || b.d_foundConflict ){
-      return b.d_foundConflict;
+    if(aImp == bImp){
+      switch(aImp){
+      case ConflictFound:
+        return minNonBasicVarOrder(a, b);
+      case ErrorDropped:
+        if(a.errorsChange() == b.errorsChange()){
+          return preferNeitherBound(a,b);
+        }else{
+          return a.errorsChange() > b.errorsChange();
+        }
+      case FocusImproved:
+        return preferNeitherBound(a,b);
+      case BlandsDegenerate:
+        Assert(a.describesPivot());
+        Assert(b.describesPivot());
+        Assert(a.focusDirection() == 0 && b.focusDirection() == 0);
+        return modifiedBlands(a,b);
+      case Degenerate:
+      case HeuristicDegenerate:
+        Assert(a.describesPivot());
+        Assert(b.describesPivot());
+        Assert(a.focusDirection() == 0 && b.focusDirection() == 0);
+        return minProduct(a,b);
+      case AntiProductive:
+        return minNonBasicVarOrder(a, b);
+      }
+      Unreachable();
     }else{
-      return preferErrorsFixed<heuristic>(a,b);
+      return aImp > bImp;
     }
   }
 

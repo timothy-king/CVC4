@@ -32,7 +32,8 @@ UpdateInfo::UpdateInfo():
   d_foundConflict(false),
   d_errorsChange(),
   d_focusDirection(),
-  d_limiting(NullConstraint)
+  d_limiting(NullConstraint),
+  d_witness(AntiProductive)
 {}
 
 UpdateInfo::UpdateInfo(ArithVar nb, int dir):
@@ -42,55 +43,77 @@ UpdateInfo::UpdateInfo(ArithVar nb, int dir):
   d_foundConflict(false),
   d_errorsChange(),
   d_focusDirection(),
-  d_limiting(NullConstraint)
+  d_limiting(NullConstraint),
+  d_witness(AntiProductive)
 {
   Assert(dir == 1 || dir == -1);
-}
-
-void UpdateInfo::updateProposal(const DeltaRational& delta){
-  d_limiting = NullConstraint;
-  d_nonbasicDelta = delta;
-  d_errorsChange.clear();
-  d_focusDirection.clear();
-  Assert(debugSgnAgreement());
-}
-
-void UpdateInfo::updateProposal(const DeltaRational& delta, Constraint c){
-  d_limiting = c;
-  d_nonbasicDelta = delta;
-  d_errorsChange.clear();
-  d_focusDirection.clear();
-  Assert(debugSgnAgreement());
-}
-
-void UpdateInfo::updateProposal(const DeltaRational& delta, Constraint c, int ec){
-  d_limiting = c;
-  d_nonbasicDelta = delta;
-  setErrorsChange(ec);
-  d_focusDirection.clear();
-  Assert(debugSgnAgreement());
-}
-
-void UpdateInfo::updateProposal(const DeltaRational& delta, Constraint c, int ec, int fd){
-  d_limiting = c;
-  d_nonbasicDelta = delta;
-  setErrorsChange(ec);
-  setFocusDirection(fd);
-  Assert(debugSgnAgreement());
 }
 
 UpdateInfo::UpdateInfo(bool conflict, ArithVar nb, const DeltaRational& delta, Constraint c):
   d_nonbasic(nb),
   d_nonbasicDirection(delta.sgn()),
   d_nonbasicDelta(delta),
-  d_foundConflict(conflict),
+  d_foundConflict(true),
   d_errorsChange(),
   d_focusDirection(),
-  d_limiting(c)
-{}
+  d_limiting(c),
+  d_witness(ConflictFound)
+{
+  Assert(conflict);
+}
 
 UpdateInfo UpdateInfo::conflict(ArithVar nb, const DeltaRational& delta, Constraint lim){
   return UpdateInfo(true, nb, delta, lim);
+}
+
+void UpdateInfo::updateUnbounded(const DeltaRational& delta, int ec, int f){
+  d_limiting = NullConstraint;
+  d_nonbasicDelta = delta;
+  d_errorsChange = ec;
+  d_focusDirection = f;
+  updateWitness();
+  Assert(unbounded());
+  Assert(!describesPivot());
+  Assert(debugSgnAgreement());
+}
+void UpdateInfo::updatePureFocus(const DeltaRational& delta, Constraint c){
+  d_limiting = c;
+  d_nonbasicDelta = delta;
+  d_errorsChange.clear();
+  d_focusDirection = 1;
+  updateWitness();
+  Assert(!describesPivot());
+  Assert(debugSgnAgreement());
+}
+
+void UpdateInfo::updatePivot(const DeltaRational& delta, Constraint c){
+  d_limiting = c;
+  d_nonbasicDelta = delta;
+  d_errorsChange.clear();
+  d_focusDirection.clear();
+  updateWitness();
+  Assert(describesPivot());
+  Assert(debugSgnAgreement());
+}
+
+void UpdateInfo::updatePivot(const DeltaRational& delta, Constraint c, int ec){
+  d_limiting = c;
+  d_nonbasicDelta = delta;
+  setErrorsChange(ec);
+  d_focusDirection.clear();
+  updateWitness();
+  Assert(describesPivot());
+  Assert(debugSgnAgreement());
+}
+
+void UpdateInfo::update(const DeltaRational& delta, Constraint c, int ec, int fd){
+  d_limiting = c;
+  d_nonbasicDelta = delta;
+  setErrorsChange(ec);
+  setFocusDirection(fd);
+  updateWitness();
+  Assert(improvement(d_witness));
+  Assert(debugSgnAgreement());
 }
 
 bool UpdateInfo::describesPivot() const {

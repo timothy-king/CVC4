@@ -42,9 +42,10 @@ enum WitnessImprovement {
   ConflictFound = 0,
   ErrorDropped = 1,
   FocusImproved = 2,
-  BlandsDegenerate = 3,
-  HeuristicDegenerate = 4,
-  AntiProductive = 5
+  Degenerate = 3,
+  BlandsDegenerate = 4,
+  HeuristicDegenerate = 5,
+  AntiProductive = 6
 };
 
 inline bool improvement(WitnessImprovement w){
@@ -113,6 +114,8 @@ private:
    */
   Constraint d_limiting;
 
+  WitnessImprovement d_witness;
+
   /**
    * This returns true if
    * d_nonbasicDelta is zero() or its sgn() must agree with d_nonbasicDirection.
@@ -140,25 +143,30 @@ public:
    * This updates the nonBasicDelta to d and limiting to NullConstraint.
    * This describes an unbounded() update.
    */
-  void updateProposal(const DeltaRational& d);
+  void updateUnbounded(const DeltaRational& d, int ec, int f);
+
+
+  void updatePureFocus(const DeltaRational& d, Constraint c);
+  //void updatePureError(const DeltaRational& d, Constraint c, int e);
+  //void updatePure(const DeltaRational& d, Constraint c, int e, int f);
 
   /**
    * This updates the nonBasicDelta to d and limiting to c.
    * This clears errorChange() and focusDir().
    */
-  void updateProposal(const DeltaRational& d, Constraint c);
+  void updatePivot(const DeltaRational& d, Constraint c);
 
   /**
    * This updates the nonBasicDelta to d, limiting to c, and errorChange to e.
    * This clears focusDir().
    */
-  void updateProposal(const DeltaRational& d, Constraint c, int e);
+  void updatePivot(const DeltaRational& d, Constraint c, int e);
 
   /**
    * This updates the nonBasicDelta to d, limiting to c, errorChange to e and
    * focusDir to f.
    */
-  void updateProposal(const DeltaRational& d, Constraint c, int e, int f);
+  void update(const DeltaRational& d, Constraint c, int e, int f);
 
 
   static UpdateInfo conflict(ArithVar nb, const DeltaRational& delta, Constraint lim);
@@ -212,6 +220,7 @@ public:
   /** Sets the errorChange. */
   void setErrorsChange(int ec){
     d_errorsChange = ec;
+    updateWitness();
   }
 
 
@@ -222,6 +231,7 @@ public:
   void setFocusDirection(int fd){
     Assert(-1 <= fd  && fd <= 1);
     d_focusDirection = fd;
+    updateWitness();
   }
 
   /**
@@ -230,8 +240,8 @@ public:
    * The burden for this being safe is on the user!
    */
   void determineFocusDirection(){
-    d_focusDirection =
-      (d_nonbasicDirection) * d_nonbasicDelta.constValue().sgn();
+    int deltaSgn = d_nonbasicDelta.constValue().sgn();
+    setFocusDirection(deltaSgn * d_nonbasicDirection);
   }
 
   /** Requires nonbasicDelta to be set through updateProposal(...). */
@@ -244,6 +254,29 @@ public:
     return d_limiting;
   }
 
+  WitnessImprovement getWitness(bool useBlands = false) const{
+    Assert(d_witness == computeWitness());
+
+    if(d_witness == Degenerate){
+      if(useBlands){
+        return BlandsDegenerate;
+      }else{
+        return HeuristicDegenerate;
+      }
+    }else{
+      return d_witness;
+    }
+  }
+
+  /** Outputs the UpdateInfo into out. */
+  void output(std::ostream& out) const;
+
+private:
+  void updateWitness() {
+    d_witness = computeWitness();
+    Assert(describesPivot() || improvement(d_witness));
+  }
+
   /**
    * Determines the appropraite WitnessImprovement for the update.
    * useBlands breaks ties for degenerate pivots.
@@ -253,27 +286,23 @@ public:
    * - d_foundConflict is false and d_errorsChange has been set and d_errorsChange < 0, or
    * - d_foundConflict is false and d_errorsChange has been set and d_errorsChange >= 0 and d_focusDirection has been set.
    */
-  WitnessImprovement getWitness(bool useBlands = false) const{
+  WitnessImprovement computeWitness() const {
     if(d_foundConflict){
       return ConflictFound;
-    }else if(d_errorsChange < 0){
+    }else if(d_errorsChange.just() && d_errorsChange < 0){
       return ErrorDropped;
-    }else if(d_errorsChange == 0){
-      if(d_focusDirection > 0){
-        return FocusImproved;
-      }else if(d_focusDirection == 0){
-        if(useBlands){
-          return BlandsDegenerate;
-        }else{
-          return HeuristicDegenerate;
+    }else if(d_errorsChange.nothing() || d_errorsChange == 0){
+      if(d_focusDirection.just()){
+        if(d_focusDirection > 0){
+          return FocusImproved;
+        }else if(d_focusDirection == 0){
+          return Degenerate;
         }
       }
     }
     return AntiProductive;
   }
 
-  /** Outputs the UpdateInfo into out. */
-  void output(std::ostream& out) const;
 };
 
 std::ostream& operator<<(std::ostream& out, const UpdateInfo& up);

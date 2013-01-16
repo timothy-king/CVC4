@@ -31,12 +31,14 @@ template void LinearEqualityModule::propagateNonbasics<false>(ArithVar basic, Co
 template ArithVar LinearEqualityModule::selectSlack<true>(ArithVar x_i, VarPreferenceFunction pf) const;
 template ArithVar LinearEqualityModule::selectSlack<false>(ArithVar x_i, VarPreferenceFunction pf) const;
 
-template bool LinearEqualityModule::preferNonDegenerate<true>(const UpdateInfo& a, const UpdateInfo& b) const;
-template bool LinearEqualityModule::preferNonDegenerate<false>(const UpdateInfo& a, const UpdateInfo& b) const;
+// template bool LinearEqualityModule::preferNonDegenerate<true>(const UpdateInfo& a, const UpdateInfo& b) const;
+// template bool LinearEqualityModule::preferNonDegenerate<false>(const UpdateInfo& a, const UpdateInfo& b) const;
 
-template bool LinearEqualityModule::preferErrorsFixed<true>(const UpdateInfo& a, const UpdateInfo& b) const;
-template bool LinearEqualityModule::preferErrorsFixed<false>(const UpdateInfo& a, const UpdateInfo& b) const;
+// template bool LinearEqualityModule::preferErrorsFixed<true>(const UpdateInfo& a, const UpdateInfo& b) const;
+// template bool LinearEqualityModule::preferErrorsFixed<false>(const UpdateInfo& a, const UpdateInfo& b) const;
 
+template bool LinearEqualityModule::preferWitness<true>(const UpdateInfo& a, const UpdateInfo& b) const;
+template bool LinearEqualityModule::preferWitness<false>(const UpdateInfo& a, const UpdateInfo& b) const;
 
 LinearEqualityModule::LinearEqualityModule(ArithVariables& vars, Tableau& t, BoundCountingVector& boundTracking, BasicVarModelUpdateCallBack f):
   d_variables(vars),
@@ -737,14 +739,14 @@ void LinearEqualityModule::computeSafeUpdate(UpdateInfo& inf, VarPreferenceFunct
 
   if(sgn > 0 && d_variables.hasUpperBound(nb)){
     Constraint ub = d_variables.getUpperBoundConstraint(nb);
-    inf.updateProposal(ub->getValue() - d_variables.getAssignment(nb), ub);
+    inf.updatePureFocus(ub->getValue() - d_variables.getAssignment(nb), ub);
 
     Assert(inf.nonbasicDelta().sgn() == sgn);
     Debug("computeSafeUpdate") << "computeSafeUpdate " <<  inf.limiting() << endl;
     phase = NbsBoundSelected;
   }else if(sgn < 0 && d_variables.hasLowerBound(nb)){
     Constraint lb = d_variables.getLowerBoundConstraint(nb);
-    inf.updateProposal(lb->getValue() - d_variables.getAssignment(nb), lb);
+    inf.updatePureFocus(lb->getValue() - d_variables.getAssignment(nb), lb);
 
     Assert(inf.nonbasicDelta().sgn() == sgn);
 
@@ -813,7 +815,7 @@ void LinearEqualityModule::computeSafeUpdate(UpdateInfo& inf, VarPreferenceFunct
         break;
       }
       if(prefer){
-        inf.updateProposal(diff, proposal);
+        inf.updatePivot(diff, proposal);
 
         phase = (diff.sgn() != 0) ? BasicBoundSelected : DegenerateBoundSelected;
       }
@@ -843,9 +845,10 @@ void LinearEqualityModule::computedFixed(UpdateInfo& proposal){
 
   // proposal.d_value is the max
 
+  UpdateInfo max;
   int dropped = 0;
-  Constraint maxFix = NullConstraint;
-  DeltaRational maxAmount;
+  //Constraint maxFix = NullConstraint;
+  //DeltaRational maxAmount;
 
   EntryPointerVector::const_iterator i = d_relevantErrorBuffer.begin();
   EntryPointerVector::const_iterator i_end = d_relevantErrorBuffer.end();
@@ -885,21 +888,30 @@ void LinearEqualityModule::computedFixed(UpdateInfo& proposal){
       DeltaRational amount = fixed->getValue() - d_variables.getAssignment(basic);
       amount /= a_ji;
       Assert(amount.sgn() == proposal.nonbasicDirection());
-      bool prefer = (dropped == -1) ||
-        (proposal.nonbasicDirection() < 0 && amount < maxAmount) ||
-        (proposal.nonbasicDirection() > 0 && amount > maxAmount) ||
-        (amount == maxAmount && fixed->getVariable() < maxFix->getVariable());
 
-      if(prefer){
-        maxAmount = amount;
-        maxFix = fixed;
+      if(max.uninitialized()){
+        max = UpdateInfo(proposal.nonbasic(), proposal.nonbasicDirection());
+        max.updatePivot(amount, fixed, dropped);
+      }else{
+        int cmp = amount.cmp(max.nonbasicDelta());
+        bool prefer =
+          (proposal.nonbasicDirection() < 0 && cmp < 0) ||
+          (proposal.nonbasicDirection() > 0 && cmp > 0) ||
+          (cmp == 0 && fixed->getVariable() < max.limiting()->getVariable());
+
+        if(prefer){
+          max.updatePivot(amount, fixed, dropped);
+          // maxAmount = amount;
+          // maxFix = fixed;
+        }
       }
     }
   }
   Assert(dropped < 0 || !proposal.unbounded());
 
   if(dropped < 0){
-    proposal.updateProposal(maxAmount, maxFix, dropped);
+    proposal = max;
+    //proposal.updatePivot(maxAmount, maxFix, dropped);
   }else{
     Assert(dropped == 0);
     Assert(proposal.nonbasicDelta().sgn() != 0);
@@ -1165,8 +1177,12 @@ void LinearEqualityModule::handleBorders(UpdateInfo& selected, ArithVar nb, cons
     for(BorderVec::const_iterator i = startBlock; i != endBlock; ++i){
       const Border& b = *i;
 
+      if(b.d_bound->getVariable() == nb &&
+         !(-negErrorChange < 0 || currFocusChangeSgn > 0)){
+        continue;
+      }
       UpdateInfo proposal(nb, nbDir);
-      proposal.updateProposal(b.d_diff, b.d_bound, -negErrorChange, currFocusChangeSgn);
+      proposal.update(b.d_diff, b.d_bound, -negErrorChange, currFocusChangeSgn);
 
       if(selected.unbounded() || (this->*pref)(selected, proposal)){
         selected = proposal;

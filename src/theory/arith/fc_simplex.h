@@ -108,7 +108,7 @@ private:
     TimerStat::CodeTimer codeTimer(d_statistics.d_selectUpdateForDualLike);
 
     LinearEqualityModule::UpdatePreferenceFunction upf =
-      &LinearEqualityModule::preferErrorsFixed<true>;
+      &LinearEqualityModule::preferWitness<true>;
     LinearEqualityModule::VarPreferenceFunction bpf =
       &LinearEqualityModule::minRowLength;
     
@@ -120,8 +120,8 @@ private:
     TimerStat::CodeTimer codeTimer(d_statistics.d_selectUpdateForPrimal);
 
     LinearEqualityModule::UpdatePreferenceFunction upf = useBlands ?
-      &LinearEqualityModule::preferErrorsFixed<false>:
-      &LinearEqualityModule::preferErrorsFixed<true>;
+      &LinearEqualityModule::preferWitness<false>:
+      &LinearEqualityModule::preferWitness<true>;
 
     LinearEqualityModule::VarPreferenceFunction bpf = useBlands ?
       &LinearEqualityModule::minVarOrder :

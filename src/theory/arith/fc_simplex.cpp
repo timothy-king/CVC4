@@ -188,27 +188,14 @@ uint32_t FCSimplexDecisionProcedure::degeneratePivotsInARow() const {
   case HeuristicDegenerate:
   case BlandsDegenerate:
     return d_witnessImprovementInARow;
+  // Degenerate is unreachable for its own reasons
+  case Degenerate:
   case AntiProductive:
     Unreachable();
     return -1;
   }
   Unreachable();
 }
-
-// FCSimplexDecisionProcedure::PivotImprovement FCSimplexDecisionProcedure::pivotImprovement(const UpdateInfo& selected, bool useBlands) {
-//   if(selected.d_errorsChange < 0){
-//     return ErrorDropped;
-//   }else if(selected.d_focusDirection == 0){
-//     if(useBlands){
-//       return BlandsDegenerate;
-//     }else{
-//       return HeuristicDegenerate;
-//     }
-//   }else{
-//     Assert(selected.d_focusDirection > 0);
-//     return NonDegenerate;
-//   }
-// }
 
 void FCSimplexDecisionProcedure::adjustFocusAndError(){
   uint32_t newErrorSize = d_errorSet.errorSize();
@@ -466,7 +453,7 @@ int FCSimplexDecisionProcedure::selectFocusImproving() {
   Assert(d_focusSize >= 2);
 
   LinearEqualityModule::UpdatePreferenceFunction upf =
-    &LinearEqualityModule::preferErrorsFixed<true>;
+    &LinearEqualityModule::preferWitness<true>;
 
   LinearEqualityModule::VarPreferenceFunction bpf =
     &LinearEqualityModule::minRowLength;
