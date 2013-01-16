@@ -29,6 +29,8 @@ libarith_la_SOURCES = \
 	partial_model.cpp \
 	linear_equality.h \
 	linear_equality.cpp \
+	simplex_update.h \
+	simplex_update.cpp \
 	callbacks.h \
 	callbacks.cpp \
 	matrix.h \
@@ -58,7 +60,7 @@ libarith_la_SOURCES = \
 	arith_unate_lemma_mode.h \
 	arith_unate_lemma_mode.cpp \
 	arith_propagation_mode.h \
-	arith_propagation_mode.cpp 
+	arith_propagation_mode.cpp
 
 EXTRA_DIST = \
 	kinds \

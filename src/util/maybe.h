@@ -51,8 +51,10 @@ public:
   inline bool just() const { return d_just; }
 
   void clear() {
-    d_just = false;
-    d_value = T();
+    if(just()){
+      d_just = false;
+      d_value = T();
+    }
   }
 
   T& value() {

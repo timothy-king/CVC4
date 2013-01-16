@@ -34,6 +34,7 @@
 #include "theory/arith/partial_model.h"
 #include "theory/arith/tableau.h"
 #include "theory/arith/constraint_forward.h"
+#include "theory/arith/simplex_update.h"
 
 #include "util/maybe.h"
 #include "util/statistics_registry.h"
@@ -41,137 +42,6 @@
 namespace CVC4 {
 namespace theory {
 namespace arith {
-
-enum WitnessImprovement {
-  ConflictFound = 0,
-  ErrorDropped = 1,
-  FocusImproved = 2,
-  BlandsDegenerate = 3,
-  HeuristicDegenerate = 4,
-  AntiProductive = 5
-};
-
-inline bool improvement(WitnessImprovement w){
-  return w <= FocusImproved;
-}
-
-class UpdateInfo {
-private:
-  ArithVar d_nonbasic;
-  int d_nonbasicDirection;
-  Maybe<DeltaRational> d_nonbasicDelta;
-
-  bool d_foundConflict;
-  Maybe<int> d_errorsChange;
-  Maybe<int> d_focusDirection;
-
-  Constraint d_limiting;
-
-  bool debugSgnAgreement() const {
-    int deltaSgn = d_nonbasicDelta.constValue().sgn();
-    return deltaSgn == 0 || deltaSgn == d_nonbasicDirection;
-  }
-
-  UpdateInfo(bool conflict, ArithVar nb, const DeltaRational& delta, Constraint lim);
-
-public:
-
-  UpdateInfo();
-  UpdateInfo(ArithVar nb, int dir);
-
-  void updateProposal(const DeltaRational&);
-  void updateProposal(const DeltaRational&, Constraint c);
-  void updateProposal(const DeltaRational&, int errorChange, Constraint c);
-  void updateProposal(const DeltaRational&, int errorChange, int focusDir, Constraint c);
-
-
-  static UpdateInfo conflict(ArithVar nb, const DeltaRational& delta, Constraint lim);
-
-  inline ArithVar nonbasic() const { return d_nonbasic; }
-  inline bool uninitialized() const {
-    return d_nonbasic == ARITHVAR_SENTINEL;
-  }
-
-  /**
-   * There is no limiting value to the improvement of the focus.
-   * If this is true, this never describes an update.
-   */
-  inline bool unbounded() const {
-    return d_limiting == NullConstraint;
-  }
-
-  /**
-   * The update either describes a pivotAndUpdate operation
-   * or it describes just an update.
-   */
-  bool describesPivot() const;
-
-  ArithVar leaving() const;
-
-  bool foundConflict() const { return d_foundConflict; }
-
-  inline int nonbasicDirection() const{  return d_nonbasicDirection; }
-  inline int errorsChange() const { return d_errorsChange; }
-  inline int errorsChangeSafe(int def) const {
-    if(d_errorsChange.just()){
-      return d_errorsChange;
-    }else{
-      return def;
-    }
-  }
-
-  void setErrorsChange(int ec){
-    d_errorsChange = ec;
-  }
-
-  void setFocusDirection(int fd){
-    d_focusDirection = fd;
-  }
-
-  inline int focusDirection() const{ return d_focusDirection; }
-
-  /**
-   * nonbasicDirection must be the same as the sign for the focus function's
-   * coefficient for this to work.
-   */
-  void determineFocusDirection(){
-    d_focusDirection =
-      (d_nonbasicDirection) * d_nonbasicDelta.constValue().sgn();
-  }
-
-  const DeltaRational& nonbasicDelta() const {
-    return d_nonbasicDelta;
-  }
-
-  inline Constraint limiting() const {
-    return d_limiting;
-  }
-
-  void output(std::ostream& out) const;
-
-  WitnessImprovement getWitness(bool useBlands = false) const{
-    if(d_foundConflict){
-      return ConflictFound;
-    }else if(d_errorsChange < 0){
-      return ErrorDropped;
-    }else if(d_errorsChange == 0){
-      if(d_focusDirection > 0){
-        return FocusImproved;
-      }else if(d_focusDirection == 0){
-        if(useBlands){
-          return BlandsDegenerate;
-        }else{
-          return HeuristicDegenerate;
-        }
-      }
-    }
-    return AntiProductive;
-  }
-};
-
-std::ostream& operator<<(std::ostream& out, const UpdateInfo& up);
-
-
 
 struct Border{
   // The constraint for the border
@@ -305,7 +175,6 @@ public:
 
 
 
-std::ostream& operator<<(std::ostream& out, const UpdateInfo& update) ;
 
 class LinearEqualityModule {
 public:

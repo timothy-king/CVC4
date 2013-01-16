@@ -37,92 +37,6 @@ template bool LinearEqualityModule::preferNonDegenerate<false>(const UpdateInfo&
 template bool LinearEqualityModule::preferErrorsFixed<true>(const UpdateInfo& a, const UpdateInfo& b) const;
 template bool LinearEqualityModule::preferErrorsFixed<false>(const UpdateInfo& a, const UpdateInfo& b) const;
 
-UpdateInfo::UpdateInfo():
-  d_nonbasic(ARITHVAR_SENTINEL),
-  d_nonbasicDirection(),
-  d_nonbasicDelta(),
-  d_foundConflict(false),
-  d_errorsChange(),
-  d_focusDirection(),
-  d_limiting(NullConstraint)
-{}
-
-UpdateInfo::UpdateInfo(ArithVar nb, int dir):
-  d_nonbasic(nb),
-  d_nonbasicDirection(dir),
-  d_nonbasicDelta(),
-  d_foundConflict(false),
-  d_errorsChange(),
-  d_focusDirection(),
-  d_limiting(NullConstraint)
-{}
-
-void UpdateInfo::updateProposal(const DeltaRational& delta){
-  d_nonbasicDelta = delta;
-  Assert(debugSgnAgreement());
-}
-
-void UpdateInfo::updateProposal(const DeltaRational& delta, Constraint c){
-  d_limiting = c;
-  d_nonbasicDelta = delta;
-  Assert(debugSgnAgreement());
-}
-
-void UpdateInfo::updateProposal(const DeltaRational& delta, int ec, Constraint c){
-  d_limiting = c;
-  d_errorsChange = ec;
-  d_nonbasicDelta = delta;
-  Assert(debugSgnAgreement());
-}
-
-void UpdateInfo::updateProposal(const DeltaRational& delta, int ec, int fd, Constraint c){
-  d_limiting = c;
-  d_errorsChange = ec;
-  d_focusDirection = fd;
-  d_nonbasicDelta = delta;
-  Assert(debugSgnAgreement());
-}
-
-UpdateInfo::UpdateInfo(bool conflict, ArithVar nb, const DeltaRational& delta, Constraint c):
-  d_nonbasic(nb),
-  d_nonbasicDirection(delta.sgn()),
-  d_nonbasicDelta(delta),
-  d_foundConflict(conflict),
-  d_errorsChange(),
-  d_focusDirection(),
-  d_limiting(c)
-{}
-
-UpdateInfo UpdateInfo::conflict(ArithVar nb, const DeltaRational& delta, Constraint lim){
-  return UpdateInfo(true, nb, delta, lim);
-}
-
-bool UpdateInfo::describesPivot() const {
-  return !unbounded() && d_nonbasic != d_limiting->getVariable();
-}
-
-void UpdateInfo::output(std::ostream& out) const{
-  out << "{UpdateInfo"
-      << ", nb = " << d_nonbasic
-      << ", dir = " << d_nonbasicDirection
-      << ", delta = " << d_nonbasicDelta
-      << ", conflict = " << d_foundConflict
-      << ", errorChange = " << d_errorsChange
-      << ", focusDir = " << d_focusDirection
-      << ", limiting = " << d_limiting
-      << "}";
-}
-
-ArithVar UpdateInfo::leaving() const{
-  Assert(describesPivot());
-
-  return d_limiting->getVariable();
-}
-
-std::ostream& operator<<(std::ostream& out, const UpdateInfo& up){
-  up.output(out);
-  return out;
-}
 
 LinearEqualityModule::LinearEqualityModule(ArithVariables& vars, Tableau& t, BoundCountingVector& boundTracking, BasicVarModelUpdateCallBack f):
   d_variables(vars),
@@ -985,10 +899,7 @@ void LinearEqualityModule::computedFixed(UpdateInfo& proposal){
   Assert(dropped < 0 || !proposal.unbounded());
 
   if(dropped < 0){
-    proposal.updateProposal(maxAmount, dropped, maxFix);
-    // proposal.d_limiting = maxFix;
-    // proposal.d_nonbasicDelta = maxAmount;
-    // proposal.d_errorsChange = dropped;
+    proposal.updateProposal(maxAmount, maxFix, dropped);
   }else{
     Assert(dropped == 0);
     Assert(proposal.nonbasicDelta().sgn() != 0);
@@ -1246,16 +1157,16 @@ void LinearEqualityModule::handleBorders(UpdateInfo& selected, ArithVar nb, cons
     totalFocusChange += blockChangeToFocus;
 
     // if endVec == beginVec, block starts there
-    // other wise, block starts at endVec+1
+    // other wise, block starts at endVec
     BorderVec::const_iterator startBlock
-      = heap.more() ? heap.end()+1 : heap.begin();
+      = heap.more() ? heap.end() : heap.begin();
 
     int currFocusChangeSgn = totalFocusChange.sgn();
     for(BorderVec::const_iterator i = startBlock; i != endBlock; ++i){
       const Border& b = *i;
 
       UpdateInfo proposal(nb, nbDir);
-      proposal.updateProposal(b.d_diff, -negErrorChange, currFocusChangeSgn, b.d_bound);
+      proposal.updateProposal(b.d_diff, b.d_bound, -negErrorChange, currFocusChangeSgn);
 
       if(selected.unbounded() || (this->*pref)(selected, proposal)){
         selected = proposal;
