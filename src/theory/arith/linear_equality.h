@@ -35,75 +35,266 @@
 #include "theory/arith/tableau.h"
 #include "theory/arith/constraint_forward.h"
 
+#include "util/maybe.h"
 #include "util/statistics_registry.h"
 
 namespace CVC4 {
 namespace theory {
 namespace arith {
 
-/**
- * Optimization order:
- * - Conflict
- * - Error Size Change
- * - Focus Set Value Change
- * -
- */
-template <class T>
-class Maybe {
-private:
-  bool d_just;
-  T d_value;
-
-public:
-  Maybe() : d_just(false), d_value(){}
-  Maybe(const T& val): d_just(true), d_value(val){}
-
-  Maybe& operator=(const T& v){
-    d_just = true;
-    d_value = v;
-    return *this;
-  }
-
-  inline bool nothing() const { return !d_just; }
-  inline bool just() const { return d_just; }
-
-  void setNothing() {
-    d_just = false;
-    d_value();
-  }
-
-  T& value() { Assert(just()); return d_value; }
-  const T& constValue() const { Assert(just()); return d_value; }
-
-  operator const T&() const { return constValue(); }
+enum WitnessImprovement {
+  ConflictFound = 0,
+  ErrorDropped = 1,
+  FocusImproved = 2,
+  BlandsDegenerate = 3,
+  HeuristicDegenerate = 4,
+  AntiProductive = 5
 };
 
-template <class T>
-inline std::ostream& operator<<(std::ostream& out, const Maybe<T>& m){
-  out << "{";
-  if(m.nothing()){
-    out << "Nothing";
-  }else{
-    out << m.constValue();
-  }
-  out << "}";
-  return out;
+inline bool improvement(WitnessImprovement w){
+  return w <= FocusImproved;
 }
 
-struct UpdateInfo {
+class UpdateInfo {
+private:
   ArithVar d_nonbasic;
   Maybe<int> d_nonbasicDirection;
   Maybe<DeltaRational> d_nonbasicDelta;
 
+  bool d_foundConflict;
   Maybe<int> d_errorsChange;
   Maybe<int> d_focusDirection;
 
   Constraint d_limiting;
 
+public:
+
   UpdateInfo();
   UpdateInfo(ArithVar nb, int dir);
   UpdateInfo(ArithVar nb, const DeltaRational& delta);
+  UpdateInfo(ArithVar nb, const DeltaRational& delta, Constraint c);
+  UpdateInfo(ArithVar nb, const DeltaRational& delta, int errorChange, Constraint c);
+  UpdateInfo(ArithVar nb, const DeltaRational& delta, int errorChange, int focusDir, Constraint lim);
+
+  static UpdateInfo conflict(ArithVar nb, const DeltaRational& delta, Constraint lim);
+
+  inline ArithVar nonbasic() const { return d_nonbasic; }
+  inline bool uninitialized() const {
+    return d_nonbasic == ARITHVAR_SENTINEL;
+  }
+
+  /**
+   * There is no limiting value to the improvement of the focus.
+   * If this is true, this never describes an update.
+   */
+  inline bool unbounded() const {
+    return d_limiting == NullConstraint;
+  }
+
+  /**
+   * The update either describes a pivotAndUpdate operation
+   * or it describes just an update.
+   */
+  bool describesPivot() const;
+
+  ArithVar leaving() const;
+
+  bool foundConflict() const { return d_foundConflict; }
+
+  inline int nonbasicDirection() const{  return d_nonbasicDirection; }
+  inline int errorsChange() const { return d_errorsChange; }
+  inline int errorsChangeSafe(int def) const {
+    if(d_errorsChange.just()){
+      return d_errorsChange;
+    }else{
+      return def;
+    }
+  }
+
+  void setErrorsChange(int ec){
+    d_errorsChange = ec;
+  }
+
+  void setFocusDirection(int fd){
+    d_focusDirection = fd;
+  }
+
+  inline int focusDirection() const{ return d_focusDirection; }
+
+  /**
+   * nonbasicDirection must be the same as the sign for the focus function's
+   * coefficient for this to work.
+   */
+  void determineFocusDirection(){
+    d_focusDirection =
+      (d_nonbasicDirection) * d_nonbasicDelta.constValue().sgn();
+  }
+
+  const DeltaRational& nonbasicDelta() const {
+    return d_nonbasicDelta;
+  }
+
+  inline Constraint limiting() const {
+    return d_limiting;
+  }
+
+  void output(std::ostream& out) const;
+
+  WitnessImprovement getWitness(bool useBlands = false) const{
+    if(d_foundConflict){
+      return ConflictFound;
+    }else if(d_errorsChange < 0){
+      return ErrorDropped;
+    }else if(d_errorsChange == 0){
+      if(d_focusDirection > 0){
+        return FocusImproved;
+      }else if(d_focusDirection == 0){
+        if(useBlands){
+          return BlandsDegenerate;
+        }else{
+          return HeuristicDegenerate;
+        }
+      }
+    }
+    return AntiProductive;
+  }
 };
+
+std::ostream& operator<<(std::ostream& out, const UpdateInfo& up);
+
+
+
+struct Border{
+  // The constraint for the border
+  Constraint d_bound;
+
+  // The change to the nonbasic to reach the border
+  DeltaRational d_diff;
+
+  // Is reach this value fixing the constraint
+  // or is going past this value hurting the constraint
+  bool d_areFixing;
+
+  // Entry into the tableau
+  const Tableau::Entry* d_entry;
+
+  // Was this an upper bound or a lower bound?
+  bool d_upperbound;
+
+  Border():
+    d_bound(NullConstraint) // ignore the other values
+  {}
+
+  Border(Constraint l, const DeltaRational& diff, bool areFixing, const Tableau::Entry* en, bool ub):
+    d_bound(l), d_diff(diff), d_areFixing(areFixing), d_entry(en),  d_upperbound(ub)
+  {}
+
+  Border(Constraint l, const DeltaRational& diff, bool areFixing, bool ub):
+    d_bound(l), d_diff(diff), d_areFixing(areFixing), d_entry(NULL),  d_upperbound(ub)
+  {}
+  bool operator<(const Border& other) const{
+    return d_diff < other.d_diff;
+  }
+
+  /** d_lim is the nonbasic variable's own bound. */
+  bool ownBorder() const { return d_entry == NULL; }
+};
+
+typedef std::vector<Border> BorderVec;
+
+class BorderHeap {
+  const int d_dir;
+
+  class BorderHeapCmp {
+  private:
+    int d_nbDirection;
+  public:
+    BorderHeapCmp(int dir): d_nbDirection(dir){}
+    bool operator()(const Border& a, const Border& b) const{
+      if(d_nbDirection > 0){
+        // if nb is increasing,
+        //  this needs to act like a max
+        //  in order to have a min heap
+        return b < a;
+      }else{
+        // if nb is decreasing,
+        //  this needs to act like a min
+        //  in order to have a max heap
+        return a < b;
+      }
+    }
+  };
+  const BorderHeapCmp d_cmp;
+
+  BorderVec d_vec;
+
+  BorderVec::iterator d_begin;
+
+  /**
+   * Once this is initialized the top of the heap will always
+   * be at d_end - 1
+   */
+  BorderVec::iterator d_end;
+
+  int d_possibleFixes;
+  int d_numZeroes;
+
+public:
+  BorderHeap(int dir)
+  : d_dir(dir), d_cmp(dir), d_possibleFixes(0), d_numZeroes(0)
+  {}
+
+  void push_back(const Border& b){
+    d_vec.push_back(b);
+    if(b.d_areFixing){
+      d_possibleFixes++;
+    }
+    if(b.d_diff.sgn() == 0){
+      d_numZeroes++;
+    }
+  }
+
+  int numZeroes() const { return d_numZeroes; }
+  int possibleFixes() const { return d_possibleFixes; }
+  int direction() const { return d_dir; }
+
+  void make_heap(){
+    d_begin = d_vec.begin();
+    d_end = d_vec.end();
+    std::make_heap(d_begin, d_end, d_cmp);
+  }
+
+  const Border& top() const {
+    Assert(more());
+    return *(d_end - 1);
+  }
+  void pop_heap(){
+    Assert(more());
+
+    std::pop_heap(d_begin, d_end, d_cmp);
+    --d_end;
+  }
+
+  BorderVec::const_iterator end() const{
+    return BorderVec::const_iterator(d_end);
+  }
+  BorderVec::const_iterator begin() const{
+    return BorderVec::const_iterator(d_begin);
+  }
+
+  inline bool more() const{ return d_begin != d_end; }
+
+  inline bool empty() const{ return d_vec.empty(); }
+
+  void clear(){
+    d_possibleFixes = 0;
+    d_numZeroes = 0;
+    d_vec.clear();
+  }
+};
+
+
+
 
 std::ostream& operator<<(std::ostream& out, const UpdateInfo& update) ;
 
@@ -126,6 +317,11 @@ private:
 
   /** Called whenever the value of a basic variable is updated. */
   BasicVarModelUpdateCallBack d_basicVariableUpdates;
+
+  BorderHeap d_increasing;
+  BorderHeap d_decreasing;
+  Maybe<DeltaRational> d_upperBoundDifference;
+  Maybe<DeltaRational> d_lowerBoundDifference;
 
 public:
 
@@ -179,11 +375,17 @@ public:
   uint32_t updateProduct(const UpdateInfo& inf) const;
 
 
-  bool minNonBasicVarOrder(const UpdateInfo& a, const UpdateInfo& b) const{
-    return a.d_nonbasic >= b.d_nonbasic;
+  inline bool minNonBasicVarOrder(const UpdateInfo& a, const UpdateInfo& b) const{
+    return a.nonbasic() >= b.nonbasic();
   }
-  
-  bool minProduct(const UpdateInfo& a, const UpdateInfo& b) const{
+
+  /**
+   * Prefer the update that touch the fewest entries in the matrix.
+   *
+   * The intuition is that this operation will be cheaper.
+   * This strongly biases the system towards updates instead of pivots.
+   */
+  inline bool minProduct(const UpdateInfo& a, const UpdateInfo& b) const{
     uint32_t aprod = updateProduct(a);
     uint32_t bprod = updateProduct(b);
 
@@ -194,39 +396,69 @@ public:
     }
   }
 
-  bool preferNeitherBound(const UpdateInfo& a, const UpdateInfo& b) const {
-    if(d_variables.hasEitherBound(a.d_nonbasic) == d_variables.hasEitherBound(b.d_nonbasic)){
-      return minProduct(a,b);
+  /**
+   * If both a and b are pivots, prefer the pivot with the leaving variables that has equal bounds.
+   * The intuition is that such variables will be less likely to lead to future problems.
+   */
+  bool preferFrozen(const UpdateInfo& a, const UpdateInfo& b) const {
+    if(a.describesPivot() && b.describesPivot()){
+      bool aFrozen = d_variables.boundsAreEqual(a.leaving());
+      bool bFrozen = d_variables.boundsAreEqual(b.leaving());
+
+      if(aFrozen == bFrozen){
+        return minProduct(a,b);
+      }else{
+        return bFrozen;
+      }
     }else{
-      return d_variables.hasEitherBound(a.d_nonbasic);
+      return minProduct(a,b);
     }
   }
 
+  /**
+   * Prefer pivots with entering variables that do not have bounds.
+   * The intuition is that such variables will be less likely to lead to future problems.
+   */
+  bool preferNeitherBound(const UpdateInfo& a, const UpdateInfo& b) const {
+    if(d_variables.hasEitherBound(a.nonbasic()) == d_variables.hasEitherBound(b.nonbasic())){
+      return preferFrozen(a,b);
+    }else{
+      return d_variables.hasEitherBound(a.nonbasic());
+    }
+  }
+
+
   template<bool heuristic>
   bool preferNonDegenerate(const UpdateInfo& a, const UpdateInfo& b) const{
-    Assert(a.d_focusDirection.just());
-    Assert(b.d_focusDirection.just());
-
-    if(a.d_focusDirection == b.d_focusDirection){
+    if(a.focusDirection() == b.focusDirection()){
       if(heuristic){
         return preferNeitherBound(a,b);
       }else{
         return minNonBasicVarOrder(a,b);
       }
     }else{
-      return a.d_focusDirection > 0;
+      return a.focusDirection() < b.focusDirection();
     }
   }
 
   template <bool heuristic>
   bool preferErrorsFixed(const UpdateInfo& a, const UpdateInfo& b) const{
-    Assert(a.d_errorsChange.just());
-    Assert(b.d_errorsChange.just());
-
-    if( a.d_errorsChange == b.d_errorsChange){
+    if( a.errorsChange() == b.errorsChange() ){
       return preferNonDegenerate<heuristic>(a,b);
     }else{
-      return a.d_errorsChange > b.d_errorsChange;
+      return a.errorsChange() > b.errorsChange();
+    }
+  }
+
+  template <bool heuristic>
+  bool preferConflictFound(const UpdateInfo& a, const UpdateInfo& b) const{
+    if(a.d_foundConflict && b.d_foundConflict){
+      // if both are true, determinize the preference
+      return minNonBasicVarOrder(a,b);
+    }else if( a.d_foundConflict || b.d_foundConflict ){
+      return b.d_foundConflict;
+    }else{
+      return preferErrorsFixed<heuristic>(a,b);
     }
   }
 
@@ -447,6 +679,45 @@ public:
 
 
   ArithVar minBy(const ArithVarVec& vec, VarPreferenceFunction pf) const;
+
+  /**
+   * Returns true if there would be a conflict on this row after a pivot
+   * and update using its basic variable and one of the non-basic variables on
+   * the row.
+   */
+  bool willBeInConflictAfterPivot(const Tableau::Entry& entry, const DeltaRational& nbDiff, bool bToUB) const;
+  UpdateInfo mkConflictUpdate(const Tableau::Entry& entry, bool ub) const;
+
+  /**
+   * Looks more an update for fcSimplex on the nonbasic variable nb with the focus coefficient.
+   */
+  UpdateInfo speculativeUpdate(ArithVar nb, const Rational& focusCoeff, UpdatePreferenceFunction pref);
+
+private:
+
+  /**
+   * Examines the effects of pivoting the entries column variable
+   * with the row's basic variable and setting the variable s.t.
+   * the basic variable is equal to one of its bounds.
+   *
+   * If ub, then the basic variable will be equal its upper bound.
+   * If not ub,then the basic variable will be equal its lower bound.
+   *
+   * Returns iff this row will be in conflict after the pivot.
+   *
+   * If this is false, add the bound to the relevant heap.
+   * If the bound is +/-infinity, this is ignored.
+
+   *
+   * Returns true if this would be a conflict.
+   * If it returns false, this
+   */
+  bool accumulateBorder(const Tableau::Entry& entry, bool ub);
+
+  void handleBorders(UpdateInfo& selected, const Rational& focusCoeff, BorderHeap& heap, int minimumFixes, UpdatePreferenceFunction pref);
+  void pop_block(BorderHeap& heap, const DeltaRational& blockValue, int& brokenInBlock, int& fixesRemaining, int& negErrorChange);
+  void clearSpeculative();
+  Rational updateCoefficient(BorderVec::const_iterator startBlock, BorderVec::const_iterator endBlock);
 
 private:
   /** These fields are designed to be accessible to TheoryArith methods. */

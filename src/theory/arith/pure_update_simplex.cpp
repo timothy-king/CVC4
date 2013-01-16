@@ -152,7 +152,7 @@ bool PureUpdateSimplexDecisionProcedure::attemptPureUpdates(){
 
     ArithVar curr = e.getColVar();
     if(curr == d_focusErrorVar){ continue; }
-    
+
     int dir = e.getCoefficient().sgn();
     Assert(dir != 0);
 
@@ -162,15 +162,16 @@ bool PureUpdateSimplexDecisionProcedure::attemptPureUpdates(){
         (dir < 0 && d_variables.cmpAssignmentLowerBound(curr) > 0) ){
 
       ++computations;
-      proposal.d_nonbasic = curr;
-      proposal.d_nonbasicDirection = dir;
+      proposal = UpdateInfo(curr, dir);
       d_linEq.computeSafeUpdate(proposal, &LinearEqualityModule::noPreference);
 
-      worthwhile = proposal.d_errorsChange < 0 ||
-        (proposal.d_focusDirection > 0 &&
+      Assert(proposal.errorsChange() <= 0);
+      Assert(proposal.focusDirection() >= 0);
+
+      worthwhile = proposal.errorsChange() < 0 ||
+        (proposal.focusDirection() > 0 &&
          d_variables.boundCounts(curr).isZero() &&
-         proposal.d_limiting != NULL &&
-         proposal.d_limiting->getVariable() == curr);
+         !proposal.describesPivot());
 
       Debug("pu::refined")
         << "pure update proposal "
@@ -184,7 +185,7 @@ bool PureUpdateSimplexDecisionProcedure::attemptPureUpdates(){
 
       BoundCounts before = d_variables.boundCounts(curr);
       DeltaRational newAssignment =
-        d_variables.getAssignment(curr) + proposal.d_nonbasicDelta;
+        d_variables.getAssignment(curr) + proposal.nonbasicDelta();
       d_linEq.updateTracked(curr, newAssignment);
       BoundCounts after = d_variables.boundCounts(curr);
 

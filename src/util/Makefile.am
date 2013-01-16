@@ -44,6 +44,7 @@ libutil_la_SOURCES = \
 	datatype.h \
 	datatype.cpp \
 	tuple.h \
+	maybe.h \
 	record.h \
 	record.cpp \
 	matcher.h \

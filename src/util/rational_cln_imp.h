@@ -302,6 +302,11 @@ public:
     return (*this);
   }
 
+  Rational& operator-=(const Rational& y){
+    d_value -= y.d_value;
+    return (*this);
+  }
+
   Rational& operator*=(const Rational& y){
     d_value *= y.d_value;
     return (*this);

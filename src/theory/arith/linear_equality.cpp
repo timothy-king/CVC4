@@ -41,6 +41,7 @@ UpdateInfo::UpdateInfo():
   d_nonbasic(ARITHVAR_SENTINEL),
   d_nonbasicDirection(),
   d_nonbasicDelta(),
+  d_foundConflict(false),
   d_errorsChange(),
   d_focusDirection(),
   d_limiting(NullConstraint)
@@ -50,6 +51,7 @@ UpdateInfo::UpdateInfo(ArithVar nb, int dir):
   d_nonbasic(nb),
   d_nonbasicDirection(dir),
   d_nonbasicDelta(),
+  d_foundConflict(false),
   d_errorsChange(),
   d_focusDirection(),
   d_limiting(NullConstraint)
@@ -64,23 +66,73 @@ UpdateInfo::UpdateInfo(ArithVar nb, const DeltaRational& delta):
   d_limiting(NullConstraint)
 {}
 
+UpdateInfo::UpdateInfo(ArithVar nb, const DeltaRational& delta, Constraint c):
+  d_nonbasic(nb),
+  d_nonbasicDirection(delta.sgn()),
+  d_nonbasicDelta(delta),
+  d_foundConflict(false),
+  d_errorsChange(),
+  d_focusDirection(),
+  d_limiting(c)
+{}
 
-std::ostream& operator<<(std::ostream& out, const UpdateInfo& up){
-  out << "{UpdateInfo"
-      << ", nb = " << up.d_nonbasic
-      << ", dir = " << up.d_nonbasicDirection
-      << ", delta = " << up.d_nonbasicDelta
-      << ", errorChange = " << up.d_errorsChange
-      << ", focusDir = " << up.d_focusDirection
-      << ", limiting = " << up.d_limiting
-      << "}";
-  return out;
+UpdateInfo::UpdateInfo(ArithVar nb, const DeltaRational& delta, int errorChange, Constraint c):
+  d_nonbasic(nb),
+  d_nonbasicDirection(delta.sgn()),
+  d_nonbasicDelta(delta),
+  d_foundConflict(false),
+  d_errorsChange(errorChange),
+  d_focusDirection(),
+  d_limiting(c)
+{}
+
+UpdateInfo::UpdateInfo(ArithVar nb, const DeltaRational& delta, int errorChange, int fdir, Constraint c):
+  d_nonbasic(nb),
+  d_nonbasicDirection(delta.sgn()),
+  d_nonbasicDelta(delta),
+  d_foundConflict(false),
+  d_errorsChange(errorChange),
+  d_focusDirection(fdir),
+  d_limiting(c)
+{}
+
+UpdateInfo UpdateInfo::conflict(ArithVar nb, const DeltaRational& delta, Constraint lim){
+  UpdateInfo ret(nb, delta, lim);
+  ret.d_foundConflict = true;
+  return ret;
 }
 
+bool UpdateInfo::describesPivot() const {
+  return !unbounded() && d_nonbasic == d_limiting->getVariable();
+}
+
+void UpdateInfo::output(std::ostream& out) const{
+  out << "{UpdateInfo"
+      << ", nb = " << d_nonbasic
+      << ", dir = " << d_nonbasicDirection
+      << ", delta = " << d_nonbasicDelta
+      << ", errorChange = " << d_errorsChange
+      << ", focusDir = " << d_focusDirection
+      << ", limiting = " << d_limiting
+      << "}";
+}
+
+ArithVar UpdateInfo::leaving() const{
+  Assert(describesPivot());
+
+  return d_limiting->getVariable();
+}
+
+std::ostream& operator<<(std::ostream& out, const UpdateInfo& up){
+  up.output(out);
+  return out;
+}
 LinearEqualityModule::LinearEqualityModule(ArithVariables& vars, Tableau& t, BoundCountingVector& boundTracking, BasicVarModelUpdateCallBack f):
   d_variables(vars),
   d_tableau(t),
   d_basicVariableUpdates(f),
+  d_increasing(1),
+  d_decreasing(-1),
   d_relevantErrorBuffer(),
   d_boundTracking(boundTracking),
   d_areTracking(false),
@@ -245,15 +297,12 @@ void LinearEqualityModule::pivotAndUpdate(ArithVar x_i, ArithVar x_j, const Delt
 }
 
 uint32_t LinearEqualityModule::updateProduct(const UpdateInfo& inf) const {
-  if(inf.d_limiting == NullConstraint ||
-     inf.d_limiting->getVariable() == inf.d_nonbasic){
-    return d_tableau.getColLength(inf.d_nonbasic);
+  uint32_t colLen = d_tableau.getColLength(inf.nonbasic());
+  if(inf.describesPivot()){
+    Assert(inf.leaving() != inf.nonbasic());
+    return colLen + d_tableau.basicRowLength(inf.leaving());
   }else{
-    Assert(inf.d_limiting->getVariable() != inf.d_nonbasic);
-    
-    return
-      d_tableau.getColLength(inf.d_nonbasic) *
-      d_tableau.basicRowLength(inf.d_limiting->getVariable());
+    return colLen;
   }
 }
 
@@ -279,7 +328,6 @@ void LinearEqualityModule::debugCheckTracking(){
         Debug("arith::tracking") << "(up " << d_variables.getUpperBound(var) << ")";
       }
       Debug("arith::tracking") << endl;
-      
     }
     Debug("arith::tracking") << "end row"<< endl;
 
@@ -289,7 +337,7 @@ void LinearEqualityModule::debugCheckTracking(){
         << "computed " << computed
         << " tracking " << d_boundTracking[basic] << endl;
       Assert(computed == d_boundTracking[basic]);
-      
+
     }
   }
 }
@@ -751,13 +799,13 @@ void LinearEqualityModule::trackingCoefficientChange(RowIndex ridx, ArithVar nb,
 }
 
 void LinearEqualityModule::computeSafeUpdate(UpdateInfo& inf, VarPreferenceFunction pref){
-  ArithVar nb = inf.d_nonbasic;
-  int sgn = inf.d_nonbasicDirection;
+  ArithVar nb = inf.nonbasic();
+  int sgn = inf.nonbasicDirection();
   Assert(sgn != 0);
   Assert(!d_tableau.isBasic(nb));
 
-  inf.d_errorsChange = 0;
-  inf.d_limiting = NullConstraint;
+  //inf.setErrorsChange(0);
+  //inf.setlimiting = NullConstraint;
 
 
   // Error variables moving in the correct direction
@@ -777,17 +825,19 @@ void LinearEqualityModule::computeSafeUpdate(UpdateInfo& inf, VarPreferenceFunct
   Debug("computeSafeUpdate") << "computeSafeUpdate " <<  (++instance) << endl;
 
   if(sgn > 0 && d_variables.hasUpperBound(nb)){
-    inf.d_limiting = d_variables.getUpperBoundConstraint(nb);
-    inf.d_nonbasicDelta = inf.d_limiting->getValue() - d_variables.getAssignment(nb);
-    Assert(inf.d_nonbasicDelta.constValue().sgn() == sgn);
-    Debug("computeSafeUpdate") << "computeSafeUpdate " <<  inf.d_limiting << endl;
+    Constraint ub = d_variables.getUpperBoundConstraint(nb);
+    inf = UpdateInfo(nb, ub->getValue() - d_variables.getAssignment(nb), ub);
+
+    Assert(inf.nonbasicDelta().sgn() == sgn);
+    Debug("computeSafeUpdate") << "computeSafeUpdate " <<  inf.limiting() << endl;
     phase = NbsBoundSelected;
   }else if(sgn < 0 && d_variables.hasLowerBound(nb)){
-    inf.d_limiting = d_variables.getLowerBoundConstraint(nb);
-    inf.d_nonbasicDelta = inf.d_limiting->getValue() - d_variables.getAssignment(nb);
-    Assert(inf.d_nonbasicDelta.constValue().sgn() == sgn);
+    Constraint lb = d_variables.getLowerBoundConstraint(nb);
+    inf = UpdateInfo(nb, lb->getValue() - d_variables.getAssignment(nb), lb);
 
-    Debug("computeSafeUpdate") << "computeSafeUpdate " <<  inf.d_limiting << endl;
+    Assert(inf.nonbasicDelta().sgn() == sgn);
+
+    Debug("computeSafeUpdate") << "computeSafeUpdate " <<  inf.limiting() << endl;
     phase = NbsBoundSelected;
   }
 
@@ -831,7 +881,7 @@ void LinearEqualityModule::computeSafeUpdate(UpdateInfo& inf, VarPreferenceFunct
     if(proposal != NullConstraint){
       DeltaRational diff = proposal->getValue() - d_variables.getAssignment(basic);
       diff /= entry.getCoefficient();
-      int cmp = phase == NoBoundSelected ? 0 : diff.cmp(inf.d_nonbasicDelta);
+      int cmp = phase == NoBoundSelected ? 0 : diff.cmp(inf.nonbasicDelta());
       Assert(diff.sgn() == sgn || diff.sgn() == 0);
       bool prefer = false;
       switch(phase){
@@ -845,49 +895,38 @@ void LinearEqualityModule::computeSafeUpdate(UpdateInfo& inf, VarPreferenceFunct
         prefer =
           (sgn > 0 && cmp < 0 ) ||
           (sgn < 0 && cmp > 0) ||
-          (cmp == 0 && basic == (this->*pref)(basic, inf.d_limiting->getVariable()));
+          (cmp == 0 && basic == (this->*pref)(basic, inf.leaving()));
         break;
       case DegenerateBoundSelected:
-        prefer = cmp == 0 && basic == (this->*pref)(basic, inf.d_limiting->getVariable());
+        prefer = cmp == 0 && basic == (this->*pref)(basic, inf.leaving());
         break;
       }
       if(prefer){
-        inf.d_limiting = proposal;
-        inf.d_nonbasicDelta = diff;
+        inf = UpdateInfo(nb, diff, proposal);
 
         phase = (diff.sgn() != 0) ? BasicBoundSelected : DegenerateBoundSelected;
       }
     }
   }
 
-  switch(phase){
-  case NoBoundSelected:
-  case NbsBoundSelected:
-  case BasicBoundSelected:
+  if(phase != DegenerateBoundSelected){
     computedFixed(inf);
-    // if inf.d_nonbasicDelta.constValue().sgn() == d_nonbasicDirection.constValue()
-    // then 1
-    // else -1
-    inf.d_focusDirection = (inf.d_nonbasicDirection) * inf.d_nonbasicDelta.constValue().sgn();
-    break;
-  case DegenerateBoundSelected:
-    inf.d_focusDirection = 0;
-    break;
   }
+  inf.determineFocusDirection();
 
   d_relevantErrorBuffer.clear();
 }
 
 void LinearEqualityModule::computedFixed(UpdateInfo& proposal){
-  Assert(proposal.d_nonbasicDirection != 0);
-  Assert(!d_tableau.isBasic(proposal.d_nonbasic));
+  Assert(proposal.nonbasicDirection() != 0);
+  Assert(!d_tableau.isBasic(proposal.nonbasic()));
 
-  bool unconstrained = (proposal.d_limiting == NullConstraint);
+  //bool unconstrained = (proposal.d_limiting == NullConstraint);
 
-  Assert(!unconstrained || !d_relevantErrorBuffer.empty());
+  Assert(!proposal.unbounded() || !d_relevantErrorBuffer.empty());
 
-  Assert(unconstrained ||
-         proposal.d_nonbasicDelta.constValue().sgn() == proposal.d_nonbasicDirection);
+  Assert(proposal.unbounded() ||
+         proposal.nonbasicDelta().sgn() == proposal.nonbasicDirection());
 
   // proposal.d_value is the max
 
@@ -899,16 +938,16 @@ void LinearEqualityModule::computedFixed(UpdateInfo& proposal){
   EntryPointerVector::const_iterator i_end = d_relevantErrorBuffer.end();
   for(; i != i_end; ++i){
     const Tableau::Entry& entry = *(*i);
-    Assert(entry.getColVar() == proposal.d_nonbasic);
+    Assert(entry.getColVar() == proposal.nonbasic());
 
     ArithVar basic = d_tableau.rowIndexToBasic(entry.getRowIndex());
     const Rational& a_ji = entry.getCoefficient();
-    int basic_movement = proposal.d_nonbasicDirection * a_ji.sgn();
+    int basic_movement = proposal.nonbasicDirection() * a_ji.sgn();
 
     DeltaRational theta;
     DeltaRational proposedValue;
-    if(!unconstrained){
-      theta = proposal.d_nonbasicDelta.constValue() * a_ji;
+    if(!proposal.unbounded()){
+      theta = proposal.nonbasicDelta() * a_ji;
       proposedValue = theta + d_variables.getAssignment(basic);
     }
 
@@ -917,14 +956,14 @@ void LinearEqualityModule::computedFixed(UpdateInfo& proposal){
     if(basic_movement < 0){
       Assert(d_variables.cmpAssignmentUpperBound(basic) > 0);
 
-      if(unconstrained || d_variables.cmpToUpperBound(basic, proposedValue) <= 0){
+      if(proposal.unbounded() || d_variables.cmpToUpperBound(basic, proposedValue) <= 0){
         --dropped;
         fixed = d_variables.getUpperBoundConstraint(basic);
       }
     }else if(basic_movement > 0){
       Assert(d_variables.cmpAssignmentLowerBound(basic) < 0);
 
-      if(unconstrained || d_variables.cmpToLowerBound(basic, proposedValue) >= 0){
+      if(proposal.unbounded() || d_variables.cmpToLowerBound(basic, proposedValue) >= 0){
         --dropped;
         fixed = d_variables.getLowerBoundConstraint(basic);
       }
@@ -932,10 +971,10 @@ void LinearEqualityModule::computedFixed(UpdateInfo& proposal){
     if(fixed != NullConstraint){
       DeltaRational amount = fixed->getValue() - d_variables.getAssignment(basic);
       amount /= a_ji;
-      Assert(amount.sgn() == proposal.d_nonbasicDirection);
+      Assert(amount.sgn() == proposal.nonbasicDirection());
       bool prefer = (dropped == -1) ||
-        (proposal.d_nonbasicDirection < 0 && amount < maxAmount) ||
-        (proposal.d_nonbasicDirection > 0 && amount > maxAmount) ||
+        (proposal.nonbasicDirection() < 0 && amount < maxAmount) ||
+        (proposal.nonbasicDirection() > 0 && amount > maxAmount) ||
         (amount == maxAmount && fixed->getVariable() < maxFix->getVariable());
 
       if(prefer){
@@ -944,12 +983,13 @@ void LinearEqualityModule::computedFixed(UpdateInfo& proposal){
       }
     }
   }
-  Assert(dropped < 0 || !unconstrained);
+  Assert(dropped < 0 || !proposal.unbounded());
 
   if(dropped < 0){
-    proposal.d_limiting = maxFix;
-    proposal.d_nonbasicDelta = maxAmount;
-    proposal.d_errorsChange = dropped;
+    proposal = UpdateInfo(proposal.nonbasic(), maxAmount, dropped, maxFix);
+    // proposal.d_limiting = maxFix;
+    // proposal.d_nonbasicDelta = maxAmount;
+    // proposal.d_errorsChange = dropped;
   }
 }
 
@@ -964,6 +1004,320 @@ ArithVar LinearEqualityModule::minBy(const ArithVarVec& vec, VarPreferenceFuncti
       sel = (this->*pf)(sel, *i);
     }
     return sel;
+  }
+}
+
+bool LinearEqualityModule::accumulateBorder(const Tableau::Entry& entry, bool ub){
+  ArithVar currBasic = d_tableau.rowIndexToBasic(entry.getRowIndex());
+
+  Assert(basicIsTracked(currBasic));
+
+  Constraint bound = ub ?
+    d_variables.getUpperBoundConstraint(currBasic):
+    d_variables.getLowerBoundConstraint(currBasic);
+
+  if(bound == NullConstraint){ return false; }
+  Assert(bound != NullConstraint);
+
+  const Rational& coeff = entry.getCoefficient();
+
+  const DeltaRational& assignment = d_variables.getAssignment(currBasic);
+  DeltaRational toBound = bound->getValue() - assignment;
+  DeltaRational nbDiff = toBound/coeff;
+
+  // if ub
+  // if toUB >= 0
+  // then ub >= currBasic
+  //   if sgn > 0,
+  //   then diff >= 0, so nb must increase for G
+  //   else diff <= 0, so nb must decrease for G
+  // else ub < currBasic
+  //   if sgn > 0,
+  //   then diff < 0, so nb must decrease for G
+  //   else diff > 0, so nb must increase for G
+
+  int diffSgn = nbDiff.sgn();
+
+  if(diffSgn != 0 && willBeInConflictAfterPivot(entry, nbDiff, ub)){
+    return true;
+  }else{
+    bool areFixing = ub ? (toBound.sgn() < 0 ) : (toBound.sgn() > 0);
+    Border border(bound, nbDiff, areFixing, &entry, ub);
+    if(diffSgn > 0 || (diffSgn == 0 && coeff.sgn() > 0)){
+      d_increasing.push_back(border);
+    }else{
+      d_decreasing.push_back(border);
+    }
+    return false;
+  }
+}
+
+bool LinearEqualityModule::willBeInConflictAfterPivot(const Tableau::Entry& entry, const DeltaRational& nbDiff, bool bToUB) const{
+  int nbSgn = nbDiff.sgn();
+  Assert(nbSgn != 0);
+
+  if(nbSgn > 0){
+    if(d_upperBoundDifference.nothing() || nbDiff <= d_upperBoundDifference){
+      return false;
+    }
+  }else{
+    if(d_lowerBoundDifference.nothing() || nbDiff >= d_lowerBoundDifference){
+      return false;
+    }
+  }
+
+  // Assume past this point, nb will be in error if this pivot is done
+  ArithVar nb = entry.getColVar();
+  ArithVar basic = d_tableau.rowIndexToBasic(entry.getRowIndex());
+  Assert(basicIsTracked(basic));
+  int coeffSgn = entry.getCoefficient().sgn();
+
+
+  // if bToUB, then basic is going to be set to its upperbound
+  // if not bToUB, then basic is going to be set to its lowerbound
+
+  // Different steps of solving for this:
+  // 1) y = a * x + \sum b * z
+  // 2) -a * x = -y + \sum b * z
+  // 3) x = (-1/a) * ( -y + \sum b * z)
+
+  Assert(basicIsTracked(basic));
+  BoundCounts bc = d_boundTracking[basic];
+
+  // 1) y = a * x + \sum b * z
+  // Get bc(\sum b * z)
+  BoundCounts sumOnly = bc - d_variables.boundCounts(nb).multiplyBySgn(coeffSgn);
+
+  // y's bounds in the proposed model
+  int yWillBeAtUb = (bToUB || d_variables.boundsAreEqual(basic)) ? 1 : 0;
+  int yWillBeAtLb = (!bToUB || d_variables.boundsAreEqual(basic)) ? 1 : 0;
+  BoundCounts ysBounds(yWillBeAtLb, yWillBeAtUb);
+
+  // 2) -a * x = -y + \sum b * z
+  // Get bc(-y + \sum b * z)
+  BoundCounts withNegY = sumOnly + ysBounds.multiplyBySgn(-1);
+
+  // 3) x = (-1/a) * ( -y + \sum b * z)
+  // Get bc((-1/a) * ( -y + \sum b * z))
+  BoundCounts xsBoundsAfterPivot = withNegY.multiplyBySgn(-coeffSgn);
+
+  uint32_t length = d_tableau.basicRowLength(basic);
+  if(nbSgn > 0){
+    // Only check for the upper bound being violated
+    return xsBoundsAfterPivot.atLowerBounds() + 1 == length;
+  }else{
+    // Only check for the lower bound being violated
+    return xsBoundsAfterPivot.atUpperBounds() + 1 == length;
+  }
+}
+
+UpdateInfo LinearEqualityModule::mkConflictUpdate(const Tableau::Entry& entry, bool ub) const{
+  ArithVar currBasic = d_tableau.rowIndexToBasic(entry.getRowIndex());
+  ArithVar nb = entry.getColVar();
+
+  Constraint bound = ub ?
+    d_variables.getUpperBoundConstraint(currBasic):
+    d_variables.getLowerBoundConstraint(currBasic);
+
+
+  const Rational& coeff = entry.getCoefficient();
+  const DeltaRational& assignment = d_variables.getAssignment(currBasic);
+  DeltaRational toBound = bound->getValue() - assignment;
+  DeltaRational nbDiff = toBound/coeff;
+
+  return UpdateInfo::conflict(nb, nbDiff, bound);
+}
+
+UpdateInfo LinearEqualityModule::speculativeUpdate(ArithVar nb, const Rational& focusCoeff, UpdatePreferenceFunction pref){
+  Assert(d_increasing.empty());
+  Assert(d_decreasing.empty());
+  Assert(d_lowerBoundDifference.nothing());
+  Assert(d_upperBoundDifference.nothing());
+
+  int focusCoeffSgn = focusCoeff.sgn();
+
+  if(d_variables.hasUpperBound(nb)){
+    Constraint ub = d_variables.getLowerBoundConstraint(nb);
+    d_upperBoundDifference = ub->getValue() - d_variables.getAssignment(nb);
+    d_increasing.push_back(Border(ub, d_upperBoundDifference, false, NULL, true));
+  }
+  if(d_variables.hasLowerBound(nb)){
+    Constraint lb = d_variables.getLowerBoundConstraint(nb);
+    d_lowerBoundDifference = lb->getValue() - d_variables.getAssignment(nb);
+    d_decreasing.push_back(Border(lb, d_lowerBoundDifference, false, NULL, false));
+  }
+
+  Tableau::ColIterator colIter = d_tableau.colIterator(nb);
+  for(; !colIter.atEnd(); ++colIter){
+    const Tableau::Entry& entry = *colIter;
+    Assert(entry.getColVar() == nb);
+
+    if(accumulateBorder(entry, true)){
+      clearSpeculative();
+      return mkConflictUpdate(entry, true);
+    }
+    if(accumulateBorder(entry, false)){
+      clearSpeculative();
+      return mkConflictUpdate(entry, false);
+    }
+  }
+
+  UpdateInfo selected(nb, focusCoeffSgn);
+  BorderHeap& withSgn = focusCoeffSgn > 0 ? d_increasing : d_decreasing;
+  BorderHeap& againstSgn = focusCoeffSgn > 0 ? d_decreasing : d_increasing;
+
+  handleBorders(selected, focusCoeff, withSgn, 0, pref);
+  int m = 1 - selected.errorsChangeSafe(0);
+  handleBorders(selected, focusCoeff, againstSgn, m, pref);
+
+  clearSpeculative();
+  return selected;
+}
+
+void LinearEqualityModule::clearSpeculative(){
+  // clear everything away
+  d_increasing.clear();
+  d_decreasing.clear();
+  d_lowerBoundDifference.clear();
+  d_upperBoundDifference.clear();
+}
+
+void LinearEqualityModule::handleBorders(UpdateInfo& selected, const Rational& focusCoeff, BorderHeap& heap, int minimumFixes, UpdatePreferenceFunction pref){
+
+
+  // The values popped off of the heap
+  // should be popped with the values closest to 0
+  // being first and larger in absolute value last
+
+
+  int fixesRemaining = heap.possibleFixes();
+
+  // can the number of fixes ever exceed the minimum?
+  // no more than the number of possible fixes can be fixed in total
+  // nothing can be fixed before the zeroes are taken care of
+  if(heap.empty() || fixesRemaining - heap.numZeroes() < minimumFixes){
+    // if the heap is empty, return
+    // if there is no way to fix at least the minimum number
+    // do not make the heap
+    return;
+  }
+
+  ArithVar nb = selected.nonbasic();
+  int negErrorChange = 0;
+
+  // points at the beginning of the heap
+  heap.make_heap();
+
+
+  // pretend like the previous block had a value of zero.
+  // The block that actually has a value of 0 must handle this.
+  DeltaRational zero(0);
+  const DeltaRational* prevBlockValue = &zero;
+
+  /** The coefficient changes as the value crosses border. */
+  Rational effectiveCoefficient = focusCoeff;
+
+  /* Keeps track of the change to the value of the focus function.*/
+  DeltaRational totalFocusChange(0);
+
+  const int focusCoeffSgn = focusCoeff.sgn();
+
+  while(heap.more()  &&
+        (fixesRemaining + negErrorChange > minimumFixes ||
+         (fixesRemaining + negErrorChange == minimumFixes &&
+          effectiveCoefficient.sgn() == focusCoeffSgn))){
+    // There are more elements &&
+    // we can either fix at least 1 more variable in the error function
+    // or we can improve the error function
+
+
+    int brokenInBlock = 0;
+    BorderVec::const_iterator endBlock = heap.end();
+    const DeltaRational* blockValue = &(heap.top().d_diff);
+
+    pop_block(heap, *blockValue, brokenInBlock, fixesRemaining, negErrorChange);
+
+    DeltaRational diff = (*blockValue) - (*prevBlockValue);
+    DeltaRational blockChangeToFocus =  diff * effectiveCoefficient;
+    totalFocusChange += blockChangeToFocus;
+
+    // if endVec == beginVec, block starts there
+    // other wise, block starts at endVec+1
+    BorderVec::const_iterator startBlock
+      = heap.more() ? heap.end()+1 : heap.begin();
+
+    int currFocusSgn = totalFocusChange.sgn();
+    for(BorderVec::const_iterator i = startBlock; i != endBlock; ++i){
+      const Border& b = *i;
+
+      UpdateInfo proposal(nb, b.d_diff, -negErrorChange, currFocusSgn, b.d_bound);
+
+      if(selected.unbounded() || (this->*pref)(selected, proposal)){
+        selected = proposal;
+      }
+    }
+
+    effectiveCoefficient += updateCoefficient(startBlock, endBlock);
+    prevBlockValue = blockValue;
+    negErrorChange -= brokenInBlock;
+  }
+}
+
+Rational LinearEqualityModule::updateCoefficient(BorderVec::const_iterator startBlock, BorderVec::const_iterator endBlock){
+  //update coefficient
+  Rational changeToCoefficient(0);
+  for(BorderVec::const_iterator i = startBlock; i != endBlock; ++i){
+    const Border& curr = *i;
+    if(curr.d_bound->getVariable() == curr.d_entry->getColVar()){// breaking its own bound
+      if(curr.d_upperbound){
+        changeToCoefficient -= 1;
+      }else{
+        changeToCoefficient += 1;
+      }
+    }else{
+      const Rational& coeff = curr.d_entry->getCoefficient();
+      if(curr.d_areFixing){
+        if(curr.d_upperbound){// fixing an upper bound
+          changeToCoefficient += coeff;
+        }else{// fixing a lower bound
+          changeToCoefficient -= coeff;
+        }
+      }else{
+        if(curr.d_upperbound){// breaking an upper bound
+          changeToCoefficient -= coeff;
+        }else{
+          // breaking a lower bound
+          changeToCoefficient += coeff;
+        }
+      }
+    }
+  }
+  return changeToCoefficient;
+}
+
+void LinearEqualityModule::pop_block(BorderHeap& heap, const DeltaRational& blockValue, int& brokenInBlock, int& fixesRemaining, int& negErrorChange){
+
+  while(heap.more()){
+    const Border& top = heap.top();
+    if(blockValue == top.d_diff){
+      // belongs to the block
+      if(top.ownBorder()){
+        brokenInBlock++;
+      }else{
+        if(top.d_areFixing){
+          fixesRemaining--;
+          negErrorChange++;
+        }else{
+          brokenInBlock++;
+        }
+      }
+      heap.pop_heap();
+    }else{
+      // does not belong to the block
+      Assert((heap.direction() > 0) ?
+             (blockValue < top.d_diff) : (blockValue > top.d_diff));
+      break;
+    }
   }
 }
 

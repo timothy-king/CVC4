@@ -79,15 +79,15 @@ public:
 private:
 
   int32_t d_pivotBudget;
-  enum PivotImprovement {
-    ErrorDropped,
-    NonDegenerate,
-    HeuristicDegenerate,
-    BlandsDegenerate
-  };
+  // enum PivotImprovement {
+  //   ErrorDropped,
+  //   NonDegenerate,
+  //   HeuristicDegenerate,
+  //   BlandsDegenerate
+  // };
 
-  PivotImprovement d_prevPivotImprovement;
-  uint32_t d_pivotImprovementInARow;
+  WitnessImprovement d_prevWitnessImprovement;
+  uint32_t d_witnessImprovementInARow;
 
   uint32_t degeneratePivotsInARow() const;
 
@@ -96,7 +96,7 @@ private:
 
   ArithVarVec d_sgnDisagreements;
 
-  static PivotImprovement pivotImprovement(const UpdateInfo& selected, bool useBlands = false);
+  //static PivotImprovement pivotImprovement(const UpdateInfo& selected, bool useBlands = false);
 
   void logPivot(const UpdateInfo& selected, bool useBlands = false);
 

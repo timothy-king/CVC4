@@ -32,8 +32,8 @@ namespace arith {
 FCSimplexDecisionProcedure::FCSimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc)
   : SimplexDecisionProcedure(linEq, errors, conflictChannel, tvmalloc)
   , d_pivotBudget(0)
-  , d_prevPivotImprovement(ErrorDropped)
-  , d_pivotImprovementInARow(0)
+  , d_prevWitnessImprovement(AntiProductive)
+  , d_witnessImprovementInARow(0)
   , d_sgnDisagreements()
   , d_statistics()
 { }
@@ -158,49 +158,54 @@ void FCSimplexDecisionProcedure::logPivot(const UpdateInfo& selected, bool useBl
   if(d_pivotBudget > 0) {
     --d_pivotBudget;
   }
-  PivotImprovement curr = pivotImprovement(selected, useBlands);
+  WitnessImprovement curr = selected.getWitness(useBlands);
 
-  if(curr == d_prevPivotImprovement){
-    ++d_pivotImprovementInARow;
-    if(d_pivotImprovementInARow == 0){
-      --d_pivotImprovementInARow;
+  Assert(curr != AntiProductive);
+
+  if(curr == d_prevWitnessImprovement){
+    ++d_witnessImprovementInARow;
+    if(d_witnessImprovementInARow == 0){
+      --d_witnessImprovementInARow;
     }
-  }else if(useBlands){
-    // keep d_pivotImprovementInARow as the same
-    d_prevPivotImprovement = curr;
   }else{
-    d_prevPivotImprovement = curr;
-    d_pivotImprovementInARow = 1;
+    d_prevWitnessImprovement = curr;
+    if(!useBlands){
+      d_witnessImprovementInARow = 1;
+    }
   }
-  Debug("logPivot") << "logPivot " << d_prevPivotImprovement << " "  << d_pivotImprovementInARow << ": " << selected << endl;
+  Debug("logPivot") << "logPivot " << d_prevWitnessImprovement << " "  << d_witnessImprovementInARow << ": " << selected << endl;
 }
 
 uint32_t FCSimplexDecisionProcedure::degeneratePivotsInARow() const {
-  switch(d_prevPivotImprovement){
+  switch(d_prevWitnessImprovement){
+  case ConflictFound:
   case ErrorDropped:
-  case NonDegenerate:
+  case FocusImproved:
     return 0;
   case HeuristicDegenerate:
   case BlandsDegenerate:
-    return d_pivotImprovementInARow;
+    return d_witnessImprovementInARow;
+  case AntiProductive:
+    Unreachable();
+    return -1;
   }
   Unreachable();
 }
 
-FCSimplexDecisionProcedure::PivotImprovement FCSimplexDecisionProcedure::pivotImprovement(const UpdateInfo& selected, bool useBlands) {
-  if(selected.d_errorsChange < 0){
-    return ErrorDropped;
-  }else if(selected.d_focusDirection == 0){
-    if(useBlands){
-      return BlandsDegenerate;
-    }else{
-      return HeuristicDegenerate;
-    }
-  }else{
-    Assert(selected.d_focusDirection > 0);
-    return NonDegenerate;
-  }
-}
+// FCSimplexDecisionProcedure::PivotImprovement FCSimplexDecisionProcedure::pivotImprovement(const UpdateInfo& selected, bool useBlands) {
+//   if(selected.d_errorsChange < 0){
+//     return ErrorDropped;
+//   }else if(selected.d_focusDirection == 0){
+//     if(useBlands){
+//       return BlandsDegenerate;
+//     }else{
+//       return HeuristicDegenerate;
+//     }
+//   }else{
+//     Assert(selected.d_focusDirection > 0);
+//     return NonDegenerate;
+//   }
+// }
 
 void FCSimplexDecisionProcedure::adjustFocusAndError(){
   uint32_t newErrorSize = d_errorSet.errorSize();
@@ -275,8 +280,7 @@ UpdateInfo FCSimplexDecisionProcedure::selectPrimalUpdate(ArithVar basic, int di
     ArithVar curr = (*end).first;
     int curr_movement = (*end).second;
 
-    currProposal.d_nonbasic = curr;
-    currProposal.d_nonbasicDirection = curr_movement;
+    currProposal = UpdateInfo(curr, curr_movement);
     d_linEq.computeSafeUpdate(currProposal, bpf);
 
     Debug("arith::selectPrimalUpdate")
@@ -284,13 +288,11 @@ UpdateInfo FCSimplexDecisionProcedure::selectPrimalUpdate(ArithVar basic, int di
       << "currProp " << currProposal << endl;
 
 
-    if(selected.d_nonbasic == ARITHVAR_SENTINEL ||
-       (d_linEq.*upf)(selected, currProposal)){
+    if(selected.uninitialized() || (d_linEq.*upf)(selected, currProposal)){
       Debug("arith::selectPrimalUpdate") << "selected "<< endl;
       selected = currProposal;
 
-      PivotImprovement selectImprove = pivotImprovement(selected, false);
-      if(selectImprove == ErrorDropped || selectImprove == NonDegenerate){
+      if(improvement(selected.getWitness(false))){
         break;
       }
     }else{
@@ -313,9 +315,9 @@ int FCSimplexDecisionProcedure::primalImproveError(ArithVar errorVar){
   updateAndSignal(selected);
   logPivot(selected, useBlands);
 
-  Assert(selected.d_errorsChange <= 0);
+  Assert(selected.errorsChange() <= 0);
 
-  return selected.d_errorsChange;
+  return selected.errorsChange();
 }
 
 
@@ -359,25 +361,21 @@ void FCSimplexDecisionProcedure::focusUsingSignDisagreements(ArithVar basic){
 }
 
 void FCSimplexDecisionProcedure::updateAndSignal(const UpdateInfo& selected){
-  ArithVar nonbasic = selected.d_nonbasic;
-  Constraint limiting = selected.d_limiting;
+  ArithVar nonbasic = selected.nonbasic();
 
-  ArithVar basic = ARITHVAR_SENTINEL;
-  DeltaRational newAssignment =
-    d_variables.getAssignment(nonbasic) + selected.d_nonbasicDelta;
-
-  if(limiting == NULL){
-    // This must drop at least the current variable
-    Assert(selected.d_errorsChange > 0);
-    d_linEq.updateTracked(nonbasic, newAssignment);
-  }else if(nonbasic == limiting->getVariable()){
-    d_linEq.updateTracked(nonbasic, newAssignment);
-  }else{
-    basic = limiting->getVariable();
+  if(selected.describesPivot()){
+    Constraint limiting = selected.limiting();
+    ArithVar basic = limiting->getVariable();
     d_linEq.trackVariable(basic);
     d_linEq.pivotAndUpdate(basic, nonbasic, limiting->getValue());
-  }
+  }else{
+    Assert(!selected.unbounded() || selected.errorsChange() < 0);
 
+    DeltaRational newAssignment =
+      d_variables.getAssignment(nonbasic) + selected.nonbasicDelta();
+
+    d_linEq.updateTracked(nonbasic, newAssignment);
+  }
 
   int32_t prevErrorSize = d_errorSet.errorSize();
   while(d_errorSet.moreSignals()){
@@ -392,13 +390,6 @@ void FCSimplexDecisionProcedure::updateAndSignal(const UpdateInfo& selected){
   }
   d_pivots++;
   int32_t currErrorSize = d_errorSet.errorSize();
-  // cout << "#" << d_pivots
-  //      << " c" << !d_conflictVariables.empty()
-  //      << " d" << (prevErrorSize - currErrorSize)
-  //      << " f"  << d_errorSet.inError(nonbasic)
-  //      << " h" << d_conflictVariables.isMember(nonbasic)
-  //      << " " << basic << "->" << nonbasic
-  //      << endl;
 
   adjustFocusAndError();
 }
@@ -409,7 +400,7 @@ int FCSimplexDecisionProcedure::dualLikeImproveError(ArithVar errorVar){
   int sgn = d_errorSet.getSgn(errorVar);
   UpdateInfo selected = selectUpdateForDualLike(errorVar, sgn);
 
-  if(selected.d_nonbasic == ARITHVAR_SENTINEL){
+  if(selected.uninitialized()){
     // we found no proposals
     // If this is empty, there must be an error on this variable!
     // this should not be possible. It Should have been caught as a signal earlier
@@ -419,15 +410,15 @@ int FCSimplexDecisionProcedure::dualLikeImproveError(ArithVar errorVar){
   d_sgnDisagreements.clear();
   Assert(d_sgnDisagreements.empty());
 
-  if(selected.d_nonbasic == ARITHVAR_SENTINEL){
+  if(selected.uninitialized()){
     // focus using sgn disagreement earlier
     Assert(d_focusSize > d_errorSet.focusSize());
     Assert(d_errorSet.focusSize() >= 1);
     adjustFocusAndError();
     return 0;
-  }else if(selected.d_focusDirection == 0 &&
-           d_prevPivotImprovement == HeuristicDegenerate &&
-           d_pivotImprovementInARow >= s_focusThreshold){
+  }else if(selected.focusDirection() == 0 &&
+           d_prevWitnessImprovement == HeuristicDegenerate &&
+           d_witnessImprovementInARow >= s_focusThreshold){
     d_errorSet.focusDownToJust(errorVar);
     Assert(d_focusSize > d_errorSet.focusSize());
     Assert(d_errorSet.focusSize() == 1);
@@ -436,8 +427,8 @@ int FCSimplexDecisionProcedure::dualLikeImproveError(ArithVar errorVar){
   }else{
     updateAndSignal(selected);
     logPivot(selected);
-    Assert(selected.d_errorsChange <= 0);
-    return selected.d_errorsChange;
+    Assert(selected.errorsChange() <= 0);
+    return selected.errorsChange();
   }
 }
 
@@ -479,18 +470,18 @@ int FCSimplexDecisionProcedure::selectFocusImproving() {
 
   UpdateInfo selected = selectPrimalUpdate(d_focusErrorVar, 1, upf, bpf, false);
 
-  if(selected.d_nonbasic == ARITHVAR_SENTINEL){
+  if(selected.uninitialized()){
     Debug("selectFocusImproving") << "focus is optimum, but we don't have sat/conflict yet" << endl;
     focusDownToLastHalf();
     adjustFocusAndError();
     return 0;
   }
-  Assert(selected.d_nonbasic != ARITHVAR_SENTINEL);
-
-  if(selected.d_focusDirection == 0){
+  Assert(!selected.uninitialized());
+  Assert(selected.focusDirection() >= 0);
+  if(selected.focusDirection() == 0){
     Debug("selectFocusImproving") << "only degenerate" << endl;
-    if(d_prevPivotImprovement == HeuristicDegenerate &&
-       d_pivotImprovementInARow >= s_focusThreshold){
+    if(d_prevWitnessImprovement == HeuristicDegenerate &&
+       d_witnessImprovementInARow >= s_focusThreshold){
       Debug("selectFocusImproving") << "focus down been degenerate too long" << endl;
       focusDownToLastHalf();
       adjustFocusAndError();
@@ -504,8 +495,8 @@ int FCSimplexDecisionProcedure::selectFocusImproving() {
 
   updateAndSignal(selected);
   logPivot(selected);
-  Assert(selected.d_errorsChange <= 0);
-  return selected.d_errorsChange;
+  Assert(selected.errorsChange() <= 0);
+  return selected.errorsChange();
 }
 
 Result::Sat FCSimplexDecisionProcedure::dualLike(){
