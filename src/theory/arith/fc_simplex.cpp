@@ -116,6 +116,9 @@ Result::Sat FCSimplexDecisionProcedure::findModel(bool exactResult){
   static const bool verbose = false;
   exactResult |= options::arithStandardCheckVarOrderPivots() < 0;
 
+  d_prevWitnessImprovement = HeuristicDegenerate;
+  d_witnessImprovementInARow = 0;
+
   Result::Sat result = Result::SAT_UNKNOWN;
 
   if(result == Result::SAT_UNKNOWN){

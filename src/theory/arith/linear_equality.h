@@ -58,7 +58,7 @@ inline bool improvement(WitnessImprovement w){
 class UpdateInfo {
 private:
   ArithVar d_nonbasic;
-  Maybe<int> d_nonbasicDirection;
+  int d_nonbasicDirection;
   Maybe<DeltaRational> d_nonbasicDelta;
 
   bool d_foundConflict;
@@ -67,14 +67,23 @@ private:
 
   Constraint d_limiting;
 
+  bool debugSgnAgreement() const {
+    int deltaSgn = d_nonbasicDelta.constValue().sgn();
+    return deltaSgn == 0 || deltaSgn == d_nonbasicDirection;
+  }
+
+  UpdateInfo(bool conflict, ArithVar nb, const DeltaRational& delta, Constraint lim);
+
 public:
 
   UpdateInfo();
   UpdateInfo(ArithVar nb, int dir);
-  UpdateInfo(ArithVar nb, const DeltaRational& delta);
-  UpdateInfo(ArithVar nb, const DeltaRational& delta, Constraint c);
-  UpdateInfo(ArithVar nb, const DeltaRational& delta, int errorChange, Constraint c);
-  UpdateInfo(ArithVar nb, const DeltaRational& delta, int errorChange, int focusDir, Constraint lim);
+
+  void updateProposal(const DeltaRational&);
+  void updateProposal(const DeltaRational&, Constraint c);
+  void updateProposal(const DeltaRational&, int errorChange, Constraint c);
+  void updateProposal(const DeltaRational&, int errorChange, int focusDir, Constraint c);
+
 
   static UpdateInfo conflict(ArithVar nb, const DeltaRational& delta, Constraint lim);
 
@@ -714,7 +723,7 @@ private:
    */
   bool accumulateBorder(const Tableau::Entry& entry, bool ub);
 
-  void handleBorders(UpdateInfo& selected, const Rational& focusCoeff, BorderHeap& heap, int minimumFixes, UpdatePreferenceFunction pref);
+  void handleBorders(UpdateInfo& selected, ArithVar nb, const Rational& focusCoeff, BorderHeap& heap, int minimumFixes, UpdatePreferenceFunction pref);
   void pop_block(BorderHeap& heap, const DeltaRational& blockValue, int& brokenInBlock, int& fixesRemaining, int& negErrorChange);
   void clearSpeculative();
   Rational updateCoefficient(BorderVec::const_iterator startBlock, BorderVec::const_iterator endBlock);

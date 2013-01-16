@@ -57,53 +57,48 @@ UpdateInfo::UpdateInfo(ArithVar nb, int dir):
   d_limiting(NullConstraint)
 {}
 
-UpdateInfo::UpdateInfo(ArithVar nb, const DeltaRational& delta):
+void UpdateInfo::updateProposal(const DeltaRational& delta){
+  d_nonbasicDelta = delta;
+  Assert(debugSgnAgreement());
+}
+
+void UpdateInfo::updateProposal(const DeltaRational& delta, Constraint c){
+  d_limiting = c;
+  d_nonbasicDelta = delta;
+  Assert(debugSgnAgreement());
+}
+
+void UpdateInfo::updateProposal(const DeltaRational& delta, int ec, Constraint c){
+  d_limiting = c;
+  d_errorsChange = ec;
+  d_nonbasicDelta = delta;
+  Assert(debugSgnAgreement());
+}
+
+void UpdateInfo::updateProposal(const DeltaRational& delta, int ec, int fd, Constraint c){
+  d_limiting = c;
+  d_errorsChange = ec;
+  d_focusDirection = fd;
+  d_nonbasicDelta = delta;
+  Assert(debugSgnAgreement());
+}
+
+UpdateInfo::UpdateInfo(bool conflict, ArithVar nb, const DeltaRational& delta, Constraint c):
   d_nonbasic(nb),
   d_nonbasicDirection(delta.sgn()),
   d_nonbasicDelta(delta),
+  d_foundConflict(conflict),
   d_errorsChange(),
   d_focusDirection(),
-  d_limiting(NullConstraint)
-{}
-
-UpdateInfo::UpdateInfo(ArithVar nb, const DeltaRational& delta, Constraint c):
-  d_nonbasic(nb),
-  d_nonbasicDirection(delta.sgn()),
-  d_nonbasicDelta(delta),
-  d_foundConflict(false),
-  d_errorsChange(),
-  d_focusDirection(),
-  d_limiting(c)
-{}
-
-UpdateInfo::UpdateInfo(ArithVar nb, const DeltaRational& delta, int errorChange, Constraint c):
-  d_nonbasic(nb),
-  d_nonbasicDirection(delta.sgn()),
-  d_nonbasicDelta(delta),
-  d_foundConflict(false),
-  d_errorsChange(errorChange),
-  d_focusDirection(),
-  d_limiting(c)
-{}
-
-UpdateInfo::UpdateInfo(ArithVar nb, const DeltaRational& delta, int errorChange, int fdir, Constraint c):
-  d_nonbasic(nb),
-  d_nonbasicDirection(delta.sgn()),
-  d_nonbasicDelta(delta),
-  d_foundConflict(false),
-  d_errorsChange(errorChange),
-  d_focusDirection(fdir),
   d_limiting(c)
 {}
 
 UpdateInfo UpdateInfo::conflict(ArithVar nb, const DeltaRational& delta, Constraint lim){
-  UpdateInfo ret(nb, delta, lim);
-  ret.d_foundConflict = true;
-  return ret;
+  return UpdateInfo(true, nb, delta, lim);
 }
 
 bool UpdateInfo::describesPivot() const {
-  return !unbounded() && d_nonbasic == d_limiting->getVariable();
+  return !unbounded() && d_nonbasic != d_limiting->getVariable();
 }
 
 void UpdateInfo::output(std::ostream& out) const{
@@ -111,6 +106,7 @@ void UpdateInfo::output(std::ostream& out) const{
       << ", nb = " << d_nonbasic
       << ", dir = " << d_nonbasicDirection
       << ", delta = " << d_nonbasicDelta
+      << ", conflict = " << d_foundConflict
       << ", errorChange = " << d_errorsChange
       << ", focusDir = " << d_focusDirection
       << ", limiting = " << d_limiting
@@ -127,6 +123,7 @@ std::ostream& operator<<(std::ostream& out, const UpdateInfo& up){
   up.output(out);
   return out;
 }
+
 LinearEqualityModule::LinearEqualityModule(ArithVariables& vars, Tableau& t, BoundCountingVector& boundTracking, BasicVarModelUpdateCallBack f):
   d_variables(vars),
   d_tableau(t),
@@ -826,14 +823,14 @@ void LinearEqualityModule::computeSafeUpdate(UpdateInfo& inf, VarPreferenceFunct
 
   if(sgn > 0 && d_variables.hasUpperBound(nb)){
     Constraint ub = d_variables.getUpperBoundConstraint(nb);
-    inf = UpdateInfo(nb, ub->getValue() - d_variables.getAssignment(nb), ub);
+    inf.updateProposal(ub->getValue() - d_variables.getAssignment(nb), ub);
 
     Assert(inf.nonbasicDelta().sgn() == sgn);
     Debug("computeSafeUpdate") << "computeSafeUpdate " <<  inf.limiting() << endl;
     phase = NbsBoundSelected;
   }else if(sgn < 0 && d_variables.hasLowerBound(nb)){
     Constraint lb = d_variables.getLowerBoundConstraint(nb);
-    inf = UpdateInfo(nb, lb->getValue() - d_variables.getAssignment(nb), lb);
+    inf.updateProposal(lb->getValue() - d_variables.getAssignment(nb), lb);
 
     Assert(inf.nonbasicDelta().sgn() == sgn);
 
@@ -902,14 +899,16 @@ void LinearEqualityModule::computeSafeUpdate(UpdateInfo& inf, VarPreferenceFunct
         break;
       }
       if(prefer){
-        inf = UpdateInfo(nb, diff, proposal);
+        inf.updateProposal(diff, proposal);
 
         phase = (diff.sgn() != 0) ? BasicBoundSelected : DegenerateBoundSelected;
       }
     }
   }
 
-  if(phase != DegenerateBoundSelected){
+  if(phase == DegenerateBoundSelected){
+    inf.setErrorsChange(0);
+  }else{
     computedFixed(inf);
   }
   inf.determineFocusDirection();
@@ -986,10 +985,15 @@ void LinearEqualityModule::computedFixed(UpdateInfo& proposal){
   Assert(dropped < 0 || !proposal.unbounded());
 
   if(dropped < 0){
-    proposal = UpdateInfo(proposal.nonbasic(), maxAmount, dropped, maxFix);
+    proposal.updateProposal(maxAmount, dropped, maxFix);
     // proposal.d_limiting = maxFix;
     // proposal.d_nonbasicDelta = maxAmount;
     // proposal.d_errorsChange = dropped;
+  }else{
+    Assert(dropped == 0);
+    Assert(proposal.nonbasicDelta().sgn() != 0);
+    Assert(proposal.nonbasicDirection() != 0);
+    proposal.setErrorsChange(0);
   }
 }
 
@@ -1162,13 +1166,13 @@ UpdateInfo LinearEqualityModule::speculativeUpdate(ArithVar nb, const Rational& 
     }
   }
 
-  UpdateInfo selected(nb, focusCoeffSgn);
+  UpdateInfo selected;
   BorderHeap& withSgn = focusCoeffSgn > 0 ? d_increasing : d_decreasing;
   BorderHeap& againstSgn = focusCoeffSgn > 0 ? d_decreasing : d_increasing;
 
-  handleBorders(selected, focusCoeff, withSgn, 0, pref);
+  handleBorders(selected, nb, focusCoeff, withSgn, 0, pref);
   int m = 1 - selected.errorsChangeSafe(0);
-  handleBorders(selected, focusCoeff, againstSgn, m, pref);
+  handleBorders(selected, nb, focusCoeff, againstSgn, m, pref);
 
   clearSpeculative();
   return selected;
@@ -1182,7 +1186,7 @@ void LinearEqualityModule::clearSpeculative(){
   d_upperBoundDifference.clear();
 }
 
-void LinearEqualityModule::handleBorders(UpdateInfo& selected, const Rational& focusCoeff, BorderHeap& heap, int minimumFixes, UpdatePreferenceFunction pref){
+void LinearEqualityModule::handleBorders(UpdateInfo& selected, ArithVar nb, const Rational& focusCoeff, BorderHeap& heap, int minimumFixes, UpdatePreferenceFunction pref){
 
 
   // The values popped off of the heap
@@ -1202,8 +1206,8 @@ void LinearEqualityModule::handleBorders(UpdateInfo& selected, const Rational& f
     return;
   }
 
-  ArithVar nb = selected.nonbasic();
   int negErrorChange = 0;
+  int nbDir = heap.direction();
 
   // points at the beginning of the heap
   heap.make_heap();
@@ -1246,11 +1250,12 @@ void LinearEqualityModule::handleBorders(UpdateInfo& selected, const Rational& f
     BorderVec::const_iterator startBlock
       = heap.more() ? heap.end()+1 : heap.begin();
 
-    int currFocusSgn = totalFocusChange.sgn();
+    int currFocusChangeSgn = totalFocusChange.sgn();
     for(BorderVec::const_iterator i = startBlock; i != endBlock; ++i){
       const Border& b = *i;
 
-      UpdateInfo proposal(nb, b.d_diff, -negErrorChange, currFocusSgn, b.d_bound);
+      UpdateInfo proposal(nb, nbDir);
+      proposal.updateProposal(b.d_diff, -negErrorChange, currFocusChangeSgn, b.d_bound);
 
       if(selected.unbounded() || (this->*pref)(selected, proposal)){
         selected = proposal;
