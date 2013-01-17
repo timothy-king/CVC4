@@ -98,7 +98,7 @@ private:
 
   //static PivotImprovement pivotImprovement(const UpdateInfo& selected, bool useBlands = false);
 
-  void logPivot(const UpdateInfo& selected, bool useBlands = false);
+  void logPivot(const UpdateInfo& selected, bool useBlands);
 
   void updateAndSignal(const UpdateInfo& selected);
   UpdateInfo selectPrimalUpdate(ArithVar error, int sgn, LinearEqualityModule::UpdatePreferenceFunction upf, LinearEqualityModule::VarPreferenceFunction bpf, bool storeDisagreements);

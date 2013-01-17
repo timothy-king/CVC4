@@ -51,7 +51,25 @@ enum WitnessImprovement {
 inline bool improvement(WitnessImprovement w){
   return w <= FocusImproved;
 }
-
+inline std::ostream& operator<<(std::ostream& out,  WitnessImprovement w){
+  switch(w){
+  case ConflictFound:
+    out << "ConflictFound"; break;
+  case ErrorDropped:
+    out << "ErrorDropped"; break;
+  case FocusImproved:
+    out << "FocusImproved"; break;
+  case Degenerate:
+    out << "Degenerate"; break;
+  case BlandsDegenerate:
+    out << "BlandsDegenerate"; break;
+  case HeuristicDegenerate:
+    out << "HeuristicDegenerate"; break;
+  case AntiProductive:
+    out << "AntiProductive"; break;
+  }
+  return out;
+}
 /**
  * This class summarizes both potential:
  * - pivot-and-update operations or

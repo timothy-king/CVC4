@@ -901,8 +901,8 @@ void LinearEqualityModule::computedFixed(UpdateInfo& proposal){
 
         if(prefer){
           max.updatePivot(amount, fixed, dropped);
-          // maxAmount = amount;
-          // maxFix = fixed;
+        }else{
+          max.setErrorsChange(dropped);
         }
       }
     }
@@ -911,13 +911,13 @@ void LinearEqualityModule::computedFixed(UpdateInfo& proposal){
 
   if(dropped < 0){
     proposal = max;
-    //proposal.updatePivot(maxAmount, maxFix, dropped);
   }else{
     Assert(dropped == 0);
     Assert(proposal.nonbasicDelta().sgn() != 0);
     Assert(proposal.nonbasicDirection() != 0);
     proposal.setErrorsChange(0);
   }
+  Assert(proposal.errorsChange() == dropped);
 }
 
 ArithVar LinearEqualityModule::minBy(const ArithVarVec& vec, VarPreferenceFunction pf) const{
