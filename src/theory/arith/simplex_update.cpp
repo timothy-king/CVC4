@@ -73,6 +73,7 @@ void UpdateInfo::updateUnbounded(const DeltaRational& delta, int ec, int f){
   d_focusDirection = f;
   updateWitness();
   Assert(unbounded());
+  Assert(improvement(d_witness));
   Assert(!describesPivot());
   Assert(debugSgnAgreement());
 }
@@ -83,6 +84,7 @@ void UpdateInfo::updatePureFocus(const DeltaRational& delta, Constraint c){
   d_focusDirection = 1;
   updateWitness();
   Assert(!describesPivot());
+  Assert(improvement(d_witness));
   Assert(debugSgnAgreement());
 }
 
@@ -99,7 +101,7 @@ void UpdateInfo::updatePivot(const DeltaRational& delta, Constraint c){
 void UpdateInfo::updatePivot(const DeltaRational& delta, Constraint c, int ec){
   d_limiting = c;
   d_nonbasicDelta = delta;
-  setErrorsChange(ec);
+  d_errorsChange = ec;
   d_focusDirection.clear();
   updateWitness();
   Assert(describesPivot());
@@ -109,10 +111,10 @@ void UpdateInfo::updatePivot(const DeltaRational& delta, Constraint c, int ec){
 void UpdateInfo::update(const DeltaRational& delta, Constraint c, int ec, int fd){
   d_limiting = c;
   d_nonbasicDelta = delta;
-  setErrorsChange(ec);
-  setFocusDirection(fd);
+  d_errorsChange = ec;
+  d_focusDirection = fd;
   updateWitness();
-  Assert(improvement(d_witness));
+  Assert(describesPivot() || improvement(d_witness));
   Assert(debugSgnAgreement());
 }
 

@@ -77,7 +77,14 @@ struct Border{
 
   /** d_lim is the nonbasic variable's own bound. */
   bool ownBorder() const { return d_entry == NULL; }
+
+  void output(std::ostream& out) const;
 };
+
+inline std::ostream& operator<<(std::ostream& out, const Border& b){
+  b.output(out);
+  return out;
+}
 
 typedef std::vector<Border> BorderVec;
 
@@ -145,7 +152,7 @@ public:
 
   const Border& top() const {
     Assert(more());
-    return *(d_end - 1);
+    return *d_begin;
   }
   void pop_heap(){
     Assert(more());
@@ -243,9 +250,11 @@ public:
     return hasBounds(basic, true);
   }
 
-
   void startTrackingBoundCounts();
   void stopTrackingBoundCounts();
+
+
+  void includeBoundCountChange(ArithVar nb, BoundCounts prev);
 
   void computeSafeUpdate(UpdateInfo& inf, VarPreferenceFunction basic);
 
@@ -364,7 +373,7 @@ public:
     if(aImp == bImp){
       switch(aImp){
       case ConflictFound:
-        return minNonBasicVarOrder(a, b);
+        return preferNeitherBound(a,b);
       case ErrorDropped:
         if(a.errorsChange() == b.errorsChange()){
           return preferNeitherBound(a,b);
@@ -383,7 +392,7 @@ public:
         Assert(a.describesPivot());
         Assert(b.describesPivot());
         Assert(a.focusDirection() == 0 && b.focusDirection() == 0);
-        return minProduct(a,b);
+        return preferNeitherBound(a,b);
       case AntiProductive:
         return minNonBasicVarOrder(a, b);
       }
@@ -516,21 +525,24 @@ public:
   inline bool basicIsTracked(ArithVar v) const {
     return d_boundTracking.isKey(v);
   }
+  void trackVariable(ArithVar x_i);
 
-  void maybeTrackVariable(ArithVar x_i){
-    if(d_areTracking){
-      countBounds(x_i);
+  void maybeRemoveTracking(ArithVar v){
+    Assert(!d_tableau.isBasic(v));
+    if(d_boundTracking.isKey(v)){
+      d_boundTracking.remove(v);
     }
   }
-  void trackVariable(ArithVar x_i){
-    Assert(d_areTracking);
-    if(!basicIsTracked(x_i)){
-      d_boundTracking.set(x_i,computeBoundCounts(x_i));
-    }
-  }
+
+  // void trackVariable(ArithVar x_i){
+  //   Assert(!basicIsTracked(x_i));
+  //   d_boundTracking.set(x_i,computeBoundCounts(x_i));
+  // }
+private:
   BoundCounts computeBoundCounts(ArithVar x_i) const;
-  BoundCounts cachingCountBounds(ArithVar x_i) const;
-  BoundCounts countBounds(ArithVar x_i);
+public:
+  //BoundCounts cachingCountBounds(ArithVar x_i) const;
+  BoundCounts _countBounds(ArithVar x_i) const;
   void trackingCoefficientChange(RowIndex ridx, ArithVar nb, int oldSgn, int currSgn);
 
   void trackingSwap(ArithVar basic, ArithVar nb, int sgn);
@@ -646,7 +658,7 @@ private:
   bool accumulateBorder(const Tableau::Entry& entry, bool ub);
 
   void handleBorders(UpdateInfo& selected, ArithVar nb, const Rational& focusCoeff, BorderHeap& heap, int minimumFixes, UpdatePreferenceFunction pref);
-  void pop_block(BorderHeap& heap, const DeltaRational& blockValue, int& brokenInBlock, int& fixesRemaining, int& negErrorChange);
+  void pop_block(BorderHeap& heap, int& brokenInBlock, int& fixesRemaining, int& negErrorChange);
   void clearSpeculative();
   Rational updateCoefficient(BorderVec::const_iterator startBlock, BorderVec::const_iterator endBlock);
 
@@ -668,14 +680,33 @@ private:
 
 };/* class LinearEqualityModule */
 
+struct Cand {
+  ArithVar d_nb;
+  int d_sgn;
+  const Rational* d_coeff;
+
+  Cand(ArithVar nb, int s, const Rational* c) : d_nb(nb), d_sgn(s), d_coeff(c){}
+};
+
+
 class CompColLength {
 private:
   LinearEqualityModule* d_mod;
 public:
   CompColLength(LinearEqualityModule* mod): d_mod(mod){}
 
-  bool operator()(std::pair<ArithVar, int> x, std::pair<ArithVar, int> y) const {
-    return x.first == d_mod->minColLength(x.first,y.first);
+  bool operator()(const Cand& x, const Cand& y) const {
+    return x.d_nb == d_mod->minBoundAndColLength(x.d_nb,y.d_nb);
+  }
+};
+
+class UpdateTrackingCallback : public BoundCountsCallback {
+private:
+  LinearEqualityModule* d_mod;
+public:
+  UpdateTrackingCallback(LinearEqualityModule* mod): d_mod(mod){}
+  void operator()(ArithVar v, BoundCounts bc){
+    d_mod->includeBoundCountChange(v, bc);
   }
 };
 

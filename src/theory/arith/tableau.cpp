@@ -135,7 +135,6 @@ void Tableau::removeBasicRow(ArithVar basic){
   removeRow(rid);
   d_basic2RowIndex.remove(basic);
   d_rowIndex2basic.remove(rid);
-  
 }
 
 

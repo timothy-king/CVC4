@@ -101,7 +101,10 @@ private:
   void logPivot(const UpdateInfo& selected, bool useBlands);
 
   void updateAndSignal(const UpdateInfo& selected);
-  UpdateInfo selectPrimalUpdate(ArithVar error, int sgn, LinearEqualityModule::UpdatePreferenceFunction upf, LinearEqualityModule::VarPreferenceFunction bpf, bool storeDisagreements);
+
+  UpdateInfo selectPrimalUpdate(ArithVar error,
+                                LinearEqualityModule::UpdatePreferenceFunction upf,
+                                LinearEqualityModule::VarPreferenceFunction bpf);
 
 
   UpdateInfo selectUpdateForDualLike(ArithVar basic, int sgn){
@@ -110,13 +113,11 @@ private:
     LinearEqualityModule::UpdatePreferenceFunction upf =
       &LinearEqualityModule::preferWitness<true>;
     LinearEqualityModule::VarPreferenceFunction bpf =
-      &LinearEqualityModule::minRowLength;
-    
-    bpf = &LinearEqualityModule::minVarOrder;
-    return selectPrimalUpdate(basic, sgn, upf, bpf, true);
+      &LinearEqualityModule::minVarOrder;
+    return selectPrimalUpdate(basic, upf, bpf);
   }
 
-  UpdateInfo selectUpdateForPrimal(ArithVar basic, int sgn, bool useBlands){
+  UpdateInfo selectUpdateForPrimal(ArithVar basic, bool useBlands){
     TimerStat::CodeTimer codeTimer(d_statistics.d_selectUpdateForPrimal);
 
     LinearEqualityModule::UpdatePreferenceFunction upf = useBlands ?
@@ -128,14 +129,14 @@ private:
       &LinearEqualityModule::minRowLength;
     bpf = &LinearEqualityModule::minVarOrder;
 
-    return selectPrimalUpdate(basic, sgn, upf, bpf, false);
+    return selectPrimalUpdate(basic, upf, bpf);
   }
-  int selectFocusImproving() ;
+  bool selectFocusImproving() ;
 
   void focusUsingSignDisagreements(ArithVar basic);
   void focusDownToLastHalf();
 
-  void adjustFocusAndError();
+  void adjustFocusAndError(bool readjust);
 
   /**
    * This is the main simplex for DPLL(T) loop.

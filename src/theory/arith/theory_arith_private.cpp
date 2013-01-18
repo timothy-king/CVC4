@@ -1088,6 +1088,7 @@ void TheoryArithPrivate::setupPolynomial(const Polynomial& poly) {
     ArithVar varSlack = requestArithVar(polyNode, true);
     d_tableau.addRow(varSlack, coefficients, variables);
     setupBasicValue(varSlack);
+    d_linEq.trackVariable(varSlack);
 
     //Add differences to the difference manager
     Polynomial::iterator i = poly.begin(), end = poly.end();
@@ -1160,9 +1161,10 @@ void TheoryArithPrivate::preRegisterTerm(TNode n) {
 
 void TheoryArithPrivate::releaseArithVar(ArithVar v){
   Assert(d_partialModel.hasNode(v));
-  
+
   d_constraintDatabase.removeVariable(v);
   d_partialModel.releaseArithVar(v);
+  d_linEq.maybeRemoveTracking(v);
 }
 
 ArithVar TheoryArithPrivate::requestArithVar(TNode x, bool slack){
@@ -1644,7 +1646,11 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
   bool emmittedConflictOrSplit = false;
   Assert(d_conflicts.empty());
 
+  d_partialModel.stopQueueingAtBoundQueue();
+  UpdateTrackingCallback utcb(&d_linEq);
+  d_partialModel.processAtBoundQueue(utcb);
   d_linEq.startTrackingBoundCounts();
+
   //d_qflraStatus = d_pureUpdate.findModel(false);
   if(d_qflraStatus == Result::SAT_UNKNOWN){
     d_qflraStatus = d_fcSimplex.findModel(Theory::fullEffort(effortLevel));
@@ -1655,6 +1661,7 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
 
   // TODO Save zeroes with no conflicts
   d_linEq.stopTrackingBoundCounts();
+  d_partialModel.startQueueingAtBoundQueue();
 
   switch(d_qflraStatus){
   case Result::SAT:
@@ -2254,35 +2261,37 @@ void TheoryArithPrivate::notifyRestart(){
   if(Debug.isOn("paranoid:check_tableau")){ d_linEq.debugCheckTableau(); }
 
   ++d_restartsCounter;
+#warning "removing restart"
+  // return;
 
-  uint32_t currSize = d_tableau.size();
-  uint32_t copySize = d_smallTableauCopy.size();
+  // uint32_t currSize = d_tableau.size();
+  // uint32_t copySize = d_smallTableauCopy.size();
 
-  Debug("arith::reset") << "resetting" << d_restartsCounter << endl;
-  Debug("arith::reset") << "curr " << currSize << " copy " << copySize << endl;
-  Debug("arith::reset") << "tableauSizeHasBeenModified " << d_tableauSizeHasBeenModified << endl;
+  // Debug("arith::reset") << "resetting" << d_restartsCounter << endl;
+  // Debug("arith::reset") << "curr " << currSize << " copy " << copySize << endl;
+  // Debug("arith::reset") << "tableauSizeHasBeenModified " << d_tableauSizeHasBeenModified << endl;
 
-  if(d_tableauSizeHasBeenModified){
-    Debug("arith::reset") << "row has been added must copy " << d_restartsCounter << endl;
-    d_smallTableauCopy = d_tableau;
-    d_tableauSizeHasBeenModified = false;
-  }else if( d_restartsCounter >= RESET_START){
-    if(copySize >= currSize * 1.1 ){
-      Debug("arith::reset") << "size has shrunk " << d_restartsCounter << endl;
-      ++d_statistics.d_smallerSetToCurr;
-      d_smallTableauCopy = d_tableau;
-    }else if(d_tableauResetDensity * copySize <=  currSize){
-      d_errorSet.popAllSignals();
-      if(safeToReset()){
-        Debug("arith::reset") << "resetting " << d_restartsCounter << endl;
-        ++d_statistics.d_currSetToSmaller;
-        d_tableau = d_smallTableauCopy;
-      }else{
-        Debug("arith::reset") << "not safe to reset at the moment " << d_restartsCounter << endl;
-      }
-    }
-  }
-  Assert(unenqueuedVariablesAreConsistent());
+  // if(d_tableauSizeHasBeenModified){
+  //   Debug("arith::reset") << "row has been added must copy " << d_restartsCounter << endl;
+  //   d_smallTableauCopy = d_tableau;
+  //   d_tableauSizeHasBeenModified = false;
+  // }else if( d_restartsCounter >= RESET_START){
+  //   if(copySize >= currSize * 1.1 ){
+  //     Debug("arith::reset") << "size has shrunk " << d_restartsCounter << endl;
+  //     ++d_statistics.d_smallerSetToCurr;
+  //     d_smallTableauCopy = d_tableau;
+  //   }else if(d_tableauResetDensity * copySize <=  currSize){
+  //     d_errorSet.popAllSignals();
+  //     if(safeToReset()){
+  //       Debug("arith::reset") << "resetting " << d_restartsCounter << endl;
+  //       ++d_statistics.d_currSetToSmaller;
+  //       d_tableau = d_smallTableauCopy;
+  //     }else{
+  //       Debug("arith::reset") << "not safe to reset at the moment " << d_restartsCounter << endl;
+  //     }
+  //   }
+  // }
+  // Assert(unenqueuedVariablesAreConsistent());
 }
 
 bool TheoryArithPrivate::entireStateIsConsistent(const string& s){

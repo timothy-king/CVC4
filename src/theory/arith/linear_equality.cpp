@@ -40,6 +40,23 @@ template ArithVar LinearEqualityModule::selectSlack<false>(ArithVar x_i, VarPref
 template bool LinearEqualityModule::preferWitness<true>(const UpdateInfo& a, const UpdateInfo& b) const;
 template bool LinearEqualityModule::preferWitness<false>(const UpdateInfo& a, const UpdateInfo& b) const;
 
+
+void Border::output(std::ostream& out) const{
+  out << "{Border"
+      << ", " << d_bound->getVariable()
+      << ", " << d_bound->getValue()
+      << ", " << d_diff
+      << ", " << d_areFixing
+      << ", " << d_upperbound;
+  if(ownBorder()){
+    out << ", ownBorder";
+  }else{
+    out << ", " << d_entry->getCoefficient();
+  }
+  out << ", " << d_bound
+      << "}";
+}
+
 LinearEqualityModule::LinearEqualityModule(ArithVariables& vars, Tableau& t, BoundCountingVector& boundTracking, BasicVarModelUpdateCallBack f):
   d_variables(vars),
   d_tableau(t),
@@ -85,6 +102,32 @@ LinearEqualityModule::Statistics::~Statistics(){
   StatisticsRegistry::unregisterStat(&d_weakeningSuccesses);
   StatisticsRegistry::unregisterStat(&d_weakenings);
   StatisticsRegistry::unregisterStat(&d_weakenTime);
+}
+void LinearEqualityModule::includeBoundCountChange(ArithVar nb, BoundCounts prev){
+  if(d_tableau.isBasic(nb)){
+    return;
+  }
+  Assert(!d_tableau.isBasic(nb));
+  Assert(!d_areTracking);
+
+  BoundCounts curr = d_variables.boundCounts(nb);
+
+  Assert(prev != curr);
+  Tableau::ColIterator basicIter = d_tableau.colIterator(nb);
+  for(; !basicIter.atEnd(); ++basicIter){
+    const Tableau::Entry& entry = *basicIter;
+    Assert(entry.getColVar() == nb);
+    int a_ijSgn = entry.getCoefficient().sgn();
+
+    ArithVar basic = d_tableau.rowIndexToBasic(entry.getRowIndex());
+
+    BoundCounts& counts = d_boundTracking.get(basic);
+    Debug("includeBoundCountChange") << basic << " " << counts << " to " ;
+    counts -= prev.multiplyBySgn(a_ijSgn);
+    counts += curr.multiplyBySgn(a_ijSgn);
+    Debug("includeBoundCountChange") << counts << " " << a_ijSgn << std::endl;
+  }
+  d_boundTracking.set(nb, curr);
 }
 
 void LinearEqualityModule::updateUntracked(ArithVar x_i, const DeltaRational& v){
@@ -607,21 +650,37 @@ ArithVar LinearEqualityModule::selectSlack(ArithVar x_i, VarPreferenceFunction p
 
 void LinearEqualityModule::startTrackingBoundCounts(){
   Assert(!d_areTracking);
-  Assert(d_boundTracking.empty());
-
   d_areTracking = true;
+  if(Debug.isOn("arith::tracking")){
+    debugCheckTracking();
+  }
   Assert(d_areTracking);
 }
 
 void LinearEqualityModule::stopTrackingBoundCounts(){
   Assert(d_areTracking);
-  d_boundTracking.purge();
-
   d_areTracking = false;
+  if(Debug.isOn("arith::tracking")){
+    debugCheckTracking();
+  }
   Assert(!d_areTracking);
-  Assert(d_boundTracking.empty());
 }
 
+
+void LinearEqualityModule::trackVariable(ArithVar x_i){
+  Assert(!basicIsTracked(x_i));
+  BoundCounts counts(0,0);
+
+  for(Tableau::RowIterator iter = d_tableau.basicRowIterator(x_i); !iter.atEnd();  ++iter){
+    const Tableau::Entry& entry = *iter;
+    ArithVar nonbasic = entry.getColVar();
+    if(nonbasic == x_i) continue;
+
+    const Rational& a_ij = entry.getCoefficient();
+    counts += (d_variables.oldBoundCounts(nonbasic)).multiplyBySgn(a_ij.sgn());
+  }
+  d_boundTracking.set(x_i, counts);
+}
 
 BoundCounts LinearEqualityModule::computeBoundCounts(ArithVar x_i) const{
   BoundCounts counts(0,0);
@@ -638,25 +697,29 @@ BoundCounts LinearEqualityModule::computeBoundCounts(ArithVar x_i) const{
   return counts;
 }
 
-BoundCounts LinearEqualityModule::cachingCountBounds(ArithVar x_i) const{
-  if(d_boundTracking.isKey(x_i)){
-    return d_boundTracking[x_i];
-  }else{
-    return computeBoundCounts(x_i);
-  }
+// BoundCounts LinearEqualityModule::cachingCountBounds(ArithVar x_i) const{
+//   if(d_boundTracking.isKey(x_i)){
+//     return d_boundTracking[x_i];
+//   }else{
+//     return computeBoundCounts(x_i);
+//   }
+// }
+BoundCounts LinearEqualityModule::_countBounds(ArithVar x_i) const {
+  Assert(d_boundTracking.isKey(x_i));
+  return d_boundTracking[x_i];
 }
 
-BoundCounts LinearEqualityModule::countBounds(ArithVar x_i){
-  if(d_boundTracking.isKey(x_i)){
-    return d_boundTracking[x_i];
-  }else{
-    BoundCounts bc = computeBoundCounts(x_i);
-    if(d_areTracking){
-      d_boundTracking.set(x_i,bc);
-    }
-    return bc;
-  }
-}
+// BoundCounts LinearEqualityModule::countBounds(ArithVar x_i){
+//   if(d_boundTracking.isKey(x_i)){
+//     return d_boundTracking[x_i];
+//   }else{
+//     BoundCounts bc = computeBoundCounts(x_i);
+//     if(d_areTracking){
+//       d_boundTracking.set(x_i,bc);
+//     }
+//     return bc;
+//   }
+// }
 
 bool LinearEqualityModule::nonbasicsAtLowerBounds(ArithVar basic) const {
   Assert(basicIsTracked(basic));
@@ -970,9 +1033,23 @@ bool LinearEqualityModule::accumulateBorder(const Tableau::Entry& entry, bool ub
   }else{
     bool areFixing = ub ? (toBound.sgn() < 0 ) : (toBound.sgn() > 0);
     Border border(bound, nbDiff, areFixing, &entry, ub);
-    if(diffSgn > 0 || (diffSgn == 0 && coeff.sgn() > 0)){
+    bool increasing =
+      (diffSgn > 0) ||
+      (diffSgn == 0 && ((coeff.sgn() > 0) == ub));
+
+    // assume diffSgn == 0
+    // if coeff > 0,
+    //   if ub, inc
+    //   else, dec
+    // else coeff < 0
+    //   if ub, dec
+    //   else, inc
+
+    if(increasing){
+      Debug("handleBorders") << "push back increasing " << border << endl;
       d_increasing.push_back(border);
     }else{
+      Debug("handleBorders") << "push back decreasing " << border << endl;
       d_decreasing.push_back(border);
     }
     return false;
@@ -1063,8 +1140,12 @@ UpdateInfo LinearEqualityModule::speculativeUpdate(ArithVar nb, const Rational& 
 
   int focusCoeffSgn = focusCoeff.sgn();
 
+  static int instance = 0;
+  ++instance;
+  Debug("speculativeUpdate") << "speculativeUpdate " << instance << endl;
+
   if(d_variables.hasUpperBound(nb)){
-    Constraint ub = d_variables.getLowerBoundConstraint(nb);
+    Constraint ub = d_variables.getUpperBoundConstraint(nb);
     d_upperBoundDifference = ub->getValue() - d_variables.getAssignment(nb);
     d_increasing.push_back(Border(ub, d_upperBoundDifference, false, NULL, true));
   }
@@ -1138,7 +1219,7 @@ void LinearEqualityModule::handleBorders(UpdateInfo& selected, ArithVar nb, cons
 
   // pretend like the previous block had a value of zero.
   // The block that actually has a value of 0 must handle this.
-  DeltaRational zero(0);
+  const DeltaRational zero(0);
   const DeltaRational* prevBlockValue = &zero;
 
   /** The coefficient changes as the value crosses border. */
@@ -1160,26 +1241,44 @@ void LinearEqualityModule::handleBorders(UpdateInfo& selected, ArithVar nb, cons
 
     int brokenInBlock = 0;
     BorderVec::const_iterator endBlock = heap.end();
-    const DeltaRational* blockValue = &(heap.top().d_diff);
 
-    pop_block(heap, *blockValue, brokenInBlock, fixesRemaining, negErrorChange);
-
-    DeltaRational diff = (*blockValue) - (*prevBlockValue);
-    DeltaRational blockChangeToFocus =  diff * effectiveCoefficient;
-    totalFocusChange += blockChangeToFocus;
+    pop_block(heap, brokenInBlock, fixesRemaining, negErrorChange);
 
     // if endVec == beginVec, block starts there
     // other wise, block starts at endVec
     BorderVec::const_iterator startBlock
       = heap.more() ? heap.end() : heap.begin();
 
+    const DeltaRational& blockValue = (*startBlock).d_diff;
+
+    // if decreasing
+    // blockValue < prevBlockValue
+    // diff.sgn() = -1
+    DeltaRational diff = blockValue - (*prevBlockValue);
+    DeltaRational blockChangeToFocus =  diff * effectiveCoefficient;
+    totalFocusChange += blockChangeToFocus;
+
+    Debug("handleBorders")
+      << "blockValue " << (blockValue)
+      << "diff " << diff
+      << "blockChangeToFocus " << totalFocusChange
+      << "blockChangeToFocus " << totalFocusChange
+      << "negErrorChange " << negErrorChange
+      << "brokenInBlock " << brokenInBlock
+      << "fixesRemaining " << fixesRemaining
+      << endl;
+
     int currFocusChangeSgn = totalFocusChange.sgn();
     for(BorderVec::const_iterator i = startBlock; i != endBlock; ++i){
       const Border& b = *i;
 
-      if(b.d_bound->getVariable() == nb &&
-         !(-negErrorChange < 0 || currFocusChangeSgn > 0)){
-        continue;
+      Debug("handleBorders") << b << endl;
+
+      if(b.ownBorder()){
+        if(negErrorChange < 0 ||
+           (negErrorChange == 0  && currFocusChangeSgn <= 0)){
+          continue;
+        }
       }
       UpdateInfo proposal(nb, nbDir);
       proposal.update(b.d_diff, b.d_bound, -negErrorChange, currFocusChangeSgn);
@@ -1190,7 +1289,7 @@ void LinearEqualityModule::handleBorders(UpdateInfo& selected, ArithVar nb, cons
     }
 
     effectiveCoefficient += updateCoefficient(startBlock, endBlock);
-    prevBlockValue = blockValue;
+    prevBlockValue = &blockValue;
     negErrorChange -= brokenInBlock;
   }
 }
@@ -1200,7 +1299,7 @@ Rational LinearEqualityModule::updateCoefficient(BorderVec::const_iterator start
   Rational changeToCoefficient(0);
   for(BorderVec::const_iterator i = startBlock; i != endBlock; ++i){
     const Border& curr = *i;
-    if(curr.d_bound->getVariable() == curr.d_entry->getColVar()){// breaking its own bound
+    if(curr.ownBorder()){// breaking its own bound
       if(curr.d_upperbound){
         changeToCoefficient -= 1;
       }else{
@@ -1227,21 +1326,27 @@ Rational LinearEqualityModule::updateCoefficient(BorderVec::const_iterator start
   return changeToCoefficient;
 }
 
-void LinearEqualityModule::pop_block(BorderHeap& heap, const DeltaRational& blockValue, int& brokenInBlock, int& fixesRemaining, int& negErrorChange){
+void LinearEqualityModule::pop_block(BorderHeap& heap, int& brokenInBlock, int& fixesRemaining, int& negErrorChange){
+  Assert(heap.more());
+
+  if(heap.top().d_areFixing){
+    fixesRemaining--;
+    negErrorChange++;
+  }else{
+    brokenInBlock++;
+  }
+  heap.pop_heap();
+  const DeltaRational& blockValue = (*heap.end()).d_diff;
 
   while(heap.more()){
     const Border& top = heap.top();
     if(blockValue == top.d_diff){
       // belongs to the block
-      if(top.ownBorder()){
-        brokenInBlock++;
+      if(top.d_areFixing){
+        fixesRemaining--;
+        negErrorChange++;
       }else{
-        if(top.d_areFixing){
-          fixesRemaining--;
-          negErrorChange++;
-        }else{
-          brokenInBlock++;
-        }
+        brokenInBlock++;
       }
       heap.pop_heap();
     }else{

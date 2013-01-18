@@ -27,11 +27,11 @@ public:
   : d_atLowerBounds(lbs), d_atUpperBounds(ubs) {}
 
   bool operator==(BoundCounts bc) const {
-    return d_atLowerBounds == bc.d_atLowerBounds 
-      && d_atUpperBounds == bc.d_atUpperBounds;     
+    return d_atLowerBounds == bc.d_atLowerBounds
+      && d_atUpperBounds == bc.d_atUpperBounds;
   }
   bool operator!=(BoundCounts bc) const {
-    return  d_atLowerBounds != bc.d_atLowerBounds 
+    return  d_atLowerBounds != bc.d_atLowerBounds
       || d_atUpperBounds != bc.d_atUpperBounds;
   }
   inline bool isZero() const{ return d_atLowerBounds == 0 && d_atUpperBounds == 0; }
@@ -53,7 +53,7 @@ public:
     return BoundCounts(d_atLowerBounds - bc.d_atLowerBounds,
                        d_atUpperBounds - bc.d_atUpperBounds);
   }
-  
+
   inline void addInChange(int sgn, BoundCounts before, BoundCounts after){
     Assert(before != after);
     if(sgn < 0){
@@ -72,7 +72,7 @@ public:
   inline void addInSgn(BoundCounts bc, int before, int after){
     Assert(before != after);
     Assert(!bc.isZero());
-    
+
     if(before < 0){
       d_atUpperBounds -= bc.d_atLowerBounds;
       d_atLowerBounds -= bc.d_atUpperBounds;
@@ -133,6 +133,11 @@ inline std::ostream& operator<<(std::ostream& os, const BoundCounts& bc){
      << bc.atUpperBounds() << "]";
   return os;
 }
+
+class BoundCountsCallback {
+public:
+  virtual void operator()(ArithVar v, BoundCounts bc) = 0;
+};
 
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */

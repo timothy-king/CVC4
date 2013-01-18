@@ -326,7 +326,6 @@ public:
   /**
    * Moves a variable out of the signals.
    * This moves it into the error set.
-   * 
    */
   void popSignal();
 

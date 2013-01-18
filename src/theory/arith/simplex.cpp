@@ -52,7 +52,7 @@ bool SimplexDecisionProcedure::standardProcessSignals(TimerStat &timer, IntStat&
   while(d_errorSet.moreSignals()){
     ArithVar curr = d_errorSet.topSignal();
     if(d_tableau.isBasic(curr) && !d_variables.assignmentIsConsistent(curr)){
-      d_linEq.trackVariable(curr);
+      Assert(d_linEq.basicIsTracked(curr));
 
       if(!d_conflictVariables.isMember(curr) && checkBasicForConflict(curr)){
 
@@ -127,13 +127,13 @@ bool SimplexDecisionProcedure::checkBasicForConflict(ArithVar basic) const {
 }
 
 void SimplexDecisionProcedure::tearDownFocusErrorFunction(TimerStat& timer){
-  TimerStat::CodeTimer codeTimer(timer);  
+  TimerStat::CodeTimer codeTimer(timer);
   Assert(d_focusErrorVar != ARITHVAR_SENTINEL);
   d_tableau.removeBasicRow(d_focusErrorVar);
   releaseVariable(d_focusErrorVar);
 
   d_focusErrorVar = ARITHVAR_SENTINEL;
-  
+
   Assert(d_focusErrorVar == ARITHVAR_SENTINEL);
 }
 void SimplexDecisionProcedure::constructFocusErrorFunction(TimerStat& timer){
@@ -141,14 +141,14 @@ void SimplexDecisionProcedure::constructFocusErrorFunction(TimerStat& timer){
   Assert(d_focusErrorVar == ARITHVAR_SENTINEL);
   Assert(!d_errorSet.focusEmpty());
   d_focusErrorVar = requestVariable();
-  
+
 
   std::vector<Rational> coeffs;
   std::vector<ArithVar> variables;
 
   for(ErrorSet::focus_iterator iter = d_errorSet.focusBegin(), end = d_errorSet.focusEnd(); iter != end; ++iter){
     ArithVar e = *iter;
-    
+
     Assert(d_tableau.isBasic(e));
     Assert(!d_variables.assignmentIsConsistent(e));
 
@@ -159,6 +159,8 @@ void SimplexDecisionProcedure::constructFocusErrorFunction(TimerStat& timer){
   d_tableau.addRow(d_focusErrorVar, coeffs, variables);
   DeltaRational newAssignment = d_linEq.computeRowValue(d_focusErrorVar, false);
   d_variables.setAssignment(d_focusErrorVar, newAssignment);
+
+  d_linEq.trackVariable(d_focusErrorVar);
 
   Debug("pu") << d_focusErrorVar << " " << newAssignment << endl;
   Assert(d_focusErrorVar != ARITHVAR_SENTINEL);

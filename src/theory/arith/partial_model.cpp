@@ -39,7 +39,8 @@ ArithVariables::ArithVariables(context::Context* c, DeltaComputeCallback deltaCo
    d_ubRevertHistory(c, true, UpperBoundCleanUp(this)),
    d_deltaIsSafe(false),
    d_delta(-1,1),
-   d_deltaComputingFunc(deltaComputingFunc)
+   d_deltaComputingFunc(deltaComputingFunc),
+   d_enqueueingBoundCounts(true)
 { }
 
 ArithVariables::VarInfo::VarInfo()
@@ -65,7 +66,7 @@ void ArithVariables::VarInfo::initialize(ArithVar v, Node n, bool slack){
   d_slack = slack;
 
   if(d_slack){
-    //The type computation is not quite accurate for Rationals that are 
+    //The type computation is not quite accurate for Rationals that are
     //integral.
     //We'll use the isIntegral check from the polynomial package instead.
     Polynomial p = Polynomial::parsePolynomial(n);
@@ -81,15 +82,27 @@ void ArithVariables::VarInfo::uninitialize(){
   d_node = Node::null();
 }
 
-void ArithVariables::VarInfo::setAssignment(const DeltaRational& a){
+bool ArithVariables::VarInfo::setAssignment(const DeltaRational& a, BoundCounts & prev){
   Assert(initialized());
   d_assignment = a;
-  if(d_ub != NullConstraint){
-    d_cmpAssignmentUB = d_assignment.cmp(d_ub->getValue());
+  int cmpUB = (d_ub == NullConstraint) ? -1 :
+    d_assignment.cmp(d_ub->getValue());
+
+  int cmpLB = (d_lb == NullConstraint) ? 1 :
+    d_assignment.cmp(d_lb->getValue());
+
+  bool lbChanged = cmpLB != d_cmpAssignmentLB &&
+    (cmpLB == 0 || d_cmpAssignmentLB == 0);
+  bool ubChanged = cmpUB != d_cmpAssignmentUB &&
+    (cmpUB == 0 || d_cmpAssignmentUB == 0);
+
+  if(lbChanged || ubChanged){
+    prev = boundCounts();
   }
-  if(d_lb != NullConstraint){
-    d_cmpAssignmentLB = d_assignment.cmp(d_lb->getValue());
-  }
+
+  d_cmpAssignmentUB = cmpUB;
+  d_cmpAssignmentLB = cmpLB;
+  return lbChanged || ubChanged;
 }
 
 void ArithVariables::releaseArithVar(ArithVar v){
@@ -106,28 +119,35 @@ void ArithVariables::releaseArithVar(ArithVar v){
   }
 }
 
-void ArithVariables::VarInfo::setUpperBound(Constraint ub){
+bool ArithVariables::VarInfo::setUpperBound(Constraint ub, BoundCounts& prev){
   Assert(initialized());
   d_ub = ub;
-  if(d_ub == NullConstraint){
-    d_cmpAssignmentUB = -1;
-  }else{
-    d_cmpAssignmentUB = d_assignment.cmp(d_ub->getValue());
+  int cmpUB = (d_ub == NullConstraint) ? -1 : d_assignment.cmp(d_ub->getValue());
+  bool ubChanged = cmpUB != d_cmpAssignmentUB &&
+    (cmpUB == 0 || d_cmpAssignmentUB == 0);
+  if(ubChanged){
+    prev = boundCounts();
   }
+  d_cmpAssignmentUB = cmpUB;
+  return ubChanged;
 }
 
-void ArithVariables::VarInfo::setLowerBound(Constraint lb){
+bool ArithVariables::VarInfo::setLowerBound(Constraint lb, BoundCounts& prev){
   Assert(initialized());
   d_lb = lb;
-  if(d_lb == NullConstraint){
-    d_cmpAssignmentLB = 1;
-  }else{
-    d_cmpAssignmentLB = d_assignment.cmp(d_lb->getValue());
+  int cmpLB = (d_lb == NullConstraint) ? 1 : d_assignment.cmp(d_lb->getValue());
+
+  bool lbChanged = cmpLB != d_cmpAssignmentLB &&
+    (cmpLB == 0 || d_cmpAssignmentLB == 0);
+  if(lbChanged){
+    prev = boundCounts();
   }
+  d_cmpAssignmentLB = cmpLB;
+  return lbChanged;
 }
 
 void ArithVariables::attemptToReclaimReleased(){
-  std::list<ArithVar>::iterator i_end = d_released.end(); 
+  std::list<ArithVar>::iterator i_end = d_released.end();
   for(int iter = 0; iter < 20 && d_releasedIterator != i_end; ++d_releasedIterator){
     ArithVar v = *d_releasedIterator;
     VarInfo& vi = d_vars.get(v);
@@ -189,7 +209,11 @@ void ArithVariables::setAssignment(ArithVar x, const DeltaRational& r){
     d_safeAssignment.set(x, vi.d_assignment);
   }
   invalidateDelta();
-  vi.setAssignment(r);
+
+  BoundCounts prev;
+  if(vi.setAssignment(r, prev)){
+    addToBoundQueue(x, prev);
+  }
 }
 
 void ArithVariables::setAssignment(ArithVar x, const DeltaRational& safe, const DeltaRational& r){
@@ -205,7 +229,10 @@ void ArithVariables::setAssignment(ArithVar x, const DeltaRational& safe, const 
 
   invalidateDelta();
   VarInfo& vi = d_vars.get(x);
-  vi.setAssignment(r);
+  BoundCounts prev;
+  if(vi.setAssignment(r, prev)){
+    addToBoundQueue(x, prev);
+  }
 }
 
 void ArithVariables::initialize(ArithVar x, Node n, bool slack){
@@ -287,7 +314,10 @@ void ArithVariables::setLowerBoundConstraint(Constraint c){
   invalidateDelta();
   VarInfo& vi = d_vars.get(x);
   pushLowerBound(vi);
-  vi.setLowerBound(c);
+  BoundCounts prev;
+  if(vi.setLowerBound(c, prev)){
+    addToBoundQueue(x, prev);
+  }
 }
 
 void ArithVariables::setUpperBoundConstraint(Constraint c){
@@ -303,33 +333,36 @@ void ArithVariables::setUpperBoundConstraint(Constraint c){
   invalidateDelta();
   VarInfo& vi = d_vars.get(x);
   pushUpperBound(vi);
-  vi.setUpperBound(c);
+  BoundCounts prev;
+  if(vi.setUpperBound(c, prev)){
+    addToBoundQueue(x, prev);
+  }
 }
 
-void ArithVariables::forceRelaxLowerBound(ArithVar v){
-  AssertArgument(inMaps(v), "Calling forceRelaxLowerBound on a variable that is not properly setup.");
-  AssertArgument(hasLowerBound(v), "Calling forceRelaxLowerBound on a variable without a lowerbound.");
+// void ArithVariables::forceRelaxLowerBound(ArithVar v){
+//   AssertArgument(inMaps(v), "Calling forceRelaxLowerBound on a variable that is not properly setup.");
+//   AssertArgument(hasLowerBound(v), "Calling forceRelaxLowerBound on a variable without a lowerbound.");
 
-  Debug("partial_model") << "forceRelaxLowerBound(" << v << ") dropping :" << getLowerBoundConstraint(v) << endl;
+//   Debug("partial_model") << "forceRelaxLowerBound(" << v << ") dropping :" << getLowerBoundConstraint(v) << endl;
 
-  invalidateDelta();
-  VarInfo& vi = d_vars.get(v);
-  pushLowerBound(vi);
-  vi.setLowerBound(NullConstraint);
-}
+//   invalidateDelta();
+//   VarInfo& vi = d_vars.get(v);
+//   pushLowerBound(vi);
+//   vi.setLowerBound(NullConstraint);
+// }
 
 
-void ArithVariables::forceRelaxUpperBound(ArithVar v){
-  AssertArgument(inMaps(v), "Calling forceRelaxUpperBound on a variable that is not properly setup.");
-  AssertArgument(hasUpperBound(v), "Calling forceRelaxUpperBound on a variable without an upper bound.");
+// void ArithVariables::forceRelaxUpperBound(ArithVar v){
+//   AssertArgument(inMaps(v), "Calling forceRelaxUpperBound on a variable that is not properly setup.");
+//   AssertArgument(hasUpperBound(v), "Calling forceRelaxUpperBound on a variable without an upper bound.");
 
-  Debug("partial_model") << "forceRelaxUpperBound(" << v << ") dropping :" << getUpperBoundConstraint(v) << endl;
+//   Debug("partial_model") << "forceRelaxUpperBound(" << v << ") dropping :" << getUpperBoundConstraint(v) << endl;
 
-  invalidateDelta();
-  VarInfo& vi = d_vars.get(v);
-  pushUpperBound(vi);
-  vi.setUpperBound(NullConstraint);
-}
+//   invalidateDelta();
+//   VarInfo& vi = d_vars.get(v);
+//   pushUpperBound(vi);
+//   vi.setUpperBound(NullConstraint);
+// }
 
 int ArithVariables::cmpToLowerBound(ArithVar x, const DeltaRational& c) const{
   if(!hasLowerBound(x)){
@@ -409,7 +442,10 @@ void ArithVariables::clearSafeAssignments(bool revert){
     ArithVar atBack = d_safeAssignment.back();
     if(revert){
       VarInfo& vi = d_vars.get(atBack);
-      vi.setAssignment(d_safeAssignment[atBack]);
+      BoundCounts prev;
+      if(vi.setAssignment(d_safeAssignment[atBack], prev)){
+        addToBoundQueue(atBack, prev);
+      }
     }
     d_safeAssignment.pop_back();
   }
@@ -477,14 +513,22 @@ void ArithVariables::pushLowerBound(VarInfo& vi){
 }
 
 void ArithVariables::popUpperBound(AVCPair* c){
-  VarInfo& vi = d_vars.get((*c).first);
-  vi.setUpperBound((*c).second);
+  ArithVar x = c->first;
+  VarInfo& vi = d_vars.get(x);
+  BoundCounts prev;
+  if(vi.setUpperBound(c->second, prev)){
+    addToBoundQueue(x, prev);
+  }
   --vi.d_pushCount;
 }
 
 void ArithVariables::popLowerBound(AVCPair* c){
-  VarInfo& vi = d_vars.get((*c).first);
-  vi.setLowerBound((*c).second);
+  ArithVar x = c->first;
+  VarInfo& vi = d_vars.get(x);
+  BoundCounts prev;
+  if(vi.setLowerBound(c->second, prev)){
+    addToBoundQueue(x, prev);
+  }
   --vi.d_pushCount;
 }
 

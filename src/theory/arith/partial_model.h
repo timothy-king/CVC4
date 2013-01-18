@@ -57,14 +57,14 @@ private:
     unsigned d_pushCount;
     ArithType d_type;
     Node d_node;
-    bool d_slack;  
+    bool d_slack;
 
   public:
     VarInfo();
 
-    void setAssignment(const DeltaRational& r);
-    void setLowerBound(Constraint c);
-    void setUpperBound(Constraint c);
+    bool setAssignment(const DeltaRational& r, BoundCounts& prev);
+    bool setLowerBound(Constraint c, BoundCounts& prev);
+    bool setUpperBound(Constraint c, BoundCounts& prev);
 
     bool initialized() const {
       return d_var != ARITHVAR_SENTINEL;
@@ -74,6 +74,12 @@ private:
 
     bool canBeReclaimed() const{
       return d_pushCount == 0;
+    }
+
+    BoundCounts boundCounts() const {
+      uint32_t lbIndc = (d_cmpAssignmentLB == 0) ? 1 : 0;
+      uint32_t ubIndc = (d_cmpAssignmentUB == 0) ? 1 : 0;
+      return BoundCounts(lbIndc, ubIndc);
     }
   };
 
@@ -89,7 +95,7 @@ private:
 
   /** [0, d_numberOfVariables) \intersect d_vars.keys == d_pool */
   // Everything in the pool is fair game.
-  // There must be NO outstanding assertions 
+  // There must be NO outstanding assertions
   std::vector<ArithVar> d_pool;
   std::list<ArithVar> d_released;
   std::list<ArithVar>::iterator d_releasedIterator;
@@ -97,6 +103,8 @@ private:
   // Reverse Map from Node to ArithVar
   // Inverse of d_vars[x].d_node
   NodeToArithVarMap d_nodeToArithVarMap;
+
+  DenseMap<BoundCounts> d_atBoundsQueue;
 
  public:
 
@@ -123,7 +131,7 @@ private:
     Assert(hasNode(a));
     return d_vars[a].d_node;
   }
-  
+
   ArithVar allocateVariable();
 
   class var_iterator {
@@ -217,6 +225,7 @@ private:
   // Function to call if the value of delta needs to be recomputed.
   DeltaComputeCallback d_deltaComputingFunc;
 
+  bool d_enqueueingBoundCounts;
 
 public:
 
@@ -248,14 +257,14 @@ public:
    * This is done by forcing the lower bound to be NullConstraint.
    * This is an expert only operation! (See primal simplex for an example.)
    */
-  void forceRelaxLowerBound(ArithVar x);
+  //void forceRelaxLowerBound(ArithVar x);
 
   /**
    * This forces the upper bound for a variable to be relaxed in the current context.
    * This is done by forcing the upper bound to be NullConstraint.
    * This is an expert only operation! (See primal simplex for an example.)
    */
-  void forceRelaxUpperBound(ArithVar x);
+  //void forceRelaxUpperBound(ArithVar x);
 
   /* Initializes a variable to a safe value.*/
   //void initialize(ArithVar x, const DeltaRational& r);
@@ -351,10 +360,8 @@ public:
     return d_vars[x].d_cmpAssignmentUB;
   }
 
-  BoundCounts boundCounts(ArithVar x) const {
-    uint32_t lbIndc = (cmpAssignmentLowerBound(x) == 0) ? 1 : 0;
-    uint32_t ubIndc = (cmpAssignmentUpperBound(x) == 0) ? 1 : 0;
-    return BoundCounts(lbIndc, ubIndc);
+  inline BoundCounts boundCounts(ArithVar x) const {
+    return d_vars[x].boundCounts();
   }
 
   bool strictlyBelowUpperBound(ArithVar x) const;
@@ -386,6 +393,35 @@ public:
   // inline bool initialized(ArithVar x) const {
   //   return d_vars[x].initialized();
   // }
+
+  void addToBoundQueue(ArithVar v, BoundCounts prev){
+    if(d_enqueueingBoundCounts && !d_atBoundsQueue.isKey(v)){
+      d_atBoundsQueue.set(v, prev);
+    }
+  }
+
+  BoundCounts oldBoundCounts(ArithVar v) const {
+    if(d_atBoundsQueue.isKey(v)){
+      return d_atBoundsQueue[v];
+    }else{
+      return boundCounts(v);
+    }
+  }
+
+  void startQueueingAtBoundQueue(){ d_enqueueingBoundCounts = true; }
+  void stopQueueingAtBoundQueue(){ d_enqueueingBoundCounts = false; }
+
+  void processAtBoundQueue(BoundCountsCallback& changed){
+    while(!d_atBoundsQueue.empty()){
+      ArithVar v = d_atBoundsQueue.back();
+      BoundCounts prev = d_atBoundsQueue[v];
+      d_atBoundsQueue.pop_back();
+      BoundCounts curr = boundCounts(v);
+      if(prev != curr){
+        changed(v, prev);
+      }
+    }
+  }
 
 private:
 
