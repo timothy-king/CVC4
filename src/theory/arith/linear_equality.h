@@ -78,6 +78,9 @@ struct Border{
   /** d_lim is the nonbasic variable's own bound. */
   bool ownBorder() const { return d_entry == NULL; }
 
+  bool isZero() const { return d_diff.sgn() == 0; }
+  static bool nonZero(const Border& b) { return !b.isZero(); }
+
   void output(std::ostream& out) const;
 };
 
@@ -148,6 +151,10 @@ public:
     d_begin = d_vec.begin();
     d_end = d_vec.end();
     std::make_heap(d_begin, d_end, d_cmp);
+  }
+
+  void dropNonZeroes(){
+    std::remove_if(d_vec.begin(), d_vec.end(), &Border::nonZero);
   }
 
   const Border& top() const {
@@ -387,7 +394,6 @@ public:
         Assert(b.describesPivot());
         Assert(a.focusDirection() == 0 && b.focusDirection() == 0);
         return modifiedBlands(a,b);
-      case Degenerate:
       case HeuristicDegenerate:
         Assert(a.describesPivot());
         Assert(b.describesPivot());
@@ -395,6 +401,10 @@ public:
         return preferNeitherBound(a,b);
       case AntiProductive:
         return minNonBasicVarOrder(a, b);
+      // Not valid responses
+      case Degenerate:
+      case FocusShrank:
+        Unreachable();
       }
       Unreachable();
     }else{

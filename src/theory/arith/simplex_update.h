@@ -42,15 +42,28 @@ enum WitnessImprovement {
   ConflictFound = 0,
   ErrorDropped = 1,
   FocusImproved = 2,
-  Degenerate = 3,
-  BlandsDegenerate = 4,
-  HeuristicDegenerate = 5,
-  AntiProductive = 6
+  FocusShrank = 3,
+  Degenerate = 4,
+  BlandsDegenerate = 5,
+  HeuristicDegenerate = 6,
+  AntiProductive = 7
 };
 
 inline bool improvement(WitnessImprovement w){
-  return w <= FocusImproved;
+  return w <= FocusShrank;
 }
+
+inline bool degenerate(WitnessImprovement w){
+  switch(w){
+  case Degenerate:
+  case BlandsDegenerate:
+  case HeuristicDegenerate:
+    return true;
+  default:
+    return false;
+  }
+}
+
 inline std::ostream& operator<<(std::ostream& out,  WitnessImprovement w){
   switch(w){
   case ConflictFound:
@@ -59,6 +72,8 @@ inline std::ostream& operator<<(std::ostream& out,  WitnessImprovement w){
     out << "ErrorDropped"; break;
   case FocusImproved:
     out << "FocusImproved"; break;
+  case FocusShrank:
+    out << "FocusShrank"; break;
   case Degenerate:
     out << "Degenerate"; break;
   case BlandsDegenerate:

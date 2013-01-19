@@ -130,6 +130,7 @@ void UpdateInfo::output(std::ostream& out) const{
       << ", conflict = " << d_foundConflict
       << ", errorChange = " << d_errorsChange
       << ", focusDir = " << d_focusDirection
+      << ", witness = " << d_witness
       << ", limiting = " << d_limiting
       << "}";
 }

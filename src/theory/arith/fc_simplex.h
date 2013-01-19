@@ -68,8 +68,8 @@ public:
   Result::Sat findModel(bool exactResult);
 
   // other error variables are dropping
-  int dualLikeImproveError(ArithVar evar);
-  int primalImproveError(ArithVar evar);
+  WitnessImprovement dualLikeImproveError(ArithVar evar);
+  WitnessImprovement primalImproveError(ArithVar evar);
 
   // dual like
   // - found conflict
@@ -98,16 +98,16 @@ private:
 
   //static PivotImprovement pivotImprovement(const UpdateInfo& selected, bool useBlands = false);
 
-  void logPivot(const UpdateInfo& selected, bool useBlands);
+  void logPivot(WitnessImprovement w);
 
-  void updateAndSignal(const UpdateInfo& selected);
+  void updateAndSignal(const UpdateInfo& selected, WitnessImprovement w);
 
   UpdateInfo selectPrimalUpdate(ArithVar error,
                                 LinearEqualityModule::UpdatePreferenceFunction upf,
                                 LinearEqualityModule::VarPreferenceFunction bpf);
 
 
-  UpdateInfo selectUpdateForDualLike(ArithVar basic, int sgn){
+  UpdateInfo selectUpdateForDualLike(ArithVar basic){
     TimerStat::CodeTimer codeTimer(d_statistics.d_selectUpdateForDualLike);
 
     LinearEqualityModule::UpdatePreferenceFunction upf =
@@ -131,12 +131,12 @@ private:
 
     return selectPrimalUpdate(basic, upf, bpf);
   }
-  bool selectFocusImproving() ;
+  WitnessImprovement selectFocusImproving() ;
 
   void focusUsingSignDisagreements(ArithVar basic);
   void focusDownToLastHalf();
 
-  void adjustFocusAndError(bool readjust);
+  void adjustFocusAndError(WitnessImprovement);
 
   /**
    * This is the main simplex for DPLL(T) loop.

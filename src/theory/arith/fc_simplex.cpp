@@ -85,10 +85,12 @@ Result::Sat FCSimplexDecisionProcedure::findModel(bool exactResult){
   d_pivots = 0;
   static CVC4_THREADLOCAL(unsigned int) instance = 0;
   instance = instance + 1;
+  static const bool verbose = false;
 
   if(d_errorSet.errorEmpty() && !d_errorSet.moreSignals()){
     Debug("arith::findModel") << "fcFindModel("<< instance <<") trivial" << endl;
     Assert(d_conflictVariables.empty());
+    if(verbose){ Message() << "fcFindModel("<< instance <<") trivial" << endl; }
     return Result::SAT;
   }
 
@@ -98,14 +100,17 @@ Result::Sat FCSimplexDecisionProcedure::findModel(bool exactResult){
   // We must start tracking NOW
   d_errorSet.setSelectionRule(SUM_METRIC);
 
+
   if(initialProcessSignals()){
     d_conflictVariables.purge();
-
+    if(verbose){ Message() << "fcFindModel("<< instance <<") early conflict" << endl; }
     Debug("arith::findModel") << "fcFindModel("<< instance <<") early conflict" << endl;
     Assert(d_conflictVariables.empty());
     return Result::UNSAT;
   }else if(d_errorSet.errorEmpty()){
+    if(verbose){ Message() << "fcFindModel("<< instance <<") fixed itself" << endl; }
     Debug("arith::findModel") << "fcFindModel("<< instance <<") fixed itself" << endl;
+    if(verbose)
     Assert(!d_errorSet.moreSignals());
     Assert(d_conflictVariables.empty());
     return Result::SAT;
@@ -113,7 +118,6 @@ Result::Sat FCSimplexDecisionProcedure::findModel(bool exactResult){
 
   Debug("arith::findModel") << "fcFindModel(" << instance <<") start non-trivial" << endl;
 
-  static const bool verbose = false;
   exactResult |= options::arithStandardCheckVarOrderPivots() < 0;
 
   d_prevWitnessImprovement = HeuristicDegenerate;
@@ -160,26 +164,25 @@ Result::Sat FCSimplexDecisionProcedure::findModel(bool exactResult){
 }
 
 
-void FCSimplexDecisionProcedure::logPivot(const UpdateInfo& selected, bool useBlands){
+void FCSimplexDecisionProcedure::logPivot(WitnessImprovement w){
   if(d_pivotBudget > 0) {
     --d_pivotBudget;
   }
-  WitnessImprovement curr = selected.getWitness(useBlands);
+  Assert(w != AntiProductive);
 
-  Assert(curr != AntiProductive);
-
-  if(curr == d_prevWitnessImprovement){
+  if(w == d_prevWitnessImprovement){
     ++d_witnessImprovementInARow;
+    // ignore overflow : probably never reached
     if(d_witnessImprovementInARow == 0){
       --d_witnessImprovementInARow;
     }
   }else{
-    d_prevWitnessImprovement = curr;
+    d_prevWitnessImprovement = w;
     if(d_prevWitnessImprovement != HeuristicDegenerate){
       d_witnessImprovementInARow = 1;
     }
   }
-  Debug("logPivot") << "logPivot " << d_prevWitnessImprovement << " "  << d_witnessImprovementInARow << ": " << selected << endl;
+  Debug("logPivot") << "logPivot " << d_prevWitnessImprovement << " "  << d_witnessImprovementInARow << endl;
 }
 
 uint32_t FCSimplexDecisionProcedure::degeneratePivotsInARow() const {
@@ -193,6 +196,7 @@ uint32_t FCSimplexDecisionProcedure::degeneratePivotsInARow() const {
     return d_witnessImprovementInARow;
   // Degenerate is unreachable for its own reasons
   case Degenerate:
+  case FocusShrank:
   case AntiProductive:
     Unreachable();
     return -1;
@@ -200,15 +204,15 @@ uint32_t FCSimplexDecisionProcedure::degeneratePivotsInARow() const {
   Unreachable();
 }
 
-void FCSimplexDecisionProcedure::adjustFocusAndError(bool readjust){
+void FCSimplexDecisionProcedure::adjustFocusAndError(WitnessImprovement w){
   uint32_t newErrorSize = d_errorSet.errorSize();
   uint32_t newFocusSize = d_errorSet.focusSize();
 
-  Assert(!d_conflictVariables.empty() || newFocusSize <= d_focusSize);
+  //Assert(!d_conflictVariables.empty() || newFocusSize <= d_focusSize);
   Assert(!d_conflictVariables.empty() || newErrorSize <= d_errorSize);
   if( newFocusSize == 0 ){
     tearDownFocusErrorFunction(d_statistics.d_fcFocusConstructionTimer);
-  }else if(readjust || newFocusSize < d_focusSize){
+  }else if(improvement(w)){
     reconstructFocusErrorFunction(d_statistics.d_fcFocusConstructionTimer);
   }
   d_errorSize = newErrorSize;
@@ -218,7 +222,6 @@ void FCSimplexDecisionProcedure::adjustFocusAndError(bool readjust){
 
 
 UpdateInfo FCSimplexDecisionProcedure::selectPrimalUpdate(ArithVar basic, LinearEqualityModule::UpdatePreferenceFunction upf, LinearEqualityModule::VarPreferenceFunction bpf) {
-  UpdateInfo currProposal;
   UpdateInfo selected;
 
   static int instance = 0 ;
@@ -235,7 +238,7 @@ UpdateInfo FCSimplexDecisionProcedure::selectPrimalUpdate(ArithVar basic, Linear
   int basicDir =  isFocus? 1 : d_errorSet.getSgn(basic);
   bool dualLike = !isFocus && d_focusSize > 1;
 
-  if(dualLike){
+  if(!isFocus){
     loadFocusSigns();
   }
 
@@ -260,14 +263,19 @@ UpdateInfo FCSimplexDecisionProcedure::selectPrimalUpdate(ArithVar basic, Linear
       << " " << candidate
       << " " << e.getCoefficient()
       << " " << curr_movement
-      << " " << focusSgn(curr) << endl;
+      << " " << focusCoefficient(curr) << endl;
 
     if(!candidate) { continue; }
 
-    if(dualLike && curr_movement != focusSgn(curr)){
-      Debug("arith::selectPrimalUpdate") << "sgn disagreement " << curr << endl;
-      d_sgnDisagreements.push_back(curr);
-      continue;
+    if(!isFocus){
+      const Rational& focusC = focusCoefficient(curr);
+      if(dualLike && curr_movement != focusC.sgn()){
+        Debug("arith::selectPrimalUpdate") << "sgn disagreement " << curr << endl;
+        d_sgnDisagreements.push_back(curr);
+        continue;
+      }else{
+        candidates.push_back(Cand(curr, curr_movement, &focusC));
+      }
     }else{
       candidates.push_back(Cand(curr, curr_movement, &e.getCoefficient()));
     }
@@ -286,21 +294,25 @@ UpdateInfo FCSimplexDecisionProcedure::selectPrimalUpdate(ArithVar basic, Linear
     --end;
     Cand& cand = (*end);
     ArithVar curr = cand.d_nb;
-    int curr_movement = cand.d_sgn;
     const Rational& coeff = *cand.d_coeff;
 
-    if(isFocus){
-      currProposal = d_linEq.speculativeUpdate(curr, coeff, upf);
-    }else{
-      currProposal = UpdateInfo(curr, curr_movement);
-      d_linEq.computeSafeUpdate(currProposal, bpf);
-    }
+#warning "Who is using computeSafeUpdate?"
+    UpdateInfo currProposal = d_linEq.speculativeUpdate(curr, coeff, upf);
+
+    //int curr_movement = cand.d_sgn;
+    // if(isFocus){
+    //   currProposal = d_linEq.speculativeUpdate(curr, coeff, upf);
+    // }else{
+    //   currProposal = UpdateInfo(curr, curr_movement);
+    //   d_linEq.computeSafeUpdate(currProposal, bpf);
+    // }
 
     Debug("arith::selectPrimalUpdate")
       << "selected " << selected << endl
       << "currProp " << currProposal << endl
       << "coeff " << coeff << endl;
 
+    Assert(!currProposal.uninitialized());
 
     if(candidatesAfterFocusImprove > 0){
       candidatesAfterFocusImprove++;
@@ -342,22 +354,38 @@ UpdateInfo FCSimplexDecisionProcedure::selectPrimalUpdate(ArithVar basic, Linear
 
   }
 
-  if(dualLike){
+  if(!isFocus){
     unloadFocusSigns();
   }
   return selected;
 }
 
-int FCSimplexDecisionProcedure::primalImproveError(ArithVar errorVar){
+bool debugCheckWitness(const UpdateInfo& inf, WitnessImprovement w, bool useBlands){
+  if(inf.getWitness(useBlands) == w){
+    switch(w){
+    case ConflictFound: return inf.foundConflict();
+    case ErrorDropped: return inf.errorsChange() < 0;
+    case FocusImproved: return inf.focusDirection() > 0;
+    case FocusShrank: return false; // This is not a valid output
+    case Degenerate: return false; // This is not a valid output
+    case BlandsDegenerate: return useBlands;
+    case HeuristicDegenerate: return !useBlands;
+    case AntiProductive: return false;
+    }
+  }
+  return false;
+}
+
+WitnessImprovement FCSimplexDecisionProcedure::primalImproveError(ArithVar errorVar){
   bool useBlands = degeneratePivotsInARow() >= s_maxDegeneratePivotsBeforeBlands;
   UpdateInfo selected = selectUpdateForPrimal (errorVar, useBlands);
   Assert(!selected.uninitialized());
-  updateAndSignal(selected);
-  logPivot(selected, useBlands);
+  WitnessImprovement w = selected.getWitness(useBlands);
+  Assert(debugCheckWitness(selected, w, useBlands));
 
-  Assert(selected.errorsChange() <= 0);
-
-  return selected.errorsChange();
+  updateAndSignal(selected, w);
+  logPivot(w);
+  return w;
 }
 
 
@@ -405,14 +433,17 @@ bool debugSelectedErrorDropped(const UpdateInfo& selected, int32_t prevErrorSize
   return selected.foundConflict() || diff == selected.errorsChange();
 }
 
-void FCSimplexDecisionProcedure::updateAndSignal(const UpdateInfo& selected){
+void FCSimplexDecisionProcedure::updateAndSignal(const UpdateInfo& selected, WitnessImprovement w){
   ArithVar nonbasic = selected.nonbasic();
+
+  Debug("updateAndSignal") << "updateAndSignal " << selected << endl;
 
   if(selected.describesPivot()){
     Constraint limiting = selected.limiting();
     ArithVar basic = limiting->getVariable();
     Assert(d_linEq.basicIsTracked(basic));
     d_linEq.pivotAndUpdate(basic, nonbasic, limiting->getValue());
+
   }else{
     Assert(!selected.unbounded() || selected.errorsChange() < 0);
 
@@ -422,17 +453,25 @@ void FCSimplexDecisionProcedure::updateAndSignal(const UpdateInfo& selected){
     d_linEq.updateTracked(nonbasic, newAssignment);
   }
   d_errorSet.debugPrint();
-  bool readjust = false;
   while(d_errorSet.moreSignals()){
     ArithVar updated = d_errorSet.topSignal();
-    bool inError = d_errorSet.inError(updated);
     d_errorSet.popSignal();
-    readjust |= inError == d_errorSet.inError(updated);
 
-    if(d_tableau.isBasic(updated) &&
-       !d_variables.assignmentIsConsistent(updated) &&
-       checkBasicForConflict(updated)){
-      reportConflict(updated);
+
+    if(d_tableau.isBasic(updated)){
+      Assert(!d_variables.assignmentIsConsistent(updated) == d_errorSet.inError(updated));
+      Debug("updateAndSignal") << "updated basic " << updated;
+      Debug("updateAndSignal") << " length " << d_tableau.basicRowLength(updated);
+      Debug("updateAndSignal") << " consistent " << d_variables.assignmentIsConsistent(updated);
+      Debug("updateAndSignal") << " dir " <<
+        (!d_variables.assignmentIsConsistent(updated) ? d_errorSet.getSgn(updated) : 0);
+      Debug("updateAndSignal") << " _countBounds " << d_linEq._countBounds(updated) << endl;
+      if(!d_variables.assignmentIsConsistent(updated) &&
+         checkBasicForConflict(updated)){
+        reportConflict(updated);
+      }
+    }else{
+      Debug("updateAndSignal") << "updated nonbasic " << updated << endl;
     }
   }
   d_pivots++;
@@ -440,14 +479,14 @@ void FCSimplexDecisionProcedure::updateAndSignal(const UpdateInfo& selected){
   d_errorSet.debugPrint();
   Assert(debugSelectedErrorDropped(selected, d_errorSize, d_errorSet.errorSize()));
 
-  adjustFocusAndError(readjust);
+  adjustFocusAndError(w);
 }
 
-int FCSimplexDecisionProcedure::dualLikeImproveError(ArithVar errorVar){
+WitnessImprovement FCSimplexDecisionProcedure::dualLikeImproveError(ArithVar errorVar){
   Assert(d_sgnDisagreements.empty());
+  Assert(d_focusSize > 1);
 
-  int sgn = d_errorSet.getSgn(errorVar);
-  UpdateInfo selected = selectUpdateForDualLike(errorVar, sgn);
+  UpdateInfo selected = selectUpdateForDualLike(errorVar);
 
   if(selected.uninitialized()){
     // we found no proposals
@@ -463,21 +502,22 @@ int FCSimplexDecisionProcedure::dualLikeImproveError(ArithVar errorVar){
     // focus using sgn disagreement earlier
     Assert(d_focusSize > d_errorSet.focusSize());
     Assert(d_errorSet.focusSize() >= 1);
-    adjustFocusAndError(false);
-    return 0;
+    adjustFocusAndError(FocusShrank);
+    return FocusShrank;
   }else if(selected.focusDirection() == 0 &&
            d_prevWitnessImprovement == HeuristicDegenerate &&
            d_witnessImprovementInARow >= s_focusThreshold){
     d_errorSet.focusDownToJust(errorVar);
     Assert(d_focusSize > d_errorSet.focusSize());
     Assert(d_errorSet.focusSize() == 1);
-    adjustFocusAndError(false);
-    return 0;
+    adjustFocusAndError(FocusShrank);
+    return FocusShrank;
   }else{
-    updateAndSignal(selected);
-    logPivot(selected, false);
-    Assert(selected.errorsChange() <= 0);
-    return selected.errorsChange();
+    WitnessImprovement w = selected.getWitness(false);
+    Assert(debugCheckWitness(selected, w, false));
+    updateAndSignal(selected, w);
+    logPivot(w);
+    return w;
   }
 }
 
@@ -507,7 +547,7 @@ void FCSimplexDecisionProcedure::focusDownToLastHalf(){
 
 }
 
-bool FCSimplexDecisionProcedure::selectFocusImproving() {
+WitnessImprovement FCSimplexDecisionProcedure::selectFocusImproving() {
   Assert(d_focusErrorVar != ARITHVAR_SENTINEL);
   Assert(d_focusSize >= 2);
 
@@ -522,35 +562,33 @@ bool FCSimplexDecisionProcedure::selectFocusImproving() {
   if(selected.uninitialized()){
     Debug("selectFocusImproving") << "focus is optimum, but we don't have sat/conflict yet" << endl;
     focusDownToLastHalf();
-    adjustFocusAndError(false);
-    return true;
+    adjustFocusAndError(FocusShrank);
+    return FocusShrank;
   }
   Assert(!selected.uninitialized());
-  Assert(selected.getWitness(true) < FocusImproved || selected.focusDirection() >= 0);
-  if(!selected.foundConflict()){
-    if(selected.focusDirection() == 0){
-      Debug("selectFocusImproving") << "only degenerate" << endl;
-      if(d_prevWitnessImprovement == HeuristicDegenerate &&
-         d_witnessImprovementInARow >= s_focusThreshold){
-        Debug("selectFocusImproving") << "focus down been degenerate too long" << endl;
-        focusDownToLastHalf();
-        adjustFocusAndError(false);
-        return true;
-      }else{
-        Debug("selectFocusImproving") << "taking degenerate" << endl;
-      }
+  WitnessImprovement w = selected.getWitness(false);
+  Assert(debugCheckWitness(selected, w, false));
+
+  if(degenerate(w)){
+    Debug("selectFocusImproving") << "only degenerate" << endl;
+    if(d_prevWitnessImprovement == HeuristicDegenerate &&
+       d_witnessImprovementInARow >= s_focusThreshold){
+      Debug("selectFocusImproving") << "focus down been degenerate too long" << endl;
+      focusDownToLastHalf();
+      adjustFocusAndError(FocusShrank);
+      return FocusShrank;
+    }else{
+      Debug("selectFocusImproving") << "taking degenerate" << endl;
     }
   }
   Debug("selectFocusImproving") << "selectFocusImproving did this " << selected << endl;
 
-  updateAndSignal(selected);
-  logPivot(selected, false);
-  Assert(selected.foundConflict() || selected.errorsChange() <= 0);
-  return false;
+  updateAndSignal(selected, w);
+  logPivot(w);
+  return w;
 }
 
 Result::Sat FCSimplexDecisionProcedure::dualLike(){
-  const static bool verbose = false;
   static int instance = 0;
 
   TimerStat::CodeTimer codeTimer(d_statistics.d_fcTimer);
@@ -572,8 +610,9 @@ Result::Sat FCSimplexDecisionProcedure::dualLike(){
 
     Assert(d_errorSet.noSignals());
 
-    int dropped = 0;
+    WitnessImprovement w = AntiProductive;
     uint32_t prevFocusSize = d_focusSize;
+    uint32_t prevErrorSize = d_errorSize;
 
     if(d_focusSize == 0){
       Assert(d_errorSize == d_errorSet.errorSize());
@@ -599,7 +638,7 @@ Result::Sat FCSimplexDecisionProcedure::dualLike(){
 
       ArithVar e = d_errorSet.topFocusVariable();
       Debug("dualLike") << "primalImproveError " << e << endl;
-      dropped = primalImproveError(e);
+      w = primalImproveError(e);
     }else{
 
       // Possible outcomes:
@@ -615,39 +654,48 @@ Result::Sat FCSimplexDecisionProcedure::dualLike(){
       if(d_errorSet.sumMetric(e) <= s_sumMetricThreshold){
         Debug("dualLike") << "dualLikeImproveError " << e << endl;
 
-        dropped = dualLikeImproveError(e);
+        w = dualLikeImproveError(e);
       }else{
-        Debug("dualLike") << "selectFocusImproving " << e << endl;
-        int before = d_errorSize;
-        selectFocusImproving();
-        int after = d_errorSize;
-        dropped = before - after;
+        Debug("dualLike") << "selectFocusImproving " << endl;
+        w = selectFocusImproving();
       }
     }
     Assert(d_focusSize == d_errorSet.focusSize());
     Assert(d_errorSize == d_errorSet.errorSize());
 
-    if(dropped < 0 && d_errorSize/2 >= d_focusSize && d_focusSize >= 1){
-      Debug("dualLike") << "dropped " << dropped << endl;
-      Debug("dualLike") << "relaxing focus " << endl;
-
-      d_errorSet.clearFocus();
-      adjustFocusAndError(false);
+    Debug("DLV") << "DLV("<<instance<<") ";
+    switch(w){
+    case ConflictFound:
+      Assert(!d_conflictVariables.empty());
+      Debug("DLV") << "found conflict";
+      break;
+    case ErrorDropped:
+      Assert(d_errorSize < prevErrorSize);
+      Debug("DLV") << "dropped " << prevErrorSize - d_errorSize;
+      break;
+    case FocusImproved:
+      Assert(d_errorSize == prevErrorSize);
+      Debug("DLV") << "focus improved";
+      break;
+    case FocusShrank:
+      Assert(d_errorSize == prevErrorSize);
+      Assert(prevFocusSize > d_focusSize);
+      Debug("DLV") << "focus shrank";
+      break;
+    case BlandsDegenerate:
+      Debug("DLV") << "bland degenerate";
+      break;
+    case HeuristicDegenerate:
+      Debug("DLV") << "heuristic degenerate";
+      break;
+    case AntiProductive:
+      Assert(prevFocusSize == 0);
+      Debug("DLV") << "focus blur";
+      break;
+    case Degenerate:
+      Unreachable();
     }
-    if(verbose){
-      if(!d_conflictVariables.empty()){
-        cout << "DLV found conflict" << endl;
-      }else if(d_pivotBudget == 0){
-        cout << "DLV budget exhausted" << endl;
-      }else if(dropped < 0){
-        cout << "DLV dropped " << dropped << endl;
-      }else if(d_focusSize < prevFocusSize){
-        // focus went down
-        cout << "DLV focus went down" << endl;
-      }else{
-        cout << "DLV dualLikeImproveError pivot" << endl;
-      }
-    }
+    Debug("DLV") << endl;
   }
 
 

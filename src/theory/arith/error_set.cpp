@@ -365,11 +365,13 @@ void ErrorSet::popSignal() {
     bool vilb = d_variables.cmpAssignmentLowerBound(back) < 0;
     bool viub = d_variables.cmpAssignmentUpperBound(back) > 0;
     if(vilb || viub){
+      Assert(!vilb || !viub);
       ErrorInformation& ei = d_errInfo.get(back);
-      Constraint curr = vilb ?  d_variables.getLowerBoundConstraint(back)
-        : d_variables.getUpperBoundConstraint(back);
-      if(curr != ei.getViolated()){
-        ei.reset(curr, vilb ? 1 : -1);
+      int currSgn = vilb ? 1 : -1;
+      if(currSgn != ei.sgn()){
+        Constraint curr = vilb ?  d_variables.getLowerBoundConstraint(back)
+          : d_variables.getUpperBoundConstraint(back);
+        ei.reset(curr, currSgn);
       }
       update(ei);
     }else{

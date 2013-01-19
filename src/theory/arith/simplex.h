@@ -127,7 +127,8 @@ protected:
    * The signs of the coefficients in the focus set.
    * This is empty until this has been loaded.
    */
-  DenseMap<int> d_focusSgns;
+  DenseMap<const Rational*> d_focusCoefficients;
+  const Rational d_zero;
 
   /**
    * Loads the signs of the coefficients of the variables on the row d_focusErrorVar
@@ -138,11 +139,11 @@ protected:
   /** Unloads the information from d_focusSgns. */
   void unloadFocusSigns();
 
-  /** 
+  /**
    * The signs of a variable in the row of d_focusErrorVar.
    * d_focusSgns must be loaded.
    */
-  int focusSgn(ArithVar nb) const;
+  const Rational& focusCoefficient(ArithVar nb) const;
 
 public:
   SimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc);

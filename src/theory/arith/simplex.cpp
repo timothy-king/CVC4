@@ -38,7 +38,8 @@ SimplexDecisionProcedure::SimplexDecisionProcedure(LinearEqualityModule& linEq, 
   , d_errorSize(0)
   , d_focusSize(0)
   , d_focusErrorVar(ARITHVAR_SENTINEL)
-  , d_focusSgns()
+  , d_focusCoefficients()
+  , d_zero(0)
 {
   d_heuristicRule = options::arithErrorSelectionRule();
   d_errorSet.setSelectionRule(d_heuristicRule);
@@ -168,24 +169,24 @@ void SimplexDecisionProcedure::constructFocusErrorFunction(TimerStat& timer){
 
 
 void SimplexDecisionProcedure::loadFocusSigns(){
-  Assert(d_focusSgns.empty());
+  Assert(d_focusCoefficients.empty());
   Assert(d_focusErrorVar != ARITHVAR_SENTINEL);
   for(Tableau::RowIterator ri = d_tableau.basicRowIterator(d_focusErrorVar); !ri.atEnd(); ++ri){
     const Tableau::Entry& e = *ri;
     ArithVar curr = e.getColVar();
-    d_focusSgns.set(curr, e.getCoefficient().sgn());
+    d_focusCoefficients.set(curr, &e.getCoefficient());
   }
 }
 
 void SimplexDecisionProcedure::unloadFocusSigns(){
-  d_focusSgns.purge();
+  d_focusCoefficients.purge();
 }
 
-int SimplexDecisionProcedure::focusSgn(ArithVar nb) const {
-  if(d_focusSgns.isKey(nb)){
-    return d_focusSgns[nb];
+const Rational& SimplexDecisionProcedure::focusCoefficient(ArithVar nb) const {
+  if(d_focusCoefficients.isKey(nb)){
+    return *(d_focusCoefficients[nb]);
   }else{
-    return 0;
+    return d_zero;
   }
 }
 

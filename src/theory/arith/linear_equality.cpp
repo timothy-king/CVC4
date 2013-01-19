@@ -1143,16 +1143,22 @@ UpdateInfo LinearEqualityModule::speculativeUpdate(ArithVar nb, const Rational& 
   static int instance = 0;
   ++instance;
   Debug("speculativeUpdate") << "speculativeUpdate " << instance << endl;
+  Debug("speculativeUpdate") << "nb " << nb << endl;
+  Debug("speculativeUpdate") << "focusCoeff " << focusCoeff << endl;
 
   if(d_variables.hasUpperBound(nb)){
     Constraint ub = d_variables.getUpperBoundConstraint(nb);
     d_upperBoundDifference = ub->getValue() - d_variables.getAssignment(nb);
-    d_increasing.push_back(Border(ub, d_upperBoundDifference, false, NULL, true));
+    Border border(ub, d_upperBoundDifference, false, NULL, true);
+    Debug("handleBorders") << "push back increasing " << border << endl;
+    d_increasing.push_back(border);
   }
   if(d_variables.hasLowerBound(nb)){
     Constraint lb = d_variables.getLowerBoundConstraint(nb);
     d_lowerBoundDifference = lb->getValue() - d_variables.getAssignment(nb);
-    d_decreasing.push_back(Border(lb, d_lowerBoundDifference, false, NULL, false));
+    Border border(lb, d_lowerBoundDifference, false, NULL, false);
+    Debug("handleBorders") << "push back decreasing " << border << endl;
+    d_decreasing.push_back(border);
   }
 
   Tableau::ColIterator colIter = d_tableau.colIterator(nb);
@@ -1191,7 +1197,7 @@ void LinearEqualityModule::clearSpeculative(){
 }
 
 void LinearEqualityModule::handleBorders(UpdateInfo& selected, ArithVar nb, const Rational& focusCoeff, BorderHeap& heap, int minimumFixes, UpdatePreferenceFunction pref){
-
+  Assert(minimumFixes >= 0);
 
   // The values popped off of the heap
   // should be popped with the values closest to 0
@@ -1200,20 +1206,39 @@ void LinearEqualityModule::handleBorders(UpdateInfo& selected, ArithVar nb, cons
 
   int fixesRemaining = heap.possibleFixes();
 
+  Debug("handleBorders")
+    << "handleBorders "
+    << "nb " << nb
+    << "fc " << focusCoeff
+    << "h.e " << heap.empty()
+    << "h.dir " << heap.direction()
+    << "h.rem " << fixesRemaining
+    << "h.0s " << heap.numZeroes()
+    << "min " << minimumFixes
+    << endl;
+
+  if(heap.empty()){
+    // if the heap is empty, return
+    return;
+  }
+
+  bool zeroesWillDominate = fixesRemaining - heap.numZeroes() < minimumFixes;
+
   // can the number of fixes ever exceed the minimum?
   // no more than the number of possible fixes can be fixed in total
   // nothing can be fixed before the zeroes are taken care of
-  if(heap.empty() || fixesRemaining - heap.numZeroes() < minimumFixes){
-    // if the heap is empty, return
-    // if there is no way to fix at least the minimum number
-    // do not make the heap
+  if(minimumFixes > 0 && zeroesWillDominate){
     return;
   }
+
 
   int negErrorChange = 0;
   int nbDir = heap.direction();
 
   // points at the beginning of the heap
+  if(zeroesWillDominate){
+    heap.dropNonZeroes();
+  }
   heap.make_heap();
 
 
