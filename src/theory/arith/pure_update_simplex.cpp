@@ -37,7 +37,8 @@ Result::Sat PureUpdateSimplexDecisionProcedure::findModel(bool exactResult){
   instance = instance + 1;
 
   if(d_errorSet.errorEmpty() && !d_errorSet.moreSignals()){
-    Debug("arith::findModel") << "puFindModel("<< instance <<") trivial" << endl;
+    Debug("arith::findModel") << "puFindModel("<< instance <<") "
+                              << "trivial" << endl;
     return Result::SAT;
   }
 
@@ -48,15 +49,18 @@ Result::Sat PureUpdateSimplexDecisionProcedure::findModel(bool exactResult){
   if(processSignals()){
     d_conflictVariables.purge();
 
-    Debug("arith::findModel") << "puFindModel("<< instance <<") early conflict" << endl;
+    Debug("arith::findModel") << "puFindModel("<< instance <<") "
+                              << "early conflict" << endl;
     return Result::UNSAT;
   }else if(d_errorSet.errorEmpty()){
-    Debug("arith::findModel") << "puFindModel("<< instance <<") fixed itself" << endl;
+    Debug("arith::findModel") << "puFindModel("<< instance <<") "
+                              << "fixed itself" << endl;
     Assert(!d_errorSet.moreSignals());
     return Result::SAT;
   }
 
-  Debug("arith::findModel") << "puFindModel(" << instance <<") start non-trivial" << endl;
+  Debug("arith::findModel") << "puFindModel(" << instance <<") "
+                            << "start non-trivial" << endl;
 
   static const bool verbose = false;
   Result::Sat result = Result::SAT_UNKNOWN;
@@ -86,7 +90,8 @@ Result::Sat PureUpdateSimplexDecisionProcedure::findModel(bool exactResult){
   d_conflictVariables.purge();
 
   Assert(d_focusErrorVar == ARITHVAR_SENTINEL);
-  Debug("arith::findModel") << "end findModel() " << instance << " " << result <<  endl;
+  Debug("arith::findModel") << "end findModel() " << instance << " "
+                            << result <<  endl;
 
   return result;
 }
@@ -191,13 +196,15 @@ bool PureUpdateSimplexDecisionProcedure::attemptPureUpdates(){
 
       ++d_statistics.d_pureUpdates;
       ++boundImprovements;
-      Debug("pu") << boundImprovements  << ": " << curr << " before: " << before << " after: " << after << endl;
-      Debug("pu") << e.getCoefficient() << endl;
-      Debug("pu") << d_variables.getAssignment(d_focusErrorVar) << endl;
+      Debug("pu") << boundImprovements  << ": " << curr
+                  << " before: " << before
+                  << " after: " << after
+                  << e.getCoefficient()
+                  << d_variables.getAssignment(d_focusErrorVar) << endl;
 
       uint32_t prevSize = d_errorSet.errorSize();
       Assert(d_errorSet.moreSignals());
-      if(Debug.isOn("pu")){  d_errorSet.debugPrint(); }
+      if(Debug.isOn("pu")){  d_errorSet.debugPrint(Debug("pu")); }
       while(d_errorSet.moreSignals()){
         ArithVar updated = d_errorSet.topSignal();
         bool wasInError = d_errorSet.inError(updated);
@@ -224,7 +231,7 @@ bool PureUpdateSimplexDecisionProcedure::attemptPureUpdates(){
         }
       }
       if(d_conflictVariables.empty()){
-        if(Debug.isOn("pu")){  d_errorSet.debugPrint(); }
+        if(Debug.isOn("pu")){  d_errorSet.debugPrint(Debug("pu")); }
         uint32_t currSize = d_errorSet.errorSize();
         Assert(currSize <= prevSize);
         if(currSize < prevSize){

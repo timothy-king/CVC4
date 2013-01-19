@@ -83,13 +83,16 @@ void SimplexDecisionProcedure::reportConflict(ArithVar basic){
   Assert(!d_conflictVariables.isMember(basic));
   Assert(checkBasicForConflict(basic));
   Node conflict = generatConflictForBasic(basic);
+
+  static bool verbose = false;
+  if(verbose) { Message() << "conflict " << basic << " " << conflict << endl; }
   Assert(!conflict.isNull());
   d_conflictChannel(conflict);
   d_conflictVariables.add(basic);
 }
 
 Node SimplexDecisionProcedure::generatConflictForBasic(ArithVar basic) const {
-  
+
   Assert(d_tableau.isBasic(basic));
   Assert(checkBasicForConflict(basic));
 

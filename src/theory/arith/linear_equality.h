@@ -288,23 +288,33 @@ public:
       return aprod > bprod;
     }
   }
+  inline bool constrainedMin(const UpdateInfo& a, const UpdateInfo& b) const{
+    int scoreA = basicsConstrainedScore(a);
+    int scoreB = basicsConstrainedScore(b);
+
+    if(scoreA == scoreB){
+      return minProduct(a,b);
+    }else{
+      return scoreA > scoreB;
+    }
+  }
 
   /**
    * If both a and b are pivots, prefer the pivot with the leaving variables that has equal bounds.
    * The intuition is that such variables will be less likely to lead to future problems.
    */
-  bool preferFrozen(const UpdateInfo& a, const UpdateInfo& b) const {
+  inline bool preferFrozen(const UpdateInfo& a, const UpdateInfo& b) const {
     if(a.describesPivot() && b.describesPivot()){
       bool aFrozen = d_variables.boundsAreEqual(a.leaving());
       bool bFrozen = d_variables.boundsAreEqual(b.leaving());
 
       if(aFrozen == bFrozen){
-        return minProduct(a,b);
+        return constrainedMin(a,b);
       }else{
         return bFrozen;
       }
     }else{
-      return minProduct(a,b);
+      return constrainedMin(a,b);
     }
   }
 
@@ -548,6 +558,7 @@ public:
   //   Assert(!basicIsTracked(x_i));
   //   d_boundTracking.set(x_i,computeBoundCounts(x_i));
   // }
+  int basicsConstrainedScore(const UpdateInfo& u) const;
 private:
   BoundCounts computeBoundCounts(ArithVar x_i) const;
 public:

@@ -358,7 +358,7 @@ public:
   focus_iterator focusBegin() const { return d_focus.begin(); }
   focus_iterator focusEnd() const { return d_focus.end(); }
 
-  void debugPrint() const;
+  void debugPrint(std::ostream& out) const;
 
 private:
   class Statistics {

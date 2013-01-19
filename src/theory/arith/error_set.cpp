@@ -440,22 +440,22 @@ ostream& operator<<(ostream& out, ErrorSelectionRule rule) {
   return out;
 }
 
-void ErrorSet::debugPrint() const {
+void ErrorSet::debugPrint(std::ostream& out) const {
   static int instance = 0;
   ++instance;
-  Debug("error") << "error set debugprint " << instance << endl;
+  out << "error set debugprint " << instance << endl;
   for(error_iterator i = errorBegin(), i_end = errorEnd();
       i != i_end; ++i){
     ArithVar e = *i;
     const ErrorInformation& ei = d_errInfo[e];
-    ei.print(Debug("error"));
+    ei.print(out);
   }
-  Debug("error") << "focus ";
+  out << "focus ";
   for(focus_iterator i = focusBegin(), i_end = focusEnd();
       i != i_end; ++i){
-    Debug("error") << *i << " ";
+    out << *i << " ";
   }
-  Debug("error") << ";" << endl;
+  out << ";" << endl;
 }
 
 void ErrorSet::focusDownToJust(ArithVar v) {

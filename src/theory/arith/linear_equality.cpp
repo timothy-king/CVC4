@@ -721,6 +721,21 @@ BoundCounts LinearEqualityModule::_countBounds(ArithVar x_i) const {
 //   }
 // }
 
+int LinearEqualityModule::basicsConstrainedScore(const UpdateInfo& u) const {
+  if(u.describesPivot()){
+    ArithVar basic = u.leaving();
+    Assert(basicIsTracked(basic));
+    BoundCounts bcs = d_boundTracking[basic];
+    uint32_t length = d_tableau.basicRowLength(basic);
+
+    int score = length - bcs.atLowerBounds() + length - bcs.atUpperBounds();
+    Assert(score > 0);
+    return std::min(score, 5);
+  }else{
+    return 2;
+  }
+}
+
 bool LinearEqualityModule::nonbasicsAtLowerBounds(ArithVar basic) const {
   Assert(basicIsTracked(basic));
   BoundCounts bcs = d_boundTracking[basic];

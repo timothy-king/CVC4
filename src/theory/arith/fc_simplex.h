@@ -94,6 +94,12 @@ private:
   static const uint32_t s_focusThreshold = 6;
   static const uint32_t s_maxDegeneratePivotsBeforeBlands = 10;
 
+  bool debugDualLike(WitnessImprovement w, std::ostream& out,
+                     int instance,
+                     uint32_t prevFocusSize, uint32_t prevErrorSize) const;
+
+  void debugPrintSignal(ArithVar updated) const;
+
   ArithVarVec d_sgnDisagreements;
 
   //static PivotImprovement pivotImprovement(const UpdateInfo& selected, bool useBlands = false);
