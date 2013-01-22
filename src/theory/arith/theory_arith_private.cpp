@@ -1594,8 +1594,8 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
   //If previous == SAT, then reverts on conflicts are safe
   //Otherwise, they are not and must be committed.
   Result::Sat previous = d_qflraStatus;
-  d_qflraStatus = Result::SAT_UNKNOWN;
   if(newFacts){
+    d_qflraStatus = Result::SAT_UNKNOWN;
     d_hasDoneWorkSinceCut = true;
   }
 
@@ -1652,10 +1652,10 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
   d_linEq.startTrackingBoundCounts();
 
   //d_qflraStatus = d_pureUpdate.findModel(false);
-  if(d_qflraStatus == Result::SAT_UNKNOWN){
+  if(d_qflraStatus != Result::SAT){
     d_qflraStatus = d_fcSimplex.findModel(Theory::fullEffort(effortLevel));
   }
-  if(d_qflraStatus == Result::SAT_UNKNOWN){
+  if(d_qflraStatus != Result::SAT){
     //d_qflraStatus = d_dualSimplex.findModel(Theory::fullEffort(effortLevel));
   }
 
