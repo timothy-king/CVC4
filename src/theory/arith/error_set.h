@@ -327,13 +327,13 @@ public:
    * Moves a variable out of the signals.
    * This moves it into the error set.
    */
-  void popSignal();
+  bool popSignal();
 
-  void popAllSignals(){
-    while(moreSignals()){
-      popSignal();
-    }
-  }
+  // void popAllSignals(){
+  //   while(moreSignals()){
+  //     popSignal();
+  //   }
+  // }
 
   const DeltaRational& getAmount(ArithVar v) const {
     return d_errInfo[v].getAmount();

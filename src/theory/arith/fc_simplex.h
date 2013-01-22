@@ -142,7 +142,7 @@ private:
   void focusUsingSignDisagreements(ArithVar basic);
   void focusDownToLastHalf();
 
-  void adjustFocusAndError(WitnessImprovement);
+  void adjustFocusAndError(WitnessImprovement, bool recompute);
 
   /**
    * This is the main simplex for DPLL(T) loop.

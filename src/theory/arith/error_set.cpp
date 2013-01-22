@@ -357,7 +357,7 @@ void ErrorSet::blur(){
 
 
 
-void ErrorSet::popSignal() {
+bool ErrorSet::popSignal() {
   ArithVar back = d_signals.back();
   d_signals.pop_back();
 
@@ -377,9 +377,11 @@ void ErrorSet::popSignal() {
     }else{
       transitionVariableOutOfError(back);
     }
+    return true;
   }else if(inconsistent(back)){
     transitionVariableIntoError(back);
   }
+  return false;
 }
 
 void ErrorSet::clear(){
