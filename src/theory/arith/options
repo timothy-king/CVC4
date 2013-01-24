@@ -51,9 +51,11 @@ option arithRewriteEq --enable-arith-rewrite-equalities/--disable-arith-rewrite-
  turns on the preprocessing rewrite turning equalities into a conjunction of inequalities
 /turns off the preprocessing rewrite turning equalities into a conjunction of inequalities
 
-
 option arithFCRoundsBetweenRecheck --fc-recheck-rate=N uint32_t :default 20
  sets the rate for FCSimplex to recheck everything
 
+option arithMLTrick --enable-miplib-trick/--disable-miplib-trick bool :default false :read-write
+ turns on the preprocessing step of attempting to infer bounds on miplib problems
+/turns off the preprocessing step of attempting to infer bounds on miplib problems
 
 endmodule
