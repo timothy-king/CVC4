@@ -473,7 +473,7 @@ void FCSimplexDecisionProcedure::updateAndSignal(const UpdateInfo& selected, Wit
       ArithVar leaving = selected.leaving();
       Message()
         << "degenerate " << leaving
-        << ", score " << d_linEq.basicsConstrainedScore(selected)
+        << ", atBounds " << d_linEq.basicsAtBounds(selected)
         << ", len " << d_tableau.basicRowLength(leaving)
         << ", bc " << d_linEq._countBounds(leaving)
         << endl;

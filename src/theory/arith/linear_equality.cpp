@@ -721,18 +721,40 @@ BoundCounts LinearEqualityModule::_countBounds(ArithVar x_i) const {
 //   }
 // }
 
-int LinearEqualityModule::basicsConstrainedScore(const UpdateInfo& u) const {
-  if(u.describesPivot()){
-    ArithVar basic = u.leaving();
-    Assert(basicIsTracked(basic));
-    BoundCounts bcs = d_boundTracking[basic];
-    uint32_t length = d_tableau.basicRowLength(basic);
+bool LinearEqualityModule::basicsAtBounds(const UpdateInfo& u) const {
+  Assert(u.describesPivot());
 
-    int score = length - bcs.atLowerBounds() + length - bcs.atUpperBounds();
-    Assert(score > 0);
-    return std::min(score, 5);
+  ArithVar nonbasic = u.nonbasic();
+  ArithVar basic = u.leaving();
+  Assert(basicIsTracked(basic));
+  int coeffSgn = u.getCoefficient().sgn();
+  int nbdir = u.nonbasicDirection();
+
+  Constraint c = u.limiting();
+  int toUB = (c->getType() == UpperBound ||
+              c->getType() == Equality) ? 1 : 0;
+  int toLB = (c->getType() == LowerBound ||
+              c->getType() == Equality) ? 1 : 0;
+
+
+  BoundCounts bcs = d_boundTracking[basic];
+  // x = c*n + \sum d*m
+  // n = 1/c * x + -1/c * (\sum d*m)  
+  BoundCounts nonb = bcs - d_variables.boundCounts(nonbasic).multiplyBySgn(coeffSgn);
+  nonb = nonb.multiplyBySgn(-coeffSgn);
+  nonb += BoundCounts(toLB, toUB).multiplyBySgn(coeffSgn);
+
+  uint32_t length = d_tableau.basicRowLength(basic);
+  Debug("basicsAtBounds")
+    << "bcs " << bcs
+    << "nonb " << nonb
+    << "length " << length << endl;
+
+  if(nbdir < 0){
+    return bcs.atLowerBounds() + 1 == length;
   }else{
-    return 2;
+    Assert(nbdir > 0);
+    return bcs.atUpperBounds() + 1 == length;
   }
 }
 
@@ -870,8 +892,9 @@ void LinearEqualityModule::computeSafeUpdate(UpdateInfo& inf, VarPreferenceFunct
       }
     }
     if(proposal != NullConstraint){
+      const Rational& coeff = entry.getCoefficient();
       DeltaRational diff = proposal->getValue() - d_variables.getAssignment(basic);
-      diff /= entry.getCoefficient();
+      diff /= coeff;
       int cmp = phase == NoBoundSelected ? 0 : diff.cmp(inf.nonbasicDelta());
       Assert(diff.sgn() == sgn || diff.sgn() == 0);
       bool prefer = false;
@@ -893,7 +916,7 @@ void LinearEqualityModule::computeSafeUpdate(UpdateInfo& inf, VarPreferenceFunct
         break;
       }
       if(prefer){
-        inf.updatePivot(diff, proposal);
+        inf.updatePivot(diff, coeff, proposal);
 
         phase = (diff.sgn() != 0) ? BasicBoundSelected : DegenerateBoundSelected;
       }
@@ -969,7 +992,7 @@ void LinearEqualityModule::computedFixed(UpdateInfo& proposal){
 
       if(max.uninitialized()){
         max = UpdateInfo(proposal.nonbasic(), proposal.nonbasicDirection());
-        max.updatePivot(amount, fixed, dropped);
+        max.updatePivot(amount, a_ji, fixed, dropped);
       }else{
         int cmp = amount.cmp(max.nonbasicDelta());
         bool prefer =
@@ -978,7 +1001,7 @@ void LinearEqualityModule::computedFixed(UpdateInfo& proposal){
           (cmp == 0 && fixed->getVariable() < max.limiting()->getVariable());
 
         if(prefer){
-          max.updatePivot(amount, fixed, dropped);
+          max.updatePivot(amount, a_ji, fixed, dropped);
         }else{
           max.setErrorsChange(dropped);
         }
@@ -1144,7 +1167,7 @@ UpdateInfo LinearEqualityModule::mkConflictUpdate(const Tableau::Entry& entry, b
   DeltaRational toBound = bound->getValue() - assignment;
   DeltaRational nbDiff = toBound/coeff;
 
-  return UpdateInfo::conflict(nb, nbDiff, bound);
+  return UpdateInfo::conflict(nb, nbDiff, coeff, bound);
 }
 
 UpdateInfo LinearEqualityModule::speculativeUpdate(ArithVar nb, const Rational& focusCoeff, UpdatePreferenceFunction pref){
@@ -1321,7 +1344,11 @@ void LinearEqualityModule::handleBorders(UpdateInfo& selected, ArithVar nb, cons
         }
       }
       UpdateInfo proposal(nb, nbDir);
-      proposal.update(b.d_diff, b.d_bound, -negErrorChange, currFocusChangeSgn);
+      if(b.ownBorder()){
+        proposal.witnessedUpdate(b.d_diff, b.d_bound, -negErrorChange, currFocusChangeSgn);
+      }else{
+        proposal.update(b.d_diff, b.getCoefficient(), b.d_bound, -negErrorChange, currFocusChangeSgn);      
+      }
 
       if(selected.unbounded() || (this->*pref)(selected, proposal)){
         selected = proposal;

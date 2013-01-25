@@ -64,27 +64,8 @@ inline bool degenerate(WitnessImprovement w){
   }
 }
 
-inline std::ostream& operator<<(std::ostream& out,  WitnessImprovement w){
-  switch(w){
-  case ConflictFound:
-    out << "ConflictFound"; break;
-  case ErrorDropped:
-    out << "ErrorDropped"; break;
-  case FocusImproved:
-    out << "FocusImproved"; break;
-  case FocusShrank:
-    out << "FocusShrank"; break;
-  case Degenerate:
-    out << "Degenerate"; break;
-  case BlandsDegenerate:
-    out << "BlandsDegenerate"; break;
-  case HeuristicDegenerate:
-    out << "HeuristicDegenerate"; break;
-  case AntiProductive:
-    out << "AntiProductive"; break;
-  }
-  return out;
-}
+std::ostream& operator<<(std::ostream& out,  WitnessImprovement w);
+
 /**
  * This class summarizes both potential:
  * - pivot-and-update operations or
@@ -138,6 +119,9 @@ private:
   /** This is the sgn of the change in the value of the focus set.*/
   Maybe<int> d_focusDirection;
 
+  /** This is the coefficient in the tableau for the entry.*/
+  Maybe<const Rational*> d_tableauCoefficient;
+
   /**
    * This is the constraint that nonbasic is basic is updating s.t. its variable is against it.
    * This has 3 different possibilities:
@@ -159,7 +143,7 @@ private:
   }
 
   /** This private constructor allows for setting conflict to true. */
-  UpdateInfo(bool conflict, ArithVar nb, const DeltaRational& delta, Constraint lim);
+  UpdateInfo(bool conflict, ArithVar nb, const DeltaRational& delta, const Rational& r, Constraint lim);
 
 public:
 
@@ -187,22 +171,23 @@ public:
    * This updates the nonBasicDelta to d and limiting to c.
    * This clears errorChange() and focusDir().
    */
-  void updatePivot(const DeltaRational& d, Constraint c);
+  void updatePivot(const DeltaRational& d, const Rational& r,  Constraint c);
 
   /**
    * This updates the nonBasicDelta to d, limiting to c, and errorChange to e.
    * This clears focusDir().
    */
-  void updatePivot(const DeltaRational& d, Constraint c, int e);
+  void updatePivot(const DeltaRational& d, const Rational& r, Constraint c, int e);
 
   /**
    * This updates the nonBasicDelta to d, limiting to c, errorChange to e and
    * focusDir to f.
    */
-  void update(const DeltaRational& d, Constraint c, int e, int f);
+  void witnessedUpdate(const DeltaRational& d, Constraint c, int e, int f);
+  void update(const DeltaRational& d, const Rational& r, Constraint c, int e, int f);
 
 
-  static UpdateInfo conflict(ArithVar nb, const DeltaRational& delta, Constraint lim);
+  static UpdateInfo conflict(ArithVar nb, const DeltaRational& delta, const Rational& r, Constraint lim);
 
   inline ArithVar nonbasic() const { return d_nonbasic; }
   inline bool uninitialized() const {
@@ -280,6 +265,14 @@ public:
   /** Requires nonbasicDelta to be set through updateProposal(...). */
   const DeltaRational& nonbasicDelta() const {
     return d_nonbasicDelta;
+  }
+  const Rational& getCoefficient() const {
+    Assert(describesPivot());
+    Assert(d_tableauCoefficient.constValue() != NULL);
+    return *(d_tableauCoefficient.constValue());
+  }
+  int basicDirection() const {
+    return nonbasicDirection() * (getCoefficient().sgn());
   }
 
   /** Returns the limiting constraint. */

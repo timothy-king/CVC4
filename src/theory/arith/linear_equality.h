@@ -81,6 +81,10 @@ struct Border{
   bool isZero() const { return d_diff.sgn() == 0; }
   static bool nonZero(const Border& b) { return !b.isZero(); }
 
+  const Rational& getCoefficient() const {
+    Assert(!ownBorder());
+    return d_entry->getCoefficient();
+  }
   void output(std::ostream& out) const;
 };
 
@@ -289,14 +293,14 @@ public:
     }
   }
   inline bool constrainedMin(const UpdateInfo& a, const UpdateInfo& b) const{
-    int scoreA = basicsConstrainedScore(a);
-    int scoreB = basicsConstrainedScore(b);
-
-    if(scoreA == scoreB){
-      return minProduct(a,b);
-    }else{
-      return scoreA > scoreB;
+    if(a.describesPivot() && b.describesPivot()){
+      bool aAtBounds = basicsAtBounds(a);
+      bool bAtBounds = basicsAtBounds(b);
+      if(aAtBounds != bAtBounds){
+        return bAtBounds;
+      }
     }
+    return minProduct(a,b);
   }
 
   /**
@@ -308,14 +312,11 @@ public:
       bool aFrozen = d_variables.boundsAreEqual(a.leaving());
       bool bFrozen = d_variables.boundsAreEqual(b.leaving());
 
-      if(aFrozen == bFrozen){
-        return constrainedMin(a,b);
-      }else{
+      if(aFrozen != bFrozen){
         return bFrozen;
       }
-    }else{
-      return constrainedMin(a,b);
     }
+    return constrainedMin(a,b);
   }
 
   /**
@@ -558,7 +559,7 @@ public:
   //   Assert(!basicIsTracked(x_i));
   //   d_boundTracking.set(x_i,computeBoundCounts(x_i));
   // }
-  int basicsConstrainedScore(const UpdateInfo& u) const;
+  bool basicsAtBounds(const UpdateInfo& u) const;
 private:
   BoundCounts computeBoundCounts(ArithVar x_i) const;
 public:
