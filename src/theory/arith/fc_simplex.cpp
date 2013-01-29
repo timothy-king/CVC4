@@ -215,7 +215,14 @@ void FCSimplexDecisionProcedure::adjustFocusAndError(WitnessImprovement w, bool 
   }else if(improvement(w) || recompute){
     reconstructFocusErrorFunction(d_statistics.d_fcFocusConstructionTimer);
   }
-  d_errorSize = newErrorSize;
+
+  Debug("adjustFocusAndError")
+    << "adjustFocusAndError " << w << " "
+    << improvement(w )<< " " << recompute
+    <<" " <<  d_errorSize << " " << d_focusSize
+    << " " << newErrorSize << " " << newFocusSize << endl;
+
+  d_errorSize = newErrorSize;//27172
   d_focusSize = newFocusSize;
 }
 
@@ -512,6 +519,9 @@ void FCSimplexDecisionProcedure::updateAndSignal(const UpdateInfo& selected, Wit
         anyLeft = true;
       }
     }else{
+      if(wasInError){
+        anyLeft = true;
+      }
       Debug("updateAndSignal") << "updated nonbasic " << updated << endl;
     }
   }
@@ -553,6 +563,8 @@ WitnessImprovement FCSimplexDecisionProcedure::dualLikeImproveError(ArithVar err
   }else if(selected.focusDirection() == 0 &&
            d_prevWitnessImprovement == HeuristicDegenerate &&
            d_witnessImprovementInARow >= s_focusThreshold){
+
+    Debug("focusDownToJust") << "focusDownToJust " << errorVar << endl;
     d_errorSet.focusDownToJust(errorVar);
     Assert(d_focusSize > d_errorSet.focusSize());
     Assert(d_errorSet.focusSize() == 1);
@@ -680,6 +692,7 @@ Result::Sat FCSimplexDecisionProcedure::dualLike(){
   Assert(d_focusErrorVar == ARITHVAR_SENTINEL);
 
   constructFocusErrorFunction(d_statistics.d_fcFocusConstructionTimer);
+  
 
   while(d_pivotBudget != 0  && d_errorSize > 0 && d_conflictVariables.empty()){
     ++instance;
