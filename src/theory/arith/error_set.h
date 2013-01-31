@@ -326,8 +326,9 @@ public:
   /**
    * Moves a variable out of the signals.
    * This moves it into the error set.
+   * Return the previous error sign.
    */
-  bool popSignal();
+  int popSignal();
 
   // void popAllSignals(){
   //   while(moreSignals()){

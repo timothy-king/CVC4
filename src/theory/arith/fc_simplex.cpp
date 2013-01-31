@@ -204,7 +204,7 @@ uint32_t FCSimplexDecisionProcedure::degeneratePivotsInARow() const {
   Unreachable();
 }
 
-void FCSimplexDecisionProcedure::adjustFocusAndError(WitnessImprovement w, bool recompute){
+void FCSimplexDecisionProcedure::adjustFocusAndError(bool recompute){
   uint32_t newErrorSize = d_errorSet.errorSize();
   uint32_t newFocusSize = d_errorSet.focusSize();
 
@@ -212,17 +212,11 @@ void FCSimplexDecisionProcedure::adjustFocusAndError(WitnessImprovement w, bool 
   Assert(!d_conflictVariables.empty() || newErrorSize <= d_errorSize);
   if( newFocusSize == 0 ){
     tearDownFocusErrorFunction(d_statistics.d_fcFocusConstructionTimer);
-  }else if(improvement(w) || recompute){
+  }else if(recompute){
     reconstructFocusErrorFunction(d_statistics.d_fcFocusConstructionTimer);
   }
 
-  Debug("adjustFocusAndError")
-    << "adjustFocusAndError " << w << " "
-    << improvement(w )<< " " << recompute
-    <<" " <<  d_errorSize << " " << d_focusSize
-    << " " << newErrorSize << " " << newFocusSize << endl;
-
-  d_errorSize = newErrorSize;//27172
+  d_errorSize = newErrorSize;
   d_focusSize = newFocusSize;
 }
 
@@ -501,11 +495,12 @@ void FCSimplexDecisionProcedure::updateAndSignal(const UpdateInfo& selected, Wit
 
     d_linEq.updateTracked(nonbasic, newAssignment);
   }
-  bool anyLeft = false;
+
+  bool anyChangedSign = false;
   while(d_errorSet.moreSignals()){
     ArithVar updated = d_errorSet.topSignal();
-    bool wasInError = d_errorSet.popSignal();
-
+    int prevErrorSgn = d_errorSet.popSignal();
+    int currErrorSgn;
 
     if(d_tableau.isBasic(updated)){
       Assert(!d_variables.assignmentIsConsistent(updated) == d_errorSet.inError(updated));
@@ -515,15 +510,15 @@ void FCSimplexDecisionProcedure::updateAndSignal(const UpdateInfo& selected, Wit
           reportConflict(updated);
           Assert(debugUpdatedBasic(selected, updated));
         }
-      }else if(wasInError){
-        anyLeft = true;
+        currErrorSgn = d_errorSet.getSgn(updated);
+      }else{
+        currErrorSgn = 0;
       }
     }else{
-      if(wasInError){
-        anyLeft = true;
-      }
+      currErrorSgn = 0;
       Debug("updateAndSignal") << "updated nonbasic " << updated << endl;
     }
+    anyChangedSign |= (prevErrorSgn != currErrorSgn);
   }
   d_pivots++;
 
@@ -535,7 +530,7 @@ void FCSimplexDecisionProcedure::updateAndSignal(const UpdateInfo& selected, Wit
 
   Assert(debugSelectedErrorDropped(selected, d_errorSize, d_errorSet.errorSize()));
 
-  adjustFocusAndError(w, anyLeft);
+  adjustFocusAndError(anyChangedSign);
 }
 
 WitnessImprovement FCSimplexDecisionProcedure::dualLikeImproveError(ArithVar errorVar){
@@ -558,7 +553,7 @@ WitnessImprovement FCSimplexDecisionProcedure::dualLikeImproveError(ArithVar err
     // focus using sgn disagreement earlier
     Assert(d_focusSize > d_errorSet.focusSize());
     Assert(d_errorSet.focusSize() >= 1);
-    adjustFocusAndError(FocusShrank, true);
+    adjustFocusAndError(true);
     return FocusShrank;
   }else if(selected.focusDirection() == 0 &&
            d_prevWitnessImprovement == HeuristicDegenerate &&
@@ -568,7 +563,7 @@ WitnessImprovement FCSimplexDecisionProcedure::dualLikeImproveError(ArithVar err
     d_errorSet.focusDownToJust(errorVar);
     Assert(d_focusSize > d_errorSet.focusSize());
     Assert(d_errorSet.focusSize() == 1);
-    adjustFocusAndError(FocusShrank, true);
+    adjustFocusAndError(true);
     return FocusShrank;
   }else{
     WitnessImprovement w = selected.getWitness(false);
@@ -620,7 +615,7 @@ WitnessImprovement FCSimplexDecisionProcedure::selectFocusImproving() {
   if(selected.uninitialized()){
     Debug("selectFocusImproving") << "focus is optimum, but we don't have sat/conflict yet" << endl;
     focusDownToLastHalf();
-    adjustFocusAndError(FocusShrank, true);
+    adjustFocusAndError(true);
     return FocusShrank;
   }
   Assert(!selected.uninitialized());
@@ -633,7 +628,7 @@ WitnessImprovement FCSimplexDecisionProcedure::selectFocusImproving() {
        d_witnessImprovementInARow >= s_focusThreshold){
       Debug("selectFocusImproving") << "focus down been degenerate too long" << endl;
       focusDownToLastHalf();
-      adjustFocusAndError(FocusShrank, true);
+      adjustFocusAndError(true);
       return FocusShrank;
     }else{
       Debug("selectFocusImproving") << "taking degenerate" << endl;

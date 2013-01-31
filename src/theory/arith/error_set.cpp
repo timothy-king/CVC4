@@ -357,18 +357,19 @@ void ErrorSet::blur(){
 
 
 
-bool ErrorSet::popSignal() {
+int ErrorSet::popSignal() {
   ArithVar back = d_signals.back();
   d_signals.pop_back();
 
   if(inError(back)){
+    ErrorInformation& ei = d_errInfo.get(back);
+    int prevSgn = ei.sgn();
     bool vilb = d_variables.cmpAssignmentLowerBound(back) < 0;
     bool viub = d_variables.cmpAssignmentUpperBound(back) > 0;
     if(vilb || viub){
       Assert(!vilb || !viub);
-      ErrorInformation& ei = d_errInfo.get(back);
       int currSgn = vilb ? 1 : -1;
-      if(currSgn != ei.sgn()){
+      if(currSgn != prevSgn){
         Constraint curr = vilb ?  d_variables.getLowerBoundConstraint(back)
           : d_variables.getUpperBoundConstraint(back);
         ei.reset(curr, currSgn);
@@ -377,11 +378,11 @@ bool ErrorSet::popSignal() {
     }else{
       transitionVariableOutOfError(back);
     }
-    return true;
+    return prevSgn;
   }else if(inconsistent(back)){
     transitionVariableIntoError(back);
   }
-  return false;
+  return 0;
 }
 
 void ErrorSet::clear(){
