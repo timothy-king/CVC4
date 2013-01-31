@@ -23,6 +23,7 @@
 
 #include "util/statistics.h"
 #include "util/exception.h"
+#include "lib/clock_gettime.h"
 
 #include <sstream>
 #include <iomanip>
@@ -616,6 +617,8 @@ public:
 /* Some utility functions for timespec                                    */
 /****************************************************************************/
 
+inline std::ostream& operator<<(std::ostream& os, const timespec& t);
+
 /** Compute the sum of two timespecs. */
 inline timespec& operator+=(timespec& a, const timespec& b) {
   // assumes a.tv_nsec and b.tv_nsec are in range
@@ -765,7 +768,6 @@ public:
 
 };/* class TimerStat */
 
-
 /**
  * Utility class to make it easier to call stop() at the end of a
  * code block.  When constructed, it starts the timer.  When
@@ -787,7 +789,6 @@ public:
     d_timer.stop();
   }
 };/* class CodeTimer */
-
 
 /**
  * To use a statistic, you need to declare it, initialize it in your

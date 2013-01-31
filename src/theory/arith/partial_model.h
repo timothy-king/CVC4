@@ -434,7 +434,7 @@ private:
   bool debugEqualSizes();
 
   bool inMaps(ArithVar x) const{
-    return 0 <= x && x < getNumberOfVariables();
+    return x < getNumberOfVariables();
   }
 
 };/* class ArithVariables */

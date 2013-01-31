@@ -109,6 +109,7 @@ TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context
   d_pureUpdate(d_linEq, d_errorSet, RaiseConflict(*this), TempVarMalloc(*this)),
   d_fcSimplex(d_linEq, d_errorSet, RaiseConflict(*this), TempVarMalloc(*this)),
   d_DELTA_ZERO(0),
+  d_fullCheckCounter(0),
   d_statistics()
 {
 }
@@ -1777,7 +1778,22 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
   }
   Assert( d_currentPropagationList.empty());
 
+  if(!emmittedConflictOrSplit && Theory::fullEffort(effortLevel)){
+    ++d_fullCheckCounter;
+  }
+  static const int CUT_ALL_BOUNDED_PERIOD = 10;
+  if(!emmittedConflictOrSplit && Theory::fullEffort(effortLevel) &&
+     d_fullCheckCounter % CUT_ALL_BOUNDED_PERIOD == 1){
+    vector<Node> lemmas = cutAllBounded();
 
+    //output the lemmas
+    for(vector<Node>::const_iterator i = lemmas.begin(); i != lemmas.end(); ++i){
+      outputLemma(*i);
+      ++(d_statistics.d_externalBranchAndBounds);
+    }
+    emmittedConflictOrSplit = lemmas.size() > 0;
+
+  }
   if(!emmittedConflictOrSplit && Theory::fullEffort(effortLevel)){
     emmittedConflictOrSplit = splitDisequalities();
   }
@@ -1824,6 +1840,57 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
   Debug("arith") << "TheoryArithPrivate::check end" << std::endl;
 }
 
+Node TheoryArithPrivate::branchIntegerVariable(ArithVar x) const {
+  const DeltaRational& d = d_partialModel.getAssignment(x);
+  Assert(!d.isIntegral());
+  const Rational& r = d.getNoninfinitesimalPart();
+  const Rational& i = d.getInfinitesimalPart();
+  Trace("integers") << "integers: assignment to [[" << d_partialModel.asNode(x) << "]] is " << r << "[" << i << "]" << endl;
+
+  Assert(! (r.getDenominator() == 1 && i.getNumerator() == 0));
+  Assert(!d.isIntegral());
+  TNode var = d_partialModel.asNode(x);
+  Integer floor_d = d.floor();
+
+  Node ub = Rewriter::rewrite(NodeManager::currentNM()->mkNode(kind::LEQ, var, mkRationalNode(floor_d)));
+  Node lb = ub.notNode();
+
+
+  Node lem = NodeManager::currentNM()->mkNode(kind::OR, ub, lb);
+  Trace("integers") << "integers: branch & bound: " << lem << endl;
+  if(isSatLiteral(lem[0])) {
+    Debug("integers") << "    " << lem[0] << " == " << getSatValue(lem[0]) << endl;
+  } else {
+    Debug("integers") << "    " << lem[0] << " is not assigned a SAT literal" << endl;
+  }
+  if(isSatLiteral(lem[1])) {
+    Debug("integers") << "    " << lem[1] << " == " << getSatValue(lem[1]) << endl;
+    } else {
+    Debug("integers") << "    " << lem[1] << " is not assigned a SAT literal" << endl;
+  }
+  return lem;
+}
+
+std::vector<Node> TheoryArithPrivate::cutAllBounded() const{
+  vector<Node> lemmas;
+  ArithVar max = d_partialModel.getNumberOfVariables();
+
+  if(options::doCutAllBounded() && max > 0){
+    for(ArithVar iter = 0; iter != max; ++iter){
+    //Do not include slack variables
+      const DeltaRational& d = d_partialModel.getAssignment(iter);
+      if(isInteger(iter) && !isSlackVariable(iter) &&
+         d_partialModel.hasUpperBound(iter) &&
+         d_partialModel.hasLowerBound(iter) &&
+         !d.isIntegral()){
+        Node lem = branchIntegerVariable(iter);
+        lemmas.push_back(lem);
+      }
+    }
+  }
+  return lemmas;
+}
+
 /** Returns true if the roundRobinBranching() issues a lemma. */
 Node TheoryArithPrivate::roundRobinBranch(){
   if(hasIntegerModel()){
@@ -1833,38 +1900,7 @@ Node TheoryArithPrivate::roundRobinBranch(){
 
     Assert(isInteger(v));
     Assert(!isSlackVariable(v));
-
-    const DeltaRational& d = d_partialModel.getAssignment(v);
-    const Rational& r = d.getNoninfinitesimalPart();
-    const Rational& i = d.getInfinitesimalPart();
-    Trace("integers") << "integers: assignment to [[" << d_partialModel.asNode(v) << "]] is " << r << "[" << i << "]" << endl;
-
-    Assert(! (r.getDenominator() == 1 && i.getNumerator() == 0));
-    Assert(!d.isIntegral());
-
-    TNode var = d_partialModel.asNode(v);
-    Integer floor_d = d.floor();
-    Integer ceil_d = d.ceiling();
-
-    Node leq = Rewriter::rewrite(NodeManager::currentNM()->mkNode(kind::LEQ, var, mkRationalNode(floor_d)));
-    Node geq = Rewriter::rewrite(NodeManager::currentNM()->mkNode(kind::GEQ, var, mkRationalNode(ceil_d)));
-
-
-    Node lem = NodeManager::currentNM()->mkNode(kind::OR, leq, geq);
-    Trace("integers") << "integers: branch & bound: " << lem << endl;
-    if(Debug.isOn("integers")){
-      if(isSatLiteral(lem[0])) {
-        Debug("integers") << "    " << lem[0] << " == " << getSatValue(lem[0]) << endl;
-      } else {
-        Debug("integers") << "    " << lem[0] << " is not assigned a SAT literal" << endl;
-      }
-      if(isSatLiteral(lem[1])) {
-        Debug("integers") << "    " << lem[1] << " == " << getSatValue(lem[1]) << endl;
-      } else {
-        Debug("integers") << "    " << lem[1] << " is not assigned a SAT literal" << endl;
-      }
-    }
-    return lem;
+    return branchIntegerVariable(v);
   }
 }
 

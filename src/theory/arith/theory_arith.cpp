@@ -25,7 +25,6 @@ namespace CVC4 {
 namespace theory {
 namespace arith {
 
-
 TheoryArith::TheoryArith(context::Context* c, context::UserContext* u, OutputChannel& out, Valuation valuation, const LogicInfo& logicInfo, QuantifiersEngine* qe)
   : Theory(THEORY_ARITH, c, u, out, valuation, logicInfo, qe)
   , d_internal(new TheoryArithPrivate(*this, c, u, out, valuation, logicInfo, qe))
@@ -62,7 +61,6 @@ void TheoryArith::ppStaticLearn(TNode n, NodeBuilder<>& learned) {
 void TheoryArith::check(Effort effortLevel){
   d_internal->check(effortLevel);
 }
-
 
 Node TheoryArith::explain(TNode n) {
   return d_internal->explain(n);
