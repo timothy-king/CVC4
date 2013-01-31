@@ -628,6 +628,10 @@ private:
   DeltaRational computeBound(ArithVar basic, bool upperBound);
 
 public:
+  void substitutePlusTimesConstant(ArithVar to, ArithVar from, const Rational& mult);
+  void directlyAddToCoefficient(ArithVar row, ArithVar col, const Rational& mult);
+
+
   /**
    * Checks to make sure the assignment is consistent with the tableau.
    * This code is for debugging.

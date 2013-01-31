@@ -364,6 +364,7 @@ int ErrorSet::popSignal() {
   if(inError(back)){
     ErrorInformation& ei = d_errInfo.get(back);
     int prevSgn = ei.sgn();
+    int focusSgn = ei.focusSgn();
     bool vilb = d_variables.cmpAssignmentLowerBound(back) < 0;
     bool viub = d_variables.cmpAssignmentUpperBound(back) > 0;
     if(vilb || viub){
@@ -378,7 +379,7 @@ int ErrorSet::popSignal() {
     }else{
       transitionVariableOutOfError(back);
     }
-    return prevSgn;
+    return focusSgn;
   }else if(inconsistent(back)){
     transitionVariableIntoError(back);
   }

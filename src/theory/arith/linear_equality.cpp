@@ -1425,6 +1425,13 @@ void LinearEqualityModule::pop_block(BorderHeap& heap, int& brokenInBlock, int& 
   }
 }
 
+void LinearEqualityModule::substitutePlusTimesConstant(ArithVar to, ArithVar from, const Rational& mult){
+  d_tableau.substitutePlusTimesConstant(to, from, mult, d_trackCallback);
+}
+void LinearEqualityModule::directlyAddToCoefficient(ArithVar row, ArithVar col, const Rational& mult){
+  d_tableau.directlyAddToCoefficient(row, col, mult, d_trackCallback);
+}
+
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */
 }/* CVC4 namespace */

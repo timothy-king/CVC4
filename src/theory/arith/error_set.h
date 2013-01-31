@@ -147,8 +147,12 @@ public:
   void setUnrelaxed(){ Assert(d_relaxed); d_relaxed = false; }
 
   inline int sgn() const { return d_sgn; }
- 
+
   inline bool inFocus() const { return d_inFocus; }
+  inline int focusSgn() const {
+    return (d_inFocus) ? sgn() : 0;
+  }
+
   inline void setInFocus(bool inFocus) { d_inFocus = inFocus; }
 
   const DeltaRational& getAmount() const {
@@ -304,6 +308,13 @@ public:
     Assert(inError(x));
     return d_errInfo[x].sgn();
   }
+  inline int focusSgn(ArithVar v) const {
+    if(inError(v)){
+      return d_errInfo[v].focusSgn();
+    }else{
+      return 0;
+    }
+  }
 
   void focusDownToJust(ArithVar v);
 
@@ -326,7 +337,7 @@ public:
   /**
    * Moves a variable out of the signals.
    * This moves it into the error set.
-   * Return the previous error sign.
+   * Return the previous focus sign.
    */
   int popSignal();
 
