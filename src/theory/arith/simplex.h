@@ -69,6 +69,8 @@ namespace arith {
 
 class SimplexDecisionProcedure {
 protected:
+  typedef std::vector< std::pair<ArithVar, int> > AVIntPairVec;
+
   /** */
   uint32_t d_pivots;
 
@@ -117,11 +119,15 @@ protected:
 
   void constructFocusErrorFunction(TimerStat& timer);
   void tearDownFocusErrorFunction(TimerStat& timer);
+  void adjustFocusFunction(TimerStat& timer, const AVIntPairVec& focusChanges);
+  void shrinkFocusFunction(TimerStat& timer, const ArithVarVec& dropped);
 
-  void reconstructFocusErrorFunction(TimerStat& timer){
-    tearDownFocusErrorFunction(timer);
-    constructFocusErrorFunction(timer);
-  }
+
+
+  // void reconstructFocusErrorFunction(TimerStat& timer){
+  //   tearDownFocusErrorFunction(timer);
+  //   constructFocusErrorFunction(timer);
+  // }
 
   /**
    * The signs of the coefficients in the focus set.

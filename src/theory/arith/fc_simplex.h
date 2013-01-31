@@ -139,10 +139,13 @@ private:
   }
   WitnessImprovement selectFocusImproving() ;
 
-  void focusUsingSignDisagreements(ArithVar basic);
-  void focusDownToLastHalf();
+  WitnessImprovement focusUsingSignDisagreements(ArithVar basic);
+  WitnessImprovement focusDownToLastHalf();
+  WitnessImprovement adjustFocusShrank(const ArithVarVec& drop);
+  WitnessImprovement focusDownToJust(ArithVar v);
 
-  void adjustFocusAndError(bool recomputeFocus);
+
+  void adjustFocusAndError(const UpdateInfo& up, const AVIntPairVec& focusChanges);
 
   /**
    * This is the main simplex for DPLL(T) loop.

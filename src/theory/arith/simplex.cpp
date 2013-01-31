@@ -140,6 +140,35 @@ void SimplexDecisionProcedure::tearDownFocusErrorFunction(TimerStat& timer){
 
   Assert(d_focusErrorVar == ARITHVAR_SENTINEL);
 }
+
+void SimplexDecisionProcedure::shrinkFocusFunction(TimerStat& timer, const ArithVarVec& dropped){
+  TimerStat::CodeTimer codeTimer(timer);
+  for(ArithVarVec::const_iterator i=dropped.begin(), i_end = dropped.end(); i != i_end; ++i){
+    ArithVar back = *i;
+
+    int focusSgn = d_errorSet.focusSgn(back);
+    Rational chg(-focusSgn);
+
+    d_linEq.substitutePlusTimesConstant(d_focusErrorVar, back, chg);
+  }
+}
+void SimplexDecisionProcedure::adjustFocusFunction(TimerStat& timer, const AVIntPairVec& focusChanges){
+  TimerStat::CodeTimer codeTimer(timer);
+  int oldBasicSgnChange = 0;
+  int newBasicSgnChange = 0;
+  for(AVIntPairVec::const_iterator i=focusChanges.begin(), i_end = focusChanges.end(); i != i_end; ++i){
+    ArithVar v = (*i).first;
+    int focusChange = (*i).second;
+
+    Rational chg(focusChange);
+    if(d_tableau.isBasic(v)){
+      d_linEq.substitutePlusTimesConstant(d_focusErrorVar, v, chg);
+    }else{
+      d_linEq.directlyAddToCoefficient(d_focusErrorVar, v, chg);
+    }
+  }
+}
+
 void SimplexDecisionProcedure::constructFocusErrorFunction(TimerStat& timer){
   TimerStat::CodeTimer codeTimer(timer);
   Assert(d_focusErrorVar == ARITHVAR_SENTINEL);
