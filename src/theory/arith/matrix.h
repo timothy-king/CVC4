@@ -727,13 +727,17 @@ protected:
     return ENTRYID_SENTINEL;
   }
 
+  EntryID findEntryID(RowIndex rid, ArithVar col) const{
+    bool colIsShorter = getColLength(col) < getRowLength(rid);
+    EntryID id = colIsShorter ? findOnCol(rid, col) : findOnRow(rid,col);
+    return id;
+  }
   MatrixEntry<T> d_failedFind;
 public:
 
   /** If the find fails, isUnused is true on the entry. */
   const MatrixEntry<T>& findEntry(RowIndex rid, ArithVar col) const{
-    bool colIsShorter = getColLength(col) < getRowLength(rid);
-    EntryID id = colIsShorter ? findOnCol(rid, col) : findOnRow(rid,col);
+    EntryID id = findEntryID(rid, col);
     if(id == ENTRYID_SENTINEL){
       return d_failedFind;
     }else{
@@ -777,6 +781,31 @@ public:
   }
   uint32_t getEntryCapacity() const {
     return d_entries.capacity();
+  }
+
+  void manipulateRowEntry(RowIndex row, ArithVar col, const T& c, CoefficientChangeCallback& cb){
+    int coeffOldSgn;
+    int coeffNewSgn;
+
+    EntryID id = findEntryID(row, col);
+    if(id == ENTRYID_SENTINEL){
+      coeffOldSgn = 0;
+      addEntry(row, col, c);
+      coeffNewSgn = c.sgn();
+    }else{
+      Entry& e = d_entries.get(id);
+      T& t = e.getCoefficient();
+      coeffOldSgn = t.sgn();
+      t += c;
+      coeffNewSgn = t.sgn();
+    }
+
+    if(coeffOldSgn != coeffNewSgn){
+      cb.update(row, col, coeffOldSgn,  coeffNewSgn);
+    }
+    if(coeffNewSgn == 0){
+      removeEntry(id);
+    }
   }
 
   void removeRow(RowIndex rid){

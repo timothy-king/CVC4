@@ -110,6 +110,17 @@ public:
     return getRowLength(ridx);
   }
 
+  /**
+   *  to += mult * from
+   * replacing from with its row.
+   */
+  void substitutePlusTimesConstant(ArithVar to, ArithVar from, const Rational& mult,  CoefficientChangeCallback& cb);
+
+  void directlyAddToCoefficient(ArithVar rowVar, ArithVar col, const Rational& mult,  CoefficientChangeCallback& cb){
+    RowIndex ridx = basicToRowIndex(rowVar);
+    manipulateRowEntry(ridx, col, mult, cb);
+  }
+
 private:
   /* Changes the basic variable on the row for basicOld to basicNew. */
   void rowPivot(ArithVar basicOld, ArithVar basicNew, CoefficientChangeCallback& cb);

@@ -137,6 +137,19 @@ void Tableau::removeBasicRow(ArithVar basic){
   d_rowIndex2basic.remove(rid);
 }
 
+void Tableau::substitutePlusTimesConstant(ArithVar to, ArithVar from, const Rational& mult,  CoefficientChangeCallback& cb){
+    if(!mult.isZero()){
+      RowIndex to_idx = basicToRowIndex(to);
+      addEntry(to_idx, from, mult); // Add an entry to be cancelled out
+      RowIndex from_idx = basicToRowIndex(from);
+
+      cb.update(to_idx, from, 0, mult.sgn());
+    
+      loadRowIntoBuffer(from_idx);
+      rowPlusBufferTimesConstant(to_idx, mult, cb);
+      clearBuffer();
+    }
+  }
 
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */
