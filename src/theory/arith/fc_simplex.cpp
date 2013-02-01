@@ -531,8 +531,6 @@ void FCSimplexDecisionProcedure::updateAndSignal(const UpdateInfo& selected, Wit
     ArithVar basic = limiting->getVariable();
     Assert(d_linEq.basicIsTracked(basic));
     d_linEq.pivotAndUpdate(basic, nonbasic, limiting->getValue());
-
-    d_pivots++;
   }else{
     Assert(!selected.unbounded() || selected.errorsChange() < 0);
 
@@ -541,6 +539,7 @@ void FCSimplexDecisionProcedure::updateAndSignal(const UpdateInfo& selected, Wit
 
     d_linEq.updateTracked(nonbasic, newAssignment);
   }
+  d_pivots++;
 
   vector< pair<ArithVar, int> > focusChanges;
   while(d_errorSet.moreSignals()){
