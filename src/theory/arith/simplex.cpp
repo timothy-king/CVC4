@@ -154,8 +154,6 @@ void SimplexDecisionProcedure::shrinkFocusFunction(TimerStat& timer, const Arith
 }
 void SimplexDecisionProcedure::adjustFocusFunction(TimerStat& timer, const AVIntPairVec& focusChanges){
   TimerStat::CodeTimer codeTimer(timer);
-  int oldBasicSgnChange = 0;
-  int newBasicSgnChange = 0;
   for(AVIntPairVec::const_iterator i=focusChanges.begin(), i_end = focusChanges.end(); i != i_end; ++i){
     ArithVar v = (*i).first;
     int focusChange = (*i).second;
