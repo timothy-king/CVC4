@@ -189,7 +189,7 @@ bool DualSimplexDecisionProcedure::searchForFeasibleSolution(uint32_t remainingI
 
     LinearEqualityModule::VarPreferenceFunction pf = useVarOrderPivot ?
       &LinearEqualityModule::minVarOrder : &LinearEqualityModule::minBoundAndColLength;
-    
+
     //DeltaRational beta_i = d_variables.getAssignment(x_i);
     ArithVar x_j = ARITHVAR_SENTINEL;
 
