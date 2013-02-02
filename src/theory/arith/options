@@ -63,4 +63,8 @@ option doCutAllBounded --enable-cut-all-bounded/--disable-cut-all-bounded bool :
 / turns off the integer solving step of periodically cutting all integer variables that have both upper and lower bounds
 
 
+option ignorePenalties --enable-ignore-penalties/--disable-ignore-penalties bool :default true :read-write
+ turns on degenerate pivot penalties
+/ turns off degenerate pivot penalties
+
 endmodule

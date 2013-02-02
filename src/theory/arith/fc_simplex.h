@@ -77,6 +77,19 @@ public:
   Result::Sat dualLike();
 
 private:
+  static const uint32_t PENALTY = 4;
+  DenseMultiset d_scores;
+  void decreasePenalties(){ d_scores.removeOneOfEverything(); }
+  uint32_t penalty(ArithVar x) const { return d_scores.count(x); }
+  void setPenalty(ArithVar x, WitnessImprovement w){
+    if(improvement(w)){
+      if(d_scores.count(x) > 0){
+        d_scores.removeAll(x);
+      }
+    }else{
+      d_scores.setCount(x, PENALTY);
+    }
+  }
 
   int32_t d_pivotBudget;
   // enum PivotImprovement {
@@ -171,7 +184,7 @@ private:
     IntStat d_fcFoundUnsat;
     IntStat d_fcFoundSat;
     IntStat d_fcMissed;
-    
+
     TimerStat d_fcTimer;
     TimerStat d_fcFocusConstructionTimer;
 

@@ -286,6 +286,8 @@ UpdateInfo FCSimplexDecisionProcedure::selectPrimalUpdate(ArithVar basic, Linear
     loadFocusSigns();
   }
 
+  decreasePenalties();
+
   typedef std::vector<Cand> CandVector;
   CandVector candidates;
 
@@ -319,14 +321,14 @@ UpdateInfo FCSimplexDecisionProcedure::selectPrimalUpdate(ArithVar basic, Linear
         d_sgnDisagreements.push_back(curr);
         continue;
       }else{
-        candidates.push_back(Cand(curr, curr_movement, &focusC));
+        candidates.push_back(Cand(curr, penalty(curr), curr_movement, &focusC));
       }
     }else{
-      candidates.push_back(Cand(curr, curr_movement, &e.getCoefficient()));
+      candidates.push_back(Cand(curr, penalty(curr), curr_movement, &e.getCoefficient()));
     }
   }
 
-  CompColLength colCmp(&d_linEq);
+  CompPenaltyColLength colCmp(&d_linEq);
   CandVector::iterator i = candidates.begin();
   CandVector::iterator end = candidates.end();
   std::make_heap(i, end, colCmp);
@@ -368,7 +370,7 @@ UpdateInfo FCSimplexDecisionProcedure::selectPrimalUpdate(ArithVar basic, Linear
       selected = currProposal;
       WitnessImprovement w = selected.getWitness(false);
       Debug("arith::selectPrimalUpdate") << "selected " << w << endl;
-
+      setPenalty(curr, w);
       if(improvement(w)){
         bool exitEarly;
         switch(w){
@@ -719,8 +721,10 @@ Result::Sat FCSimplexDecisionProcedure::dualLike(){
   Assert(d_conflictVariables.empty());
   Assert(d_focusErrorVar == ARITHVAR_SENTINEL);
 
+
+  d_scores.purge();
   constructFocusErrorFunction(d_statistics.d_fcFocusConstructionTimer);
-  
+
 
   while(d_pivotBudget != 0  && d_errorSize > 0 && d_conflictVariables.empty()){
     ++instance;

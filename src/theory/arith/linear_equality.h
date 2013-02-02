@@ -35,6 +35,7 @@
 #include "theory/arith/tableau.h"
 #include "theory/arith/constraint_forward.h"
 #include "theory/arith/simplex_update.h"
+#include "theory/arith/options.h"
 
 #include "util/maybe.h"
 #include "util/statistics_registry.h"
@@ -708,21 +709,27 @@ private:
 
 struct Cand {
   ArithVar d_nb;
+  uint32_t d_penalty;
   int d_sgn;
   const Rational* d_coeff;
 
-  Cand(ArithVar nb, int s, const Rational* c) : d_nb(nb), d_sgn(s), d_coeff(c){}
+  Cand(ArithVar nb, uint32_t penalty, int s, const Rational* c) :
+    d_nb(nb), d_penalty(penalty), d_sgn(s), d_coeff(c){}
 };
 
 
-class CompColLength {
+class CompPenaltyColLength {
 private:
   LinearEqualityModule* d_mod;
 public:
-  CompColLength(LinearEqualityModule* mod): d_mod(mod){}
+  CompPenaltyColLength(LinearEqualityModule* mod): d_mod(mod){}
 
   bool operator()(const Cand& x, const Cand& y) const {
-    return x.d_nb == d_mod->minBoundAndColLength(x.d_nb,y.d_nb);
+    if(x.d_penalty == y.d_penalty || options::ignorePenalties()){
+      return x.d_nb == d_mod->minBoundAndColLength(x.d_nb,y.d_nb);
+    }else{
+      return x.d_penalty < y.d_penalty;
+    }
   }
 };
 
