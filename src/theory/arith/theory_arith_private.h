@@ -578,9 +578,9 @@ private:
     IntStat d_nontrivialSatChecks;
 
 
-    ListStat<uint32_t> d_satPivots;
-    ListStat<uint32_t> d_unsatPivots;
-    ListStat<uint32_t> d_unknownPivots;
+    HistogramStat<uint32_t> d_satPivots;
+    HistogramStat<uint32_t> d_unsatPivots;
+    HistogramStat<uint32_t> d_unknownPivots;
 
     Statistics();
     ~Statistics();
