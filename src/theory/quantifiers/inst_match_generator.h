@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file inst_match_generator.h
  ** \verbatim
- ** Original author: ajreynol
- ** Major contributors: bobot
- ** Minor contributors (to current version): mdeters
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Andrew Reynolds <andrew.j.reynolds@gmail.com>
+ ** Major contributors: Morgan Deters <mdeters@cs.nyu.edu>
+ ** Minor contributors (to current version): none
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -58,15 +58,14 @@ private:
   /** children generators */
   std::vector< InstMatchGenerator* > d_children;
   std::vector< int > d_children_index;
-  /** partial vector */
-  std::vector< InstMatch > d_partial;
+  /** the next generator in order */
+  InstMatchGenerator* d_next;
   /** eq class */
   Node d_eq_class;
   /** for arithmetic matching */
   std::map< Node, Node > d_arith_coeffs;
   /** initialize pattern */
-  void initializePatterns( std::vector< Node >& pats, QuantifiersEngine* qe );
-  void initializePattern( Node pat, QuantifiersEngine* qe );
+  void initialize( QuantifiersEngine* qe, std::vector< InstMatchGenerator * > & gens );
 public:
   enum {
     //options for producing matches
@@ -77,10 +76,6 @@ public:
     MATCH_GEN_INTERNAL_ERROR,
   };
 private:
-  /** get the next match.  must call d_cg->reset( ... ) before using.
-      only valid for use where !d_match_pattern.isNull().
-  */
-  bool getNextMatch2( Node f, InstMatch& m, QuantifiersEngine* qe, bool saveMatched = false );
   /** for arithmetic */
   bool getMatchArithmetic( Node t, InstMatch& m, QuantifiersEngine* qe );
 public:
@@ -91,8 +86,7 @@ public:
   bool getMatch( Node f, Node t, InstMatch& m, QuantifiersEngine* qe );
 
   /** constructors */
-  InstMatchGenerator( Node pat, QuantifiersEngine* qe, int matchOption = 0 );
-  InstMatchGenerator( std::vector< Node >& pats, QuantifiersEngine* qe, int matchOption = 0 );
+  InstMatchGenerator( Node pat, int matchOption = 0 );
   /** destructor */
   ~InstMatchGenerator(){}
   /** The pattern we are producing matches for.
@@ -115,6 +109,9 @@ public:
 
   bool d_active_add;
   void setActiveAdd();
+
+  static InstMatchGenerator* mkInstMatchGenerator( Node pat, QuantifiersEngine* qe );
+  static InstMatchGenerator* mkInstMatchGenerator( std::vector< Node >& pats, QuantifiersEngine* qe );
 };/* class InstMatchGenerator */
 
 /** smart multi-trigger implementation */
