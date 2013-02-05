@@ -177,10 +177,11 @@ void FCSimplexDecisionProcedure::logPivot(WitnessImprovement w){
       --d_witnessImprovementInARow;
     }
   }else{
-    d_prevWitnessImprovement = w;
-    if(d_prevWitnessImprovement != HeuristicDegenerate){
+    if(w != BlandsDegenerate){
       d_witnessImprovementInARow = 1;
     }
+    // if w == BlandsDegenerate do not reset the counter
+    d_prevWitnessImprovement = w;
   }
   Debug("logPivot") << "logPivot " << d_prevWitnessImprovement << " "  << d_witnessImprovementInARow << endl;
 }
