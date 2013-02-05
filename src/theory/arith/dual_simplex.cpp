@@ -29,21 +29,23 @@ namespace arith {
 DualSimplexDecisionProcedure::DualSimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc)
   : SimplexDecisionProcedure(linEq, errors, conflictChannel, tvmalloc)
   , d_pivotsInRound()
-  , d_statistics()
+  , d_statistics(d_pivots)
 { }
 
-DualSimplexDecisionProcedure::Statistics::Statistics():
+DualSimplexDecisionProcedure::Statistics::Statistics(uint32_t& pivots):
   d_statUpdateConflicts("theory::arith::dual::UpdateConflicts", 0),
   d_processSignalsTime("theory::arith::dual::findConflictOnTheQueueTime"),
   d_simplexConflicts("theory::arith::dual::simplexConflicts",0),
   d_recentViolationCatches("theory::arith::dual::recentViolationCatches",0),
-  d_searchTime("theory::arith::dual::searchTime")
+  d_searchTime("theory::arith::dual::searchTime"),
+  d_finalCheckPivotCounter("theory::arith::dual::lastPivots", pivots)
 {
   StatisticsRegistry::registerStat(&d_statUpdateConflicts);
   StatisticsRegistry::registerStat(&d_processSignalsTime);
   StatisticsRegistry::registerStat(&d_simplexConflicts);
   StatisticsRegistry::registerStat(&d_recentViolationCatches);
   StatisticsRegistry::registerStat(&d_searchTime);
+  StatisticsRegistry::registerStat(&d_finalCheckPivotCounter);
 }
 
 DualSimplexDecisionProcedure::Statistics::~Statistics(){
@@ -52,6 +54,7 @@ DualSimplexDecisionProcedure::Statistics::~Statistics(){
   StatisticsRegistry::unregisterStat(&d_simplexConflicts);
   StatisticsRegistry::unregisterStat(&d_recentViolationCatches);
   StatisticsRegistry::unregisterStat(&d_searchTime);
+  StatisticsRegistry::unregisterStat(&d_finalCheckPivotCounter);
 }
 
 Result::Sat DualSimplexDecisionProcedure::dualFindModel(bool exactResult){

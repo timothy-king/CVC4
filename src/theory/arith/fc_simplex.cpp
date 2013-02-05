@@ -35,10 +35,10 @@ FCSimplexDecisionProcedure::FCSimplexDecisionProcedure(LinearEqualityModule& lin
   , d_prevWitnessImprovement(AntiProductive)
   , d_witnessImprovementInARow(0)
   , d_sgnDisagreements()
-  , d_statistics()
+  , d_statistics(d_pivots)
 { }
 
-FCSimplexDecisionProcedure::Statistics::Statistics():
+FCSimplexDecisionProcedure::Statistics::Statistics(uint32_t& pivots):
   d_initialSignalsTime("theory::arith::FC::initialProcessTime"),
   d_initialConflicts("theory::arith::FC::UpdateConflicts", 0),
   d_fcFoundUnsat("theory::arith::FC::FoundUnsat", 0),
@@ -47,7 +47,8 @@ FCSimplexDecisionProcedure::Statistics::Statistics():
   d_fcTimer("theory::arith::FC::Timer"),
   d_fcFocusConstructionTimer("theory::arith::FC::Construction"),
   d_selectUpdateForDualLike("theory::arith::FC::selectUpdateForDualLike"),
-  d_selectUpdateForPrimal("theory::arith::FC::selectUpdateForPrimal")
+  d_selectUpdateForPrimal("theory::arith::FC::selectUpdateForPrimal"),
+  d_finalCheckPivotCounter("theory::arith::FC::lastPivots", pivots)
 {
   StatisticsRegistry::registerStat(&d_initialSignalsTime);
   StatisticsRegistry::registerStat(&d_initialConflicts);
@@ -61,6 +62,8 @@ FCSimplexDecisionProcedure::Statistics::Statistics():
 
   StatisticsRegistry::registerStat(&d_selectUpdateForDualLike);
   StatisticsRegistry::registerStat(&d_selectUpdateForPrimal);
+
+  StatisticsRegistry::registerStat(&d_finalCheckPivotCounter);
 }
 
 FCSimplexDecisionProcedure::Statistics::~Statistics(){
@@ -76,6 +79,8 @@ FCSimplexDecisionProcedure::Statistics::~Statistics(){
 
   StatisticsRegistry::unregisterStat(&d_selectUpdateForDualLike);
   StatisticsRegistry::unregisterStat(&d_selectUpdateForPrimal);
+
+  StatisticsRegistry::unregisterStat(&d_finalCheckPivotCounter);
 }
 
 Result::Sat FCSimplexDecisionProcedure::findModel(bool exactResult){

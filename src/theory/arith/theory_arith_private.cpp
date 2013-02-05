@@ -1653,11 +1653,16 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
   d_linEq.startTrackingBoundCounts();
 
   //d_qflraStatus = d_pureUpdate.findModel(false);
-  if(d_qflraStatus != Result::SAT){
-    d_qflraStatus = d_fcSimplex.findModel(Theory::fullEffort(effortLevel));
-  }
-  if(d_qflraStatus != Result::SAT){
-    //d_qflraStatus = d_dualSimplex.findModel(Theory::fullEffort(effortLevel));
+  bool noPivotLimit = Theory::fullEffort(effortLevel) ||
+    !options::restrictedPivots();
+
+  bool useSimplex = d_qflraStatus != Result::SAT;
+  if(useSimplex){
+    if(options::useFC()){
+      d_qflraStatus = d_fcSimplex.findModel(noPivotLimit);
+    }else{
+      d_qflraStatus = d_dualSimplex.findModel(noPivotLimit);
+    }
   }
 
   // TODO Save zeroes with no conflicts
@@ -1676,8 +1681,13 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
     if(Debug.isOn("arith::consistency")){
       Assert(entireStateIsConsistent("sat comit"));
     }
-    //d_statistics.d_satPivots << d_fcSimplex.getPivots();
-    //d_statistics.d_satPivots << d_dualSimplex.getPivots();
+    if(useSimplex && options::collectPivots()){
+      if(options::useFC()){
+        d_statistics.d_satPivots << d_fcSimplex.getPivots();
+      }else{
+        d_statistics.d_satPivots << d_dualSimplex.getPivots();
+      }
+    }
     break;
   case Result::SAT_UNKNOWN:
     ++d_unknownsInARow;
@@ -1687,8 +1697,13 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
     d_partialModel.commitAssignmentChanges();
     d_statistics.d_maxUnknownsInARow.maxAssign(d_unknownsInARow);
 
-    //d_statistics.d_unknownPivots << d_fcSimplex.getPivots();
-    //d_statistics.d_unknownPivots << d_dualSimplex.getPivots();
+    if(useSimplex && options::collectPivots()){
+      if(options::useFC()){
+        d_statistics.d_unknownPivots << d_fcSimplex.getPivots();
+      }else{
+        d_statistics.d_unknownPivots << d_dualSimplex.getPivots();
+      }
+    }
     break;
   case Result::UNSAT:
     d_unknownsInARow = 0;
@@ -1711,8 +1726,13 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
     outputConflicts();
     emmittedConflictOrSplit = true;
 
-    //d_statistics.d_unsatPivots << d_fcSimplex.getPivots();
-    //d_statistics.d_unsatPivots << d_dualSimplex.getPivots();
+    if(useSimplex && options::collectPivots()){
+      if(options::useFC()){
+        d_statistics.d_unsatPivots << d_fcSimplex.getPivots();
+      }else{
+        d_statistics.d_unsatPivots << d_dualSimplex.getPivots();
+      }
+    }
     break;
   default:
     Unimplemented();

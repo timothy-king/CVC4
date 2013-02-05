@@ -191,7 +191,9 @@ private:
     TimerStat d_selectUpdateForDualLike;
     TimerStat d_selectUpdateForPrimal;
 
-    Statistics();
+    ReferenceStat<uint32_t> d_finalCheckPivotCounter;
+
+    Statistics(uint32_t& pivots);
     ~Statistics();
   } d_statistics;
 };/* class FCSimplexDecisionProcedure */

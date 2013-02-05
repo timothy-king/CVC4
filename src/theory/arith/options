@@ -68,4 +68,13 @@ option ignorePenalties --enable-ignore-penalties/--disable-ignore-penalties bool
  turns on degenerate pivot penalties
 / turns off degenerate pivot penalties
 
+option useFC --use-fcsimplex bool :default false :read-write
+ use focusing and converging simplex (SAT 2013 submission)
+
+option restrictedPivots --restrict-pivots bool :default true :read-write
+ have a pivot cap for simplex at effort levels below fullEffort.
+
+option collectPivots --collect-pivot-stats bool :default false :read-write
+ collect the pivot history
+
 endmodule
