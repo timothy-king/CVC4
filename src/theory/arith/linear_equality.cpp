@@ -1337,17 +1337,20 @@ void LinearEqualityModule::handleBorders(UpdateInfo& selected, ArithVar nb, cons
 
       Debug("handleBorders") << b << endl;
 
-      if(b.ownBorder()){
-        if(negErrorChange < 0 ||
-           (negErrorChange == 0  && currFocusChangeSgn <= 0)){
+      bool makesImprovement = negErrorChange > 0 ||
+        (negErrorChange == 0  && currFocusChangeSgn > 0);
+
+      if(!makesImprovement){
+        if(b.ownBorder() || minimumFixes > 0){
           continue;
         }
       }
+
       UpdateInfo proposal(nb, nbDir);
       if(b.ownBorder()){
         proposal.witnessedUpdate(b.d_diff, b.d_bound, -negErrorChange, currFocusChangeSgn);
       }else{
-        proposal.update(b.d_diff, b.getCoefficient(), b.d_bound, -negErrorChange, currFocusChangeSgn);      
+        proposal.update(b.d_diff, b.getCoefficient(), b.d_bound, -negErrorChange, currFocusChangeSgn);
       }
 
       if(selected.unbounded() || (this->*pref)(selected, proposal)){
