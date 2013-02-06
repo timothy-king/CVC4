@@ -188,7 +188,12 @@ void FCSimplexDecisionProcedure::logPivot(WitnessImprovement w){
     // if w == BlandsDegenerate do not reset the counter
     d_prevWitnessImprovement = w;
   }
+  if(strongImprovement(w)){
+    d_leavingCountSinceImprovement.purge();
+  }
+
   Debug("logPivot") << "logPivot " << d_prevWitnessImprovement << " "  << d_witnessImprovementInARow << endl;
+
 }
 
 uint32_t FCSimplexDecisionProcedure::degeneratePivotsInARow() const {
@@ -350,7 +355,8 @@ UpdateInfo FCSimplexDecisionProcedure::selectPrimalUpdate(ArithVar basic, Linear
     const Rational& coeff = *cand.d_coeff;
 
 #warning "Who is using computeSafeUpdate?"
-    UpdateInfo currProposal = d_linEq.speculativeUpdate(curr, coeff, upf);
+    LinearEqualityModule::UpdatePreferenceFunction leavingPrefFunc = selectLeavingFunction(curr);
+    UpdateInfo currProposal = d_linEq.speculativeUpdate(curr, coeff, leavingPrefFunc);
 
     //int curr_movement = cand.d_sgn;
     // if(isFocus){
@@ -430,7 +436,7 @@ bool debugCheckWitness(const UpdateInfo& inf, WitnessImprovement w, bool useBlan
 }
 
 WitnessImprovement FCSimplexDecisionProcedure::primalImproveError(ArithVar errorVar){
-  bool useBlands = degeneratePivotsInARow() >= s_maxDegeneratePivotsBeforeBlands;
+  bool useBlands = degeneratePivotsInARow() >= s_maxDegeneratePivotsBeforeBlandsOnLeaving;
   UpdateInfo selected = selectUpdateForPrimal (errorVar, useBlands);
   Assert(!selected.uninitialized());
   WitnessImprovement w = selected.getWitness(useBlands);
@@ -548,6 +554,8 @@ void FCSimplexDecisionProcedure::updateAndSignal(const UpdateInfo& selected, Wit
     d_linEq.updateTracked(nonbasic, newAssignment);
   }
   d_pivots++;
+
+  increaseLeavingCount(nonbasic);
 
   vector< pair<ArithVar, int> > focusChanges;
   while(d_errorSet.moreSignals()){
@@ -781,7 +789,6 @@ Result::Sat FCSimplexDecisionProcedure::dualLike(){
       static const unsigned s_sumMetricThreshold = 1;
       if(d_errorSet.sumMetric(e) <= s_sumMetricThreshold){
         Debug("dualLike") << "dualLikeImproveError " << e << endl;
-
         w = dualLikeImproveError(e);
       }else{
         Debug("dualLike") << "selectFocusImproving " << endl;

@@ -49,6 +49,10 @@ enum WitnessImprovement {
   AntiProductive = 7
 };
 
+inline bool strongImprovement(WitnessImprovement w){
+  return w <= FocusImproved;
+}
+
 inline bool improvement(WitnessImprovement w){
   return w <= FocusShrank;
 }

@@ -105,7 +105,24 @@ private:
   uint32_t degeneratePivotsInARow() const;
 
   static const uint32_t s_focusThreshold = 6;
-  static const uint32_t s_maxDegeneratePivotsBeforeBlands = 10;
+  static const uint32_t s_maxDegeneratePivotsBeforeBlandsOnLeaving = 100;
+  static const uint32_t s_maxDegeneratePivotsBeforeBlandsOnEntering = 10;
+
+  DenseMap<uint32_t> d_leavingCountSinceImprovement;
+  void increaseLeavingCount(ArithVar x){
+    if(!d_leavingCountSinceImprovement.isKey(x)){
+      d_leavingCountSinceImprovement.set(x,1);
+    }else{
+      (d_leavingCountSinceImprovement.get(x))++;
+    }
+  }
+  LinearEqualityModule::UpdatePreferenceFunction selectLeavingFunction(ArithVar x){
+    bool useBlands = d_leavingCountSinceImprovement.isKey(x) &&
+      d_leavingCountSinceImprovement[x] >= s_maxDegeneratePivotsBeforeBlandsOnEntering;
+    return useBlands ?
+      &LinearEqualityModule::preferWitness<false>:
+      &LinearEqualityModule::preferWitness<true>;
+  }
 
   bool debugDualLike(WitnessImprovement w, std::ostream& out,
                      int instance,

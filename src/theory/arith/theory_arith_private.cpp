@@ -110,6 +110,7 @@ TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context
   d_fcSimplex(d_linEq, d_errorSet, RaiseConflict(*this), TempVarMalloc(*this)),
   d_DELTA_ZERO(0),
   d_fullCheckCounter(0),
+  d_cutInContext(c),
   d_statistics()
 {
 }
@@ -1801,14 +1802,17 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
   if(!emmittedConflictOrSplit && Theory::fullEffort(effortLevel)){
     ++d_fullCheckCounter;
   }
-  static const int CUT_ALL_BOUNDED_PERIOD = 10;
+  static const int CUT_ALL_BOUNDED_PERIOD = 4;
   if(!emmittedConflictOrSplit && Theory::fullEffort(effortLevel) &&
      d_fullCheckCounter % CUT_ALL_BOUNDED_PERIOD == 1){
-    vector<Node> lemmas = cutAllBounded();
+    vector<ArithVar> lemmas = cutAllBounded();
 
     //output the lemmas
-    for(vector<Node>::const_iterator i = lemmas.begin(); i != lemmas.end(); ++i){
-      outputLemma(*i);
+    for(vector<ArithVar>::const_iterator i = lemmas.begin(); i != lemmas.end(); ++i){
+      ArithVar v = *i;
+      d_cutInContext.insert(v);
+      Node lem = branchIntegerVariable(v);
+      outputLemma(lem);
       ++(d_statistics.d_externalBranchAndBounds);
     }
     emmittedConflictOrSplit = lemmas.size() > 0;
@@ -1891,8 +1895,8 @@ Node TheoryArithPrivate::branchIntegerVariable(ArithVar x) const {
   return lem;
 }
 
-std::vector<Node> TheoryArithPrivate::cutAllBounded() const{
-  vector<Node> lemmas;
+std::vector<ArithVar> TheoryArithPrivate::cutAllBounded() const{
+  vector<ArithVar> lemmas;
   ArithVar max = d_partialModel.getNumberOfVariables();
 
   if(options::doCutAllBounded() && max > 0){
@@ -1900,11 +1904,11 @@ std::vector<Node> TheoryArithPrivate::cutAllBounded() const{
     //Do not include slack variables
       const DeltaRational& d = d_partialModel.getAssignment(iter);
       if(isInteger(iter) && !isSlackVariable(iter) &&
+         !d_cutInContext.contains(iter) &&
          d_partialModel.hasUpperBound(iter) &&
          d_partialModel.hasLowerBound(iter) &&
          !d.isIntegral()){
-        Node lem = branchIntegerVariable(iter);
-        lemmas.push_back(lem);
+        lemmas.push_back(iter);
       }
     }
   }

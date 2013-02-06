@@ -725,7 +725,7 @@ public:
   CompPenaltyColLength(LinearEqualityModule* mod): d_mod(mod){}
 
   bool operator()(const Cand& x, const Cand& y) const {
-    if(x.d_penalty == y.d_penalty || options::ignorePenalties()){
+    if(x.d_penalty == y.d_penalty || !options::havePenalties()){
       return x.d_nb == d_mod->minBoundAndColLength(x.d_nb,y.d_nb);
     }else{
       return x.d_penalty < y.d_penalty;

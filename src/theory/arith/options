@@ -59,12 +59,12 @@ option arithMLTrick miplib-trick --enable-miplib-trick/--disable-miplib-trick bo
 option arithMLTrickSubstitutions miplib-trick-subs --miplib-trick-subs unsigned :default 1
  do substitution for miplib 'tmp' vars if defined in <= N eliminated vars
 
-option doCutAllBounded --enable-cut-all-bounded/--disable-cut-all-bounded bool :default false :read-write
+option doCutAllBounded --cut-all-bounded bool :default false :read-write
  turns on the integer solving step of periodically cutting all integer variables that have both upper and lower bounds
 / turns off the integer solving step of periodically cutting all integer variables that have both upper and lower bounds
 
 
-option ignorePenalties --enable-ignore-penalties/--disable-ignore-penalties bool :default true :read-write
+option havePenalties --fc-penalties bool :default false :read-write
  turns on degenerate pivot penalties
 / turns off degenerate pivot penalties
 

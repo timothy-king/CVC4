@@ -541,8 +541,9 @@ private:
 
   /** Counts the number of fullCheck calls to arithmetic. */
   uint32_t d_fullCheckCounter;
-  std::vector<Node> cutAllBounded() const;
+  std::vector<ArithVar> cutAllBounded() const;
   Node branchIntegerVariable(ArithVar x) const;
+  context::CDHashSet<ArithVar, std::hash<ArithVar> > d_cutInContext;
 
   /** These fields are designed to be accessible to TheoryArith methods. */
   class Statistics {
