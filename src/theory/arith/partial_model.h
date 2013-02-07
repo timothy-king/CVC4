@@ -368,7 +368,8 @@ public:
   bool strictlyAboveLowerBound(ArithVar x) const;
   bool assignmentIsConsistent(ArithVar x) const;
 
-  void printModel(ArithVar x);
+  void printModel(ArithVar x, std::ostream& out) const;
+  void printModel(ArithVar x) const;
 
   /** returns true iff x has both a lower and upper bound. */
   bool hasEitherBound(ArithVar x) const;

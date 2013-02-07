@@ -458,23 +458,26 @@ void ArithVariables::commitAssignmentChanges(){
   clearSafeAssignments(false);
 }
 
-void ArithVariables::printModel(ArithVar x){
-  Debug("model") << "model" << x << ":"<< getAssignment(x) << " ";
+void ArithVariables::printModel(ArithVar x, std::ostream& out) const{
+  out << "model" << x << ":"<< getAssignment(x) << " ";
   if(!hasLowerBound(x)){
-    Debug("model") << "no lb ";
+    out << "no lb ";
   }else{
-    Debug("model") << getLowerBound(x) << " ";
-    Debug("model") << getLowerBoundConstraint(x) << " ";
+    out << getLowerBound(x) << " ";
+    out << getLowerBoundConstraint(x) << " ";
   }
   if(!hasUpperBound(x)){
-    Debug("model") << "no ub ";
+    out << "no ub ";
   }else{
-    Debug("model") << getUpperBound(x) << " ";
-    Debug("model") << getUpperBoundConstraint(x) << " ";
+    out << getUpperBound(x) << " ";
+    out << getUpperBoundConstraint(x) << " ";
   }
-  Debug("model") << endl;
+  out << endl;
 }
 
+void ArithVariables::printModel(ArithVar x) const{
+  printModel(x,  Debug("model"));
+}
 
 // BoundRelationship ArithVariables::boundRelationship(Constraint lb, const DeltaRational& d, Constraint ub){
 //   if(lb == NullConstraint && ub == NullConstraint){
