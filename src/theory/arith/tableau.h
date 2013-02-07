@@ -121,6 +121,8 @@ public:
     manipulateRowEntry(ridx, col, mult, cb);
   }
 
+  uint32_t rowComplexity(ArithVar basic) const;
+
 private:
   /* Changes the basic variable on the row for basicOld to basicNew. */
   void rowPivot(ArithVar basicOld, ArithVar basicNew, CoefficientChangeCallback& cb);

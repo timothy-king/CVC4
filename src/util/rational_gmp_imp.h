@@ -315,6 +315,11 @@ public:
     return numeratorHash xor denominatorHash;
   }
 
+  uint32_t complexity() const {
+    uint32_t numLen = getNumerator().length();
+    uint32_t denLen = getDenominator().length();
+    return  numLen + denLen;
+  }
 };/* class Rational */
 
 struct RationalHashFunction {

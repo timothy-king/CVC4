@@ -123,6 +123,9 @@ private:
   /** This is the sgn of the change in the value of the focus set.*/
   Maybe<int> d_focusDirection;
 
+  /** This is the sgn of the change in the value of the focus set.*/
+  Maybe<DeltaRational> d_focusChange;
+
   /** This is the coefficient in the tableau for the entry.*/
   Maybe<const Rational*> d_tableauCoefficient;
 
@@ -296,6 +299,13 @@ public:
     }else{
       return d_witness;
     }
+  }
+
+  const DeltaRational& focusChange() const {
+    return d_focusChange;
+  }
+  void setFocusChange(const DeltaRational& fc) {
+    d_focusChange = fc;
   }
 
   /** Outputs the UpdateInfo into out. */

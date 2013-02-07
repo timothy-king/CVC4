@@ -335,6 +335,10 @@ public:
     return equal_hashcode(d_value);
   }
 
+  uint32_t complexity() const {
+    return getNumerator().length() + getDenominator().length();
+  }
+
 };/* class Rational */
 
 struct RationalHashFunction {

@@ -267,6 +267,10 @@ public:
    */
   static void seperatingDelta(Rational& res, const DeltaRational& a, const DeltaRational& b);
 
+  uint32_t complexity() const {
+    return c.complexity() + k.complexity();
+  }
+
 };
 
 std::ostream& operator<<(std::ostream& os, const DeltaRational& n);
