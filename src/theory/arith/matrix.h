@@ -343,6 +343,8 @@ public:
   typedef typename SuperT::const_iterator const_iterator;
 
   RowVector(MatrixEntryVector<T>* mev) : SuperT(mev){}
+  RowVector(EntryID head, uint32_t size, MatrixEntryVector<T>* mev)
+    : SuperT(head, size, mev){}
 };/* class RowVector<T> */
 
 template <class T>
@@ -354,6 +356,8 @@ public:
   typedef typename SuperT::const_iterator const_iterator;
 
   ColumnVector(MatrixEntryVector<T>* mev) : SuperT(mev){}
+  ColumnVector(EntryID head, uint32_t size, MatrixEntryVector<T>* mev)
+    : SuperT(head, size, mev){}
 };/* class ColumnVector<T> */
 
 template <class T>
@@ -415,6 +419,45 @@ public:
     d_zero(zero)
   {}
 
+  Matrix(const Matrix& m)
+  : d_rows(),
+    d_columns(),
+    d_mergeBuffer(m.d_mergeBuffer),
+    d_rowInMergeBuffer(m.d_rowInMergeBuffer),
+    d_entriesInUse(m.d_entriesInUse),
+    d_entries(m.d_entries),
+    d_zero(m.d_zero)
+  {
+    d_columns.clear();
+    for(typename ColumnTable::const_iterator c=m.d_columns.begin(), cend = m.d_columns.end(); c!=cend; ++c){
+      const ColumnVectorT& col = *c;
+      d_columns.push_back(ColumnVectorT(col.getHead(),col.getSize(),&d_entries));
+    }
+    d_rows.clear();
+    for(typename RowTable::const_iterator r=m.d_rows.begin(), rend = m.d_rows.end(); r!=rend; ++r){
+      const RowVectorT& row = *r;
+      d_rows.push_back(RowVectorT(row.getHead(),row.getSize(),&d_entries));
+    }
+  }
+
+  Matrix& operator=(const Matrix& m){
+    d_mergeBuffer = (m.d_mergeBuffer);
+    d_rowInMergeBuffer = (m.d_rowInMergeBuffer);
+    d_entriesInUse = (m.d_entriesInUse);
+    d_entries = (m.d_entries);
+    d_zero = (m.d_zero);
+    d_columns.clear();
+    for(typename ColumnTable::const_iterator c=m.d_columns.begin(), cend = m.d_columns.end(); c!=cend; ++c){
+      const ColumnVector<T>& col = *c;
+      d_columns.push_back(ColumnVector<T>(col.getHead(), col.getSize(), &d_entries));
+    }
+    d_rows.clear();
+    for(typename RowTable::const_iterator r=m.d_rows.begin(), rend = m.d_rows.end(); r!=rend; ++r){
+      const RowVector<T>& row = *r;
+      d_rows.push_back(RowVector<T>(row.getHead(), row.getSize(), &d_entries));
+    }
+    return *this;
+  }
 
 protected:
 
