@@ -160,6 +160,15 @@ uint32_t Tableau::rowComplexity(ArithVar basic) const{
   return complexity;
 }
 
+double Tableau::avgRowComplexity() const{
+  double sum = 0;
+  uint32_t rows = 0;
+  for(BasicIterator i = beginBasic(), i_end = endBasic(); i != i_end; ++i){
+    sum += rowComplexity(*i);
+    rows++;
+  }
+  return (rows == 0) ? 0 : (sum/rows);
+}
 
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */

@@ -121,7 +121,11 @@ public:
     manipulateRowEntry(ridx, col, mult, cb);
   }
 
+  /* Returns the complexity of a row in the tableau. */
   uint32_t rowComplexity(ArithVar basic) const;
+
+  /* Returns the average complexity of the rows in the tableau. */
+  double avgRowComplexity() const;
 
 private:
   /* Changes the basic variable on the row for basicOld to basicNew. */
