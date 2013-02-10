@@ -237,7 +237,9 @@ private:
   /**
    * Computes the difference between the assignment and its bound for x.
    */
+public:
   DeltaRational computeDiff(ArithVar x) const;
+private:
   void recomputeAmount(ErrorInformation& ei, ErrorSelectionRule r);
 
   void update(ErrorInformation& ei);

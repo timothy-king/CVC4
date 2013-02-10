@@ -77,4 +77,7 @@ option restrictedPivots --restrict-pivots bool :default true :read-write
 option collectPivots --collect-pivot-stats bool :default false :read-write
  collect the pivot history
 
+option fancyFinal --fancy-final bool :default false :read-write
+ Tuning how final check works for really hard problems.
+
 endmodule

@@ -543,6 +543,8 @@ private:
   uint32_t d_fullCheckCounter;
   std::vector<ArithVar> cutAllBounded() const;
   Node branchIntegerVariable(ArithVar x) const;
+  void branchVector(const std::vector<ArithVar>& lemmas);
+
   context::CDHashSet<ArithVar, std::hash<ArithVar> > d_cutInContext;
 
   /** These fields are designed to be accessible to TheoryArith methods. */

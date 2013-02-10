@@ -1583,6 +1583,18 @@ void TheoryArithPrivate::outputConflicts(){
   }
 }
 
+void TheoryArithPrivate::branchVector(const std::vector<ArithVar>& lemmas){
+  //output the lemmas
+  for(vector<ArithVar>::const_iterator i = lemmas.begin(); i != lemmas.end(); ++i){
+    ArithVar v = *i;
+    Assert(!d_cutInContext.contains(v));
+    d_cutInContext.insert(v);
+    Node lem = branchIntegerVariable(v);
+    outputLemma(lem);
+    ++(d_statistics.d_externalBranchAndBounds);
+  }
+}
+
 void TheoryArithPrivate::check(Theory::Effort effortLevel){
   Assert(d_currentPropagationList.empty());
   Debug("effortlevel") << "TheoryArithPrivate::check " << effortLevel << std::endl;
@@ -1659,10 +1671,44 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
 
   bool useSimplex = d_qflraStatus != Result::SAT;
   if(useSimplex){
-    if(options::useFC()){
-      d_qflraStatus = d_fcSimplex.findModel(noPivotLimit);
+    if(!noPivotLimit || !options::fancyFinal()){
+      d_qflraStatus = options::useFC() ?
+        d_fcSimplex.findModel(noPivotLimit): d_dualSimplex.findModel(noPivotLimit);
     }else{
-      d_qflraStatus = d_dualSimplex.findModel(noPivotLimit);
+      // Fancy final tries the following strategy
+      // At final check, try the preferred simplex solver with a pivot cap
+      // If that failed, swap the the other simplex solver
+      // If that failed, check if there are integer variables to cut
+      // If that failed, do a simplex without a pivot limit
+      Assert(options::fancyFinal());
+      Assert(noPivotLimit);
+
+      int16_t oldCap = options::arithStandardCheckVarOrderPivots();
+
+      static const int16_t pass1Limit = 200;
+      static const int16_t pass2Limit = 400;
+
+      options::arithStandardCheckVarOrderPivots.set(pass1Limit);
+
+      d_qflraStatus = (options::useFC()) ?
+        d_fcSimplex.findModel(false) : d_dualSimplex.findModel(false);
+
+      if(d_qflraStatus == Result::SAT_UNKNOWN){
+        options::arithStandardCheckVarOrderPivots.set(pass2Limit);
+        d_qflraStatus = !(options::useFC()) ?
+          d_fcSimplex.findModel(false) : d_dualSimplex.findModel(false);
+      }
+      if(d_qflraStatus == Result::SAT_UNKNOWN){
+        vector<ArithVar> toCut = cutAllBounded();
+        if(toCut.size() > 0){
+          branchVector(toCut);
+          emmittedConflictOrSplit = true;
+        }else{
+          d_qflraStatus = (options::useFC()) ?
+            d_fcSimplex.findModel(true) : d_dualSimplex.findModel(true);
+        }
+      }
+      options::arithStandardCheckVarOrderPivots.set(oldCap);
     }
   }
 
@@ -1806,17 +1852,8 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
   if(!emmittedConflictOrSplit && Theory::fullEffort(effortLevel) &&
      d_fullCheckCounter % CUT_ALL_BOUNDED_PERIOD == 1){
     vector<ArithVar> lemmas = cutAllBounded();
-
-    //output the lemmas
-    for(vector<ArithVar>::const_iterator i = lemmas.begin(); i != lemmas.end(); ++i){
-      ArithVar v = *i;
-      d_cutInContext.insert(v);
-      Node lem = branchIntegerVariable(v);
-      outputLemma(lem);
-      ++(d_statistics.d_externalBranchAndBounds);
-    }
+    branchVector(lemmas);
     emmittedConflictOrSplit = lemmas.size() > 0;
-
   }
   if(!emmittedConflictOrSplit && Theory::fullEffort(effortLevel)){
     emmittedConflictOrSplit = splitDisequalities();
