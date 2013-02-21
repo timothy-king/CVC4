@@ -156,7 +156,6 @@ public:
   }
   ~Rational() {}
 
-
   /**
    * Returns the value of numerator of the Rational.
    * Note that this makes a deep copy of the numerator.
@@ -171,6 +170,13 @@ public:
    */
   Integer getDenominator() const {
     return Integer(d_value.get_den());
+  }
+
+  /** Return an exact rational for a double d. */
+  static Rational fromDouble(double d){
+    Rational q;
+    mpq_set_d(q.d_value.get_mpq_t(), d);
+    return q;
   }
 
   /**
