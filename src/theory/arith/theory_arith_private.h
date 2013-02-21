@@ -18,6 +18,7 @@
 #pragma once
 
 #include "theory/arith/theory_arith_private_forward.h"
+#include "theory/arith/approx_simplex.h"
 
 #include "expr/node.h"
 #include "expr/kind.h"

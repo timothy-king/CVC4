@@ -914,6 +914,7 @@ CVC4_CHECK_CUDD
 # Check for antlr C++ runtime (defined in config/antlr.m4)
 AC_LIB_ANTLR
 
+
 # Check for user preferences for language bindings to build, and for
 # build support.  The arg list is the default set if unspecified by
 # the user (the actual built set is the subset that appears to be
@@ -1060,6 +1061,27 @@ if test $cvc4_use_google_perftools = 1; then
   AC_MSG_RESULT([yes])
   AC_CHECK_LIB([tcmalloc], [MallocExtension_GetAllocatedSize], , [AC_MSG_ERROR([cannot link google-perftools test program with -ltcmalloc])], [-lpthread])
   AC_CHECK_LIB([profiler], [ProfilerStart], , [AC_MSG_ERROR([cannot link google-perftools test program with -lprofiler])], [-lpthread])
+else
+  AC_MSG_RESULT([no (user didn't request it)])
+fi
+
+# Whether to compile with glpk
+cvc4_use_glpk=0
+AC_ARG_WITH(
+    [glpk],
+    AS_HELP_STRING(
+        [--with-glpk],
+        [use GLPK simplex solver]
+    ),
+    [if test "$withval" != no; then
+        cvc4_use_glpk=1
+     fi
+    ]
+)
+AC_MSG_CHECKING([whether to link in glpk])
+if test $cvc4_use_glpk = 1; then
+  AC_MSG_RESULT([yes])
+  AC_CHECK_LIB([glpk], [glp_create_prob], , [AC_MSG_ERROR([cannot link glpk with -lglpk])], )
 else
   AC_MSG_RESULT([no (user didn't request it)])
 fi

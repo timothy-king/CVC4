@@ -130,6 +130,52 @@ void LinearEqualityModule::includeBoundCountChange(ArithVar nb, BoundCounts prev
   d_boundTracking.set(nb, curr);
 }
 
+void LinearEqualityModule::updateMany(const DenseMap<DeltaRational>& many){
+  for(DenseMap<DeltaRational>::const_iterator i = many.begin(), i_end = many.end(); i != i_end; ++i){
+    ArithVar nb = *i;
+    Assert(!d_tableau.isBasic(nb));
+    const DeltaRational& newValue = many[nb];
+    if(newValue != d_variables.getAssignment(nb)){
+      update(nb, newValue);
+    }
+  }
+}
+
+
+void LinearEqualityModule::forceNewBasis(const DenseSet& newBasis){
+  DenseSet needsToBeAdded;
+  for(DenseSet::const_iterator i = newBasis.begin(), i_end = newBasis.end(); i != i_end; ++i){
+    ArithVar b = *i;
+    if(d_tableau.isBasic(b)){
+      needsToBeAdded.add(b);
+    }
+  }
+
+  while(!needsToBeAdded.empty()){
+    ArithVar toRemove = ARITHVAR_SENTINEL;
+    ArithVar toAdd = ARITHVAR_SENTINEL;
+    for(DenseSet::const_iterator i = needsToBeAdded.begin(), i_end = needsToBeAdded.end(); toAdd == ARITHVAR_SENTINEL && i != i_end; ++i){
+      ArithVar v = *i;
+
+      Tableau::ColIterator colIter = d_tableau.colIterator(v);
+      for(; !colIter.atEnd() && toRemove == ARITHVAR_SENTINEL; ++colIter){
+        const Tableau::Entry& entry = *colIter;
+        Assert(entry.getColVar() == v);
+        ArithVar b = d_tableau.rowIndexToBasic(entry.getRowIndex());
+        if(!newBasis.isMember(b)){
+          toRemove = b;
+          toAdd = v;
+        }
+      }
+    }
+    Assert(toRemove != ARITHVAR_SENTINEL);
+    Assert(toAdd != ARITHVAR_SENTINEL);
+
+    d_tableau.pivot(toRemove, toAdd, d_trackCallback);
+    needsToBeAdded.remove(toAdd);
+  }
+}
+
 void LinearEqualityModule::updateUntracked(ArithVar x_i, const DeltaRational& v){
   Assert(!d_tableau.isBasic(x_i));
   Assert(!d_areTracking);

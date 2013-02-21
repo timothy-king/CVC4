@@ -241,6 +241,7 @@ public:
       updateUntracked(x_i,v);
     }
   }
+  void updateMany(const DenseMap<DeltaRational>& many);
 
   /**
    * Updates the value of a basic variable x_i to v,
@@ -253,6 +254,7 @@ public:
   ArithVariables& getVariables() const{ return d_variables; }
   Tableau& getTableau() const{ return d_tableau; }
 
+  void forceNewBasis(const DenseSet& newBasis);
 
   bool hasBounds(ArithVar basic, bool upperBound);
   bool hasLowerBounds(ArithVar basic){

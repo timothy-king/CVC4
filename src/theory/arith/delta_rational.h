@@ -271,6 +271,13 @@ public:
     return c.complexity() + k.complexity();
   }
 
+  double approx(double deltaSub) const {
+    double maj = getNoninfinitesimalPart().getDouble();
+    double min = deltaSub * getInfinitesimalPart().getDouble();
+    return maj + min;
+  }
+
+  
 };
 
 std::ostream& operator<<(std::ostream& os, const DeltaRational& n);
