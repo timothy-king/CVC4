@@ -80,4 +80,7 @@ option collectPivots --collect-pivot-stats bool :default false :read-write
 option fancyFinal --fancy-final bool :default false :read-write
  Tuning how final check works for really hard problems.
 
+option exportDioDecompositions --dio-decomps bool :default false :read-write
+ Let skolem variables for integer divisibility constraints leak from the dio solver.
+
 endmodule
