@@ -424,6 +424,8 @@ public:
     }
   }
 
+  void printEntireModel(std::ostream& out) const;
+
 private:
 
   /**

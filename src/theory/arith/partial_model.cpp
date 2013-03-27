@@ -458,8 +458,18 @@ void ArithVariables::commitAssignmentChanges(){
   clearSafeAssignments(false);
 }
 
+void ArithVariables::printEntireModel(std::ostream& out) const{
+  out << "---Printing Model ---" << std::endl;
+  for(var_iterator i = var_begin(), iend = var_end(); i != iend; ++i){
+    printModel(*i, out);
+  }
+  out << "---Done Model ---" << std::endl;
+}
+
 void ArithVariables::printModel(ArithVar x, std::ostream& out) const{
-  out << "model" << x << ":"<< getAssignment(x) << " ";
+  out << "model" << x << ": "
+      << asNode(x) << " "
+      << getAssignment(x) << " ";
   if(!hasLowerBound(x)){
     out << "no lb ";
   }else{
