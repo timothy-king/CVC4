@@ -791,30 +791,38 @@ public:
   /**
    * Prints the contents of the Matrix to Debug("matrix")
    */
-  void printMatrix() const {
-    Debug("matrix") << "Matrix::printMatrix"  << std::endl;
+  void printMatrix(std::ostream& out) const {
+    out << "Matrix::printMatrix"  << std::endl;
 
     for(RowIndex i = 0, N = d_rows.size(); i < N; ++i){
-      printRow(i);
+      printRow(i, out);
     }
   }
+  void printMatrix() const {
+    printMatrix(Debug("matrix"));
+  }
 
-  void printRow(RowIndex rid) const {
-    Debug("matrix") << "{" << rid << ":";
+  void printRow(RowIndex rid, std::ostream& out) const {
+    out << "{" << rid << ":";
     const RowVector<T>& row = getRow(rid);
     RowIterator i = row.begin();
     RowIterator i_end = row.end();
     for(; i != i_end; ++i){
-      printEntry(*i);
-      Debug("matrix") << ",";
+      printEntry(*i, out);
+      out << ",";
     }
-    Debug("matrix") << "}" << std::endl;
+    out << "}" << std::endl;
+  }
+  void printRow(RowIndex rid) const {
+    printRow(rid, Debug("matrix"));
   }
 
+  void printEntry(const MatrixEntry<T>& entry, std::ostream& out) const {
+    out << entry.getColVar() << "*" << entry.getCoefficient();
+  }
   void printEntry(const MatrixEntry<T>& entry) const {
-    Debug("matrix") << entry.getColVar() << "*" << entry.getCoefficient();
+    printEntry(entry, Debug("matrix"));
   }
-
 public:
   uint32_t size() const {
     return d_entriesInUse;
