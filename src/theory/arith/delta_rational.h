@@ -160,6 +160,14 @@ public:
   }
 
 
+  DeltaRational abs() const {
+    if(sgn() >= 0){
+      return *this;
+    }else{
+      return (*this) * Rational(-1);
+    }
+  }
+
   bool operator==(const DeltaRational& other) const{
     return (k == other.k) && (c == other.c);
   }
@@ -273,11 +281,11 @@ public:
 
   double approx(double deltaSub) const {
     double maj = getNoninfinitesimalPart().getDouble();
-    double min = deltaSub * getInfinitesimalPart().getDouble();
+    double min = deltaSub * (getInfinitesimalPart().getDouble());
     return maj + min;
   }
 
-  
+
 };
 
 std::ostream& operator<<(std::ostream& os, const DeltaRational& n);
