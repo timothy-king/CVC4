@@ -1081,7 +1081,9 @@ AC_ARG_WITH(
 AC_MSG_CHECKING([whether to link in glpk])
 if test $cvc4_use_glpk = 1; then
   AC_MSG_RESULT([yes])
-  AC_CHECK_LIB([glpk], [glp_create_prob], , [AC_MSG_ERROR([cannot link glpk with -lglpk])], )
+  AC_CHECK_LIB([ltdl], [lt_dlinit], , [AC_MSG_ERROR([cannot link ltdl with -lltdl])], )
+  AC_CHECK_LIB([z], [gzopen], , [AC_MSG_ERROR([cannot link z with -lz])], )
+  AC_CHECK_LIB([glpk], [glp_create_prob], , [AC_MSG_ERROR([cannot link glpk with -lglpk])],)
 else
   AC_MSG_RESULT([no (user didn't request it)])
 fi
