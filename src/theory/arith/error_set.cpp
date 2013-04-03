@@ -408,7 +408,7 @@ void ErrorSet::reduceToSignals(){
     ArithVar curr = *ei;
     signalVariable(curr);
   }
-  
+
   d_errInfo.purge();
   d_focus.clear();
   d_outOfFocus.clear();
@@ -453,6 +453,9 @@ void ErrorSet::debugPrint(std::ostream& out) const {
     ArithVar e = *i;
     const ErrorInformation& ei = d_errInfo[e];
     ei.print(out);
+    out << "  ";
+    d_variables.printModel(e, out);
+    out << endl;
   }
   out << "focus ";
   for(focus_iterator i = focusBegin(), i_end = focusEnd();
