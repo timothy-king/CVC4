@@ -786,18 +786,25 @@ Theory::PPAssertStatus TheoryArithPrivate::ppAssert(TNode in, SubstitutionMap& o
       if(right.size() > MAX_SUB_SIZE){
         Debug("simplify") << "TheoryArithPrivate::solve(): did not substitute due to the right hand side containing too many terms: " << minVar << ":" << elim << endl;
         Debug("simplify") << right.size() << endl;
+        // cout << "TheoryArithPrivate::solve(): did not substitute due to the right hand side containing too many terms: " << minVar << ":" << elim << endl;
+        // cout << right.size() << endl;
       }else if(elim.hasSubterm(minVar)){
         Debug("simplify") << "TheoryArithPrivate::solve(): can't substitute due to recursive pattern with sharing: " << minVar << ":" << elim << endl;
+        cout << "TheoryArithPrivate::solve(): can't substitute due to recursive pattern with sharing: " << minVar << ":" << elim << endl;
+
       }else if (!minVar.getType().isInteger() || right.isIntegral()) {
         Assert(!elim.hasSubterm(minVar));
         // cannot eliminate integers here unless we know the resulting
         // substitution is integral
         Debug("simplify") << "TheoryArithPrivate::solve(): substitution " << minVar << " |-> " << elim << endl;
+        //cout << "TheoryArithPrivate::solve(): substitution " << minVar << " |-> " << elim << endl;
 
         outSubstitutions.addSubstitution(minVar, elim);
         return Theory::PP_ASSERT_STATUS_SOLVED;
       } else {
         Debug("simplify") << "TheoryArithPrivate::solve(): can't substitute b/c it's integer: " << minVar << ":" << minVar.getType() << " |-> " << elim << ":" << elim.getType() << endl;
+        //cout << "TheoryArithPrivate::solve(): can't substitute b/c it's integer: " << minVar << ":" << minVar.getType() << " |-> " << elim << ":" << elim.getType() << endl;
+
       }
     }
   }
@@ -1671,7 +1678,8 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
 
   bool useSimplex = d_qflraStatus != Result::SAT;
   if(useSimplex){
-    if(!noPivotLimit || !options::fancyFinal()){
+    if(!options::fancyFinal()){
+    //if(!noPivotLimit || !options::fancyFinal()){
       d_qflraStatus = options::useFC() ?
         d_fcSimplex.findModel(noPivotLimit): d_dualSimplex.findModel(noPivotLimit);
     }else{
@@ -1685,19 +1693,63 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
 
       int16_t oldCap = options::arithStandardCheckVarOrderPivots();
 
-      static const int16_t pass1Limit = 200;
-      static const int16_t pass2Limit = 400;
+      static const int16_t pass1Limit = 10;
+      static const int16_t pass2Limit = 10;
+      static const int32_t relaxationLimit = 1000000;
+      static const int16_t mipLimit = 100000;
 
       options::arithStandardCheckVarOrderPivots.set(pass1Limit);
 
       d_qflraStatus = (options::useFC()) ?
         d_fcSimplex.findModel(false) : d_dualSimplex.findModel(false);
 
-      if(d_qflraStatus == Result::SAT_UNKNOWN){
-        options::arithStandardCheckVarOrderPivots.set(pass2Limit);
-        d_qflraStatus = !(options::useFC()) ?
-          d_fcSimplex.findModel(false) : d_dualSimplex.findModel(false);
+      if(d_qflraStatus == Result::SAT_UNKNOWN ||
+         (d_qflraStatus == Result::SAT && !hasIntegerModel())){
+        ApproximateSimplex* approxSolver = ApproximateSimplex::mkApproximateSimplexSolver(d_partialModel);
+        ApproximateSimplex::ApproxResult relaxRes = approxSolver->solveRelaxation(relaxationLimit);
+        switch(relaxRes){
+        case ApproximateSimplex::ApproxSat:
+          {
+            ApproximateSimplex::Solution relaxSolution = approxSolver->extractRelaxation();
+            ApproximateSimplex::ApproxResult mipRes = approxSolver->solveMIP(mipLimit);
+            d_errorSet.reduceToSignals();
+            if(mipRes == ApproximateSimplex::ApproxSat){
+              ApproximateSimplex::Solution mipSolution = approxSolver->extractMIP();
+              ApproximateSimplex::applySolution(d_linEq, mipSolution);
+            }else{
+              ApproximateSimplex::applySolution(d_linEq, relaxSolution);
+              // ApproximateSimplex::Solution mipSolution = approxSolver->extractMIP();
+              // ApproximateSimplex::applySolution(d_linEq, mipSolution);
+              //ApproximateSimplex::applySolution(d_linEq, relaxSolution);
+              vector<ArithVar> toCut = cutAllBounded();
+              if(toCut.size() > 0){
+
+                branchVector(toCut);
+                emmittedConflictOrSplit = true;
+              }
+            }
+            options::arithStandardCheckVarOrderPivots.set(pass2Limit);
+            d_qflraStatus = (options::useFC()) ?
+              d_fcSimplex.findModel(false) : d_dualSimplex.findModel(false);
+          }
+          break;
+        case ApproximateSimplex::ApproxUnsat:
+          {
+            ApproximateSimplex::Solution sol = approxSolver->extractRelaxation();
+            d_errorSet.reduceToSignals();
+            ApproximateSimplex::applySolution(d_linEq, sol);
+            cout << "maybe make FC simplex report non-minimal conflicts?" << endl;
+            options::arithStandardCheckVarOrderPivots.set(100);
+
+            d_qflraStatus = (options::useFC()) ?
+              d_fcSimplex.findModel(false) : d_dualSimplex.findModel(false);
+          }
+          break;
+        default:
+          break;
+        }
       }
+
       if(d_qflraStatus == Result::SAT_UNKNOWN){
         vector<ArithVar> toCut = cutAllBounded();
         if(toCut.size() > 0){
@@ -1705,7 +1757,7 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
           emmittedConflictOrSplit = true;
         }else{
           d_qflraStatus = (options::useFC()) ?
-            d_fcSimplex.findModel(true) : d_dualSimplex.findModel(true);
+            d_fcSimplex.findModel(noPivotLimit) : d_dualSimplex.findModel(noPivotLimit);
         }
       }
       options::arithStandardCheckVarOrderPivots.set(oldCap);
@@ -1848,16 +1900,17 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
   if(!emmittedConflictOrSplit && Theory::fullEffort(effortLevel)){
     ++d_fullCheckCounter;
   }
-  static const int CUT_ALL_BOUNDED_PERIOD = 4;
-  if(!emmittedConflictOrSplit && Theory::fullEffort(effortLevel) &&
-     d_fullCheckCounter % CUT_ALL_BOUNDED_PERIOD == 1){
-    vector<ArithVar> lemmas = cutAllBounded();
-    branchVector(lemmas);
-    emmittedConflictOrSplit = lemmas.size() > 0;
-  }
+  // static const int CUT_ALL_BOUNDED_PERIOD = 4;
+  // if(!emmittedConflictOrSplit && Theory::fullEffort(effortLevel) &&
+  //    d_fullCheckCounter % CUT_ALL_BOUNDED_PERIOD == 1){
+  //   vector<ArithVar> lemmas = cutAllBounded();
+  //   branchVector(lemmas);
+  //   emmittedConflictOrSplit = lemmas.size() > 0;
+  // }
   if(!emmittedConflictOrSplit && Theory::fullEffort(effortLevel)){
     emmittedConflictOrSplit = splitDisequalities();
   }
+  emmittedConflictOrSplit = false;
 
   if(!emmittedConflictOrSplit && Theory::fullEffort(effortLevel) && !hasIntegerModel()){
     Node possibleConflict = Node::null();
@@ -1866,6 +1919,7 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
       if(possibleConflict != Node::null()){
         revertOutOfConflict();
         Debug("arith::conflict") << "dio conflict   " << possibleConflict << endl;
+        cout << "dio conflict   " << possibleConflict << endl;
         raiseConflict(possibleConflict);
         outputConflicts();
         emmittedConflictOrSplit = true;
@@ -1876,9 +1930,17 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
       Node possibleLemma = dioCutting();
       if(!possibleLemma.isNull()){
         Debug("arith") << "dio cut   " << possibleLemma << endl;
+        cout << "dio cut   " << possibleLemma << endl;
         emmittedConflictOrSplit = true;
         d_hasDoneWorkSinceCut = false;
         outputLemma(possibleLemma);
+      }else{
+        while(d_diosolver.hasMoreDecompositionLemmas()){
+          Node decompositionLemma = d_diosolver.nextDecompositionLemma();
+          Debug("arith") << "dio decomposition lemma   " << decompositionLemma << endl;
+          cout << "dio decomposition lemma   " << decompositionLemma << endl;
+          outputLemma(decompositionLemma);
+        }
       }
     }
 
@@ -1913,10 +1975,14 @@ Node TheoryArithPrivate::branchIntegerVariable(ArithVar x) const {
   TNode var = d_partialModel.asNode(x);
   Integer floor_d = d.floor();
 
+  //Node eq = Rewriter::rewrite(NodeManager::currentNM()->mkNode(kind::EQUAL, var, mkRationalNode(floor_d+1)));
+  //Node diseq = eq.notNode();
+
   Node ub = Rewriter::rewrite(NodeManager::currentNM()->mkNode(kind::LEQ, var, mkRationalNode(floor_d)));
   Node lb = ub.notNode();
 
 
+  //Node lem = NodeManager::currentNM()->mkNode(kind::OR, eq, diseq);
   Node lem = NodeManager::currentNM()->mkNode(kind::OR, ub, lb);
   Trace("integers") << "integers: branch & bound: " << lem << endl;
   if(isSatLiteral(lem[0])) {
@@ -2122,7 +2188,7 @@ void TheoryArithPrivate::propagate(Theory::Effort e) {
     Constraint constraint = d_constraintDatabase.lookup(normalized);
     if(constraint == NullConstraint){
       Debug("arith::prop") << "propagating on non-constraint? "  << toProp << endl;
-      
+
       outputPropagate(toProp);
     }else if(constraint->negationHasProof()){
       Node exp = d_congruenceManager.explain(toProp);

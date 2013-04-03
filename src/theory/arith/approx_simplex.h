@@ -11,15 +11,46 @@ namespace CVC4 {
 namespace theory {
 namespace arith {
 
+
 class ApproximateSimplex{
 public:
   static const double SMALL_FIXED_DELTA;
   static const double TOLERENCE;
 
-  /* If enabled, use glpk. Otherwise do nothing. */
-  static void approximateRelaxation(LinearEqualityModule& linEq);
-
+  /**
+   * If glpk is enabled, return a subclass that can do something.
+   * If glpk is disabled, return a sublass that does nothing.
+   */
+  static ApproximateSimplex* mkApproximateSimplexSolver(const ArithVariables& vars);
   static bool roughlyEqual(double a, double b);
+
+  virtual ~ApproximateSimplex(){}
+
+  enum ApproxResult {ApproxError, ApproxSat, ApproxUnsat};
+  struct Solution {
+    DenseSet newBasis;
+    DenseMap<DeltaRational> newValues;
+    Solution() : newBasis(), newValues(){}
+  };
+
+  virtual ApproxResult solveRelaxation(unsigned pivotLimit) {
+    return ApproxError;
+  }
+  virtual Solution extractRelaxation() const {
+    return Solution();
+  }
+
+  virtual ApproxResult solveMIP(unsigned pivotLimit) {
+    return ApproxError;
+  }
+  virtual Solution extractMIP() const {
+    return Solution();
+  }
+
+  static void applySolution(LinearEqualityModule& linEq, const Solution& sol){
+    linEq.forceNewBasis(sol.newBasis);
+    linEq.updateMany(sol.newValues);
+  }
 
 };/* class ApproximateSimplex */
 
