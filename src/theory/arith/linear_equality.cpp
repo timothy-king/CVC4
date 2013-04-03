@@ -136,6 +136,9 @@ void LinearEqualityModule::updateMany(const DenseMap<DeltaRational>& many){
     Assert(!d_tableau.isBasic(nb));
     const DeltaRational& newValue = many[nb];
     if(newValue != d_variables.getAssignment(nb)){
+      Trace("arith::updateMany")
+        << "updateMany:" << nb << " "
+        << d_variables.getAssignment(nb) << " to "<< newValue << endl;
       update(nb, newValue);
     }
   }
@@ -146,7 +149,7 @@ void LinearEqualityModule::forceNewBasis(const DenseSet& newBasis){
   DenseSet needsToBeAdded;
   for(DenseSet::const_iterator i = newBasis.begin(), i_end = newBasis.end(); i != i_end; ++i){
     ArithVar b = *i;
-    if(d_tableau.isBasic(b)){
+    if(!d_tableau.isBasic(b)){
       needsToBeAdded.add(b);
     }
   }
@@ -158,20 +161,27 @@ void LinearEqualityModule::forceNewBasis(const DenseSet& newBasis){
       ArithVar v = *i;
 
       Tableau::ColIterator colIter = d_tableau.colIterator(v);
-      for(; !colIter.atEnd() && toRemove == ARITHVAR_SENTINEL; ++colIter){
+      for(; !colIter.atEnd(); ++colIter){
         const Tableau::Entry& entry = *colIter;
         Assert(entry.getColVar() == v);
         ArithVar b = d_tableau.rowIndexToBasic(entry.getRowIndex());
         if(!newBasis.isMember(b)){
-          toRemove = b;
           toAdd = v;
+          if(toRemove == ARITHVAR_SENTINEL ||
+             d_tableau.basicRowLength(toRemove) > d_tableau.basicRowLength(b)){
+            toRemove = b;
+          }
         }
       }
     }
     Assert(toRemove != ARITHVAR_SENTINEL);
     Assert(toAdd != ARITHVAR_SENTINEL);
 
+    Trace("arith::forceNewBasis") << toRemove << " " << toAdd << endl;
     d_tableau.pivot(toRemove, toAdd, d_trackCallback);
+    d_basicVariableUpdates(toAdd);
+
+    Trace("arith::forceNewBasis") << needsToBeAdded.size() << "to go" << endl;
     needsToBeAdded.remove(toAdd);
   }
 }

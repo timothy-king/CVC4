@@ -249,7 +249,7 @@ public:
    * Updates the assignment of the other basic variables accordingly.
    */
   void pivotAndUpdate(ArithVar x_i, ArithVar x_j, const DeltaRational& v);
-  void pivotAndUpdateAdj(ArithVar x_i, ArithVar x_j, const DeltaRational& v);
+  //void pivotAndUpdateAdj(ArithVar x_i, ArithVar x_j, const DeltaRational& v);
 
   ArithVariables& getVariables() const{ return d_variables; }
   Tableau& getTableau() const{ return d_tableau; }
