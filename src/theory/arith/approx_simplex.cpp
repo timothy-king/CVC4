@@ -42,7 +42,7 @@ Rational cfe(const vector<Integer>& exp){
 }
 
 Rational continuedFractionExpansion(const Rational& q, int depth){
-  cout << "cfe: " << q << endl;
+  //cout << "cfe: " << q << endl;
   vector<Integer> mods;
   if(!q.isZero()){
     Rational carry = q;
@@ -51,7 +51,7 @@ Rational continuedFractionExpansion(const Rational& q, int depth){
         mods.push_back(Integer());
       Integer& back = mods.back();
       back = carry.floor();
-      cout << "  cfe["<<i<<"]: " << back << endl;
+      //cout << "  cfe["<<i<<"]: " << back << endl;
       carry -= back;
       if(carry.isZero()){
         break;
@@ -64,7 +64,7 @@ Rational continuedFractionExpansion(const Rational& q, int depth){
   }
 
   Rational result = cfe(mods);
-  cout << "cfe: " << result << endl;
+  //cout << "cfe: " << result << endl;
 
   return result;
 }
@@ -385,29 +385,29 @@ ApproximateSimplex::Solution ApproxGLPK::extractSolution(bool mip) const{
     int glpk_index = isSlack ? d_rowIndices[vi] : d_colIndices[vi];
 
     int status = isSlack ? glp_get_row_stat(d_prob, glpk_index) : glp_get_col_stat(d_prob, glpk_index);
-    cout << "assignment " << vi << endl;
+    //cout << "assignment " << vi << endl;
 
     switch(status){
     case GLP_BS:
-      cout << "basic" << endl;
+      //cout << "basic" << endl;
       newBasis.add(vi);
       break;
     case GLP_NL:
     case GLP_NS:
       if(!mip){
-        cout << "non-basic lb" << endl;
+        //cout << "non-basic lb" << endl;
         newValues.set(vi, d_vars.getLowerBound(vi));
         break;
       }// intentionally fall through otherwise
     case GLP_NU:
       if(!mip){
-        cout << "non-basic ub" << endl;
+        // cout << "non-basic ub" << endl;
         newValues.set(vi, d_vars.getUpperBound(vi));
         break;
       }// intentionally fall through otherwise
     default:
       {
-        cout << "non-basic other" << endl;
+        // cout << "non-basic other" << endl;
 
         double newAssign =
           mip ?
@@ -418,21 +418,21 @@ ApproximateSimplex::Solution ApproxGLPK::extractSolution(bool mip) const{
 
         if(d_vars.hasLowerBound(vi) &&
            roughlyEqual(newAssign, d_vars.getLowerBound(vi).approx(SMALL_FIXED_DELTA))){
-          cout << "  to lb" << endl;
+          //cout << "  to lb" << endl;
 
           newValues.set(vi, d_vars.getLowerBound(vi));
         }else if(d_vars.hasUpperBound(vi) &&
            roughlyEqual(newAssign, d_vars.getUpperBound(vi).approx(SMALL_FIXED_DELTA))){
           newValues.set(vi, d_vars.getUpperBound(vi));
-          cout << "  to ub" << endl;
+          // cout << "  to ub" << endl;
         }else{
 
           double rounded = round(newAssign);
           if(roughlyEqual(newAssign, rounded)){
-            cout << "roughly equal " << rounded << " " << newAssign << " " << oldAssign << endl;
+            // cout << "roughly equal " << rounded << " " << newAssign << " " << oldAssign << endl;
             newAssign = rounded;
           }else{
-            cout << "not roughly equal " << rounded << " " << newAssign << " " << oldAssign << endl;
+            // cout << "not roughly equal " << rounded << " " << newAssign << " " << oldAssign << endl;
           }
 
           Rational fromD = Rational::fromDouble(newAssign);
@@ -441,19 +441,19 @@ ApproximateSimplex::Solution ApproxGLPK::extractSolution(bool mip) const{
 
 
           if(roughlyEqual(newAssign, oldAssign.approx(SMALL_FIXED_DELTA))){
-            cout << "  to prev value" << newAssign << " " << oldAssign << endl;
+            // cout << "  to prev value" << newAssign << " " << oldAssign << endl;
             proposal = d_vars.getAssignment(vi);
           }
 
 
           if(d_vars.strictlyLessThanLowerBound(vi, proposal)){
-            cout << "  round to lb " << d_vars.getLowerBound(vi) << endl;
+            //cout << "  round to lb " << d_vars.getLowerBound(vi) << endl;
             proposal = d_vars.getLowerBound(vi);
           }else if(d_vars.strictlyGreaterThanUpperBound(vi, proposal)){
-            cout << "  round to ub " << d_vars.getUpperBound(vi) << endl;
+            //cout << "  round to ub " << d_vars.getUpperBound(vi) << endl;
             proposal = d_vars.getUpperBound(vi);
           }else{
-            cout << "  use proposal" << proposal << " " << oldAssign  << endl;
+            //cout << "  use proposal" << proposal << " " << oldAssign  << endl;
           }
           newValues.set(vi, proposal);
         }
@@ -473,7 +473,8 @@ ApproximateSimplex::ApproxResult ApproxGLPK::solveRelaxation(unsigned pivotLimit
   parm.meth = GLP_PRIMAL;
   parm.pricing = GLP_PT_PSE;
 #warning "Turn this off, before checking into trunk"
-  parm.msg_lev = GLP_MSG_ALL;
+  //parm.msg_lev = GLP_MSG_ALL;
+  parm.msg_lev = GLP_MSG_OFF;
 
   int res = glp_simplex(d_prob, &parm);
 
@@ -481,7 +482,7 @@ ApproximateSimplex::ApproxResult ApproxGLPK::solveRelaxation(unsigned pivotLimit
   case 0:
     {
       int status = glp_get_status(d_prob);
-      printGLPKStatus(status);
+      //printGLPKStatus(status);
       switch(status){
       case GLP_OPT:
       case GLP_FEAS:
@@ -519,18 +520,19 @@ ApproximateSimplex::ApproxResult ApproxGLPK::solveMIP(unsigned pivotLimit){
   parm.presolve = GLP_OFF;
 #warning "Turn this off, before checking into trunk"
   parm.msg_lev = GLP_MSG_ALL;
+  parm.msg_lev = GLP_MSG_OFF;
 
-  cout << "glpk int " << d_instanceID << endl;
+  //cout << "glpk int " << d_instanceID << endl;
   int res = glp_intopt(d_prob, &parm);
 
-  cout << "glpk int " << d_instanceID << " result " << res << endl;
-  printGLPKStatus(glp_get_status(d_prob));
+  // cout << "glpk int " << d_instanceID << " result " << res << endl;
+  //printGLPKStatus(glp_get_status(d_prob));
 
   switch(res){
   case 0:
     {
       int status = glp_mip_status(d_prob);
-      printGLPKStatus(status);
+      //printGLPKStatus(status);
       switch(status){
       case GLP_OPT:
       case GLP_FEAS:

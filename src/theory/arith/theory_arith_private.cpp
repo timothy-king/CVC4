@@ -790,7 +790,7 @@ Theory::PPAssertStatus TheoryArithPrivate::ppAssert(TNode in, SubstitutionMap& o
         // cout << right.size() << endl;
       }else if(elim.hasSubterm(minVar)){
         Debug("simplify") << "TheoryArithPrivate::solve(): can't substitute due to recursive pattern with sharing: " << minVar << ":" << elim << endl;
-        cout << "TheoryArithPrivate::solve(): can't substitute due to recursive pattern with sharing: " << minVar << ":" << elim << endl;
+        // cout << "TheoryArithPrivate::solve(): can't substitute due to recursive pattern with sharing: " << minVar << ":" << elim << endl;
 
       }else if (!minVar.getType().isInteger() || right.isIntegral()) {
         Assert(!elim.hasSubterm(minVar));
@@ -1738,7 +1738,7 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
             ApproximateSimplex::Solution sol = approxSolver->extractRelaxation();
             d_errorSet.reduceToSignals();
             ApproximateSimplex::applySolution(d_linEq, sol);
-            cout << "maybe make FC simplex report non-minimal conflicts?" << endl;
+            // cout << "maybe make FC simplex report non-minimal conflicts?" << endl;
             options::arithStandardCheckVarOrderPivots.set(100);
 
             d_qflraStatus = (options::useFC()) ?
@@ -1919,7 +1919,7 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
       if(possibleConflict != Node::null()){
         revertOutOfConflict();
         Debug("arith::conflict") << "dio conflict   " << possibleConflict << endl;
-        cout << "dio conflict   " << possibleConflict << endl;
+        //cout << "dio conflict   " << possibleConflict << endl;
         raiseConflict(possibleConflict);
         outputConflicts();
         emmittedConflictOrSplit = true;
@@ -1930,7 +1930,7 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
       Node possibleLemma = dioCutting();
       if(!possibleLemma.isNull()){
         Debug("arith") << "dio cut   " << possibleLemma << endl;
-        cout << "dio cut   " << possibleLemma << endl;
+        //cout << "dio cut   " << possibleLemma << endl;
         emmittedConflictOrSplit = true;
         d_hasDoneWorkSinceCut = false;
         outputLemma(possibleLemma);
@@ -1938,7 +1938,7 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
         while(d_diosolver.hasMoreDecompositionLemmas()){
           Node decompositionLemma = d_diosolver.nextDecompositionLemma();
           Debug("arith") << "dio decomposition lemma   " << decompositionLemma << endl;
-          cout << "dio decomposition lemma   " << decompositionLemma << endl;
+          //cout << "dio decomposition lemma   " << decompositionLemma << endl;
           outputLemma(decompositionLemma);
         }
       }
