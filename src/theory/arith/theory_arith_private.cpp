@@ -1748,6 +1748,7 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
         default:
           break;
         }
+        delete approxSolver;
       }
 
       if(d_qflraStatus == Result::SAT_UNKNOWN){
