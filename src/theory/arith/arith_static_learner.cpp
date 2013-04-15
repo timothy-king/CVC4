@@ -103,6 +103,7 @@ void ArithStaticLearner::staticLearning(TNode n, NodeBuilder<>& learned){
 
 void ArithStaticLearner::process(TNode n, NodeBuilder<>& learned, const TNodeSet& defTrue){
   Debug("arith::static") << "===================== looking at " << n << endl;
+  //cout << "===================== looking at " << n << endl;
 
   switch(n.getKind()){
   case ITE:
@@ -182,6 +183,13 @@ void ArithStaticLearner::iteMinMax(TNode n, NodeBuilder<>& learned){
     e = tmp;
     k = reverseRelationKind(k);
   }
+  //(ite (< x y) x y)
+  //(ite (x < y) x y)
+  //(ite (x - y < 0) x y)
+  // ----------------
+  // (ite (x - y < -c) )
+  
+
   if(t == cleft && e == cright){
     // t == cleft && e == cright
     Assert( t == cleft );
@@ -192,6 +200,7 @@ void ArithStaticLearner::iteMinMax(TNode n, NodeBuilder<>& learned){
       Node nLeqX = NodeBuilder<2>(LEQ) << n << t;
       Node nLeqY = NodeBuilder<2>(LEQ) << n << e;
       Debug("arith::static") << n << "is a min =>"  << nLeqX << nLeqY << endl;
+      cout << n << "is a min =>"  << nLeqX << nLeqY << endl;
       learned << nLeqX << nLeqY;
       ++(d_statistics.d_iteMinMaxApplications);
       break;
@@ -201,6 +210,7 @@ void ArithStaticLearner::iteMinMax(TNode n, NodeBuilder<>& learned){
       Node nGeqX = NodeBuilder<2>(GEQ) << n << t;
       Node nGeqY = NodeBuilder<2>(GEQ) << n << e;
       Debug("arith::static") << n << "is a max =>"  << nGeqX << nGeqY << endl;
+      cout << n << "is a max =>"  << nGeqX << nGeqY << endl;
       learned << nGeqX << nGeqY;
       ++(d_statistics.d_iteMinMaxApplications);
       break;
@@ -214,6 +224,7 @@ void ArithStaticLearner::iteConstant(TNode n, NodeBuilder<>& learned){
   Assert(n.getKind() == ITE);
 
   Debug("arith::static") << "iteConstant(" << n << ")" << endl;
+  cout << "iteConstant(" << n << ")" << endl;
 
   if (d_minMap.find(n[1]) != d_minMap.end() && d_minMap.find(n[2]) != d_minMap.end()) {
     const DeltaRational& first = d_minMap[n[1]];
