@@ -36,9 +36,6 @@ SimplexDecisionProcedure::SimplexDecisionProcedure(LinearEqualityModule& linEq, 
   , d_conflictChannel(conflictChannel)
   , d_arithVarMalloc(tvmalloc)
   , d_errorSize(0)
-  , d_focusSize(0)
-  , d_focusErrorVar(ARITHVAR_SENTINEL)
-  , d_focusCoefficients()
   , d_zero(0)
 {
   d_heuristicRule = options::arithErrorSelectionRule();
@@ -70,9 +67,7 @@ bool SimplexDecisionProcedure::standardProcessSignals(TimerStat &timer, IntStat&
     // is needed for for the ErrorSet
     d_errorSet.popSignal();
   }
-
   d_errorSize = d_errorSet.errorSize();
-  d_focusSize = d_errorSet.focusSize();
 
   Assert(d_errorSet.noSignals());
   return !d_conflictVariables.empty();
@@ -82,7 +77,7 @@ bool SimplexDecisionProcedure::standardProcessSignals(TimerStat &timer, IntStat&
 void SimplexDecisionProcedure::reportConflict(ArithVar basic){
   Assert(!d_conflictVariables.isMember(basic));
   Assert(checkBasicForConflict(basic));
-  Node conflict = generatConflictForBasic(basic);
+  Node conflict = generateConflictForBasic(basic);
 
   static bool verbose = false;
   if(verbose) { Message() << "conflict " << basic << " " << conflict << endl; }
@@ -91,7 +86,7 @@ void SimplexDecisionProcedure::reportConflict(ArithVar basic){
   d_conflictVariables.add(basic);
 }
 
-Node SimplexDecisionProcedure::generatConflictForBasic(ArithVar basic) const {
+Node SimplexDecisionProcedure::generateConflictForBasic(ArithVar basic) const {
 
   Assert(d_tableau.isBasic(basic));
   Assert(checkBasicForConflict(basic));
@@ -108,7 +103,7 @@ Node SimplexDecisionProcedure::generatConflictForBasic(ArithVar basic) const {
 }
 Node SimplexDecisionProcedure::maybeGenerateConflictForBasic(ArithVar basic) const {
   if(checkBasicForConflict(basic)){
-    return generatConflictForBasic(basic);
+    return generateConflictForBasic(basic);
   }else{
     return Node::null();
   }
@@ -130,18 +125,16 @@ bool SimplexDecisionProcedure::checkBasicForConflict(ArithVar basic) const {
   return false;
 }
 
-void SimplexDecisionProcedure::tearDownFocusErrorFunction(TimerStat& timer){
+void SimplexDecisionProcedure::tearDownInfeasiblityFunction(TimerStat& timer, ArithVar tmp){
   TimerStat::CodeTimer codeTimer(timer);
-  Assert(d_focusErrorVar != ARITHVAR_SENTINEL);
-  d_tableau.removeBasicRow(d_focusErrorVar);
-  releaseVariable(d_focusErrorVar);
+  Assert(tmp != ARITHVAR_SENTINEL);
+  Assert(d_tableau.isBasic(tmp));
 
-  d_focusErrorVar = ARITHVAR_SENTINEL;
-
-  Assert(d_focusErrorVar == ARITHVAR_SENTINEL);
+  d_tableau.removeBasicRow(tmp);
+  releaseVariable(tmp);
 }
 
-void SimplexDecisionProcedure::shrinkFocusFunction(TimerStat& timer, const ArithVarVec& dropped){
+void SimplexDecisionProcedure::shrinkInfeasFunc(TimerStat& timer, ArithVar inf, const ArithVarVec& dropped){
   TimerStat::CodeTimer codeTimer(timer);
   for(ArithVarVec::const_iterator i=dropped.begin(), i_end = dropped.end(); i != i_end; ++i){
     ArithVar back = *i;
@@ -149,10 +142,11 @@ void SimplexDecisionProcedure::shrinkFocusFunction(TimerStat& timer, const Arith
     int focusSgn = d_errorSet.focusSgn(back);
     Rational chg(-focusSgn);
 
-    d_linEq.substitutePlusTimesConstant(d_focusErrorVar, back, chg);
+    d_linEq.substitutePlusTimesConstant(inf, back, chg);
   }
 }
-void SimplexDecisionProcedure::adjustFocusFunction(TimerStat& timer, const AVIntPairVec& focusChanges){
+
+void SimplexDecisionProcedure::adjustInfeasFunc(TimerStat& timer, ArithVar inf, const AVIntPairVec& focusChanges){
   TimerStat::CodeTimer codeTimer(timer);
   for(AVIntPairVec::const_iterator i=focusChanges.begin(), i_end = focusChanges.end(); i != i_end; ++i){
     ArithVar v = (*i).first;
@@ -160,19 +154,19 @@ void SimplexDecisionProcedure::adjustFocusFunction(TimerStat& timer, const AVInt
 
     Rational chg(focusChange);
     if(d_tableau.isBasic(v)){
-      d_linEq.substitutePlusTimesConstant(d_focusErrorVar, v, chg);
+      d_linEq.substitutePlusTimesConstant(inf, v, chg);
     }else{
-      d_linEq.directlyAddToCoefficient(d_focusErrorVar, v, chg);
+      d_linEq.directlyAddToCoefficient(inf, v, chg);
     }
   }
 }
 
-void SimplexDecisionProcedure::constructFocusErrorFunction(TimerStat& timer){
+ArithVar SimplexDecisionProcedure::constructInfeasiblityFunction(TimerStat& timer){
   TimerStat::CodeTimer codeTimer(timer);
-  Assert(d_focusErrorVar == ARITHVAR_SENTINEL);
   Assert(!d_errorSet.focusEmpty());
-  d_focusErrorVar = requestVariable();
 
+  ArithVar inf = requestVariable();
+  Assert(inf != ARITHVAR_SENTINEL);
 
   std::vector<Rational> coeffs;
   std::vector<ArithVar> variables;
@@ -187,38 +181,17 @@ void SimplexDecisionProcedure::constructFocusErrorFunction(TimerStat& timer){
     coeffs.push_back(Rational(sgn));
     variables.push_back(e);
   }
-  d_tableau.addRow(d_focusErrorVar, coeffs, variables);
-  DeltaRational newAssignment = d_linEq.computeRowValue(d_focusErrorVar, false);
-  d_variables.setAssignment(d_focusErrorVar, newAssignment);
+  d_tableau.addRow(inf, coeffs, variables);
+  DeltaRational newAssignment = d_linEq.computeRowValue(inf, false);
+  d_variables.setAssignment(inf, newAssignment);
 
-  d_linEq.trackVariable(d_focusErrorVar);
+  d_linEq.trackVariable(inf);
 
-  Debug("pu") << d_focusErrorVar << " " << newAssignment << endl;
-  Assert(d_focusErrorVar != ARITHVAR_SENTINEL);
+  Debug("Inf") << inf << " " << newAssignment << endl;
+
+  return inf;
 }
 
-
-void SimplexDecisionProcedure::loadFocusSigns(){
-  Assert(d_focusCoefficients.empty());
-  Assert(d_focusErrorVar != ARITHVAR_SENTINEL);
-  for(Tableau::RowIterator ri = d_tableau.basicRowIterator(d_focusErrorVar); !ri.atEnd(); ++ri){
-    const Tableau::Entry& e = *ri;
-    ArithVar curr = e.getColVar();
-    d_focusCoefficients.set(curr, &e.getCoefficient());
-  }
-}
-
-void SimplexDecisionProcedure::unloadFocusSigns(){
-  d_focusCoefficients.purge();
-}
-
-const Rational& SimplexDecisionProcedure::focusCoefficient(ArithVar nb) const {
-  if(d_focusCoefficients.isKey(nb)){
-    return *(d_focusCoefficients[nb]);
-  }else{
-    return d_zero;
-  }
-}
 
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */

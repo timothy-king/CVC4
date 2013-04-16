@@ -1693,7 +1693,7 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
 
       int16_t oldCap = options::arithStandardCheckVarOrderPivots();
 
-      static const int16_t pass1Limit = 10;
+      static const int16_t pass1Limit = 100;
       static const int16_t pass2Limit = 10;
       static const int32_t relaxationLimit = 1000000;
       static const int16_t mipLimit = 100000;

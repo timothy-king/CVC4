@@ -31,6 +31,9 @@ namespace arith {
 
 FCSimplexDecisionProcedure::FCSimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc)
   : SimplexDecisionProcedure(linEq, errors, conflictChannel, tvmalloc)
+  , d_focusSize(0)
+  , d_focusErrorVar(ARITHVAR_SENTINEL)
+  , d_focusCoefficients()
   , d_pivotBudget(0)
   , d_prevWitnessImprovement(AntiProductive)
   , d_witnessImprovementInARow(0)
@@ -223,12 +226,13 @@ void FCSimplexDecisionProcedure::adjustFocusAndError(const UpdateInfo& up, const
   Assert(!d_conflictVariables.empty() || newErrorSize <= d_errorSize);
 
   if(newFocusSize == 0 || !d_conflictVariables.empty() ){
-    tearDownFocusErrorFunction(d_statistics.d_fcFocusConstructionTimer);
+    tearDownInfeasiblityFunction(d_statistics.d_fcFocusConstructionTimer, d_focusErrorVar);
+    d_focusErrorVar = ARITHVAR_SENTINEL;
   }else if(2*newFocusSize < d_focusSize ){
-    tearDownFocusErrorFunction(d_statistics.d_fcFocusConstructionTimer);
-    constructFocusErrorFunction(d_statistics.d_fcFocusConstructionTimer);
+    tearDownInfeasiblityFunction(d_statistics.d_fcFocusConstructionTimer, d_focusErrorVar);
+    d_focusErrorVar = constructInfeasiblityFunction(d_statistics.d_fcFocusConstructionTimer);
   }else{
-    adjustFocusFunction(d_statistics.d_fcFocusConstructionTimer, focusChanges);
+    adjustInfeasFunc(d_statistics.d_fcFocusConstructionTimer, d_focusErrorVar, focusChanges);
   }
 
   d_errorSize = newErrorSize;
@@ -245,10 +249,10 @@ WitnessImprovement FCSimplexDecisionProcedure::adjustFocusShrank(const ArithVarV
 
   if(2 * newFocusSize <= d_focusSize){
     d_errorSet.dropFromFocusAll(dropped);
-    tearDownFocusErrorFunction(d_statistics.d_fcFocusConstructionTimer);
-    constructFocusErrorFunction(d_statistics.d_fcFocusConstructionTimer);
+    tearDownInfeasiblityFunction(d_statistics.d_fcFocusConstructionTimer, d_focusErrorVar);
+    d_focusErrorVar = constructInfeasiblityFunction(d_statistics.d_fcFocusConstructionTimer);
   }else{
-    shrinkFocusFunction(d_statistics.d_fcFocusConstructionTimer, dropped);
+    shrinkInfeasFunc(d_statistics.d_fcFocusConstructionTimer, d_focusErrorVar, dropped);
     d_errorSet.dropFromFocusAll(dropped);
   }
 
@@ -268,8 +272,8 @@ WitnessImprovement FCSimplexDecisionProcedure::focusDownToJust(ArithVar v){
   Assert(d_errorSet.focusSize() == 1);
   d_focusSize = 1;
 
-  tearDownFocusErrorFunction(d_statistics.d_fcFocusConstructionTimer);
-  constructFocusErrorFunction(d_statistics.d_fcFocusConstructionTimer);
+  tearDownInfeasiblityFunction(d_statistics.d_fcFocusConstructionTimer, d_focusErrorVar);
+  d_focusErrorVar = constructInfeasiblityFunction(d_statistics.d_fcFocusConstructionTimer);
 
   return FocusShrank;
 }
@@ -419,7 +423,7 @@ UpdateInfo FCSimplexDecisionProcedure::selectPrimalUpdate(ArithVar basic, Linear
   return selected;
 }
 
-bool debugCheckWitness(const UpdateInfo& inf, WitnessImprovement w, bool useBlands){
+bool FCSimplexDecisionProcedure::debugCheckWitness(const UpdateInfo& inf, WitnessImprovement w, bool useBlands){
   if(inf.getWitness(useBlands) == w){
     switch(w){
     case ConflictFound: return inf.foundConflict();
@@ -737,7 +741,7 @@ Result::Sat FCSimplexDecisionProcedure::dualLike(){
 
 
   d_scores.purge();
-  constructFocusErrorFunction(d_statistics.d_fcFocusConstructionTimer);
+  d_focusErrorVar = constructInfeasiblityFunction(d_statistics.d_fcFocusConstructionTimer);
 
 
   while(d_pivotBudget != 0  && d_errorSize > 0 && d_conflictVariables.empty()){
@@ -761,7 +765,7 @@ Result::Sat FCSimplexDecisionProcedure::dualLike(){
       Assert( d_errorSize == d_focusSize);
       Assert( d_errorSize >= 1 );
 
-      constructFocusErrorFunction(d_statistics.d_fcFocusConstructionTimer);
+      d_focusErrorVar = constructInfeasiblityFunction(d_statistics.d_fcFocusConstructionTimer);
 
       Debug("dualLike") << "blur " << d_focusSize << endl;
     }else if(d_focusSize == 1){
@@ -806,7 +810,8 @@ Result::Sat FCSimplexDecisionProcedure::dualLike(){
 
 
   if(d_focusErrorVar != ARITHVAR_SENTINEL){
-    tearDownFocusErrorFunction(d_statistics.d_fcFocusConstructionTimer);
+    tearDownInfeasiblityFunction(d_statistics.d_fcFocusConstructionTimer, d_focusErrorVar);
+    d_focusErrorVar = ARITHVAR_SENTINEL;
   }
 
   Assert(d_focusErrorVar == ARITHVAR_SENTINEL);
@@ -818,6 +823,29 @@ Result::Sat FCSimplexDecisionProcedure::dualLike(){
   }else{
     Assert(d_pivotBudget == 0);
     return Result::SAT_UNKNOWN;
+  }
+}
+
+
+void FCSimplexDecisionProcedure::loadFocusSigns(){
+  Assert(d_focusCoefficients.empty());
+  Assert(d_focusErrorVar != ARITHVAR_SENTINEL);
+  for(Tableau::RowIterator ri = d_tableau.basicRowIterator(d_focusErrorVar); !ri.atEnd(); ++ri){
+    const Tableau::Entry& e = *ri;
+    ArithVar curr = e.getColVar();
+    d_focusCoefficients.set(curr, &e.getCoefficient());
+  }
+}
+
+void FCSimplexDecisionProcedure::unloadFocusSigns(){
+  d_focusCoefficients.purge();
+}
+
+const Rational& FCSimplexDecisionProcedure::focusCoefficient(ArithVar nb) const {
+  if(d_focusCoefficients.isKey(nb)){
+    return *(d_focusCoefficients[nb]);
+  }else{
+    return d_zero;
   }
 }
 

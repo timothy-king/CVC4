@@ -145,7 +145,7 @@ bool PureUpdateSimplexDecisionProcedure::attemptPureUpdates(){
   Assert(!d_errorSet.focusEmpty());
   Assert(d_errorSet.noSignals());
 
-  constructFocusErrorFunction(d_statistics.d_constructionTimer);
+  d_focusErrorVar = constructInfeasiblityFunction(d_statistics.d_constructionTimer);
 
   UpdateInfo proposal;
   int boundImprovements = 0;
@@ -245,7 +245,9 @@ bool PureUpdateSimplexDecisionProcedure::attemptPureUpdates(){
       }
     }
   }
-  tearDownFocusErrorFunction(d_statistics.d_constructionTimer);
+
+  tearDownInfeasiblityFunction(d_statistics.d_constructionTimer, d_focusErrorVar);
+  d_focusErrorVar = ARITHVAR_SENTINEL;
 
   (d_statistics.d_pureUpdateDropped) += dropped;
 

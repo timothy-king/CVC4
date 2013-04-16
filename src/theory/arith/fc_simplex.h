@@ -91,6 +91,33 @@ private:
     }
   }
 
+  /** The size of the focus set. */
+  uint32_t d_focusSize;
+
+  /** The current error focus variable. */
+  ArithVar d_focusErrorVar;
+
+  /**
+   * The signs of the coefficients in the focus set.
+   * This is empty until this has been loaded.
+   */
+  DenseMap<const Rational*> d_focusCoefficients;
+
+  /**
+   * Loads the signs of the coefficients of the variables on the row d_focusErrorVar
+   * into d_focusSgns.
+   */
+  void loadFocusSigns();
+
+  /** Unloads the information from d_focusSgns. */
+  void unloadFocusSigns();
+
+  /**
+   * The signs of a variable in the row of d_focusErrorVar.
+   * d_focusSgns must be loaded.
+   */
+  const Rational& focusCoefficient(ArithVar nb) const;
+
   int32_t d_pivotBudget;
   // enum PivotImprovement {
   //   ErrorDropped,
@@ -189,8 +216,12 @@ private:
   bool initialProcessSignals(){
     TimerStat &timer = d_statistics.d_initialSignalsTime;
     IntStat& conflictStat  = d_statistics.d_initialConflicts;
-    return standardProcessSignals(timer, conflictStat);
+    bool res = standardProcessSignals(timer, conflictStat);
+    d_focusSize = d_errorSet.focusSize();
+    return res;
   }
+
+  static bool debugCheckWitness(const UpdateInfo& inf, WitnessImprovement w, bool useBlands);
 
   /** These fields are designed to be accessible to TheoryArith methods. */
   class Statistics {

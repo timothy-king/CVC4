@@ -71,7 +71,7 @@ class SimplexDecisionProcedure {
 protected:
   typedef std::vector< std::pair<ArithVar, int> > AVIntPairVec;
 
-  /** */
+  /** Pivot count of the current round of pivoting. */
   uint32_t d_pivots;
 
   /** The set of variables that are in conflict in this round. */
@@ -111,45 +111,13 @@ protected:
   /** The size of the error set. */
   uint32_t d_errorSize;
 
-  /** The size of the focus set. */
-  uint32_t d_focusSize;
-
-  /** The current error focus variable. */
-  ArithVar d_focusErrorVar;
-
-  void constructFocusErrorFunction(TimerStat& timer);
-  void tearDownFocusErrorFunction(TimerStat& timer);
-  void adjustFocusFunction(TimerStat& timer, const AVIntPairVec& focusChanges);
-  void shrinkFocusFunction(TimerStat& timer, const ArithVarVec& dropped);
-
-
-
-  // void reconstructFocusErrorFunction(TimerStat& timer){
-  //   tearDownFocusErrorFunction(timer);
-  //   constructFocusErrorFunction(timer);
-  // }
-
-  /**
-   * The signs of the coefficients in the focus set.
-   * This is empty until this has been loaded.
-   */
-  DenseMap<const Rational*> d_focusCoefficients;
+  /** A local copy of 0. */
   const Rational d_zero;
 
-  /**
-   * Loads the signs of the coefficients of the variables on the row d_focusErrorVar
-   * into d_focusSgns.
-   */
-  void loadFocusSigns();
-
-  /** Unloads the information from d_focusSgns. */
-  void unloadFocusSigns();
-
-  /**
-   * The signs of a variable in the row of d_focusErrorVar.
-   * d_focusSgns must be loaded.
-   */
-  const Rational& focusCoefficient(ArithVar nb) const;
+  ArithVar constructInfeasiblityFunction(TimerStat& timer);
+  void tearDownInfeasiblityFunction(TimerStat& timer, ArithVar inf);
+  void adjustInfeasFunc(TimerStat& timer, ArithVar inf, const AVIntPairVec& focusChanges);
+  void shrinkInfeasFunc(TimerStat& timer, ArithVar inf, const ArithVarVec& dropped);
 
 public:
   SimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc);
@@ -193,7 +161,7 @@ protected:
    * If a basic variable has a conflict on its row,
    * this produces a minimized row.
    */
-  Node generatConflictForBasic(ArithVar basic) const;
+  Node generateConflictForBasic(ArithVar basic) const;
 
 
   /** Gets a fresh variable from TheoryArith. */

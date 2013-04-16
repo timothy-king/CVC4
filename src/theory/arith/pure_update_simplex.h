@@ -71,6 +71,7 @@ public:
   Result::Sat findModel(bool exactResult);
 
 private:
+  ArithVar d_focusErrorVar;
 
   bool attemptPureUpdates();
 
