@@ -248,7 +248,7 @@ private:
   void addBackIntoFocus(ArithVar v);
 
 public:
-  
+
   /** The new focus set is the entire error set. */
   void blur();
   void dropFromFocus(ArithVar v);
@@ -365,6 +365,10 @@ public:
 
   uint32_t getMetric(ArithVar a) const {
     return d_errInfo[a].getMetric();
+  }
+
+  Constraint getViolated(ArithVar a) const {
+    return d_errInfo[a].getViolated();
   }
 
 
