@@ -47,6 +47,8 @@ libarith_la_SOURCES = \
 	dual_simplex.cpp \
 	fc_simplex.h \
 	fc_simplex.cpp \
+	soi_simplex.h \
+	soi_simplex.cpp \
 	approx_simplex.h \
 	approx_simplex.cpp \
 	pure_update_simplex.h \
