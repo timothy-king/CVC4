@@ -47,8 +47,8 @@ Rational continuedFractionExpansion(const Rational& q, int depth){
   if(!q.isZero()){
     Rational carry = q;
     for(int i = 0; i <= depth; ++i){
-      Assert(!carry.isZero())
-        mods.push_back(Integer());
+      Assert(!carry.isZero());
+      mods.push_back(Integer());
       Integer& back = mods.back();
       back = carry.floor();
       //cout << "  cfe["<<i<<"]: " << back << endl;
