@@ -45,7 +45,10 @@ SumOfInfeasibilitiesSPD::Statistics::Statistics(uint32_t& pivots):
   d_soiFoundUnsat("theory::arith::SOI::FoundUnsat", 0),
   d_soiFoundSat("theory::arith::SOI::FoundSat", 0),
   d_soiMissed("theory::arith::SOI::Missed", 0),
-  d_soiTimer("theory::arith::SOI::Timer"),
+  d_soiConflicts("theory::arith::SOI::ConfMin::num", 0),
+  d_hasToBeMinimal("theory::arith::SOI::HasToBeMin", 0),
+  d_maybeNotMinimal("theory::arith::SOI::MaybeNotMin", 0),
+  d_soiTimer("theory::arith::SOI::Time"),
   d_soiFocusConstructionTimer("theory::arith::SOI::Construction"),
   d_soiConflictMinimization("theory::arith::SOI::Conflict::Minimization"),
   d_selectUpdateForSOI("theory::arith::SOI::selectSOI"),
@@ -57,6 +60,10 @@ SumOfInfeasibilitiesSPD::Statistics::Statistics(uint32_t& pivots):
   StatisticsRegistry::registerStat(&d_soiFoundUnsat);
   StatisticsRegistry::registerStat(&d_soiFoundSat);
   StatisticsRegistry::registerStat(&d_soiMissed);
+
+  StatisticsRegistry::registerStat(&d_soiConflicts);
+  StatisticsRegistry::registerStat(&d_hasToBeMinimal);
+  StatisticsRegistry::registerStat(&d_maybeNotMinimal);
 
   StatisticsRegistry::registerStat(&d_soiTimer);
   StatisticsRegistry::registerStat(&d_soiFocusConstructionTimer);
@@ -75,6 +82,10 @@ SumOfInfeasibilitiesSPD::Statistics::~Statistics(){
   StatisticsRegistry::unregisterStat(&d_soiFoundUnsat);
   StatisticsRegistry::unregisterStat(&d_soiFoundSat);
   StatisticsRegistry::unregisterStat(&d_soiMissed);
+
+  StatisticsRegistry::unregisterStat(&d_soiConflicts);
+  StatisticsRegistry::unregisterStat(&d_hasToBeMinimal);
+  StatisticsRegistry::unregisterStat(&d_maybeNotMinimal);
 
   StatisticsRegistry::unregisterStat(&d_soiTimer);
   StatisticsRegistry::unregisterStat(&d_soiFocusConstructionTimer);
@@ -422,7 +433,7 @@ void SumOfInfeasibilitiesSPD::updateAndSignal(const UpdateInfo& selected, Witnes
   adjustFocusAndError(selected, focusChanges);
 }
 
-int SumOfInfeasibilitiesSPD::trySet(const ArithVarVec& set){
+unsigned SumOfInfeasibilitiesSPD::trySet(const ArithVarVec& set){
   Assert(d_soiVar == ARITHVAR_SENTINEL);
   bool success = false;
   if(set.size() >= 2){
@@ -435,19 +446,19 @@ int SumOfInfeasibilitiesSPD::trySet(const ArithVarVec& set){
   return success ? set.size() : std::numeric_limits<int>::max();
 }
 
-int SumOfInfeasibilitiesSPD::tryAllSubsets(const ArithVarVec& set, unsigned depth, ArithVarVec& tmp) {
+unsigned SumOfInfeasibilitiesSPD::tryAllSubsets(const ArithVarVec& set, unsigned depth, ArithVarVec& tmp) {
   if(depth < set.size()){
-    int resWithout = tryAllSubsets(set, depth+1, tmp);
+    unsigned resWithout = tryAllSubsets(set, depth+1, tmp);
     if(resWithout == tmp.size() &&  resWithout < set.size()){
-      for(int i = 0; i < tmp.size(); ++i){
+      for(unsigned i = 0; i < tmp.size(); ++i){
         cout << tmp[i] << " ";
       }
       cout << endl;
     }
     tmp.push_back(set[depth]);
-    int resWith = tryAllSubsets(set, depth+1, tmp);
+    unsigned resWith = tryAllSubsets(set, depth+1, tmp);
     if(resWith == tmp.size() && resWith < set.size()){
-      for(int i = 0; i < tmp.size(); ++i){
+      for(unsigned i = 0; i < tmp.size(); ++i){
         cout << tmp[i] << " ";
       }
       cout << endl;
@@ -479,13 +490,10 @@ std::vector< ArithVarVec > SumOfInfeasibilitiesSPD::greedyConflictSubsets(){
     ArithVar e = *iter;
     addRowSgns(sgns, e, d_errorSet.getSgn(e));
 
-    cout << "basic error var: " << e << endl;
-    d_tableau.debugPrintIsBasic(e);
-    d_tableau.printBasicRow(e, cout);
+    //cout << "basic error var: " << e << endl;
+    //d_tableau.debugPrintIsBasic(e);
+    //d_tableau.printBasicRow(e, cout);
   }
-
-  static int totalFound = 0;
-  static int hasToBeMinimal = 0;
 
   // Phase 1: Try to find at least 1 pair for every element
   ArithVarVec tmp;
@@ -512,12 +520,12 @@ std::vector< ArithVarVec > SumOfInfeasibilitiesSPD::greedyConflictSubsets(){
       tmp[0] = e;
       tmp[1] = b;
       if(trySet(tmp) == 2){
-        cout << "found a pair" << endl;
+        //cout << "found a pair" << endl;
         hasParticipated.softAdd(b);
         hasParticipated.softAdd(e);
         subsets.push_back(tmp);
-        totalFound++;
-        hasToBeMinimal++;
+        ++(d_statistics.d_soiConflicts);
+        ++(d_statistics.d_hasToBeMinimal);
       }
     }
   }
@@ -539,7 +547,9 @@ std::vector< ArithVarVec > SumOfInfeasibilitiesSPD::greedyConflictSubsets(){
     underConstruction.push_back(v);
     d_soiVar = constructInfeasiblityFunction(d_statistics.d_soiConflictMinimization, v);
 
-    cout << "trying " << v << endl;
+    bool uniqueChoices = true;
+
+    //cout << "trying " << v << endl;
 
     const Tableau::Entry* spoiler = NULL;
     while( (spoiler = d_linEq.selectSlackEntry(d_soiVar, false)) != NULL){
@@ -547,15 +557,16 @@ std::vector< ArithVarVec > SumOfInfeasibilitiesSPD::greedyConflictSubsets(){
       int oppositeSgn = -(spoiler->getCoefficient().sgn());
       Assert(oppositeSgn != 0);
 
-      cout << "looking for " << nb << " " << oppositeSgn << endl;
+      //cout << "looking for " << nb << " " << oppositeSgn << endl;
 
       ArithVar basicWithOp = find_basic_outside(sgns, nb, oppositeSgn, hasParticipated);
+
       if(basicWithOp == ARITHVAR_SENTINEL){
-        cout << "search did not work  for " << nb << endl;
+        //cout << "search did not work  for " << nb << endl;
         // greedy construction has failed
         break;
       }else{
-        cout << "found  " << basicWithOp << endl;
+        //cout << "found  " << basicWithOp << endl;
 
         addToInfeasFunc(d_statistics.d_soiConflictMinimization, d_soiVar, basicWithOp);
         hasParticipated.softAdd(basicWithOp);
@@ -563,29 +574,29 @@ std::vector< ArithVarVec > SumOfInfeasibilitiesSPD::greedyConflictSubsets(){
       }
     }
     if(spoiler == NULL){
-      cout << "success" << endl;
+      //cout << "success" << endl;
       //then underConstruction contains a conflicting subset
       subsets.push_back(underConstruction);
-      totalFound++;
+      ++d_statistics.d_soiConflicts;
       if(underConstruction.size() == 3){
-        hasToBeMinimal++;
+        ++d_statistics.d_hasToBeMinimal;
       }else{
-        cout << "maybe not minimal!" << endl;
+        ++d_statistics.d_maybeNotMinimal;
       }
     }else{
-      cout << "failure" << endl;
+      //cout << "failure" << endl;
     }
     tearDownInfeasiblityFunction(d_statistics.d_soiConflictMinimization, d_soiVar);
     d_soiVar = ARITHVAR_SENTINEL;
-    if(spoiler == NULL){
-      ArithVarVec tmp;
-      int smallest = tryAllSubsets(underConstruction, 0, tmp);
-      cout << underConstruction.size() << " " << smallest << endl;
-      Assert(smallest >= underConstruction.size());
-      if(smallest < underConstruction.size()){
-        exit(-1);
-      }
-    }
+    // if(false && spoiler == NULL){
+    //   ArithVarVec tmp;
+    //   int smallest = tryAllSubsets(underConstruction, 0, tmp);
+    //   cout << underConstruction.size() << " " << smallest << endl;
+    //   Assert(smallest >= underConstruction.size());
+    //   if(smallest < underConstruction.size()){
+    //     exit(-1);
+    //   }
+    // }
   }
 
 
@@ -601,11 +612,11 @@ Node SumOfInfeasibilitiesSPD::generateSOIConflict(const ArithVarVec& subset){
   for(ArithVarVec::const_iterator iter = subset.begin(), end = subset.end(); iter != end; ++iter){
     ArithVar e = *iter;
     Constraint violated = d_errorSet.getViolated(e);
-    cout << "basic error var: " << violated << endl;
+    //cout << "basic error var: " << violated << endl;
     violated->explainForConflict(conflict);
 
-    d_tableau.debugPrintIsBasic(e);
-    d_tableau.printBasicRow(e, cout);
+    //d_tableau.debugPrintIsBasic(e);
+    //d_tableau.printBasicRow(e, cout);
   }
   for(Tableau::RowIterator i = d_tableau.basicRowIterator(d_soiVar); !i.atEnd(); ++i){
     const Tableau::Entry& entry = *i;
@@ -617,7 +628,7 @@ Node SumOfInfeasibilitiesSPD::generateSOIConflict(const ArithVarVec& subset){
       d_variables.getUpperBoundConstraint(v) :
       d_variables.getLowerBoundConstraint(v);
 
-    cout << "nb : " << c << endl;
+    //cout << "nb : " << c << endl;
     c->explainForConflict(conflict);
   }
 
@@ -631,9 +642,9 @@ Node SumOfInfeasibilitiesSPD::generateSOIConflict(const ArithVarVec& subset){
 WitnessImprovement SumOfInfeasibilitiesSPD::SOIConflict(){
   static int instance = 0;
   instance++;
-  cout << "SOI conflict " << instance << ": |E| = " << d_errorSize << endl;
-  d_errorSet.debugPrint(cout);
-  cout << endl;
+  //cout << "SOI conflict " << instance << ": |E| = " << d_errorSize << endl;
+  //d_errorSet.debugPrint(cout);
+  //cout << endl;
 
   tearDownInfeasiblityFunction(d_statistics.d_soiConflictMinimization, d_soiVar);
   d_soiVar = ARITHVAR_SENTINEL;
@@ -644,7 +655,7 @@ WitnessImprovement SumOfInfeasibilitiesSPD::SOIConflict(){
   for(vector<ArithVarVec>::const_iterator i = subsets.begin(), end = subsets.end(); i != end; ++i){
     const ArithVarVec& subset = *i;
     Node conflict = generateSOIConflict(subset);
-    cout << conflict << endl;
+    //cout << conflict << endl;
 
     //reportConflict(conf); do not do this. We need a custom explanations!
     d_conflictChannel(conflict);
@@ -655,7 +666,7 @@ WitnessImprovement SumOfInfeasibilitiesSPD::SOIConflict(){
   //reportConflict(conf); do not do this. We need a custom explanations!
   d_conflictVariables.add(d_soiVar);
 
-  cout << "SOI conflict " << instance << "end" << endl;
+  //cout << "SOI conflict " << instance << "end" << endl;
   return ConflictFound;
 }
 

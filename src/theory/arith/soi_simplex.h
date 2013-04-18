@@ -193,8 +193,8 @@ private:
     IntStat& conflictStat  = d_statistics.d_initialConflicts;
     return standardProcessSignals(timer, conflictStat);
   }
-  int trySet(const ArithVarVec& set);
-  int tryAllSubsets(const ArithVarVec& set, unsigned depth, ArithVarVec& tmp);
+  unsigned trySet(const ArithVarVec& set);
+  unsigned tryAllSubsets(const ArithVarVec& set, unsigned depth, ArithVarVec& tmp);
 
   /** These fields are designed to be accessible to TheoryArith methods. */
   class Statistics {
@@ -206,11 +206,13 @@ private:
     IntStat d_soiFoundSat;
     IntStat d_soiMissed;
 
+    IntStat d_soiConflicts;
+    IntStat d_hasToBeMinimal;
+    IntStat d_maybeNotMinimal;
+
     TimerStat d_soiTimer;
     TimerStat d_soiFocusConstructionTimer;
-
     TimerStat d_soiConflictMinimization;
-
     TimerStat d_selectUpdateForSOI;
 
     ReferenceStat<uint32_t> d_finalCheckPivotCounter;
