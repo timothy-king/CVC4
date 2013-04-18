@@ -546,6 +546,8 @@ public:
     return selectSlack<false>(x_i, pf);
   }
 
+  const Tableau::Entry* selectSlackEntry(ArithVar x_i, bool above) const;
+
   inline bool basicIsTracked(ArithVar v) const {
     return d_boundTracking.isKey(v);
   }

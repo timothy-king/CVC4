@@ -704,6 +704,27 @@ ArithVar LinearEqualityModule::selectSlack(ArithVar x_i, VarPreferenceFunction p
   return slack;
 }
 
+const Tableau::Entry* LinearEqualityModule::selectSlackEntry(ArithVar x_i, bool above) const{
+  for(Tableau::RowIterator iter = d_tableau.basicRowIterator(x_i); !iter.atEnd();  ++iter){
+    const Tableau::Entry& entry = *iter;
+    ArithVar nonbasic = entry.getColVar();
+    if(nonbasic == x_i) continue;
+
+    const Rational& a_ij = entry.getCoefficient();
+    int sgn = a_ij.sgn();
+    if(above && isAcceptableSlack<true>(sgn, nonbasic)){
+      //If one of the above conditions is met, we have found an acceptable
+      //nonbasic variable to pivot x_i with.  We can now choose which one we
+      //prefer the most.
+      return &entry;
+    }else if(!above && isAcceptableSlack<false>(sgn, nonbasic)){
+      return &entry;
+    }
+  }
+
+  return NULL;
+}
+
 void LinearEqualityModule::startTrackingBoundCounts(){
   Assert(!d_areTracking);
   d_areTracking = true;
