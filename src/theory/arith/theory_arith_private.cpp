@@ -108,6 +108,7 @@ TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context
   d_dualSimplex(d_linEq, d_errorSet, RaiseConflict(*this), TempVarMalloc(*this)),
   d_pureUpdate(d_linEq, d_errorSet, RaiseConflict(*this), TempVarMalloc(*this)),
   d_fcSimplex(d_linEq, d_errorSet, RaiseConflict(*this), TempVarMalloc(*this)),
+  d_soiSimplex(d_linEq, d_errorSet, RaiseConflict(*this), TempVarMalloc(*this)),
   d_DELTA_ZERO(0),
   d_fullCheckCounter(0),
   d_cutInContext(c),
@@ -1602,6 +1603,101 @@ void TheoryArithPrivate::branchVector(const std::vector<ArithVar>& lemmas){
   }
 }
 
+bool TheoryArithPrivate::solveRealRelaxation(Theory::Effort effortLevel){
+  Assert(d_qflraStatus != Result::SAT);
+
+  d_partialModel.stopQueueingAtBoundQueue();
+  UpdateTrackingCallback utcb(&d_linEq);
+  d_partialModel.processAtBoundQueue(utcb);
+  d_linEq.startTrackingBoundCounts();
+
+  bool noPivotLimit = Theory::fullEffort(effortLevel) ||
+    !options::restrictedPivots();
+
+  bool emmittedConflictOrSplit = false;
+
+  SimplexDecisionProcedure& simplex =
+    options::useFC() ? (SimplexDecisionProcedure&)d_fcSimplex :
+    (options::useSOI() ? (SimplexDecisionProcedure&)d_soiSimplex :
+     (SimplexDecisionProcedure&)d_dualSimplex);
+
+  if(!options::fancyFinal()){
+    d_qflraStatus = simplex.findModel(noPivotLimit);
+  }else{
+    // Fancy final tries the following strategy
+    // At final check, try the preferred simplex solver with a pivot cap
+    // If that failed, swap the the other simplex solver
+    // If that failed, check if there are integer variables to cut
+    // If that failed, do a simplex without a pivot limit
+
+    int16_t oldCap = options::arithStandardCheckVarOrderPivots();
+
+    static const int16_t pass2Limit = 10;
+    static const int32_t relaxationLimit = 1000000;
+    static const int16_t mipLimit = 100000;
+
+    d_qflraStatus = simplex.findModel(false);
+
+    if(d_qflraStatus == Result::SAT_UNKNOWN ||
+       (d_qflraStatus == Result::SAT && !hasIntegerModel())){
+      ApproximateSimplex* approxSolver = ApproximateSimplex::mkApproximateSimplexSolver(d_partialModel);
+      ApproximateSimplex::ApproxResult relaxRes = approxSolver->solveRelaxation(relaxationLimit);
+      switch(relaxRes){
+      case ApproximateSimplex::ApproxSat:
+        {
+          ApproximateSimplex::Solution relaxSolution = approxSolver->extractRelaxation();
+          ApproximateSimplex::ApproxResult mipRes = approxSolver->solveMIP(mipLimit);
+          d_errorSet.reduceToSignals();
+          if(mipRes == ApproximateSimplex::ApproxSat){
+            ApproximateSimplex::Solution mipSolution = approxSolver->extractMIP();
+            ApproximateSimplex::applySolution(d_linEq, mipSolution);
+          }else{
+            ApproximateSimplex::applySolution(d_linEq, relaxSolution);
+            vector<ArithVar> toCut = cutAllBounded();
+            if(toCut.size() > 0){
+              branchVector(toCut);
+              emmittedConflictOrSplit = true;
+            }
+          }
+          options::arithStandardCheckVarOrderPivots.set(pass2Limit);
+          d_qflraStatus = simplex.findModel(false);
+        }
+        break;
+      case ApproximateSimplex::ApproxUnsat:
+        {
+          ApproximateSimplex::Solution sol = approxSolver->extractRelaxation();
+          d_errorSet.reduceToSignals();
+          ApproximateSimplex::applySolution(d_linEq, sol);
+          options::arithStandardCheckVarOrderPivots.set(100);
+
+          d_qflraStatus = simplex.findModel(false);
+        }
+        break;
+      default:
+        break;
+      }
+      delete approxSolver;
+    }
+
+    if(d_qflraStatus == Result::SAT_UNKNOWN){
+      vector<ArithVar> toCut = cutAllBounded();
+      if(toCut.size() > 0){
+        branchVector(toCut);
+        emmittedConflictOrSplit = true;
+      }else{
+        d_qflraStatus = simplex.findModel(noPivotLimit);
+      }
+    }
+    options::arithStandardCheckVarOrderPivots.set(oldCap);
+  }
+
+  // TODO Save zeroes with no conflicts
+  d_linEq.stopTrackingBoundCounts();
+  d_partialModel.startQueueingAtBoundQueue();
+
+  return emmittedConflictOrSplit;
+}
+
 void TheoryArithPrivate::check(Theory::Effort effortLevel){
   Assert(d_currentPropagationList.empty());
   Debug("effortlevel") << "TheoryArithPrivate::check " << effortLevel << std::endl;
@@ -1667,107 +1763,10 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
   bool emmittedConflictOrSplit = false;
   Assert(d_conflicts.empty());
 
-  d_partialModel.stopQueueingAtBoundQueue();
-  UpdateTrackingCallback utcb(&d_linEq);
-  d_partialModel.processAtBoundQueue(utcb);
-  d_linEq.startTrackingBoundCounts();
-
-  //d_qflraStatus = d_pureUpdate.findModel(false);
-  bool noPivotLimit = Theory::fullEffort(effortLevel) ||
-    !options::restrictedPivots();
-
   bool useSimplex = d_qflraStatus != Result::SAT;
   if(useSimplex){
-    if(!options::fancyFinal()){
-    //if(!noPivotLimit || !options::fancyFinal()){
-      d_qflraStatus = options::useFC() ?
-        d_fcSimplex.findModel(noPivotLimit): d_dualSimplex.findModel(noPivotLimit);
-    }else{
-      // Fancy final tries the following strategy
-      // At final check, try the preferred simplex solver with a pivot cap
-      // If that failed, swap the the other simplex solver
-      // If that failed, check if there are integer variables to cut
-      // If that failed, do a simplex without a pivot limit
-      Assert(options::fancyFinal());
-      Assert(noPivotLimit);
-
-      int16_t oldCap = options::arithStandardCheckVarOrderPivots();
-
-      static const int16_t pass1Limit = 100;
-      static const int16_t pass2Limit = 10;
-      static const int32_t relaxationLimit = 1000000;
-      static const int16_t mipLimit = 100000;
-
-      options::arithStandardCheckVarOrderPivots.set(pass1Limit);
-
-      d_qflraStatus = (options::useFC()) ?
-        d_fcSimplex.findModel(false) : d_dualSimplex.findModel(false);
-
-      if(d_qflraStatus == Result::SAT_UNKNOWN ||
-         (d_qflraStatus == Result::SAT && !hasIntegerModel())){
-        ApproximateSimplex* approxSolver = ApproximateSimplex::mkApproximateSimplexSolver(d_partialModel);
-        ApproximateSimplex::ApproxResult relaxRes = approxSolver->solveRelaxation(relaxationLimit);
-        switch(relaxRes){
-        case ApproximateSimplex::ApproxSat:
-          {
-            ApproximateSimplex::Solution relaxSolution = approxSolver->extractRelaxation();
-            ApproximateSimplex::ApproxResult mipRes = approxSolver->solveMIP(mipLimit);
-            d_errorSet.reduceToSignals();
-            if(mipRes == ApproximateSimplex::ApproxSat){
-              ApproximateSimplex::Solution mipSolution = approxSolver->extractMIP();
-              ApproximateSimplex::applySolution(d_linEq, mipSolution);
-            }else{
-              ApproximateSimplex::applySolution(d_linEq, relaxSolution);
-              // ApproximateSimplex::Solution mipSolution = approxSolver->extractMIP();
-              // ApproximateSimplex::applySolution(d_linEq, mipSolution);
-              //ApproximateSimplex::applySolution(d_linEq, relaxSolution);
-              vector<ArithVar> toCut = cutAllBounded();
-              if(toCut.size() > 0){
-
-                branchVector(toCut);
-                emmittedConflictOrSplit = true;
-              }
-            }
-            options::arithStandardCheckVarOrderPivots.set(pass2Limit);
-            d_qflraStatus = (options::useFC()) ?
-              d_fcSimplex.findModel(false) : d_dualSimplex.findModel(false);
-          }
-          break;
-        case ApproximateSimplex::ApproxUnsat:
-          {
-            ApproximateSimplex::Solution sol = approxSolver->extractRelaxation();
-            d_errorSet.reduceToSignals();
-            ApproximateSimplex::applySolution(d_linEq, sol);
-            // cout << "maybe make FC simplex report non-minimal conflicts?" << endl;
-            options::arithStandardCheckVarOrderPivots.set(100);
-
-            d_qflraStatus = (options::useFC()) ?
-              d_fcSimplex.findModel(false) : d_dualSimplex.findModel(false);
-          }
-          break;
-        default:
-          break;
-        }
-        delete approxSolver;
-      }
-
-      if(d_qflraStatus == Result::SAT_UNKNOWN){
-        vector<ArithVar> toCut = cutAllBounded();
-        if(toCut.size() > 0){
-          branchVector(toCut);
-          emmittedConflictOrSplit = true;
-        }else{
-          d_qflraStatus = (options::useFC()) ?
-            d_fcSimplex.findModel(noPivotLimit) : d_dualSimplex.findModel(noPivotLimit);
-        }
-      }
-      options::arithStandardCheckVarOrderPivots.set(oldCap);
-    }
+    emmittedConflictOrSplit = solveRealRelaxation(effortLevel);
   }
-
-  // TODO Save zeroes with no conflicts
-  d_linEq.stopTrackingBoundCounts();
-  d_partialModel.startQueueingAtBoundQueue();
 
   switch(d_qflraStatus){
   case Result::SAT:

@@ -115,8 +115,12 @@ protected:
   const Rational d_zero;
 
   ArithVar constructInfeasiblityFunction(TimerStat& timer);
+  ArithVar constructInfeasiblityFunction(TimerStat& timer, ArithVar e);
+  ArithVar constructInfeasiblityFunction(TimerStat& timer, const ArithVarVec& set);
+
   void tearDownInfeasiblityFunction(TimerStat& timer, ArithVar inf);
   void adjustInfeasFunc(TimerStat& timer, ArithVar inf, const AVIntPairVec& focusChanges);
+  void addToInfeasFunc(TimerStat& timer, ArithVar inf, ArithVar e);
   void shrinkInfeasFunc(TimerStat& timer, ArithVar inf, const ArithVarVec& dropped);
 
 public:
@@ -176,6 +180,25 @@ protected:
 
   /** Post condition: !d_queue.moreSignals() */
   bool standardProcessSignals(TimerStat &timer, IntStat& conflictStat);
+
+  struct ArithVarIntPairHashFunc {
+    size_t operator()(const std::pair<ArithVar, int>& p) const {
+      size_t h1 = std::hash<ArithVar>()(p.first);
+      size_t h2 = std::hash<int>()(p.second);
+      return h1 + 3389 * h2;
+    }
+  };
+
+  typedef std::hash_map< std::pair<ArithVar, int>, ArithVarVec, ArithVarIntPairHashFunc> sgn_table;
+
+  static inline int determinizeSgn(int sgn){
+    return sgn < 0 ? -1 : (sgn == 0 ? 0 : 1);
+  }
+
+  void addSgn(sgn_table& sgns, ArithVar col, int sgn, ArithVar basic);
+  void addRowSgns(sgn_table& sgns, ArithVar basic, int norm);
+  ArithVar find_basic_outside(const sgn_table& sgns, ArithVar col, int sgn, const DenseSet& m);
+  sgn_table::const_iterator find_sgns(const sgn_table& sgns, ArithVar col, int sgn);
 
 };/* class SimplexDecisionProcedure */
 

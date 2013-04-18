@@ -69,7 +69,10 @@ option havePenalties --fc-penalties bool :default false :read-write
 / turns off degenerate pivot penalties
 
 option useFC --use-fcsimplex bool :default false :read-write
- use focusing and converging simplex (SAT 2013 submission)
+ use focusing and converging simplex (FMCAD 2013 submission)
+
+option useSOI --use-soi bool :default false :read-write
+ use sum of infeasibility simplex (FMCAD 2013 submission)
 
 option restrictedPivots --restrict-pivots bool :default true :read-write
  have a pivot cap for simplex at effort levels below fullEffort.

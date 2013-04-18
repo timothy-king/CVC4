@@ -58,6 +58,7 @@
 #include "theory/arith/simplex.h"
 #include "theory/arith/dual_simplex.h"
 #include "theory/arith/fc_simplex.h"
+#include "theory/arith/soi_simplex.h"
 #include "theory/arith/pure_update_simplex.h"
 
 #include "theory/arith/constraint.h"
@@ -318,6 +319,9 @@ private:
   DualSimplexDecisionProcedure d_dualSimplex;
   PureUpdateSimplexDecisionProcedure d_pureUpdate;
   FCSimplexDecisionProcedure d_fcSimplex;
+  SumOfInfeasibilitiesSPD d_soiSimplex;
+
+  bool solveRealRelaxation(Theory::Effort effortLevel);
 
   class ModelException : public Exception {
   public:

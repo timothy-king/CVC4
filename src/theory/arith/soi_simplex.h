@@ -168,6 +168,8 @@ private:
   // WitnessImprovement selectFocusImproving() ;
   WitnessImprovement soiRound();
   WitnessImprovement SOIConflict();
+  std::vector< ArithVarVec > greedyConflictSubsets();
+  Node generateSOIConflict(const ArithVarVec& subset);
 
   // WitnessImprovement focusUsingSignDisagreements(ArithVar basic);
   // WitnessImprovement focusDownToLastHalf();
@@ -191,6 +193,8 @@ private:
     IntStat& conflictStat  = d_statistics.d_initialConflicts;
     return standardProcessSignals(timer, conflictStat);
   }
+  int trySet(const ArithVarVec& set);
+  int tryAllSubsets(const ArithVarVec& set, unsigned depth, ArithVarVec& tmp);
 
   /** These fields are designed to be accessible to TheoryArith methods. */
   class Statistics {
@@ -204,6 +208,8 @@ private:
 
     TimerStat d_soiTimer;
     TimerStat d_soiFocusConstructionTimer;
+
+    TimerStat d_soiConflictMinimization;
 
     TimerStat d_selectUpdateForSOI;
 

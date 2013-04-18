@@ -161,7 +161,15 @@ void SimplexDecisionProcedure::adjustInfeasFunc(TimerStat& timer, ArithVar inf, 
   }
 }
 
-ArithVar SimplexDecisionProcedure::constructInfeasiblityFunction(TimerStat& timer){
+void SimplexDecisionProcedure::addToInfeasFunc(TimerStat& timer, ArithVar inf, ArithVar e){
+  AVIntPairVec justE;
+  int sgn  = d_errorSet.getSgn(e);
+  justE.push_back(make_pair(e, sgn));
+  adjustInfeasFunc(timer, inf, justE);
+}
+
+
+ArithVar SimplexDecisionProcedure::constructInfeasiblityFunction(TimerStat& timer, const ArithVarVec& set){
   TimerStat::CodeTimer codeTimer(timer);
   Assert(!d_errorSet.focusEmpty());
 
@@ -171,7 +179,7 @@ ArithVar SimplexDecisionProcedure::constructInfeasiblityFunction(TimerStat& time
   std::vector<Rational> coeffs;
   std::vector<ArithVar> variables;
 
-  for(ErrorSet::focus_iterator iter = d_errorSet.focusBegin(), end = d_errorSet.focusEnd(); iter != end; ++iter){
+  for(ArithVarVec::const_iterator iter = set.begin(), iend = set.end(); iter != iend; ++iter){
     ArithVar e = *iter;
 
     Assert(d_tableau.isBasic(e));
@@ -192,7 +200,52 @@ ArithVar SimplexDecisionProcedure::constructInfeasiblityFunction(TimerStat& time
   return inf;
 }
 
+ArithVar SimplexDecisionProcedure::constructInfeasiblityFunction(TimerStat& timer){
+  ArithVarVec inError;
+  d_errorSet.push_into(inError);
+  return constructInfeasiblityFunction(timer, inError);
+}
 
+ArithVar SimplexDecisionProcedure::constructInfeasiblityFunction(TimerStat& timer, ArithVar e){
+  ArithVarVec justE;
+  justE.push_back(e);
+  return constructInfeasiblityFunction(timer, justE);
+}
+
+void SimplexDecisionProcedure::addSgn(sgn_table& sgns, ArithVar col, int sgn, ArithVar basic){
+  pair<ArithVar, int> p = make_pair(col, determinizeSgn(sgn));
+  sgns[p].push_back(basic);
+}
+
+void SimplexDecisionProcedure::addRowSgns(sgn_table& sgns, ArithVar basic, int norm){
+  for(Tableau::RowIterator i = d_tableau.basicRowIterator(basic); !i.atEnd(); ++i){
+    const Tableau::Entry& entry = *i;
+    ArithVar v = entry.getColVar();
+    int sgn = (entry.getCoefficient().sgn());
+    addSgn(sgns, v, norm * sgn, basic);
+  }
+}
+
+ArithVar SimplexDecisionProcedure::find_basic_outside(const sgn_table& sgns, ArithVar col, int sgn, const DenseSet& m){
+  pair<ArithVar, int> p = make_pair(col, determinizeSgn(sgn));
+  sgn_table::const_iterator i = sgns.find(p);
+
+  if(i != sgns.end()){
+    const ArithVarVec& vec = (*i).second;
+    for(ArithVarVec::const_iterator viter = vec.begin(), vend = vec.end(); viter != vend; ++viter){
+      ArithVar curr = *viter;
+      if(!m.isMember(curr)){
+        return curr;
+      }
+    }
+  }
+  return ARITHVAR_SENTINEL;
+}
+
+SimplexDecisionProcedure::sgn_table::const_iterator SimplexDecisionProcedure::find_sgns(const sgn_table& sgns, ArithVar col, int sgn){
+  pair<ArithVar, int> p = make_pair(col, determinizeSgn(sgn));
+  return sgns.find(p);
+}
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */
 }/* CVC4 namespace */
