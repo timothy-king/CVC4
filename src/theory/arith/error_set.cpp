@@ -474,6 +474,12 @@ void ErrorSet::focusDownToJust(ArithVar v) {
   vei.setHandle(handle);
 }
 
+void ErrorSet::push_into(ArithVarVec& vec) const{
+  for(error_iterator i = errorBegin(), e = errorEnd(); i != e; ++i ){
+    vec.push_back(*i);
+  }
+}
+
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */
 }/* CVC4 namespace */

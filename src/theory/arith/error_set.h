@@ -269,6 +269,8 @@ public:
   bool inError(ArithVar v) const { return d_errInfo.isKey(v); }
   bool inFocus(ArithVar v) const { return d_errInfo[v].inFocus(); }
 
+  void push_into(ArithVarVec& vec) const;
+
   ErrorSelectionRule getSelectionRule() const;
   void setSelectionRule(ErrorSelectionRule rule);
 
@@ -336,18 +338,13 @@ public:
     Assert(moreSignals());
     return d_signals.back();
   }
+
   /**
    * Moves a variable out of the signals.
    * This moves it into the error set.
    * Return the previous focus sign.
    */
   int popSignal();
-
-  // void popAllSignals(){
-  //   while(moreSignals()){
-  //     popSignal();
-  //   }
-  // }
 
   const DeltaRational& getAmount(ArithVar v) const {
     return d_errInfo[v].getAmount();
