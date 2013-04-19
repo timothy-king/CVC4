@@ -474,8 +474,14 @@ void ErrorSet::focusDownToJust(ArithVar v) {
   vei.setHandle(handle);
 }
 
-void ErrorSet::push_into(ArithVarVec& vec) const{
+void ErrorSet::pushErrorInto(ArithVarVec& vec) const{
   for(error_iterator i = errorBegin(), e = errorEnd(); i != e; ++i ){
+    vec.push_back(*i);
+  }
+}
+
+void ErrorSet::pushFocusInto(ArithVarVec& vec) const{
+  for(focus_iterator i = focusBegin(), e = focusEnd(); i != e; ++i ){
     vec.push_back(*i);
   }
 }

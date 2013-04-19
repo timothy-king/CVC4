@@ -202,7 +202,7 @@ ArithVar SimplexDecisionProcedure::constructInfeasiblityFunction(TimerStat& time
 
 ArithVar SimplexDecisionProcedure::constructInfeasiblityFunction(TimerStat& timer){
   ArithVarVec inError;
-  d_errorSet.push_into(inError);
+  d_errorSet.pushFocusInto(inError);
   return constructInfeasiblityFunction(timer, inError);
 }
 

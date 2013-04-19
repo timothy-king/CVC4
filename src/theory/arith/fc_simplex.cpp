@@ -650,10 +650,9 @@ WitnessImprovement FCSimplexDecisionProcedure::focusDownToLastHalf(){
       buf.push_back(*i);
     }
   }
-
+  WitnessImprovement w = adjustFocusShrank(buf);
   Debug("focusDownToLastHalf") << "-> " << d_errorSet.focusSize() << endl;
-
-  return adjustFocusShrank(buf);
+  return w;
 }
 
 WitnessImprovement FCSimplexDecisionProcedure::selectFocusImproving() {

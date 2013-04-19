@@ -476,7 +476,7 @@ std::vector< ArithVarVec > SumOfInfeasibilitiesSPD::greedyConflictSubsets(){
 
   if(d_errorSize <= 2){
     ArithVarVec inError;
-    d_errorSet.push_into(inError);
+    d_errorSet.pushFocusInto(inError);
     subsets.push_back(inError);
     return subsets;
   }
@@ -533,7 +533,7 @@ std::vector< ArithVarVec > SumOfInfeasibilitiesSPD::greedyConflictSubsets(){
 
   // Phase 2: If there is a variable that has not participated attempt to start a conflict
   ArithVarVec possibleStarts; //List of elements that can be tried for starts.
-  d_errorSet.push_into(possibleStarts);
+  d_errorSet.pushFocusInto(possibleStarts);
   while(!possibleStarts.empty()){
     Assert(d_soiVar == ARITHVAR_SENTINEL);
 

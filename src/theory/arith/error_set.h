@@ -269,7 +269,8 @@ public:
   bool inError(ArithVar v) const { return d_errInfo.isKey(v); }
   bool inFocus(ArithVar v) const { return d_errInfo[v].inFocus(); }
 
-  void push_into(ArithVarVec& vec) const;
+  void pushErrorInto(ArithVarVec& vec) const;
+  void pushFocusInto(ArithVarVec& vec) const;
 
   ErrorSelectionRule getSelectionRule() const;
   void setSelectionRule(ErrorSelectionRule rule);
