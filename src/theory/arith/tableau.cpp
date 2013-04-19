@@ -170,6 +170,10 @@ double Tableau::avgRowComplexity() const{
   return (rows == 0) ? 0 : (sum/rows);
 }
 
+void Tableau::printBasicRow(ArithVar basic, std::ostream& out){
+  printRow(basicToRowIndex(basic), out);
+}
+
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */
 }/* CVC4 namespace */

@@ -127,9 +127,7 @@ public:
   /* Returns the average complexity of the rows in the tableau. */
   double avgRowComplexity() const;
 
-  void printBasicRow(ArithVar basic, std::ostream& out){
-    printRow(basicToRowIndex(basic), out);
-  }
+  void printBasicRow(ArithVar basic, std::ostream& out);
 
 private:
   /* Changes the basic variable on the row for basicOld to basicNew. */
