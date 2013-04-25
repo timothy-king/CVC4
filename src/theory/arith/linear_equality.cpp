@@ -157,7 +157,8 @@ void LinearEqualityModule::forceNewBasis(const DenseSet& newBasis){
   while(!needsToBeAdded.empty()){
     ArithVar toRemove = ARITHVAR_SENTINEL;
     ArithVar toAdd = ARITHVAR_SENTINEL;
-    for(DenseSet::const_iterator i = needsToBeAdded.begin(), i_end = needsToBeAdded.end(); toAdd == ARITHVAR_SENTINEL && i != i_end; ++i){
+    DenseSet::const_iterator i = needsToBeAdded.begin(), i_end = needsToBeAdded.end();
+    for(; toAdd == ARITHVAR_SENTINEL && i != i_end; ++i){
       ArithVar v = *i;
 
       Tableau::ColIterator colIter = d_tableau.colIterator(v);

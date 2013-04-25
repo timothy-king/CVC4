@@ -51,6 +51,7 @@
 #include "theory/arith/dio_solver.h"
 #include "theory/arith/congruence_manager.h"
 
+#include "theory/arith/approx_simplex.h"
 #include "theory/arith/constraint.h"
 
 #include "theory/arith/arith_utilities.h"
@@ -1621,7 +1622,9 @@ bool TheoryArithPrivate::solveRealRelaxation(Theory::Effort effortLevel){
     (options::useSOI() ? (SimplexDecisionProcedure&)d_soiSimplex :
      (SimplexDecisionProcedure&)d_dualSimplex);
 
-  if(!options::fancyFinal()){
+  bool useFancyFinal = options::fancyFinal() && ApproximateSimplex::enabled();
+
+  if(!useFancyFinal){
     d_qflraStatus = simplex.findModel(noPivotLimit);
   }else{
     // Fancy final tries the following strategy
@@ -1633,31 +1636,34 @@ bool TheoryArithPrivate::solveRealRelaxation(Theory::Effort effortLevel){
     int16_t oldCap = options::arithStandardCheckVarOrderPivots();
 
     static const int32_t pass2Limit = 10;
-    static const int32_t relaxationLimit = 1000000;
-    static const int32_t mipLimit = 100000;
+    static const int32_t relaxationLimit = 10000;
+    static const int32_t mipLimit = 200000;
 
     d_qflraStatus = simplex.findModel(false);
-
     if(d_qflraStatus == Result::SAT_UNKNOWN ||
        (d_qflraStatus == Result::SAT && !hasIntegerModel())){
+
       ApproximateSimplex* approxSolver = ApproximateSimplex::mkApproximateSimplexSolver(d_partialModel);
-      ApproximateSimplex::ApproxResult relaxRes = approxSolver->solveRelaxation(relaxationLimit);
+      approxSolver->setPivotLimit(relaxationLimit);
+
+      ApproximateSimplex::ApproxResult relaxRes, mipRes;
+      ApproximateSimplex::Solution relaxSolution, mipSolution;
+      relaxRes = approxSolver->solveRelaxation();
       switch(relaxRes){
       case ApproximateSimplex::ApproxSat:
         {
-          ApproximateSimplex::Solution relaxSolution = approxSolver->extractRelaxation();
-          ApproximateSimplex::ApproxResult mipRes = approxSolver->solveMIP(mipLimit);
+          relaxSolution = approxSolver->extractRelaxation();
+          approxSolver->setPivotLimit(mipLimit);
+          mipRes = approxSolver->solveMIP();
           d_errorSet.reduceToSignals();
           if(mipRes == ApproximateSimplex::ApproxSat){
-            ApproximateSimplex::Solution mipSolution = approxSolver->extractMIP();
+            mipSolution = approxSolver->extractMIP();
             ApproximateSimplex::applySolution(d_linEq, mipSolution);
           }else{
             ApproximateSimplex::applySolution(d_linEq, relaxSolution);
-            vector<ArithVar> toCut = cutAllBounded();
-            if(toCut.size() > 0){
-              branchVector(toCut);
-              emmittedConflictOrSplit = true;
-            }
+            // if(d_qflraStatus != UNSAT){
+            //   d_likelyIntegerUnsat = true;
+            // }
           }
           options::arithStandardCheckVarOrderPivots.set(pass2Limit);
           d_qflraStatus = simplex.findModel(false);

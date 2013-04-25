@@ -23,6 +23,7 @@
 
 #include <vector>
 #include "util/index.h"
+#include "util/rational.h"
 
 
 namespace CVC4 {
@@ -33,6 +34,8 @@ typedef Index ArithVar;
 extern const ArithVar ARITHVAR_SENTINEL;
 
 typedef std::vector<ArithVar> ArithVarVec;
+typedef std::pair<ArithVar, Rational> ArithRatPair;
+typedef std::vector< ArithRatPair > ArithRatPairVec;
 
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */
