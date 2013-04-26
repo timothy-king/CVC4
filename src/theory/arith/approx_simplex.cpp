@@ -1,4 +1,7 @@
 
+#warning "Morgan I need you to make this play nice with autoconf"
+#define CVC4_USE_GLPK
+
 #include "theory/arith/approx_simplex.h"
 #include "theory/arith/normal_form.h"
 #include <math.h>
@@ -108,6 +111,7 @@ public:
 }/* CVC4 namespace */
 
 /* Begin the declaration of GLPK specific code. */
+#ifdef CVC4_USE_GLPK
 extern "C" {
 #include <glpk.h>
 }
@@ -152,6 +156,7 @@ private:
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */
 }/* CVC4 namespace */
+#endif /*#ifdef CVC4_USE_GLPK */
 /* End the declaration of GLPK specific code. */
 
 /* Begin GPLK/NOGLPK Glue code. */
@@ -159,12 +164,18 @@ namespace CVC4 {
 namespace theory {
 namespace arith {
 ApproximateSimplex* ApproximateSimplex::mkApproximateSimplexSolver(const ArithVariables& vars){
-#warning "The ifdef for GLPK goes here"
+#ifdef CVC4_USE_GLPK
   return new ApproxGLPK(vars);
+#else
+  return new ApproxNoOp();
+#endif
 }
 bool ApproximateSimplex::enabled() {
-#warning "The other ifdef for GLPK goes here"
+#ifdef CVC4_USE_GLPK
   return true;
+#else
+  return false;
+#endif
 }
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */
@@ -173,7 +184,7 @@ bool ApproximateSimplex::enabled() {
 
 
 /* Begin GPLK implementation. */
-
+#ifdef CVC4_USE_GLPK
 namespace CVC4 {
 namespace theory {
 namespace arith {
@@ -570,4 +581,5 @@ ApproximateSimplex::ApproxResult ApproxGLPK::solveMIP(){
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */
 }/* CVC4 namespace */
+#endif /*#ifdef CVC4_USE_GLPK */
 /* End GPLK implementation. */
