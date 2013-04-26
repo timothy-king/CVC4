@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file theory_engine.cpp
  ** \verbatim
- ** Original author: mdeters
- ** Major contributors: dejan
- ** Minor contributors (to current version): cconway, kshitij, taking, barrett, lianah, ajreynol
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Morgan Deters
+ ** Major contributors: Dejan Jovanovic
+ ** Minor contributors (to current version): Christopher L. Conway, Kshitij Bansal, Tim King, Liana Hadarean, Clark Barrett, Andrew Reynolds
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -728,16 +728,6 @@ theory::Theory::PPAssertStatus TheoryEngine::solve(TNode literal, SubstitutionMa
 
   Theory::PPAssertStatus solveStatus = theoryOf(atom)->ppAssert(literal, substitutionOut);
   Trace("theory::solve") << "TheoryEngine::solve(" << literal << ") => " << solveStatus << endl;
-  //must add substitutions to model
-  theory::TheoryModel* m = getModel();
-  if( m ){
-    for( SubstitutionMap::iterator pos = substitutionOut.begin(); pos != substitutionOut.end(); ++pos) {
-      Node n = (*pos).first;
-      Node v = (*pos).second;
-      Trace("model") << "Add substitution : " << n << " " << v << std::endl;
-      m->addSubstitution( n, v );
-    }
-  }
   return solveStatus;
 }
 
@@ -819,7 +809,7 @@ Node TheoryEngine::preprocess(TNode assertion) {
       stringstream ss;
       ss << "The logic was specified as " << d_logicInfo.getLogicString()
          << ", which doesn't include " << Theory::theoryOf(current)
-         << ", but got a preprocesing-time fact for that theory." << endl
+         << ", but got a preprocessing-time fact for that theory." << endl
          << "The fact:" << endl
          << current;
       throw LogicException(ss.str());
@@ -1139,6 +1129,11 @@ theory::EqualityStatus TheoryEngine::getEqualityStatus(TNode a, TNode b) {
   return theoryOf(Theory::theoryOf(a.getType()))->getEqualityStatus(a, b);
 }
 
+Node TheoryEngine::getModelValue(TNode var) {
+  Assert(d_sharedTerms.isShared(var));
+  return theoryOf(Theory::theoryOf(var.getType()))->getModelValue(var);
+}
+
 static Node mkExplanation(const std::vector<NodeTheoryPair>& explanation) {
 
   std::set<TNode> all;
@@ -1199,8 +1194,12 @@ Node TheoryEngine::getExplanation(TNode node) {
 
 theory::LemmaStatus TheoryEngine::lemma(TNode node, bool negated, bool removable) {
   if(Dump.isOn("t-lemmas")) {
+    Node n = node;
+    if (negated) {
+      n = node.negate();
+    }
     Dump("t-lemmas") << CommentCommand("theory lemma: expect valid")
-                     << QueryCommand(node.toExpr());
+                     << QueryCommand(n.toExpr());
   }
 
   // Share with other portfolio threads

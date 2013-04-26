@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file cvc_printer.cpp
  ** \verbatim
- ** Original author: mdeters
- ** Major contributors: dejan
- ** Minor contributors (to current version): bobot, taking, barrett, ajreynol
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Morgan Deters
+ ** Major contributors: Dejan Jovanovic
+ ** Minor contributors (to current version): Francois Bobot, lianah, Clark Barrett, Tim King, Andrew Reynolds
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -21,7 +21,11 @@
 #include "expr/command.h"
 #include "theory/substitutions.h"
 #include "smt/smt_engine.h"
+#include "smt/options.h"
 #include "theory/model.h"
+#include "theory/arrays/theory_arrays_rewriter.h"
+#include "printer/dagification_visitor.h"
+#include "util/node_visitor.h"
 
 #include <iostream>
 #include <vector>
@@ -762,10 +766,10 @@ void CvcPrinter::toStream(std::ostream& out, const Command* c,
      tryToStream<DeclarationSequence>(out, c) ||
      tryToStream<CommandSequence>(out, c) ||
      tryToStream<DeclareFunctionCommand>(out, c) ||
-     tryToStream<DefineFunctionCommand>(out, c) ||
      tryToStream<DeclareTypeCommand>(out, c) ||
      tryToStream<DefineTypeCommand>(out, c) ||
      tryToStream<DefineNamedFunctionCommand>(out, c) ||
+     tryToStream<DefineFunctionCommand>(out, c) ||
      tryToStream<SimplifyCommand>(out, c) ||
      tryToStream<GetValueCommand>(out, c) ||
      tryToStream<GetModelCommand>(out, c) ||
@@ -813,21 +817,34 @@ void CvcPrinter::toStream(std::ostream& out, Model& m, const Command* c) const t
   theory::TheoryModel& tm = (theory::TheoryModel&) m;
   if(dynamic_cast<const DeclareTypeCommand*>(c) != NULL) {
     TypeNode tn = TypeNode::fromType( ((const DeclareTypeCommand*)c)->getType() );
-    if( tn.isSort() ){
-      // print the cardinality
-      if( tm.d_rep_set.d_type_reps.find( tn )!=tm.d_rep_set.d_type_reps.end() ){
-        out << "; cardinality of " << tn << " is " << (*tm.d_rep_set.d_type_reps.find(tn)).second.size() << std::endl;
+    if( options::modelUninterpDtEnum() && tn.isSort() &&
+        tm.d_rep_set.d_type_reps.find( tn )!=tm.d_rep_set.d_type_reps.end() ){
+      out << "DATATYPE" << std::endl;
+      out << "  " << dynamic_cast<const DeclareTypeCommand*>(c)->getSymbol() << " = ";
+      for( size_t i=0; i<(*tm.d_rep_set.d_type_reps.find(tn)).second.size(); i++ ){
+        if (i>0) {
+          out << "| ";
+        }
+        out << (*tm.d_rep_set.d_type_reps.find(tn)).second[i] << " ";
       }
-    }
-    out << c << std::endl;
-    if( tn.isSort() ){
-      // print the representatives
-      if( tm.d_rep_set.d_type_reps.find( tn )!=tm.d_rep_set.d_type_reps.end() ){
-        for( size_t i=0; i<(*tm.d_rep_set.d_type_reps.find(tn)).second.size(); i++ ){
-          if( (*tm.d_rep_set.d_type_reps.find(tn)).second[i].isVar() ){
-            out << (*tm.d_rep_set.d_type_reps.find(tn)).second[i] << " : " << tn << ";" << std::endl;
-          }else{
-            out << "% rep: " << (*tm.d_rep_set.d_type_reps.find(tn)).second[i] << std::endl;
+      out << std::endl << "END;" << std::endl;
+    } else {
+      if( tn.isSort() ){
+        // print the cardinality
+        if( tm.d_rep_set.d_type_reps.find( tn )!=tm.d_rep_set.d_type_reps.end() ){
+          out << "% cardinality of " << tn << " is " << (*tm.d_rep_set.d_type_reps.find(tn)).second.size() << std::endl;
+        }
+      }
+      out << c << std::endl;
+      if( tn.isSort() ){
+        // print the representatives
+        if( tm.d_rep_set.d_type_reps.find( tn )!=tm.d_rep_set.d_type_reps.end() ){
+          for( size_t i=0; i<(*tm.d_rep_set.d_type_reps.find(tn)).second.size(); i++ ){
+            if( (*tm.d_rep_set.d_type_reps.find(tn)).second[i].isVar() ){
+              out << (*tm.d_rep_set.d_type_reps.find(tn)).second[i] << " : " << tn << ";" << std::endl;
+            }else{
+              out << "% rep: " << (*tm.d_rep_set.d_type_reps.find(tn)).second[i] << std::endl;
+            }
           }
         }
       }
@@ -850,7 +867,15 @@ void CvcPrinter::toStream(std::ostream& out, Model& m, const Command* c) const t
     }else{
       out << tn;
     }
-    out << " = " << Node::fromExpr(tm.getSmtEngine()->getValue(n.toExpr())) << ";" << std::endl;
+    Node val = Node::fromExpr(tm.getSmtEngine()->getValue(n.toExpr()));
+    if( options::modelUninterpDtEnum() && val.getKind() == kind::STORE ) {
+      TypeNode tn = val[1].getType();
+      if (tn.isSort() && tm.d_rep_set.d_type_reps.find( tn )!=tm.d_rep_set.d_type_reps.end() ){
+        Cardinality indexCard((*tm.d_rep_set.d_type_reps.find(tn)).second.size());
+        val = theory::arrays::TheoryArraysRewriter::normalizeConstant( val, indexCard );
+      }
+    }
+    out << " = " << val << ";" << std::endl;
 
 /*
     //for table format (work in progress)
@@ -1045,7 +1070,18 @@ static void toStream(std::ostream& out, const DatatypeDeclarationCommand* c) thr
       out << ',' << endl;
     }
     const Datatype& dt = (*i).getDatatype();
-    out << "  " << dt.getName() << " = ";
+    out << "  " << dt.getName();
+    if(dt.isParametric()) {
+      out << '[';
+      for(size_t j = 0; j < dt.getNumParameters(); ++j) {
+        if(j > 0) {
+          out << ',';
+        }
+        out << dt.getParameter(j);
+      }
+      out << ']';
+    }
+    out << " = ";
     bool firstConstructor = true;
     for(Datatype::const_iterator j = dt.begin(); j != dt.end(); ++j) {
       if(! firstConstructor) {

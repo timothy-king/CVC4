@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file theory_bv_rewrite_rules.h
  ** \verbatim
- ** Original author: dejan
- ** Major contributors: lianah
- ** Minor contributors (to current version): barrett, mdeters
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Dejan Jovanovic
+ ** Major contributors: Liana Hadarean
+ ** Minor contributors (to current version): Tim King, Clark Barrett, Morgan Deters
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -334,7 +334,7 @@ public:
   template<bool checkApplies>
   static inline Node run(TNode node) {
     if (!checkApplies || applies(node)) {
-      BVDebug("theory::bv::rewrite") << "RewriteRule<" << rule << ">(" << node << ")" << std::endl;
+      Debug("theory::bv::rewrite") << "RewriteRule<" << rule << ">(" << node << ")" << std::endl;
       Assert(checkApplies || applies(node));
       //++ s_statistics->d_ruleApplications;
       Node result = apply(node);
@@ -355,7 +355,7 @@ public:
             << CheckSatCommand(condition.toExpr());
         }
       }
-      BVDebug("theory::bv::rewrite") << "RewriteRule<" << rule << ">(" << node << ") => " << result << std::endl;
+      Debug("theory::bv::rewrite") << "RewriteRule<" << rule << ">(" << node << ") => " << result << std::endl;
       return result;
     } else {
       return node;
@@ -486,7 +486,7 @@ bool RewriteRule<EmptyRule>::applies(TNode node) {
 
 template<> inline
 Node RewriteRule<EmptyRule>::apply(TNode node) {
-  BVDebug("bv-rewrite") << "RewriteRule<EmptyRule> for " << node.getKind() <<"\n"; 
+  Debug("bv-rewrite") << "RewriteRule<EmptyRule> for " << node.getKind() <<"\n"; 
   Unreachable();
   return node;
 }

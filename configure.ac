@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 m4_define(_CVC4_MAJOR,          1)       dnl version (major)
-m4_define(_CVC4_MINOR,          1)       dnl version (minor)
+m4_define(_CVC4_MINOR,          2)       dnl version (minor)
 m4_define(_CVC4_RELEASE,        0)       dnl version (alpha)
 m4_define(_CVC4_EXTRAVERSION,   [-prerelease])      dnl version (extra)
 m4_define(_CVC4_RELEASE_STRING, _CVC4_MAJOR[.]_CVC4_MINOR[]m4_if(_CVC4_RELEASE,[0],,[.]_CVC4_RELEASE)_CVC4_EXTRAVERSION) dnl version string
@@ -743,11 +743,17 @@ AC_SUBST([CVC4_NEED_INT64_T_OVERLOADS])
 # Check for ANTLR runantlr script (defined in config/antlr.m4)
 AC_PROG_ANTLR
 
+CVC4_CXX_OPTION([-Werror], [WERROR])
 CVC4_CXX_OPTION([-Wno-conversion-null], [WNO_CONVERSION_NULL])
+CVC4_CXX_OPTION([-Wno-tautological-compare], [WNO_TAUTOLOGICAL_COMPARE])
+CVC4_CXX_OPTION([-Wno-parentheses], [WNO_PARENTHESES])
 CVC4_CXX_OPTION([-Wno-uninitialized], [WNO_UNINITIALIZED])
 CVC4_CXX_OPTION([-Wno-unused-variable], [WNO_UNUSED_VARIABLE])
 CVC4_CXX_OPTION([-fno-strict-aliasing], [FNO_STRICT_ALIASING])
+AC_SUBST([WERROR])
 AC_SUBST([WNO_CONVERSION_NULL])
+AC_SUBST([WNO_TAUTOLOGICAL_COMPARE])
+AC_SUBST([WNO_PARENTHESES])
 AC_SUBST([WNO_UNINITIALIZED])
 AC_SUBST([WNO_UNUSED_VARIABLE])
 AC_SUBST([FNO_STRICT_ALIASING])
@@ -907,9 +913,6 @@ AC_CHECK_FUNC([strtok_r], [AC_DEFINE([HAVE_STRTOK_R], [1],
 AC_CHECK_FUNC([ffs], [AC_DEFINE([HAVE_FFS], [1],
                                 [Defined to 1 if ffs() is supported by the platform.])],
                      [AC_LIBOBJ([ffs])])
-
-# Check for the presence of CUDD libraries
-CVC4_CHECK_CUDD
 
 # Check for antlr C++ runtime (defined in config/antlr.m4)
 AC_LIB_ANTLR
@@ -1200,7 +1203,7 @@ AC_SUBST(MAN_DATE)
 AC_CONFIG_FILES([
   Makefile.builds
   Makefile]
-  m4_esyscmd([find contrib src test examples -name Makefile.am | grep -v '^contrib/theoryskel/' | grep -v '^src/prop/cryptominisat/' | sort | sed 's,\.am$,,'])
+  m4_esyscmd([find contrib src test examples -name Makefile.am | grep -v '^contrib/theoryskel/' | grep -v '^contrib/alttheoryskel/' | sort | sed 's,\.am$,,'])
 )
 
 if test $cvc4_has_threads = yes; then
@@ -1226,8 +1229,6 @@ CVC4_CONFIG_FILE_ONLY_IF_CHANGED([doc/SmtEngine.3cvc_template])
 CVC4_CONFIG_FILE_ONLY_IF_CHANGED([doc/options.3cvc_template])
 CVC4_CONFIG_FILE_ONLY_IF_CHANGED([doc/libcvc4parser.3])
 CVC4_CONFIG_FILE_ONLY_IF_CHANGED([doc/libcvc4compat.3])
-
-# AC_CONFIG_SUBDIRS([src/prop/cryptominisat])
 
 AC_OUTPUT
 
@@ -1322,7 +1323,6 @@ Unit tests   : $support_unit_tests
 Proof tests  : $support_proof_tests
 gcov support : $enable_coverage
 gprof support: $enable_profiling
-CUDD         : $cvc4cudd
 Readline     : $with_readline
 
 Static libs  : $enable_static

@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file substitutions.h
  ** \verbatim
- ** Original author: mdeters
- ** Major contributors: barrett, dejan
+ ** Original author: Morgan Deters
+ ** Major contributors: Clark Barrett, Dejan Jovanovic
  ** Minor contributors (to current version): none
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -62,6 +62,9 @@ private:
   /** Cache of the already performed substitutions */
   NodeCache d_substitutionCache;
 
+  /** Whether or not to substitute under quantifiers */
+  bool d_substituteUnderQuantifiers;
+
   /** Has the cache been invalidated? */
   bool d_cacheInvalidated;
 
@@ -95,10 +98,11 @@ private:
 
 public:
 
-  SubstitutionMap(context::Context* context) :
+  SubstitutionMap(context::Context* context, bool substituteUnderQuantifiers = true) :
     d_context(context),
     d_substitutions(context),
     d_substitutionCache(),
+    d_substituteUnderQuantifiers(substituteUnderQuantifiers),
     d_cacheInvalidated(false),
     d_cacheInvalidator(context, d_cacheInvalidated) {
   }

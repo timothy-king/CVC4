@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file integer_cln_imp.h
  ** \verbatim
- ** Original author: taking
- ** Major contributors: lianah, mdeters
- ** Minor contributors (to current version): dejan
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Tim King
+ ** Major contributors: Morgan Deters
+ ** Minor contributors (to current version): Dejan Jovanovic, Liana Hadarean
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -218,6 +218,16 @@ public:
     return Integer( d_value << ipow);
   }
 
+  bool isBitSet(uint32_t i) const {
+    return !extractBitRange(1, i).isZero(); 
+  }
+  
+  Integer setBit(uint32_t i) const {
+    cln::cl_I mask(1);
+    mask = mask << i; 
+    return Integer(cln::logior(d_value, mask)); 
+  }
+  
   Integer oneExtend(uint32_t size, uint32_t amount) const {
     DebugCheckArgument((*this) < Integer(1).multiplyByPow2(size), size);
     cln::cl_byte range(amount, size);

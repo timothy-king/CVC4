@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file theory_arrays_model.cpp
  ** \verbatim
- ** Original author: ajreynol
- ** Major contributors: mdeters
+ ** Original author: Andrew Reynolds
+ ** Major contributors: Morgan Deters
  ** Minor contributors (to current version): none
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -41,7 +41,7 @@ Node ArrayModel::getValue( TheoryModel* m, Node i ){
     return it->second;
   }else{
     return NodeManager::currentNM()->mkNode( SELECT, getArrayValue(), i );
-    //return d_default_value;   //TODO: guarentee I can return this here
+    //return d_default_value;   //TODO: guarantee I can return this here
   }
 }
 

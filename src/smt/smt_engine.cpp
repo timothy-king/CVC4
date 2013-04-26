@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file smt_engine.cpp
  ** \verbatim
- ** Original author: mdeters
- ** Major contributors: barrett
- ** Minor contributors (to current version): lianah, cconway, taking, kshitij, dejan, ajreynol
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Morgan Deters
+ ** Major contributors: Clark Barrett
+ ** Minor contributors (to current version): Christopher L. Conway, Liana Hadarean, Tim King, Kshitij Bansal, Dejan Jovanovic, Andrew Reynolds
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -59,10 +59,13 @@
 #include "theory/substitutions.h"
 #include "theory/uf/options.h"
 #include "theory/arith/options.h"
+#include "theory/bv/options.h"
 #include "theory/theory_traits.h"
 #include "theory/logic_info.h"
 #include "theory/options.h"
 #include "theory/booleans/circuit_propagator.h"
+#include "theory/booleans/boolean_term_conversion_mode.h"
+#include "theory/booleans/options.h"
 #include "util/ite_removal.h"
 #include "theory/model.h"
 #include "printer/printer.h"
@@ -136,6 +139,12 @@ struct SmtEngineStatistics {
   IntStat d_numAssertionsPost;
   /** time spent in checkModel() */
   TimerStat d_checkModelTime;
+  /** time spent in PropEngine::checkSat() */
+  TimerStat d_solveTime;
+  /** time spent in pushing/popping */
+  TimerStat d_pushPopTime;
+  /** time spent in processAssertions() */
+  TimerStat d_processAssertionsTime;
 
   SmtEngineStatistics() :
     d_definitionExpansionTime("smt::SmtEngine::definitionExpansionTime"),
@@ -152,7 +161,10 @@ struct SmtEngineStatistics {
     d_cnfConversionTime("smt::SmtEngine::cnfConversionTime"),
     d_numAssertionsPre("smt::SmtEngine::numAssertionsPreITERemoval", 0),
     d_numAssertionsPost("smt::SmtEngine::numAssertionsPostITERemoval", 0),
-    d_checkModelTime("smt::SmtEngine::checkModelTime") {
+    d_checkModelTime("smt::SmtEngine::checkModelTime"),
+    d_solveTime("smt::SmtEngine::solveTime"),
+    d_pushPopTime("smt::SmtEngine::pushPopTime"),
+    d_processAssertionsTime("smt::SmtEngine::processAssertionsTime") {
 
     StatisticsRegistry::registerStat(&d_definitionExpansionTime);
     StatisticsRegistry::registerStat(&d_rewriteBooleanTermsTime);
@@ -169,6 +181,9 @@ struct SmtEngineStatistics {
     StatisticsRegistry::registerStat(&d_numAssertionsPre);
     StatisticsRegistry::registerStat(&d_numAssertionsPost);
     StatisticsRegistry::registerStat(&d_checkModelTime);
+    StatisticsRegistry::registerStat(&d_solveTime);
+    StatisticsRegistry::registerStat(&d_pushPopTime);
+    StatisticsRegistry::registerStat(&d_processAssertionsTime);
   }
 
   ~SmtEngineStatistics() {
@@ -187,6 +202,9 @@ struct SmtEngineStatistics {
     StatisticsRegistry::unregisterStat(&d_numAssertionsPre);
     StatisticsRegistry::unregisterStat(&d_numAssertionsPost);
     StatisticsRegistry::unregisterStat(&d_checkModelTime);
+    StatisticsRegistry::unregisterStat(&d_solveTime);
+    StatisticsRegistry::unregisterStat(&d_pushPopTime);
+    StatisticsRegistry::unregisterStat(&d_processAssertionsTime);
   }
 };/* struct SmtEngineStatistics */
 
@@ -237,7 +255,7 @@ class SmtEnginePrivate : public NodeManagerListener {
    * A map of AbsractValues to their actual constants.  Only used if
    * options::abstractValues() is on.
    */
-  theory::SubstitutionMap d_abstractValueMap;
+  SubstitutionMap d_abstractValueMap;
 
   /**
    * A mapping of all abstract values (actual value |-> abstract) that
@@ -392,6 +410,7 @@ public:
       d_propagator.finish();
       d_propagatorNeedsFinish = false;
     }
+    d_smt.d_nodeManager->unsubscribeEvents(this);
   }
 
   void nmNotifyNewSort(TypeNode tn) {
@@ -424,7 +443,7 @@ public:
   }
 
   void nmNotifyNewSkolem(TNode n, const std::string& comment, bool isGlobal) {
-    std::string id = n.getAttribute(expr::VarNameAttr());
+    string id = n.getAttribute(expr::VarNameAttr());
     DeclareFunctionCommand c(id,
                              n.toExpr(),
                              n.getType().toType());
@@ -471,7 +490,7 @@ public:
 
   /**
    * Return the uinterpreted function symbol corresponding to division-by-zero
-   * for this particular bit-wdith
+   * for this particular bit-width
    * @param k should be UREM or UDIV
    * @param width
    *
@@ -541,8 +560,6 @@ public:
 
 }/* namespace CVC4::smt */
 
-using namespace CVC4::smt;
-
 SmtEngine::SmtEngine(ExprManager* em) throw() :
   d_context(em->getContext()),
   d_userLevels(),
@@ -572,11 +589,13 @@ SmtEngine::SmtEngine(ExprManager* em) throw() :
   d_cumulativeTimeUsed(0),
   d_cumulativeResourceUsed(0),
   d_status(),
-  d_private(new smt::SmtEnginePrivate(*this)),
-  d_statisticsRegistry(new StatisticsRegistry()),
+  d_private(NULL),
+  d_statisticsRegistry(NULL),
   d_stats(NULL) {
 
   SmtScope smts(this);
+  d_private = new smt::SmtEnginePrivate(*this);
+  d_statisticsRegistry = new StatisticsRegistry();
   d_stats = new SmtEngineStatistics();
 
   // We have mutual dependency here, so we add the prop engine to the theory
@@ -584,12 +603,9 @@ SmtEngine::SmtEngine(ExprManager* em) throw() :
   d_theoryEngine = new TheoryEngine(d_context, d_userContext, d_private->d_iteRemover, const_cast<const LogicInfo&>(d_logic));
 
   // Add the theories
-#ifdef CVC4_FOR_EACH_THEORY_STATEMENT
-#undef CVC4_FOR_EACH_THEORY_STATEMENT
-#endif
-#define CVC4_FOR_EACH_THEORY_STATEMENT(THEORY) \
-    d_theoryEngine->addTheory<TheoryTraits<THEORY>::theory_class>(THEORY);
-  CVC4_FOR_EACH_THEORY;
+  for(TheoryId id = theory::THEORY_FIRST; id < theory::THEORY_LAST; ++id) {
+    TheoryConstructor::addTheory(d_theoryEngine, id);
+  }
 
   // global push/pop around everything, to ensure proper destruction
   // of context-dependent data structures
@@ -656,19 +672,24 @@ void SmtEngine::finalOptionsAreSet() {
     return;
   }
 
+  if (options::bitvectorEagerBitblast()) {
+    // Eager solver should use the internal decision strategy
+    options::decisionMode.set(DECISION_STRATEGY_INTERNAL);
+  }
+
   if(options::checkModels()) {
     if(! options::produceModels()) {
-      Notice() << "SmtEngine: turning on produce-models to support check-model" << std::endl;
+      Notice() << "SmtEngine: turning on produce-models to support check-model" << endl;
       setOption("produce-models", SExpr("true"));
     }
     if(! options::interactive()) {
-      Notice() << "SmtEngine: turning on interactive-mode to support check-model" << std::endl;
+      Notice() << "SmtEngine: turning on interactive-mode to support check-model" << endl;
       setOption("interactive-mode", SExpr("true"));
     }
   }
 
   if(options::produceAssignments() && !options::produceModels()) {
-    Notice() << "SmtEngine: turning on produce-models to support produce-assignments" << std::endl;
+    Notice() << "SmtEngine: turning on produce-models to support produce-assignments" << endl;
     setOption("produce-models", SExpr("true"));
   }
 
@@ -677,7 +698,7 @@ void SmtEngine::finalOptionsAreSet() {
     setLogicInternal();
   }
 
-  // finish initalization, creat the prop engine, etc.
+  // finish initialization, create the prop engine, etc.
   finishInit();
 
   AlwaysAssert( d_propEngine->getAssertionLevel() == 0,
@@ -723,8 +744,8 @@ SmtEngine::~SmtEngine() throw() {
 
     // global push/pop around everything, to ensure proper destruction
     // of context-dependent data structures
-    d_context->pop();
-    d_userContext->pop();
+    d_context->popto(0);
+    d_userContext->popto(0);
 
     if(d_assignments != NULL) {
       d_assignments->deleteSelf();
@@ -745,17 +766,17 @@ SmtEngine::~SmtEngine() throw() {
 
     d_definedFunctions->deleteSelf();
 
-    delete d_stats;
-
-    delete d_private;
 
     delete d_theoryEngine;
     delete d_propEngine;
     delete d_decisionEngine;
 
-    delete d_userContext;
-
+    delete d_stats;
     delete d_statisticsRegistry;
+
+    delete d_private;
+
+    delete d_userContext;
 
   } catch(Exception& e) {
     Warning() << "CVC4 threw an exception during cleanup." << endl
@@ -797,11 +818,11 @@ void SmtEngine::setLogicInternal() throw() {
   d_logic.lock();
 
   // may need to force uninterpreted functions to be on for non-linear
-  if(((d_logic.isTheoryEnabled(theory::THEORY_ARITH) && !d_logic.isLinear()) ||
-      d_logic.isTheoryEnabled(theory::THEORY_BV)) &&
-     !d_logic.isTheoryEnabled(theory::THEORY_UF)){
+  if(((d_logic.isTheoryEnabled(THEORY_ARITH) && !d_logic.isLinear()) ||
+      d_logic.isTheoryEnabled(THEORY_BV)) &&
+     !d_logic.isTheoryEnabled(THEORY_UF)){
     d_logic = d_logic.getUnlockedCopy();
-    d_logic.enableTheory(theory::THEORY_UF);
+    d_logic.enableTheory(THEORY_UF);
     d_logic.lock();
   }
 
@@ -819,15 +840,15 @@ void SmtEngine::setLogicInternal() throw() {
   // by default, symmetry breaker is on only for QF_UF
   if(! options::ufSymmetryBreaker.wasSetByUser()) {
     bool qf_uf = d_logic.isPure(THEORY_UF) && !d_logic.isQuantified();
-    Trace("smt") << "setting uf symmetry breaker to " << qf_uf << std::endl;
+    Trace("smt") << "setting uf symmetry breaker to " << qf_uf << endl;
     options::ufSymmetryBreaker.set(qf_uf);
   }
   // by default, nonclausal simplification is off for QF_SAT and for quantifiers
   if(! options::simplificationMode.wasSetByUser()) {
     bool qf_sat = d_logic.isPure(THEORY_BOOL) && !d_logic.isQuantified();
     bool quantifiers = d_logic.isQuantified();
-    Trace("smt") << "setting simplification mode to <" << d_logic.getLogicString() << "> " << (!qf_sat && !quantifiers) << std::endl;
-    //simplifaction=none works better for SMT LIB benchmarks with quantifiers, not others
+    Trace("smt") << "setting simplification mode to <" << d_logic.getLogicString() << "> " << (!qf_sat && !quantifiers) << endl;
+    //simplification=none works better for SMT LIB benchmarks with quantifiers, not others
     //options::simplificationMode.set(qf_sat || quantifiers ? SIMPLIFICATION_MODE_NONE : SIMPLIFICATION_MODE_BATCH);
     options::simplificationMode.set(qf_sat ? SIMPLIFICATION_MODE_NONE : SIMPLIFICATION_MODE_BATCH);
   }
@@ -843,14 +864,35 @@ void SmtEngine::setLogicInternal() throw() {
     bool iteSimp = !d_logic.isQuantified() &&
       ((d_logic.isPure(THEORY_ARITH) && d_logic.isLinear() && !d_logic.isDifferenceLogic() &&  !d_logic.areRealsUsed()) ||
        (d_logic.isTheoryEnabled(THEORY_ARRAY) && d_logic.isTheoryEnabled(THEORY_UF) && d_logic.isTheoryEnabled(THEORY_BV)));
-    Trace("smt") << "setting ite simplification to " << iteSimp << std::endl;
+    Trace("smt") << "setting ite simplification to " << iteSimp << endl;
     options::doITESimp.set(iteSimp);
+  }
+  // Turn off array eager index splitting for QF_AUFLIA
+  if(! options::arraysEagerIndexSplitting.wasSetByUser()) {
+    if (not d_logic.isQuantified() &&
+        d_logic.isTheoryEnabled(THEORY_ARRAY) &&
+        d_logic.isTheoryEnabled(THEORY_UF) &&
+        d_logic.isTheoryEnabled(THEORY_ARITH)) {
+      Trace("smt") << "setting array eager index splitting to false" << endl;
+      options::arraysEagerIndexSplitting.set(false);
+    }
+  }
+  // Turn on model-based arrays for QF_AX (unless models are enabled)
+  if(! options::arraysModelBased.wasSetByUser()) {
+    if (not d_logic.isQuantified() &&
+        d_logic.isTheoryEnabled(THEORY_ARRAY) &&
+        d_logic.isPure(THEORY_ARRAY) &&
+        !options::produceModels() &&
+        !options::checkModels()) {
+      Trace("smt") << "turning on model-based array solver" << endl;
+      options::arraysModelBased.set(true);
+    }
   }
   // Turn on multiple-pass non-clausal simplification for QF_AUFBV
   if(! options::repeatSimp.wasSetByUser()) {
     bool repeatSimp = !d_logic.isQuantified() &&
       (d_logic.isTheoryEnabled(THEORY_ARRAY) && d_logic.isTheoryEnabled(THEORY_UF) && d_logic.isTheoryEnabled(THEORY_BV));
-    Trace("smt") << "setting repeat simplification to " << repeatSimp << std::endl;
+    Trace("smt") << "setting repeat simplification to " << repeatSimp << endl;
     options::repeatSimp.set(repeatSimp);
   }
   // Turn on unconstrained simplification for QF_AUFBV
@@ -859,24 +901,24 @@ void SmtEngine::setLogicInternal() throw() {
     //    bool uncSimp = false && !qf_sat && !options::incrementalSolving();
     bool uncSimp = !options::incrementalSolving() && !d_logic.isQuantified() && !options::produceModels() && !options::checkModels() &&
       (d_logic.isTheoryEnabled(THEORY_ARRAY) && d_logic.isTheoryEnabled(THEORY_BV));
-    Trace("smt") << "setting unconstrained simplification to " << uncSimp << std::endl;
+    Trace("smt") << "setting unconstrained simplification to " << uncSimp << endl;
     options::unconstrainedSimp.set(uncSimp);
   }
   // Unconstrained simp currently does *not* support model generation
   if (options::unconstrainedSimp.wasSetByUser() && options::unconstrainedSimp()) {
     if (options::produceModels()) {
-      Notice() << "SmtEngine: turning off produce-models to support unconstrainedSimp" << std::endl;
+      Notice() << "SmtEngine: turning off produce-models to support unconstrainedSimp" << endl;
       setOption("produce-models", SExpr("false"));
     }
     if (options::checkModels()) {
-      Notice() << "SmtEngine: turning off check-models to support unconstrainedSimp" << std::endl;
+      Notice() << "SmtEngine: turning off check-models to support unconstrainedSimp" << endl;
       setOption("check-models", SExpr("false"));
     }
   }
   // Turn on arith rewrite equalities only for pure arithmetic
   if(! options::arithRewriteEq.wasSetByUser()) {
     bool arithRewriteEq = d_logic.isPure(THEORY_ARITH) && !d_logic.isQuantified();
-    Trace("smt") << "setting arith rewrite equalities " << arithRewriteEq << std::endl;
+    Trace("smt") << "setting arith rewrite equalities " << arithRewriteEq << endl;
     options::arithRewriteEq.set(arithRewriteEq);
   }
   if(!  options::arithHeuristicPivots.wasSetByUser()) {
@@ -888,7 +930,7 @@ void SmtEngine::setLogicInternal() throw() {
         heuristicPivots = 0;
       }
     }
-    Trace("smt") << "setting arithHeuristicPivots  " << heuristicPivots << std::endl;
+    Trace("smt") << "setting arithHeuristicPivots  " << heuristicPivots << endl;
     options::arithHeuristicPivots.set(heuristicPivots);
   }
   if(! options::arithPivotThreshold.wasSetByUser()){
@@ -898,7 +940,7 @@ void SmtEngine::setLogicInternal() throw() {
         pivotThreshold = 16;
       }
     }
-    Trace("smt") << "setting arith arithPivotThreshold  " << pivotThreshold << std::endl;
+    Trace("smt") << "setting arith arithPivotThreshold  " << pivotThreshold << endl;
     options::arithPivotThreshold.set(pivotThreshold);
   }
   if(! options::arithStandardCheckVarOrderPivots.wasSetByUser()){
@@ -906,7 +948,7 @@ void SmtEngine::setLogicInternal() throw() {
     if(d_logic.isPure(THEORY_ARITH) && !d_logic.isQuantified()){
       varOrderPivots = 200;
     }
-    Trace("smt") << "setting arithStandardCheckVarOrderPivots  " << varOrderPivots << std::endl;
+    Trace("smt") << "setting arithStandardCheckVarOrderPivots  " << varOrderPivots << endl;
     options::arithStandardCheckVarOrderPivots.set(varOrderPivots);
   }
   // Turn off early theory preprocessing if arithRewriteEq is on
@@ -965,7 +1007,7 @@ void SmtEngine::setLogicInternal() throw() {
         ? true : false
       );
 
-    Trace("smt") << "setting decision mode to " << decMode << std::endl;
+    Trace("smt") << "setting decision mode to " << decMode << endl;
     options::decisionMode.set(decMode);
     options::decisionStopOnly.set(stoponly);
   }
@@ -973,7 +1015,7 @@ void SmtEngine::setLogicInternal() throw() {
   //for finite model finding
   if( ! options::instWhenMode.wasSetByUser()){
     if( options::fmfInstEngine() ){
-      Trace("smt") << "setting inst when mode to LAST_CALL" << std::endl;
+      Trace("smt") << "setting inst when mode to LAST_CALL" << endl;
       options::instWhenMode.set( INST_WHEN_LAST_CALL );
     }
   }
@@ -986,11 +1028,11 @@ void SmtEngine::setLogicInternal() throw() {
   }
   else if (options::minisatUseElim()) {
     if (options::produceModels()) {
-      Notice() << "SmtEngine: turning off produce-models to support minisatUseElim" << std::endl;
+      Notice() << "SmtEngine: turning off produce-models to support minisatUseElim" << endl;
       setOption("produce-models", SExpr("false"));
     }
     if (options::checkModels()) {
-      Notice() << "SmtEngine: turning off check-models to support minisatUseElim" << std::endl;
+      Notice() << "SmtEngine: turning off check-models to support minisatUseElim" << endl;
       setOption("check-models", SExpr("false"));
     }
   }
@@ -1002,20 +1044,20 @@ void SmtEngine::setLogicInternal() throw() {
   }
 
   // Non-linear arithmetic does not support models
-  if (d_logic.isTheoryEnabled(theory::THEORY_ARITH) &&
+  if (d_logic.isTheoryEnabled(THEORY_ARITH) &&
       !d_logic.isLinear()) {
     if (options::produceModels()) {
-      Warning() << "SmtEngine: turning off produce-models because unsupported for nonlinear arith" << std::endl;
+      Warning() << "SmtEngine: turning off produce-models because unsupported for nonlinear arith" << endl;
       setOption("produce-models", SExpr("false"));
     }
     if (options::checkModels()) {
-      Warning() << "SmtEngine: turning off check-models because unsupported for nonlinear arith" << std::endl;
+      Warning() << "SmtEngine: turning off check-models because unsupported for nonlinear arith" << endl;
       setOption("check-models", SExpr("false"));
     }
   }
 
-  //datatypes theory should assign values to all datatypes terms if logic is quantified
-  if (d_logic.isQuantified() && d_logic.isTheoryEnabled(theory::THEORY_DATATYPES)) {
+  // datatypes theory should assign values to all datatypes terms if logic is quantified
+  if (d_logic.isQuantified() && d_logic.isTheoryEnabled(THEORY_DATATYPES)) {
     if( !options::dtForceAssignment.wasSetByUser() ){
       options::dtForceAssignment.set(true);
     }
@@ -1030,7 +1072,7 @@ void SmtEngine::setInfo(const std::string& key, const CVC4::SExpr& value)
   Trace("smt") << "SMT setInfo(" << key << ", " << value << ")" << endl;
   if(Dump.isOn("benchmark")) {
     if(key == "status") {
-      std::string s = value.getValue();
+      string s = value.getValue();
       BenchmarkStatus status =
         (s == "sat") ? SMT_SATISFIABLE :
           ((s == "unsat") ? SMT_UNSATISFIABLE : SMT_UNKNOWN);
@@ -1155,6 +1197,16 @@ void SmtEngine::defineFunction(Expr func,
                                const std::vector<Expr>& formals,
                                Expr formula) {
   Trace("smt") << "SMT defineFunction(" << func << ")" << endl;
+  for(std::vector<Expr>::const_iterator i = formals.begin(); i != formals.end(); ++i) {
+    if((*i).getKind() != kind::BOUND_VARIABLE) {
+      stringstream ss;
+      ss << "All formal arguments to defined functions must be BOUND_VARIABLEs, but in the\n"
+         << "definition of function " << func << ", formal\n"
+         << "  " << *i << "\n"
+         << "has kind " << (*i).getKind();
+      throw TypeCheckingException(func, ss.str());
+    }
+  }
   if(Dump.isOn("declarations")) {
     stringstream ss;
     ss << Expr::setlanguage(Expr::setlanguage::getLanguage(Dump.getStream()))
@@ -1210,7 +1262,7 @@ void SmtEngine::defineFunction(Expr func,
   // Permit (check-sat) (define-fun ...) (get-value ...) sequences.
   // Otherwise, (check-sat) (get-value ((! foo :named bar))) breaks
   // d_haveAdditions = true;
-  Debug("smt") << "definedFunctions insert " << funcNode << " " << formNode << std::endl;
+  Debug("smt") << "definedFunctions insert " << funcNode << " " << formNode << endl;
   d_definedFunctions->insert(funcNode, def);
 }
 
@@ -1220,7 +1272,7 @@ Node SmtEnginePrivate::getBVDivByZero(Kind k, unsigned width) {
   if (k == kind::BITVECTOR_UDIV) {
     if (d_BVDivByZero.find(width) == d_BVDivByZero.end()) {
       // lazily create the function symbols
-      std::ostringstream os;
+      ostringstream os;
       os << "BVUDivByZero_" << width;
       Node divByZero = nm->mkSkolem(os.str(),
                                     nm->mkFunctionType(nm->mkBitVectorType(width), nm->mkBitVectorType(width)),
@@ -1231,7 +1283,7 @@ Node SmtEnginePrivate::getBVDivByZero(Kind k, unsigned width) {
   }
   else if (k == kind::BITVECTOR_UREM) {
     if (d_BVRemByZero.find(width) == d_BVRemByZero.end()) {
-      std::ostringstream os;
+      ostringstream os;
       os << "BVURemByZero_" << width;
       Node divByZero = nm->mkSkolem(os.str(),
                                     nm->mkFunctionType(nm->mkBitVectorType(width), nm->mkBitVectorType(width)),
@@ -1271,7 +1323,7 @@ Node SmtEnginePrivate::expandDefinitions(TNode n, hash_map<Node, Node, NodeHashF
     if(i != d_smt.d_definedFunctions->end()) {
       // replacement must be closed
       if((*i).second.getFormals().size() > 0) {
-        throw TypeCheckingException(n.toExpr(), std::string("Defined function requires arguments: `") + n.toString() + "'");
+        return d_smt.d_nodeManager->mkNode(kind::LAMBDA, d_smt.d_nodeManager->mkNode(kind::BOUND_VAR_LIST, (*i).second.getFormals()), (*i).second.getFormula());
       }
       // don't bother putting in the cache
       return (*i).second.getFormula();
@@ -1300,9 +1352,9 @@ Node SmtEnginePrivate::expandDefinitions(TNode n, hash_map<Node, Node, NodeHashF
     break;
   }
 
- case kind::BITVECTOR_UDIV:
- case kind::BITVECTOR_UREM: {
-   node = expandBVDivByZero(node);
+  case kind::BITVECTOR_UDIV:
+  case kind::BITVECTOR_UREM: {
+    node = expandBVDivByZero(node);
     break;
   }
   case kind::DIVISION: {
@@ -1374,7 +1426,7 @@ Node SmtEnginePrivate::expandDefinitions(TNode n, hash_map<Node, Node, NodeHashF
       Debug("expand") << "     : \"" << name << "\"" << endl;
     }
     if(i == d_smt.d_definedFunctions->end()) {
-      throw TypeCheckingException(n.toExpr(), std::string("Undefined function: `") + func.toString() + "'");
+      throw TypeCheckingException(n.toExpr(), string("Undefined function: `") + func.toString() + "'");
     }
     if(Debug.isOn("expand")) {
       Debug("expand") << " defn: " << def.getFunction() << endl
@@ -1428,31 +1480,41 @@ Node SmtEnginePrivate::expandDefinitions(TNode n, hash_map<Node, Node, NodeHashF
   return node;
 }
 
+
+struct ContainsQuantAttributeId {};
+typedef expr::Attribute<ContainsQuantAttributeId, uint64_t> ContainsQuantAttribute;
+
 // check if the given node contains a universal quantifier
 static bool containsQuantifiers(Node n) {
-  if(n.getKind() == kind::FORALL) {
+  if( n.hasAttribute(ContainsQuantAttribute()) ){
+    return n.getAttribute(ContainsQuantAttribute())==1;
+  } else if(n.getKind() == kind::FORALL) {
     return true;
   } else {
-    for(unsigned i = 0; i < n.getNumChildren(); ++i) {
-      if(containsQuantifiers(n[i])) {
-        return true;
+    bool cq = false;
+    for( unsigned i = 0; i < n.getNumChildren(); ++i ){
+      if( containsQuantifiers(n[i]) ){
+        cq = true;
+        break;
       }
     }
-    return false;
+    ContainsQuantAttribute cqa;
+    n.setAttribute(cqa, cq ? 1 : 0);
+    return cq;
   }
 }
 
 Node SmtEnginePrivate::preSkolemizeQuantifiers( Node n, bool polarity, std::vector< Node >& fvs ){
-  Trace("pre-sk") << "Pre-skolem " << n << " " << polarity << " " << fvs.size() << std::endl;
+  Trace("pre-sk") << "Pre-skolem " << n << " " << polarity << " " << fvs.size() << endl;
   if( n.getKind()==kind::NOT ){
     Node nn = preSkolemizeQuantifiers( n[0], !polarity, fvs );
     return nn.negate();
   }else if( n.getKind()==kind::FORALL ){
     if( polarity ){
-      std::vector< Node > children;
+      vector< Node > children;
       children.push_back( n[0] );
       //add children to current scope
-      std::vector< Node > fvss;
+      vector< Node > fvss;
       fvss.insert( fvss.begin(), fvs.begin(), fvs.end() );
       for( int i=0; i<(int)n[0].getNumChildren(); i++ ){
         fvss.push_back( n[0][i] );
@@ -1468,13 +1530,13 @@ Node SmtEnginePrivate::preSkolemizeQuantifiers( Node n, bool polarity, std::vect
       //process body
       Node nn = preSkolemizeQuantifiers( n[1], polarity, fvs );
       //now, substitute skolems for the variables
-      std::vector< TypeNode > argTypes;
+      vector< TypeNode > argTypes;
       for( int i=0; i<(int)fvs.size(); i++ ){
         argTypes.push_back( fvs[i].getType() );
       }
       //calculate the variables and substitution
-      std::vector< Node > vars;
-      std::vector< Node > subs;
+      vector< Node > vars;
+      vector< Node > subs;
       for( int i=0; i<(int)n[0].getNumChildren(); i++ ){
         vars.push_back( n[0][i] );
       }
@@ -1487,7 +1549,7 @@ Node SmtEnginePrivate::preSkolemizeQuantifiers( Node n, bool polarity, std::vect
           TypeNode typ = NodeManager::currentNM()->mkFunctionType( argTypes, n[0][i].getType() );
           Node op = NodeManager::currentNM()->mkSkolem( "skop_$$", typ, "op created during pre-skolemization" );
           //DOTHIS: set attribute on op, marking that it should not be selected as trigger
-          std::vector< Node > funcArgs;
+          vector< Node > funcArgs;
           funcArgs.push_back( op );
           funcArgs.insert( funcArgs.end(), fvs.begin(), fvs.end() );
           subs.push_back( NodeManager::currentNM()->mkNode( kind::APPLY_UF, funcArgs ) );
@@ -1499,43 +1561,36 @@ Node SmtEnginePrivate::preSkolemizeQuantifiers( Node n, bool polarity, std::vect
     }
   }else{
     //check if it contains a quantifier as a subterm
-    bool containsQuant = false;
-    if( n.getType().isBoolean() ){
-      for( int i=0; i<(int)n.getNumChildren(); i++ ){
-        if( containsQuantifiers( n[i] ) ){
-          containsQuant = true;
-          break;
-        }
-      }
-    }
     //if so, we will write this node
-    if( containsQuant ){
-      if( n.getKind()==kind::ITE || n.getKind()==kind::IFF || n.getKind()==kind::XOR || n.getKind()==kind::IMPLIES ){
-        Node nn;
-        //must remove structure
-        if( n.getKind()==kind::ITE ){
-          nn = NodeManager::currentNM()->mkNode( kind::AND,
-                 NodeManager::currentNM()->mkNode( kind::OR, n[0].notNode(), n[1] ),
-                 NodeManager::currentNM()->mkNode( kind::OR, n[0], n[2] ) );
-        }else if( n.getKind()==kind::IFF || n.getKind()==kind::XOR ){
-          nn = NodeManager::currentNM()->mkNode( kind::AND,
-                 NodeManager::currentNM()->mkNode( kind::OR, n[0].notNode(), n.getKind()==kind::XOR ? n[1].notNode() : n[1] ),
-                 NodeManager::currentNM()->mkNode( kind::OR, n[0], n.getKind()==kind::XOR ? n[1] : n[1].notNode() ) );
-        }else if( n.getKind()==kind::IMPLIES ){
-          nn = NodeManager::currentNM()->mkNode( kind::OR, n[0].notNode(), n[1] );
+    if( containsQuantifiers( n ) ){
+      if( n.getType().isBoolean() ){
+        if( n.getKind()==kind::ITE || n.getKind()==kind::IFF || n.getKind()==kind::XOR || n.getKind()==kind::IMPLIES ){
+          Node nn;
+          //must remove structure
+          if( n.getKind()==kind::ITE ){
+            nn = NodeManager::currentNM()->mkNode( kind::AND,
+                   NodeManager::currentNM()->mkNode( kind::OR, n[0].notNode(), n[1] ),
+                   NodeManager::currentNM()->mkNode( kind::OR, n[0], n[2] ) );
+          }else if( n.getKind()==kind::IFF || n.getKind()==kind::XOR ){
+            nn = NodeManager::currentNM()->mkNode( kind::AND,
+                   NodeManager::currentNM()->mkNode( kind::OR, n[0].notNode(), n.getKind()==kind::XOR ? n[1].notNode() : n[1] ),
+                   NodeManager::currentNM()->mkNode( kind::OR, n[0], n.getKind()==kind::XOR ? n[1] : n[1].notNode() ) );
+          }else if( n.getKind()==kind::IMPLIES ){
+            nn = NodeManager::currentNM()->mkNode( kind::OR, n[0].notNode(), n[1] );
+          }
+          return preSkolemizeQuantifiers( nn, polarity, fvs );
+        }else if( n.getKind()==kind::AND || n.getKind()==kind::OR ){
+          vector< Node > children;
+          for( int i=0; i<(int)n.getNumChildren(); i++ ){
+            children.push_back( preSkolemizeQuantifiers( n[i], polarity, fvs ) );
+          }
+          return NodeManager::currentNM()->mkNode( n.getKind(), children );
+        }else{
+          //must pull ite's
         }
-        return preSkolemizeQuantifiers( nn, polarity, fvs );
-      }else{
-        Assert( n.getKind() == kind::AND || n.getKind() == kind::OR );
-        std::vector< Node > children;
-        for( int i=0; i<(int)n.getNumChildren(); i++ ){
-          children.push_back( preSkolemizeQuantifiers( n[i], polarity, fvs ) );
-        }
-        return NodeManager::currentNM()->mkNode( n.getKind(), children );
       }
-    }else{
-      return n;
     }
+    return n;
   }
 }
 
@@ -1576,7 +1631,7 @@ void SmtEnginePrivate::staticLearning() {
 static void dumpAssertions(const char* key,
                            const std::vector<Node>& assertionList) {
   if( Dump.isOn("assertions") &&
-      Dump.isOn(std::string("assertions:") + key) ) {
+      Dump.isOn(string("assertions:") + key) ) {
     // Push the simplified assertions to the dump output stream
     for(unsigned i = 0; i < assertionList.size(); ++ i) {
       TNode n = assertionList[i];
@@ -1752,6 +1807,17 @@ bool SmtEnginePrivate::nonClausalSimplify() {
   }
   // Resize the learnt
   d_nonClausalLearnedLiterals.resize(j);
+
+  //must add substitutions to model
+  TheoryModel* m = d_smt.d_theoryEngine->getModel();
+  if(m != NULL) {
+    for( SubstitutionMap::iterator pos = d_topLevelSubstitutions.begin(); pos != d_topLevelSubstitutions.end(); ++pos) {
+      Node n = (*pos).first;
+      Node v = (*pos).second;
+      Trace("model") << "Add substitution : " << n << " " << v << endl;
+      m->addSubstitution( n, v );
+    }
+  }
 
   hash_set<TNode, TNodeHashFunction> s;
   for (unsigned i = 0; i < d_assertionsToPreprocess.size(); ++ i) {
@@ -2123,7 +2189,9 @@ void SmtEnginePrivate::doMiplibTrick() {
           }
         } else if(countneg == pos.getNumChildren() - 1) {
           Assert(coef[pos_var].size() <= 6 && thepos < 6);
-          coef[pos_var].resize(6);
+          if(coef[pos_var].size() <= thepos) {
+            coef[pos_var].resize(thepos + 1);
+          }
           coef[pos_var][thepos] = constant;
         } else {
           if(checks[pos_var].size() <= mark) {
@@ -2162,10 +2230,6 @@ void SmtEnginePrivate::doMiplibTrick() {
           Assert(coef[x_var].size() <= 6);
           coef[x_var].resize(6);
           coef[x_var][0] = constant;
-          if(checks[x_var].size() <= mark) {
-            checks[x_var].resize(mark + 1);
-          }
-          checks[x_var][mark] = constant;
         }
         asserts[x_var].push_back(*j);
       }
@@ -2184,84 +2248,111 @@ void SmtEnginePrivate::doMiplibTrick() {
         if(mark != expected) {
           Debug("miplib") << "  -- INELIGIBLE " << pos << " -- (insufficiently marked, got " << mark << " for " << numVars << " vars, expected " << expected << endl;
         } else {
-          if(false) { //checks[pos] != coef[pos][0] + coef[pos][1]) {
-            Debug("miplib") << "  -- INELIGIBLE " << pos << " -- (not linear combination)" << endl;
-          } else {
-            Debug("miplib") << "  -- ELIGIBLE " << *i << " , " << pos << " --" << endl;
-            vector<Node> newVars;
-            expr::NodeSelfIterator ii, iiend;
-            if(pos.getKind() == kind::AND) {
-              ii = pos.begin();
-              iiend = pos.end();
-            } else {
-              ii = expr::NodeSelfIterator::self(pos);
-              iiend = expr::NodeSelfIterator::selfEnd(pos);
-            }
-            for(; ii != iiend; ++ii) {
-              Node& varRef = intVars[*ii];
-              if(varRef.isNull()) {
-                stringstream ss;
-                ss << "mipvar_" << *ii;
-                Node newVar = nm->mkSkolem(ss.str(), nm->integerType(), "a variable introduced due to scrubbing a miplib encoding", NodeManager::SKOLEM_EXACT_NAME);
-                Node geq = Rewriter::rewrite(nm->mkNode(kind::GEQ, newVar, zero));
-                Node leq = Rewriter::rewrite(nm->mkNode(kind::LEQ, newVar, one));
-                d_assertionsToCheck.push_back(Rewriter::rewrite(geq.andNode(leq)));
-                SubstitutionMap nullMap(&d_fakeContext);
-                Theory::PPAssertStatus status CVC4_UNUSED;// just for assertions
-                status = d_smt.d_theoryEngine->solve(geq, nullMap);
-                Assert(status == Theory::PP_ASSERT_STATUS_UNSOLVED,
-                       "unexpected solution from arith's ppAssert()");
-                Assert(nullMap.empty(),
-                       "unexpected substitution from arith's ppAssert()");
-                status = d_smt.d_theoryEngine->solve(leq, nullMap);
-                Assert(status == Theory::PP_ASSERT_STATUS_UNSOLVED,
-                       "unexpected solution from arith's ppAssert()");
-                Assert(nullMap.empty(),
-                       "unexpected substitution from arith's ppAssert()");
-                d_smt.d_theoryEngine->getModel()->addSubstitution(*ii, newVar.eqNode(one));
-                newVars.push_back(newVar);
-                varRef = newVar;
+          if(mark != 3) { // exclude single-var case; nothing to check there
+            uint64_t sz = (uint64_t(1) << checks[pos_var].size()) - 1;
+            sz = (sz == 0) ? -1 : sz;// fix for overflow
+            Assert(sz == mark, "expected size %u == mark %u", sz, mark);
+            for(size_t k = 0; k < checks[pos_var].size(); ++k) {
+              if((k & (k - 1)) != 0) {
+                Rational sum = 0;
+                Debug("miplib") << k << " => " << checks[pos_var][k] << endl;
+                for(size_t v = 1, kk = k; kk != 0; ++v, kk >>= 1) {
+                  if((kk & 0x1) == 1) {
+                    Assert(pos.getKind() == kind::AND);
+                    Debug("miplib") << "var " << v << " : " << pos[v - 1] << " coef:" << coef[pos_var][v - 1] << endl;
+                    sum += coef[pos_var][v - 1];
+                  }
+                }
+                Debug("miplib") << "checkSum is " << sum << " input says " << checks[pos_var][k] << endl;
+                if(sum != checks[pos_var][k]) {
+                  eligible = false;
+                  Debug("miplib") << "  -- INELIGIBLE " << pos << " -- (nonlinear combination)" << endl;
+                  break;
+                }
               } else {
-                newVars.push_back(varRef);
-              }
-              if(!d_smt.d_logic.areIntegersUsed()) {
-                d_smt.d_logic = d_smt.d_logic.getUnlockedCopy();
-                d_smt.d_logic.enableIntegers();
-                d_smt.d_logic.lock();
+                Assert(checks[pos_var][k] == 0, "checks[(%s,%s)][%u] should be 0, but it's %s", pos.toString().c_str(), var.toString().c_str(), k, checks[pos_var][k].toString().c_str());// we never set for single-positive-var
               }
             }
-            Node sum;
-            if(pos.getKind() == kind::AND) {
-              NodeBuilder<> sumb(kind::PLUS);
-              for(size_t ii = 0; ii < pos.getNumChildren(); ++ii) {
-                sumb << nm->mkNode(kind::MULT, nm->mkConst(coef[pos_var][ii]), newVars[ii]);
-              }
-              sum = sumb;
+          }
+          if(!eligible) {
+            eligible = true;// next is still eligible
+            continue;
+          }
+
+          Debug("miplib") << "  -- ELIGIBLE " << *i << " , " << pos << " --" << endl;
+          vector<Node> newVars;
+          expr::NodeSelfIterator ii, iiend;
+          if(pos.getKind() == kind::AND) {
+            ii = pos.begin();
+            iiend = pos.end();
+          } else {
+            ii = expr::NodeSelfIterator::self(pos);
+            iiend = expr::NodeSelfIterator::selfEnd(pos);
+          }
+          for(; ii != iiend; ++ii) {
+            Node& varRef = intVars[*ii];
+            if(varRef.isNull()) {
+              stringstream ss;
+              ss << "mipvar_" << *ii;
+              Node newVar = nm->mkSkolem(ss.str(), nm->integerType(), "a variable introduced due to scrubbing a miplib encoding", NodeManager::SKOLEM_EXACT_NAME);
+              Node geq = Rewriter::rewrite(nm->mkNode(kind::GEQ, newVar, zero));
+              Node leq = Rewriter::rewrite(nm->mkNode(kind::LEQ, newVar, one));
+              d_assertionsToCheck.push_back(Rewriter::rewrite(geq.andNode(leq)));
+              SubstitutionMap nullMap(&d_fakeContext);
+              Theory::PPAssertStatus status CVC4_UNUSED;// just for assertions
+              status = d_smt.d_theoryEngine->solve(geq, nullMap);
+              Assert(status == Theory::PP_ASSERT_STATUS_UNSOLVED,
+                     "unexpected solution from arith's ppAssert()");
+              Assert(nullMap.empty(),
+                     "unexpected substitution from arith's ppAssert()");
+              status = d_smt.d_theoryEngine->solve(leq, nullMap);
+              Assert(status == Theory::PP_ASSERT_STATUS_UNSOLVED,
+                     "unexpected solution from arith's ppAssert()");
+              Assert(nullMap.empty(),
+                     "unexpected substitution from arith's ppAssert()");
+              d_smt.d_theoryEngine->getModel()->addSubstitution(*ii, newVar.eqNode(one));
+              newVars.push_back(newVar);
+              varRef = newVar;
             } else {
-              sum = nm->mkNode(kind::MULT, nm->mkConst(coef[pos_var][0]), newVars[0]);
+              newVars.push_back(varRef);
             }
-            Debug("miplib") << "vars[] " << var << endl
-                            << "    eq " << Rewriter::rewrite(sum) << endl;
-            Node newAssertion = var.eqNode(Rewriter::rewrite(sum));
-            if(d_topLevelSubstitutions.hasSubstitution(newAssertion[0])) {
-              //Warning() << "RE-SUBSTITUTION " << newAssertion[0] << endl;
-              //Warning() << "REPLACE         " << newAssertion[1] << endl;
-              //Warning() << "ORIG            " << d_topLevelSubstitutions.getSubstitution(newAssertion[0]) << endl;
-              Assert(d_topLevelSubstitutions.getSubstitution(newAssertion[0]) == newAssertion[1]);
-            } else if(pos.getNumChildren() <= options::arithMLTrickSubstitutions()) {
-              d_topLevelSubstitutions.addSubstitution(newAssertion[0], newAssertion[1]);
-              Debug("miplib") << "addSubs: " << newAssertion[0] << " to " << newAssertion[1] << endl;
-            } else {
-              Debug("miplib") << "skipSubs: " << newAssertion[0] << " to " << newAssertion[1] << " (threshold is " << options::arithMLTrickSubstitutions() << ")" << endl;
+            if(!d_smt.d_logic.areIntegersUsed()) {
+              d_smt.d_logic = d_smt.d_logic.getUnlockedCopy();
+              d_smt.d_logic.enableIntegers();
+              d_smt.d_logic.lock();
             }
-            newAssertion = Rewriter::rewrite(newAssertion);
-            Debug("miplib") << "  " << newAssertion << endl;
-            d_assertionsToCheck.push_back(newAssertion);
-            Debug("miplib") << "  assertions to remove: " << endl;
-            for(vector<TNode>::const_iterator k = asserts[pos_var].begin(), k_end = asserts[pos_var].end(); k != k_end; ++k) {
-              Debug("miplib") << "    " << *k << endl;
-              removeAssertions.insert((*k).getId());
+          }
+          Node sum;
+          if(pos.getKind() == kind::AND) {
+            NodeBuilder<> sumb(kind::PLUS);
+            for(size_t ii = 0; ii < pos.getNumChildren(); ++ii) {
+              sumb << nm->mkNode(kind::MULT, nm->mkConst(coef[pos_var][ii]), newVars[ii]);
             }
+            sum = sumb;
+          } else {
+            sum = nm->mkNode(kind::MULT, nm->mkConst(coef[pos_var][0]), newVars[0]);
+          }
+          Debug("miplib") << "vars[] " << var << endl
+                          << "    eq " << Rewriter::rewrite(sum) << endl;
+          Node newAssertion = var.eqNode(Rewriter::rewrite(sum));
+          if(d_topLevelSubstitutions.hasSubstitution(newAssertion[0])) {
+            //Warning() << "RE-SUBSTITUTION " << newAssertion[0] << endl;
+            //Warning() << "REPLACE         " << newAssertion[1] << endl;
+            //Warning() << "ORIG            " << d_topLevelSubstitutions.getSubstitution(newAssertion[0]) << endl;
+            Assert(d_topLevelSubstitutions.getSubstitution(newAssertion[0]) == newAssertion[1]);
+          } else if(pos.getNumChildren() <= options::arithMLTrickSubstitutions()) {
+            d_topLevelSubstitutions.addSubstitution(newAssertion[0], newAssertion[1]);
+            Debug("miplib") << "addSubs: " << newAssertion[0] << " to " << newAssertion[1] << endl;
+          } else {
+            Debug("miplib") << "skipSubs: " << newAssertion[0] << " to " << newAssertion[1] << " (threshold is " << options::arithMLTrickSubstitutions() << ")" << endl;
+          }
+          newAssertion = Rewriter::rewrite(newAssertion);
+          Debug("miplib") << "  " << newAssertion << endl;
+          d_assertionsToCheck.push_back(newAssertion);
+          Debug("miplib") << "  assertions to remove: " << endl;
+          for(vector<TNode>::const_iterator k = asserts[pos_var].begin(), k_end = asserts[pos_var].end(); k != k_end; ++k) {
+            Debug("miplib") << "    " << *k << endl;
+            removeAssertions.insert((*k).getId());
           }
         }
       }
@@ -2318,7 +2409,7 @@ bool SmtEnginePrivate::simplifyAssertions()
           // miplib rewrites aren't safe in incremental mode
           ! options::incrementalSolving() &&
           // only useful in arith
-          d_smt.d_logic.isTheoryEnabled(theory::THEORY_ARITH) &&
+          d_smt.d_logic.isTheoryEnabled(THEORY_ARITH) &&
           // we add new assertions and need this (in practice, this
           // restriction only disables miplib processing during
           // re-simplification, which we don't expect to be useful anyway)
@@ -2339,7 +2430,7 @@ bool SmtEnginePrivate::simplifyAssertions()
       d_assertionsToCheck.swap(d_assertionsToPreprocess);
     }
 
-    Trace("smt") << "POST nonClasualSimplify" << std::endl;
+    Trace("smt") << "POST nonClausalSimplify" << endl;
     Debug("smt") << " d_assertionsToPreprocess: " << d_assertionsToPreprocess.size() << endl;
     Debug("smt") << " d_assertionsToCheck     : " << d_assertionsToCheck.size() << endl;
 
@@ -2356,7 +2447,7 @@ bool SmtEnginePrivate::simplifyAssertions()
       }
     }
 
-    Trace("smt") << "POST theoryPP" << std::endl;
+    Trace("smt") << "POST theoryPP" << endl;
     Debug("smt") << " d_assertionsToPreprocess: " << d_assertionsToPreprocess.size() << endl;
     Debug("smt") << " d_assertionsToCheck     : " << d_assertionsToCheck.size() << endl;
 
@@ -2366,7 +2457,7 @@ bool SmtEnginePrivate::simplifyAssertions()
       simpITE();
     }
 
-    Trace("smt") << "POST iteSimp" << std::endl;
+    Trace("smt") << "POST iteSimp" << endl;
     Debug("smt") << " d_assertionsToPreprocess: " << d_assertionsToPreprocess.size() << endl;
     Debug("smt") << " d_assertionsToCheck     : " << d_assertionsToCheck.size() << endl;
 
@@ -2376,14 +2467,14 @@ bool SmtEnginePrivate::simplifyAssertions()
       unconstrainedSimp();
     }
 
-    Trace("smt") << "POST unconstrainedSimp" << std::endl;
+    Trace("smt") << "POST unconstrainedSimp" << endl;
     Debug("smt") << " d_assertionsToPreprocess: " << d_assertionsToPreprocess.size() << endl;
     Debug("smt") << " d_assertionsToCheck     : " << d_assertionsToCheck.size() << endl;
 
     if(options::repeatSimp() && options::simplificationMode() != SIMPLIFICATION_MODE_NONE) {
       Chat() << "...doing another round of nonclausal simplification..." << endl;
       Trace("simplify") << "SmtEnginePrivate::simplify(): "
-                        << " doing repeated simplification" << std::endl;
+                        << " doing repeated simplification" << endl;
       d_assertionsToCheck.swap(d_assertionsToPreprocess);
       Assert(d_assertionsToCheck.empty());
       bool noConflict = nonClausalSimplify();
@@ -2392,7 +2483,7 @@ bool SmtEnginePrivate::simplifyAssertions()
       }
     }
 
-    Trace("smt") << "POST repeatSimp" << std::endl;
+    Trace("smt") << "POST repeatSimp" << endl;
     Debug("smt") << " d_assertionsToPreprocess: " << d_assertionsToPreprocess.size() << endl;
     Debug("smt") << " d_assertionsToCheck     : " << d_assertionsToCheck.size() << endl;
 
@@ -2441,6 +2532,8 @@ Result SmtEngine::check() {
   if(d_resourceBudgetPerCall != 0 && (resource == 0 || d_resourceBudgetPerCall < resource)) {
     resource = d_resourceBudgetPerCall;
   }
+
+  TimerStat::CodeTimer solveTimer(d_stats->d_solveTime);
 
   Chat() << "solving..." << endl;
   Trace("smt") << "SmtEngine::check(): running check" << endl;
@@ -2524,6 +2617,8 @@ bool SmtEnginePrivate::checkForBadSkolems(TNode n, TNode skolem, hash_map<Node, 
 }
 
 void SmtEnginePrivate::processAssertions() {
+  TimerStat::CodeTimer paTimer(d_smt.d_stats->d_processAssertionsTime);
+
   Assert(d_smt.d_fullyInited);
   Assert(d_smt.d_pendingPops == 0);
 
@@ -2569,10 +2664,26 @@ void SmtEnginePrivate::processAssertions() {
     TimerStat::CodeTimer codeTimer(d_smt.d_stats->d_rewriteBooleanTermsTime);
     for(unsigned i = 0, i_end = d_assertionsToPreprocess.size(); i != i_end; ++i) {
       Node n = d_booleanTermConverter.rewriteBooleanTerms(d_assertionsToPreprocess[i]);
-      if(n != d_assertionsToPreprocess[i] && !d_smt.d_logic.isTheoryEnabled(theory::THEORY_BV)) {
-        d_smt.d_logic = d_smt.d_logic.getUnlockedCopy();
-        d_smt.d_logic.enableTheory(theory::THEORY_BV);
-        d_smt.d_logic.lock();
+      if(n != d_assertionsToPreprocess[i]) {
+        switch(booleans::BooleanTermConversionMode mode = options::booleanTermConversionMode()) {
+        case booleans::BOOLEAN_TERM_CONVERT_TO_BITVECTORS:
+        case booleans::BOOLEAN_TERM_CONVERT_NATIVE:
+          if(!d_smt.d_logic.isTheoryEnabled(THEORY_BV)) {
+            d_smt.d_logic = d_smt.d_logic.getUnlockedCopy();
+            d_smt.d_logic.enableTheory(THEORY_BV);
+            d_smt.d_logic.lock();
+          }
+          break;
+        case booleans::BOOLEAN_TERM_CONVERT_TO_DATATYPES:
+          if(!d_smt.d_logic.isTheoryEnabled(THEORY_DATATYPES)) {
+            d_smt.d_logic = d_smt.d_logic.getUnlockedCopy();
+            d_smt.d_logic.enableTheory(THEORY_DATATYPES);
+            d_smt.d_logic.lock();
+          }
+          break;
+        default:
+          Unhandled(mode);
+        }
       }
       d_assertionsToPreprocess[i] = n;
     }
@@ -2619,11 +2730,11 @@ void SmtEnginePrivate::processAssertions() {
     //apply pre-skolemization to existential quantifiers
     for (unsigned i = 0; i < d_assertionsToPreprocess.size(); ++ i) {
       Node prev = d_assertionsToPreprocess[i];
-      std::vector< Node > fvs;
+      vector< Node > fvs;
       d_assertionsToPreprocess[i] = Rewriter::rewrite( preSkolemizeQuantifiers( d_assertionsToPreprocess[i], true, fvs ) );
       if( prev!=d_assertionsToPreprocess[i] ){
-        Trace("quantifiers-rewrite") << "*** Pre-skolemize " << prev << std::endl;
-        Trace("quantifiers-rewrite") << "   ...got " << d_assertionsToPreprocess[i] << std::endl;
+        Trace("quantifiers-rewrite") << "*** Pre-skolemize " << prev << endl;
+        Trace("quantifiers-rewrite") << "   ...got " << d_assertionsToPreprocess[i] << endl;
       }
     }
   }
@@ -2979,10 +3090,14 @@ Result SmtEngine::assertFormula(const Expr& ex) throw(TypeCheckingException, Log
   return quickCheck().asValidityResult();
 }
 
-Node SmtEngine::postprocess(TNode node) {
+Node SmtEngine::postprocess(TNode node, TypeNode expectedType) {
   ModelPostprocessor mpost;
   NodeVisitor<ModelPostprocessor> visitor;
-  return visitor.run(mpost, node);
+  Node value = visitor.run(mpost, node);
+  Debug("boolean-terms") << "postproc: got " << value << " expect type " << expectedType << endl;
+  Node realValue = mpost.rewriteAs(value, expectedType);
+  Debug("boolean-terms") << "postproc: realval " << realValue << " expect type " << expectedType << endl;
+  return realValue;
 }
 
 Expr SmtEngine::simplify(const Expr& ex) throw(TypeCheckingException, LogicException) {
@@ -3004,7 +3119,7 @@ Expr SmtEngine::simplify(const Expr& ex) throw(TypeCheckingException, LogicExcep
   // Make sure all preprocessing is done
   d_private->processAssertions();
   Node n = d_private->simplify(Node::fromExpr(e));
-  n = postprocess(n);
+  n = postprocess(n, TypeNode::fromType(e.getType()));
   return n.toExpr();
 }
 
@@ -3026,11 +3141,11 @@ Expr SmtEngine::expandDefinitions(const Expr& ex) throw(TypeCheckingException, L
   }
   hash_map<Node, Node, NodeHashFunction> cache;
   Node n = d_private->expandDefinitions(Node::fromExpr(e), cache);
-  n = postprocess(n);
+  n = postprocess(n, TypeNode::fromType(e.getType()));
   return n.toExpr();
 }
 
-Expr SmtEngine::getValue(const Expr& ex) throw(ModalException, LogicException) {
+Expr SmtEngine::getValue(const Expr& ex) throw(ModalException, TypeCheckingException, LogicException) {
   Assert(ex.getExprManager() == d_exprManager);
   SmtScope smts(this);
 
@@ -3073,8 +3188,10 @@ Expr SmtEngine::getValue(const Expr& ex) throw(ModalException, LogicException) {
     resultNode = m->getValue(n);
   }
   Trace("smt") << "--- got value " << n << " = " << resultNode << endl;
-  resultNode = postprocess(resultNode);
+  resultNode = postprocess(resultNode, n.getType());
   Trace("smt") << "--- model-post returned " << resultNode << endl;
+  Trace("smt") << "--- model-post returned " << resultNode.getType() << endl;
+  Trace("smt") << "--- model-post expected " << n.getType() << endl;
 
   // type-check the result we got
   Assert(resultNode.isNull() || resultNode.getType().isSubtypeOf(n.getType()));
@@ -3266,7 +3383,7 @@ void SmtEngine::checkModel(bool hardFailure) {
   // We have a "fake context" for the substitution map (we don't need it
   // to be context-dependent)
   context::Context fakeContext;
-  SubstitutionMap substitutions(&fakeContext);
+  SubstitutionMap substitutions(&fakeContext, /* substituteUnderQuantifiers = */ false);
 
   for(size_t k = 0; k < m->getNumCommands(); ++k) {
     const DeclareFunctionCommand* c = dynamic_cast<const DeclareFunctionCommand*>(m->getCommand(k));
@@ -3289,7 +3406,9 @@ void SmtEngine::checkModel(bool hardFailure) {
       // function symbol (since then the definition is recursive)
       if (val.getKind() == kind::LAMBDA) {
         // first apply the model substitutions we have so far
+        Debug("boolean-terms") << "applying subses to " << val[1] << endl;
         Node n = substitutions.apply(val[1]);
+        Debug("boolean-terms") << "++ got " << n << endl;
         // now check if n contains func by doing a substitution
         // [func->func2] and checking equality of the Nodes.
         // (this just a way to check if func is in n.)
@@ -3324,6 +3443,7 @@ void SmtEngine::checkModel(bool hardFailure) {
       }
 
       // (3) checks complete, add the substitution
+      Debug("boolean-terms") << "cm: adding subs " << func << " :=> " << val << endl;
       substitutions.addSubstitution(func, val);
     }
   }
@@ -3338,9 +3458,12 @@ void SmtEngine::checkModel(bool hardFailure) {
       hash_map<Node, Node, NodeHashFunction> cache;
       n = d_private->expandDefinitions(n, cache);
     }
+    Notice() << "SmtEngine::checkModel(): -- expands to " << n << endl;
 
     // Apply our model value substitutions.
+    Debug("boolean-terms") << "applying subses to " << n << endl;
     n = substitutions.apply(n);
+    Debug("boolean-terms") << "++ got " << n << endl;
     Notice() << "SmtEngine::checkModel(): -- substitutes to " << n << endl;
 
     // Simplify the result.
@@ -3348,16 +3471,22 @@ void SmtEngine::checkModel(bool hardFailure) {
     Notice() << "SmtEngine::checkModel(): -- simplifies to  " << n << endl;
 
     TheoryId thy = Theory::theoryOf(n);
-    if(thy == THEORY_QUANTIFIERS || thy == THEORY_REWRITERULES) {
+    if(thy == THEORY_REWRITERULES) {
       // Note this "skip" is done here, rather than above.  This is
       // because (1) the quantifier could in principle simplify to false,
       // which should be reported, and (2) checking for the quantifier
       // above, before simplification, doesn't catch buried quantifiers
       // anyway (those not at the top-level).
-      Notice() << "SmtEngine::checkModel(): -- skipping quantified assertion"
+      Notice() << "SmtEngine::checkModel(): -- skipping rewrite-rules assertion"
                << endl;
       continue;
     }
+
+    // As a last-ditch effort, ask model to simplify it.
+    // Presently, this is only an issue for quantifiers, which can have a value
+    // but don't show up in our substitution map above.
+    n = m->getValue(n);
+    Notice() << "SmtEngine::checkModel(): -- model-substitutes to " << n << endl;
 
     // The result should be == true.
     if(n != NodeManager::currentNM()->mkConst(true)) {
@@ -3493,6 +3622,7 @@ void SmtEngine::internalPush() {
   doPendingPops();
   if(options::incrementalSolving()) {
     d_private->processAssertions();
+    TimerStat::CodeTimer pushPopTimer(d_stats->d_pushPopTime);
     d_userContext->push();
     // the d_context push is done inside of the SAT solver
     d_propEngine->push();
@@ -3513,6 +3643,7 @@ void SmtEngine::internalPop(bool immediate) {
 void SmtEngine::doPendingPops() {
   Assert(d_pendingPops == 0 || options::incrementalSolving());
   while(d_pendingPops > 0) {
+    TimerStat::CodeTimer pushPopTimer(d_stats->d_pushPopTime);
     d_propEngine->pop();
     // the d_context pop is done inside of the SAT solver
     d_userContext->pop();

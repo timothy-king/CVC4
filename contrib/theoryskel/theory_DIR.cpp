@@ -10,8 +10,10 @@ namespace $dir {
 Theory$camel::Theory$camel(context::Context* c,
                            context::UserContext* u,
                            OutputChannel& out,
-                           Valuation valuation) :
-  Theory(THEORY_$id, c, u, out, valuation) {
+                           Valuation valuation,
+                           const LogicInfo& logicInfo,
+                           QuantifiersEngine* qe) :
+  Theory(THEORY_$id, c, u, out, valuation, logicInfo, qe) {
 }/* Theory$camel::Theory$camel() */
 
 void Theory$camel::check(Effort level) {

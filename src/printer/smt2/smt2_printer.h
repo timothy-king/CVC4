@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file smt2_printer.h
  ** \verbatim
- ** Original author: mdeters
+ ** Original author: Morgan Deters
  ** Major contributors: none
  ** Minor contributors (to current version): none
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -32,6 +32,7 @@ class Smt2Printer : public CVC4::Printer {
   void toStream(std::ostream& out, Model& m, const Command* c) const throw();
   void toStream(std::ostream& out, Model& m) const throw();
 public:
+  using CVC4::Printer::toStream;
   void toStream(std::ostream& out, TNode n, int toDepth, bool types, size_t dag) const throw();
   void toStream(std::ostream& out, const Command* c, int toDepth, bool types, size_t dag) const throw();
   void toStream(std::ostream& out, const CommandStatus* s) const throw();

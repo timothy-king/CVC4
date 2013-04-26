@@ -1,8 +1,8 @@
 /*********************                                                        */
 /*! \file inst_gen.h
  ** \verbatim
- ** Original author: Andrew Reynolds <andrew.j.reynolds@gmail.com>
- ** Major contributors: Morgan Deters <mdeters@cs.nyu.edu>
+ ** Original author: Andrew Reynolds
+ ** Major contributors: Morgan Deters
  ** Minor contributors (to current version): none
  ** This file is part of the CVC4 project.
  ** Copyright (c) 2009-2013  New York University and The University of Iowa
@@ -50,10 +50,10 @@ public:
   int getNumMatches() { return d_matches.size(); }
   bool getMatch( EqualityQuery* q, int i, InstMatch& m );
   Node getMatchValue( int i ) { return d_match_values[i]; }
-};
+};/* class InstGenProcess */
 
-}
-}
-}
+}/* CVC4::theory::quantifiers namespace */
+}/* CVC4::theory namespace */
+}/* CVC4 namespace */
 
-#endif
+#endif /* __CVC4__THEORY__QUANTIFIERS__INST_GEN_H */

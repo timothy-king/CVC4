@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file datatype.cpp
  ** \verbatim
- ** Original author: mdeters
- ** Major contributors: ajreynol
+ ** Original author: Morgan Deters
+ ** Major contributors: Andrew Reynolds
  ** Minor contributors (to current version): none
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -820,7 +820,18 @@ std::ostream& operator<<(std::ostream& os, const Datatype& dt) {
   // can only output datatypes in the CVC4 native language
   Expr::setlanguage::Scope ls(os, language::output::LANG_CVC4);
 
-  os << "DATATYPE " << dt.getName() << " =" << endl;
+  os << "DATATYPE " << dt.getName();
+  if(dt.isParametric()) {
+    os << '[';
+    for(size_t i = 0; i < dt.getNumParameters(); ++i) {
+      if(i > 0) {
+        os << ',';
+      }
+      os << dt.getParameter(i);
+    }
+    os << ']';
+  }
+  os << " =" << endl;
   Datatype::const_iterator i = dt.begin(), i_end = dt.end();
   if(i != i_end) {
     os << "  ";

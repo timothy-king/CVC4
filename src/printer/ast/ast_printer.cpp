@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file ast_printer.cpp
  ** \verbatim
- ** Original author: mdeters
+ ** Original author: Morgan Deters
  ** Major contributors: none
- ** Minor contributors (to current version): dejan, ajreynol
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Minor contributors (to current version): Dejan Jovanovic, Andrew Reynolds
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -144,10 +144,10 @@ void AstPrinter::toStream(std::ostream& out, const Command* c,
      tryToStream<DeclarationSequence>(out, c) ||
      tryToStream<CommandSequence>(out, c) ||
      tryToStream<DeclareFunctionCommand>(out, c) ||
-     tryToStream<DefineFunctionCommand>(out, c) ||
      tryToStream<DeclareTypeCommand>(out, c) ||
      tryToStream<DefineTypeCommand>(out, c) ||
      tryToStream<DefineNamedFunctionCommand>(out, c) ||
+     tryToStream<DefineFunctionCommand>(out, c) ||
      tryToStream<SimplifyCommand>(out, c) ||
      tryToStream<GetValueCommand>(out, c) ||
      tryToStream<GetModelCommand>(out, c) ||

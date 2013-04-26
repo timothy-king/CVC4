@@ -61,8 +61,13 @@ option arithMLTrickSubstitutions miplib-trick-subs --miplib-trick-subs unsigned 
 
 option doCutAllBounded --cut-all-bounded bool :default false :read-write
  turns on the integer solving step of periodically cutting all integer variables that have both upper and lower bounds
-/ turns off the integer solving step of periodically cutting all integer variables that have both upper and lower bounds
+/turns off the integer solving step of periodically cutting all integer variables that have both upper and lower bounds
 
+option maxCutsInContext --maxCutsInContext unsigned :default 65535
+ maximum cuts in a given context before signalling a restart
+
+option revertArithModels --revert-arith-models-on-unsat bool :default false
+ Revert the arithmetic model to a known safe model on unsat if one is cached
 
 option havePenalties --fc-penalties bool :default false :read-write
  turns on degenerate pivot penalties

@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file theory_datatypes_type_rules.h
  ** \verbatim
- ** Original author: ajreynol
- ** Major contributors: mdeters
- ** Minor contributors (to current version): taking
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Morgan Deters
+ ** Major contributors: Andrew Reynolds
+ ** Minor contributors (to current version): Tim King
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -285,7 +285,7 @@ struct TupleSelectTypeRule {
     const TupleSelect& ts = n.getOperator().getConst<TupleSelect>();
     TypeNode tupleType = n[0].getType(check);
     if(!tupleType.isTuple()) {
-      if(!tupleType.hasAttribute(expr::DatatypeRecordAttr())) {
+      if(!tupleType.hasAttribute(expr::DatatypeTupleAttr())) {
         throw TypeCheckingExceptionPrivate(n, "Tuple-select expression formed over non-tuple");
       }
       tupleType = tupleType.getAttribute(expr::DatatypeTupleAttr());
@@ -309,7 +309,7 @@ struct TupleUpdateTypeRule {
     TypeNode newValue = n[1].getType(check);
     if(check) {
       if(!tupleType.isTuple()) {
-        if(!tupleType.hasAttribute(expr::DatatypeRecordAttr())) {
+        if(!tupleType.hasAttribute(expr::DatatypeTupleAttr())) {
           throw TypeCheckingExceptionPrivate(n, "Tuple-update expression formed over non-tuple");
         }
         tupleType = tupleType.getAttribute(expr::DatatypeTupleAttr());

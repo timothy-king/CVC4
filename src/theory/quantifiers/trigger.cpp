@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file trigger.cpp
  ** \verbatim
- ** Original author: ajreynol
- ** Major contributors: mdeters
- ** Minor contributors (to current version): bobot
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Morgan Deters
+ ** Major contributors: Andrew Reynolds
+ ** Minor contributors (to current version): Francois Bobot
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -38,7 +38,8 @@ d_quantEngine( qe ), d_f( f ){
   for( int i=0; i<(int)d_nodes.size(); i++ ){
     Trace("trigger") << "   " << d_nodes[i] << std::endl;
   }
-  Trace("trigger") << ", smart triggers = " << smartTriggers << std::endl;
+  Trace("trigger-debug") << ", smart triggers = " << smartTriggers;
+  Trace("trigger") << std::endl;
   if( smartTriggers ){
     if( d_nodes.size()==1 ){
       if( isSimpleTrigger( d_nodes[0] ) ){
@@ -49,6 +50,8 @@ d_quantEngine( qe ), d_f( f ){
       }
     }else{
       d_mg = new InstMatchGeneratorMulti( f, d_nodes, qe, matchOption );
+      //d_mg = InstMatchGenerator::mkInstMatchGenerator( d_nodes, qe );
+      //d_mg->setActiveAdd();
     }
   }else{
     d_mg = InstMatchGenerator::mkInstMatchGenerator( d_nodes, qe );
@@ -223,17 +226,24 @@ bool Trigger::isUsableTrigger( std::vector< Node >& nodes, Node f ){
 
 bool Trigger::isUsable( Node n, Node f ){
   if( n.getAttribute(InstConstantAttribute())==f ){
-    if( !isAtomicTrigger( n ) && n.getKind()!=INST_CONSTANT ){
-      std::map< Node, Node > coeffs;
-      return getPatternArithmetic( f, n, coeffs );
-    }else{
+    if( isAtomicTrigger( n ) ){
       for( int i=0; i<(int)n.getNumChildren(); i++ ){
         if( !isUsable( n[i], f ) ){
           return false;
         }
       }
       return true;
+    }else if( n.getKind()==INST_CONSTANT ){
+      return true;
+    }else{
+      std::map< Node, Node > coeffs;
+      if( isArithmeticTrigger( f, n, coeffs ) ){
+        return true;
+      }else if( isBooleanTermTrigger( n ) ){
+        return true;
+      }
     }
+    return false;
   }else{
     return true;
   }
@@ -365,7 +375,7 @@ void Trigger::collectPatTerms( QuantifiersEngine* qe, Node f, Node n, std::vecto
   }
 }
 
-bool Trigger::getPatternArithmetic( Node f, Node n, std::map< Node, Node >& coeffs ){
+bool Trigger::isArithmeticTrigger( Node f, Node n, std::map< Node, Node >& coeffs ){
   if( n.getKind()==PLUS ){
     Assert( coeffs.empty() );
     NodeBuilder<> t(kind::PLUS);
@@ -378,7 +388,7 @@ bool Trigger::getPatternArithmetic( Node f, Node n, std::map< Node, Node >& coef
             coeffs.clear();
             return false;
           }
-        }else if( !getPatternArithmetic( f, n[i], coeffs ) ){
+        }else if( !isArithmeticTrigger( f, n[i], coeffs ) ){
           coeffs.clear();
           return false;
         }
@@ -403,6 +413,22 @@ bool Trigger::getPatternArithmetic( Node f, Node n, std::map< Node, Node >& coef
     }else if( n[1].getKind()==INST_CONSTANT && n[1].getAttribute(InstConstantAttribute())==f ){
       if( !n[0].hasAttribute(InstConstantAttribute()) ){
         coeffs[ n[1] ] = n[0];
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+bool Trigger::isBooleanTermTrigger( Node n ) {
+  if( n.getKind()==ITE ){
+    //check for boolean term converted to ITE
+    if( n[0].getKind()==INST_CONSTANT &&
+        n[1].getKind()==CONST_BITVECTOR &&
+        n[2].getKind()==CONST_BITVECTOR ){
+      if( ((BitVectorType)n[1].getType().toType()).getSize()==1 &&
+          n[1].getConst<BitVector>().toInteger()==1 &&
+          n[2].getConst<BitVector>().toInteger()==0 ){
         return true;
       }
     }

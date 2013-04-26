@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file ite_removal.h
  ** \verbatim
- ** Original author: dejan
- ** Major contributors: kshitij, mdeters
- ** Minor contributors (to current version): barrett
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Dejan Jovanovic
+ ** Major contributors: Kshitij Bansal, Morgan Deters
+ ** Minor contributors (to current version): Andrew Reynolds, Clark Barrett
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -55,7 +55,7 @@ public:
    * ite created in conjunction with that skolem variable.
    */
   Node run(TNode node, std::vector<Node>& additionalAssertions,
-           IteSkolemMap& iteSkolemMap);
+           IteSkolemMap& iteSkolemMap, std::vector<Node>& quantVar);
 
 };/* class RemoveTTE */
 

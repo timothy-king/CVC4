@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file command_executor_portfolio.h
  ** \verbatim
- ** Original author: kshitij
- ** Major contributors: mdeters
+ ** Original author: Morgan Deters
+ ** Major contributors: Kshitij Bansal
  ** Minor contributors (to current version): none
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -34,7 +34,7 @@ namespace main {
 
 class CommandExecutorPortfolio : public CommandExecutor {
 
-  // These shall be created/deleted during initalization
+  // These shall be created/deleted during initialization
   std::vector<ExprManager*> d_exprMgrs;
   const unsigned d_numThreads;   // Currently const, but designed so it is
                                  // not too hard to support this changing

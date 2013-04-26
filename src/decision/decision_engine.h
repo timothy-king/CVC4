@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file decision_engine.h
  ** \verbatim
- ** Original author: kshitij
+ ** Original author: Kshitij Bansal
  ** Major contributors: none
- ** Minor contributors (to current version): barrett, dejan, mdeters
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Minor contributors (to current version): Clark Barrett, Dejan Jovanovic, Morgan Deters
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -50,7 +50,7 @@ class DecisionEngine {
   DPLLSatSolverInterface* d_satSolver;
 
   context::Context* d_satContext;
-  context::Context* d_userContext;
+  context::UserContext* d_userContext;
 
   // Does decision engine know the answer?
   context::CDO<SatValue> d_result;
@@ -64,7 +64,7 @@ public:
   // Necessary functions
 
   /** Constructor */
-  DecisionEngine(context::Context *sc, context::Context *uc);
+  DecisionEngine(context::Context *sc, context::UserContext *uc);
 
   /** Destructor, currently does nothing */
   ~DecisionEngine() {

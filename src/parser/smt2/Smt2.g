@@ -1,11 +1,11 @@
 /* *******************                                                        */
 /*! \file Smt2.g
  ** \verbatim
- ** Original author: cconway
- ** Major contributors: mdeters
- ** Minor contributors (to current version): dejan, taking, ajreynol, bobot
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Christopher L. Conway
+ ** Major contributors: Morgan Deters
+ ** Minor contributors (to current version): Dejan Jovanovic, Andrew Reynolds, Francois Bobot
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -31,10 +31,8 @@ options {
 
 @header {
 /**
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  The Analysis of Computer Systems Group (ACSys)
- ** Courant Institute of Mathematical Sciences
- ** New York University
+ ** This file is part of CVC4.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.
  **/
@@ -269,7 +267,7 @@ command returns [CVC4::Command* cmd = NULL]
             sortedVarNames.begin(), iend = sortedVarNames.end();
           i != iend;
           ++i) {
-        terms.push_back(PARSER_STATE->mkVar((*i).first, (*i).second));
+        terms.push_back(PARSER_STATE->mkBoundVar((*i).first, (*i).second));
       }
     }
     term[expr, expr2]
@@ -481,7 +479,7 @@ extendedCommand[CVC4::Command*& cmd]
               sortedVarNames.begin(), iend = sortedVarNames.end();
             i != iend;
             ++i) {
-          terms.push_back(PARSER_STATE->mkVar((*i).first, (*i).second));
+          terms.push_back(PARSER_STATE->mkBoundVar((*i).first, (*i).second));
         }
       }
       term[e,e2]
@@ -954,6 +952,7 @@ attribute[CVC4::Expr& expr,CVC4::Expr& retExpr, std::string& attr]
       std::string attr_name = attr;
       attr_name.erase( attr_name.begin() );
       Command* c = new SetUserAttributeCommand( attr_name, expr );
+      c->setMuted(true);
       PARSER_STATE->preemptCommand(c);
     } else {
       PARSER_STATE->attributeNotSupported(attr);
@@ -981,6 +980,7 @@ attribute[CVC4::Expr& expr,CVC4::Expr& retExpr, std::string& attr]
       // bind name to expr with define-fun
       Command* c =
         new DefineNamedFunctionCommand(name, func, std::vector<Expr>(), expr);
+      c->setMuted(true);
       PARSER_STATE->preemptCommand(c);
     }
   ;

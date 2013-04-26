@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file equality_engine.h
  ** \verbatim
- ** Original author: dejan
- ** Major contributors: mdeters
- ** Minor contributors (to current version): bobot, lianah, taking, ajreynol
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Dejan Jovanovic
+ ** Major contributors: Morgan Deters
+ ** Minor contributors (to current version): Tim King, Liana Hadarean, Andrew Reynolds
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -233,6 +233,9 @@ private:
   /** The map of kinds to be treated as function applications */
   KindMap d_congruenceKinds;
 
+  /** The map of kinds to be treated as interpreted function applications (for evaluation of constants) */
+  KindMap d_congruenceKindsInterpreted;
+
   /** Map from nodes to their ids */
   __gnu_cxx::hash_map<TNode, EqualityNodeId, TNodeHashFunction> d_nodeIds;
 
@@ -415,6 +418,38 @@ private:
   std::vector<bool> d_isConstant;
 
   /**
+   * Map from ids of proper terms, to the number of non-constant direct subterms. If we update an interpreted
+   * application to a constant, we can decrease this value. If we hit 0, we can evaluate the term.
+   * 
+   */
+  std::vector<unsigned> d_subtermsToEvaluate;
+  
+  /** 
+   * For nodes that we need to postpone evaluation.
+   */
+  std::queue<EqualityNodeId> d_evaluationQueue;
+  
+  /**
+   * Evaluate all terms in the evaluation queue.
+   */
+  void processEvaluationQueue();
+  
+  /** Vector of nodes that evaluate. */
+  std::vector<EqualityNodeId> d_subtermEvaluates;
+
+  /** Size of the nodes that evaluate vector. */
+  context::CDO<unsigned> d_subtermEvaluatesSize;
+  
+  /** Set the node evaluate flag */
+  void subtermEvaluates(EqualityNodeId id);
+
+  /**
+   * Returns the evaluation of the term when all (direct) children are replaced with 
+   * the constant representatives.
+   */
+  Node evaluateTerm(TNode node);
+  
+  /**
    * Returns true if it's a constant
    */
   bool isConstant(EqualityNodeId id) const {
@@ -441,7 +476,7 @@ private:
   Statistics d_stats;
 
   /** Add a new function application node to the database, i.e APP t1 t2 */
-  EqualityNodeId newApplicationNode(TNode original, EqualityNodeId t1, EqualityNodeId t2, bool isEquality);
+  EqualityNodeId newApplicationNode(TNode original, EqualityNodeId t1, EqualityNodeId t2, FunctionApplicationType type);
 
   /** Add a new node to the database */
   EqualityNodeId newNode(TNode t);
@@ -451,9 +486,12 @@ private:
 
   /** Enqueue to the propagation queue */
   void enqueue(const MergeCandidate& candidate, bool back = true);
-
+  
   /** Do the propagation */
   void propagate();
+
+  /** Are we in propagate */
+  bool d_inPropagate;
 
   /**
    * Get an explanation of the equality t1 = t2. Returns the asserted equalities that
@@ -664,30 +702,36 @@ private:
   /** Name of the equality engine */
   std::string d_name;
 
+  /** The internal addTerm */
+  void addTermInternal(TNode t, bool isOperator = false);
+
 public:
 
   /**
    * Adds a term to the term database.
    */
-  void addTerm(TNode t);
+  void addTerm(TNode t) {
+    addTermInternal(t, false);
+  }
 
   /**
    * Add a kind to treat as function applications.
    */
-  void addFunctionKind(Kind fun) {
-    d_congruenceKinds |= fun;
-  }
+  void addFunctionKind(Kind fun, bool interpreted = false);
 
   /**
    * Returns true if this kind is used for congruence closure.
    */
-  bool isFunctionKind(Kind fun) {
+  bool isFunctionKind(Kind fun) const {
     return d_congruenceKinds.tst(fun);
   }
 
   /**
-   * Adds a function application term to the database.
+   * Returns true if this kind is used for congruence closure + evaluation of constants.
    */
+  bool isInterpretedFunctionKind(Kind fun) const {
+    return d_congruenceKindsInterpreted.tst(fun);
+  }
 
   /**
    * Check whether the node is already in the database.

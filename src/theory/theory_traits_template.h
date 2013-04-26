@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file theory_traits_template.h
  ** \verbatim
- ** Original author: dejan
- ** Major contributors: mdeters
+ ** Original author: Dejan Jovanovic
+ ** Major contributors: Morgan Deters
  ** Minor contributors (to current version): none
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -21,6 +21,7 @@
 
 #include "cvc4_private.h"
 #include "theory/theory.h"
+#include "theory/options.h"
 
 ${theory_includes}
 
@@ -33,6 +34,20 @@ struct TheoryTraits;
 ${theory_traits}
 
 ${theory_for_each_macro}
+
+#line 39 "${template}"
+
+struct TheoryConstructor {
+  static void addTheory(TheoryEngine* engine, TheoryId id) {
+    switch(id) {
+
+${theory_constructors}
+
+    default:
+      Unhandled(id);
+    }
+  }
+};/* struct CVC4::theory::TheoryConstructor */
 
 }/* CVC4::theory namespace */
 }/* CVC4 namespace */

@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file instantiation_engine.cpp
  ** \verbatim
- ** Original author: ajreynol
- ** Major contributors: none
- ** Minor contributors (to current version): bobot, mdeters
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Morgan Deters
+ ** Major contributors: Andrew Reynolds
+ ** Minor contributors (to current version): none
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -84,16 +84,18 @@ bool InstantiationEngine::doInstantiationRound( Theory::Effort effort ){
         //add cbqi lemma
         //get the counterexample literal
         Node ceLit = d_quantEngine->getTermDatabase()->getCounterexampleLiteral( f );
-        //require any decision on cel to be phase=true
-        d_quantEngine->getOutputChannel().requirePhase( ceLit, true );
-        Debug("cbqi-debug") << "Require phase " << ceLit << " = true." << std::endl;
-        //add counterexample lemma
-        NodeBuilder<> nb(kind::OR);
-        nb << f << ceLit;
-        Node lem = nb;
-        Debug("cbqi-debug") << "Counterexample lemma : " << lem << std::endl;
-        d_quantEngine->getOutputChannel().lemma( lem );
-        addedLemma = true;
+        if( !ceLit.isNull() ){
+          //require any decision on cel to be phase=true
+          d_quantEngine->getOutputChannel().requirePhase( ceLit, true );
+          Debug("cbqi-debug") << "Require phase " << ceLit << " = true." << std::endl;
+          //add counterexample lemma
+          NodeBuilder<> nb(kind::OR);
+          nb << f << ceLit;
+          Node lem = nb;
+          Debug("cbqi-debug") << "Counterexample lemma : " << lem << std::endl;
+          d_quantEngine->getOutputChannel().lemma( lem );
+          addedLemma = true;
+        }
       }
     }
     if( addedLemma ){

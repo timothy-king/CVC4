@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file theory_engine.h
  ** \verbatim
- ** Original author: mdeters
- ** Major contributors: dejan
- ** Minor contributors (to current version): cconway, bobot, kshitij, taking, barrett, lianah, ajreynol
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Morgan Deters
+ ** Major contributors: Dejan Jovanovic
+ ** Minor contributors (to current version): Christopher L. Conway, Francois Bobot, Kshitij Bansal, Liana Hadarean, Clark Barrett, Tim King, Andrew Reynolds
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -208,20 +208,22 @@ class TheoryEngine {
 
   public:
 
-    IntStat conflicts, propagations, lemmas, requirePhase, flipDecision;
+    IntStat conflicts, propagations, lemmas, requirePhase, flipDecision, restartDemands;
 
     Statistics(theory::TheoryId theory):
       conflicts(mkName("theory<", theory, ">::conflicts"), 0),
       propagations(mkName("theory<", theory, ">::propagations"), 0),
       lemmas(mkName("theory<", theory, ">::lemmas"), 0),
       requirePhase(mkName("theory<", theory, ">::requirePhase"), 0),
-      flipDecision(mkName("theory<", theory, ">::flipDecision"), 0)
+      flipDecision(mkName("theory<", theory, ">::flipDecision"), 0),
+      restartDemands(mkName("theory<", theory, ">::restartDemands"), 0)
     {
       StatisticsRegistry::registerStat(&conflicts);
       StatisticsRegistry::registerStat(&propagations);
       StatisticsRegistry::registerStat(&lemmas);
       StatisticsRegistry::registerStat(&requirePhase);
       StatisticsRegistry::registerStat(&flipDecision);
+      StatisticsRegistry::registerStat(&restartDemands);
     }
 
     ~Statistics() {
@@ -230,6 +232,7 @@ class TheoryEngine {
       StatisticsRegistry::unregisterStat(&lemmas);
       StatisticsRegistry::unregisterStat(&requirePhase);
       StatisticsRegistry::unregisterStat(&flipDecision);
+      StatisticsRegistry::unregisterStat(&restartDemands);
     }
   };/* class TheoryEngine::Statistics */
 
@@ -269,7 +272,7 @@ class TheoryEngine {
     void safePoint() throw(theory::Interrupted, AssertionException) {
       if (d_engine->d_interrupted)
         throw theory::Interrupted();
-   }
+    }
 
     void conflict(TNode conflictNode) throw(AssertionException) {
       Trace("theory::conflict") << "EngineOutputChannel<" << d_theory << ">::conflict(" << conflictNode << ")" << std::endl;
@@ -290,6 +293,16 @@ class TheoryEngine {
       ++ d_statistics.lemmas;
       d_engine->d_outputChannelUsed = true;
       return d_engine->lemma(lemma, false, removable);
+    }
+
+    void demandRestart() throw(TypeCheckingExceptionPrivate, AssertionException) {
+      NodeManager* curr = NodeManager::currentNM();
+      Node restartVar =  curr->mkSkolem("restartVar",
+                                        curr->booleanType(),
+                                        "A boolean variable asserted to be true to force a restart");
+      Trace("theory::restart") << "EngineOutputChannel<" << d_theory << ">::restart(" << restartVar << ")" << std::endl;
+      ++ d_statistics.restartDemands;
+      lemma(restartVar, true);
     }
 
     void requirePhase(TNode n, bool phase)
@@ -709,6 +722,12 @@ public:
    */
   theory::EqualityStatus getEqualityStatus(TNode a, TNode b);
 
+  /**
+   * Retruns the value that a theory that owns the type of var currently
+   * has (or null if none);
+   */
+  Node getModelValue(TNode var);
+
 private:
 
   /** Default visitor for pre-registration */
@@ -741,20 +760,23 @@ private:
   std::map< std::string, std::vector< theory::Theory* > > d_attr_handle;
 public:
 
-  /** Set user attribute
-    * This function is called when an attribute is set by a user.  In SMT-LIBv2 this is done
-    *  via the syntax (! n :attr)
-    */
+  /**
+   * Set user attribute.
+   * This function is called when an attribute is set by a user.  In SMT-LIBv2 this is done
+   * via the syntax (! n :attr)
+   */
   void setUserAttribute(const std::string& attr, Node n);
 
-  /** Handle user attribute
-    *   Associates theory t with the attribute attr.  Theory t will be
-    *   notifed whenever an attribute of name attr is set.
-    */
+  /**
+   * Handle user attribute.
+   * Associates theory t with the attribute attr.  Theory t will be
+   * notified whenever an attribute of name attr is set.
+   */
   void handleUserAttribute(const char* attr, theory::Theory* t);
 
-  /** Check that the theory assertions are satisfied in the model
-   *  This function is called from the smt engine's checkModel routine
+  /**
+   * Check that the theory assertions are satisfied in the model.
+   * This function is called from the smt engine's checkModel routine.
    */
   void checkTheoryAssertionsWithModel();
 

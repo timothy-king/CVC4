@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file array_info.h
  ** \verbatim
- ** Original author: lianah
- ** Major contributors: mdeters
- ** Minor contributors (to current version): dejan, barrett
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Morgan Deters
+ ** Major contributors: none
+ ** Minor contributors (to current version): Dejan Jovanovic, Clark Barrett
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -63,11 +63,12 @@ class Info {
 public:
   context::CDO<bool> isNonLinear;
   context::CDO<bool> rIntro1Applied;
+  context::CDO<TNode> modelRep;
   CTNodeList* indices;
   CTNodeList* stores;
   CTNodeList* in_stores;
 
-  Info(context::Context* c, Backtracker<TNode>* bck) : isNonLinear(c, false), rIntro1Applied(c, false) {
+  Info(context::Context* c, Backtracker<TNode>* bck) : isNonLinear(c, false), rIntro1Applied(c, false), modelRep(c,TNode()) {
     indices = new(true)CTNodeList(c);
     stores = new(true)CTNodeList(c);
     in_stores = new(true)CTNodeList(c);
@@ -209,6 +210,7 @@ public:
 
   void setNonLinear(const TNode a);
   void setRIntro1Applied(const TNode a);
+  void setModelRep(const TNode a, const TNode rep);
 
   /**
    * Returns the information associated with TNode a
@@ -219,6 +221,8 @@ public:
   const bool isNonLinear(const TNode a) const;
 
   const bool rIntro1Applied(const TNode a) const;
+
+  const TNode getModelRep(const TNode a) const;
 
   const CTNodeList* getIndices(const TNode a) const;
 

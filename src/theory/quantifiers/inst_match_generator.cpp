@@ -1,8 +1,8 @@
 /*********************                                                        */
 /*! \file inst_match_generator.cpp
  ** \verbatim
- ** Original author: Andrew Reynolds <andrew.j.reynolds@gmail.com>
- ** Major contributors: Morgan Deters <mdeters@cs.nyu.edu>
+ ** Original author: Andrew Reynolds
+ ** Major contributors: Morgan Deters
  ** Minor contributors (to current version): none
  ** This file is part of the CVC4 project.
  ** Copyright (c) 2009-2013  New York University and The University of Iowa
@@ -74,7 +74,7 @@ void InstMatchGenerator::initialize( QuantifiersEngine* qe, std::vector< InstMat
     int childMatchPolicy = MATCH_GEN_DEFAULT;
     for( int i=0; i<(int)d_match_pattern.getNumChildren(); i++ ){
       if( d_match_pattern[i].hasAttribute(InstConstantAttribute()) ){
-        if( d_match_pattern[i].getKind()!=INST_CONSTANT ){
+        if( d_match_pattern[i].getKind()!=INST_CONSTANT && !Trigger::isBooleanTermTrigger( d_match_pattern[i] ) ){
           InstMatchGenerator * cimg = new InstMatchGenerator( d_match_pattern[i], childMatchPolicy );
           d_children.push_back( cimg );
           d_children_index.push_back( i );
@@ -115,7 +115,7 @@ void InstMatchGenerator::initialize( QuantifiersEngine* qe, std::vector< InstMat
       d_cg = new inst::CandidateGeneratorQE( qe, d_match_pattern.getOperator() );
     }else{
       d_cg = new CandidateGeneratorQueue;
-      if( !Trigger::getPatternArithmetic( d_match_pattern.getAttribute(InstConstantAttribute()), d_match_pattern, d_arith_coeffs ) ){
+      if( !Trigger::isArithmeticTrigger( d_match_pattern.getAttribute(InstConstantAttribute()), d_match_pattern, d_arith_coeffs ) ){
         Debug("inst-match-gen") << "(?) Unknown matching pattern is " << d_match_pattern << std::endl;
         //Warning() << "(?) Unknown matching pattern is " << d_match_pattern << std::endl;
         d_matchPolicy = MATCH_GEN_INTERNAL_ERROR;
@@ -144,6 +144,7 @@ bool InstMatchGenerator::getMatch( Node f, Node t, InstMatch& m, QuantifiersEngi
     return false;
   }else{
     EqualityQuery* q = qe->getEqualityQuery();
+    bool success = true;
     //save previous match
     InstMatch prev( &m );
     //if t is null
@@ -154,41 +155,50 @@ bool InstMatchGenerator::getMatch( Node f, Node t, InstMatch& m, QuantifiersEngi
     //first, check if ground arguments are not equal, or a match is in conflict
     for( int i=0; i<(int)d_match_pattern.getNumChildren(); i++ ){
       if( d_match_pattern[i].hasAttribute(InstConstantAttribute()) ){
-        if( d_match_pattern[i].getKind()==INST_CONSTANT ){
-          if( !m.setMatch( q, d_match_pattern[i], t[i] ) ){
+        if( d_match_pattern[i].getKind()==INST_CONSTANT || Trigger::isBooleanTermTrigger( d_match_pattern[i] ) ){
+          Node vv = d_match_pattern[i];
+          Node tt = t[i];
+          if( Trigger::isBooleanTermTrigger( d_match_pattern[i] ) ){
+            vv = d_match_pattern[i][0];
+            tt = NodeManager::currentNM()->mkConst(q->areEqual( tt, d_match_pattern[i][1] ));
+          }
+          if( !m.setMatch( q, vv, tt ) ){
             //match is in conflict
-            Debug("matching-debug") << "Match in conflict " << t[i] << " and "
-                                    << d_match_pattern[i] << " because "
-                                    << m.get(d_match_pattern[i])
+            Debug("matching-debug") << "Match in conflict " << tt << " and "
+                                    << vv << " because "
+                                    << m.get(vv)
                                     << std::endl;
-            Debug("matching-fail") << "Match fail: " << m.get(d_match_pattern[i]) << " and " << t[i] << std::endl;
-            return false;
+            Debug("matching-fail") << "Match fail: " << m.get(vv) << " and " << tt << std::endl;
+            success = false;
+            break;
           }
         }
       }else{
         if( !q->areEqual( d_match_pattern[i], t[i] ) ){
           Debug("matching-fail") << "Match fail arg: " << d_match_pattern[i] << " and " << t[i] << std::endl;
           //ground arguments are not equal
-          return false;
+          success = false;
+          break;
         }
       }
     }
-    //now, fit children into match
-    //we will be requesting candidates for matching terms for each child
-    std::vector< Node > reps;
-    for( int i=0; i<(int)d_children.size(); i++ ){
-      Node rep = q->getRepresentative( t[ d_children_index[i] ] );
-      reps.push_back( rep );
-      d_children[i]->reset( rep, qe );
-    }
-    bool success = true;
-    if( d_next!=NULL ){
-      success = d_next->getNextMatch( f, m, qe );
-    }else{
-      if( d_active_add ){
-        Trace("active-add") << "Active Adding instantiation " << m << std::endl;
-        success = qe->addInstantiation( f, m );
-        Trace("active-add") << "Success = " << success << std::endl;
+    if( success ){
+      //now, fit children into match
+      //we will be requesting candidates for matching terms for each child
+      std::vector< Node > reps;
+      for( int i=0; i<(int)d_children.size(); i++ ){
+        Node rep = q->getRepresentative( t[ d_children_index[i] ] );
+        reps.push_back( rep );
+        d_children[i]->reset( rep, qe );
+      }
+      if( d_next!=NULL ){
+        success = d_next->getNextMatch( f, m, qe );
+      }else{
+        if( d_active_add ){
+          Trace("active-add") << "Active Adding instantiation " << m << std::endl;
+          success = qe->addInstantiation( f, m );
+          Trace("active-add") << "Success = " << success << std::endl;
+        }
       }
     }
     if( !success ){
@@ -317,10 +327,10 @@ int InstMatchGenerator::addInstantiations( Node f, InstMatch& baseMatch, Quantif
           return addedLemmas;
         }
       }
-      m.clear();
     }else{
       addedLemmas++;
     }
+    m.clear();
   }
   //return number of lemmas added
   return addedLemmas;
@@ -463,10 +473,11 @@ int InstMatchGeneratorMulti::addInstantiations( Node f, InstMatch& baseMatch, Qu
     std::vector< InstMatch > newMatches;
     InstMatch m;
     while( d_children[i]->getNextMatch( f, m, qe ) ){
-      m.makeRepresentative( qe );
+      //m.makeRepresentative( qe );
       newMatches.push_back( InstMatch( &m ) );
       m.clear();
     }
+    Debug("smart-multi-trigger") << "Made " << newMatches.size() << " new matches for index " << i << std::endl;
     for( int j=0; j<(int)newMatches.size(); j++ ){
       processNewMatch( qe, newMatches[j], i, addedLemmas );
     }

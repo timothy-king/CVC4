@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file datatype.h
  ** \verbatim
- ** Original author: mdeters
+ ** Original author: Morgan Deters
  ** Major contributors: none
- ** Minor contributors (to current version): ajreynol
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Minor contributors (to current version): Andrew Reynolds
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -450,7 +450,7 @@ public:
    * Create a new Datatype of the given name, with the given
    * parameterization.
    */
-  inline Datatype(std::string name, std::vector<Type>& params);
+  inline Datatype(std::string name, const std::vector<Type>& params);
 
   /**
    * Add a constructor to this Datatype.  Constructor names need not
@@ -620,7 +620,7 @@ inline Datatype::Datatype(std::string name) :
   d_self() {
 }
 
-inline Datatype::Datatype(std::string name, std::vector<Type>& params) :
+inline Datatype::Datatype(std::string name, const std::vector<Type>& params) :
   d_name(name),
   d_params(params),
   d_constructors(),

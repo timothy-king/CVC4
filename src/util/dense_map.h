@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file dense_map.h
  ** \verbatim
- ** Original author: taking
+ ** Original author: Tim King
  ** Major contributors: none
- ** Minor contributors (to current version): mdeters
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Minor contributors (to current version): Dejan Jovanovic, Morgan Deters
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -99,7 +99,7 @@ public:
       return false;
     }else{
       Assert(x <  allocated());
-      return d_posVector[x] != POSITION_SENTINEL;
+      return d_posVector[x] != +POSITION_SENTINEL;
     }
   }
 
@@ -161,7 +161,7 @@ public:
   void pop_back() {
     Assert(!empty());
     Key atBack = back();
-    d_posVector[atBack] = POSITION_SENTINEL;
+    d_posVector[atBack] = +POSITION_SENTINEL;
     d_image[atBack] = T();
     d_list.pop_back();
   }
@@ -196,7 +196,7 @@ public:
 
   void increaseSize(Key max){
     Assert(max >= allocated());
-    d_posVector.resize(max+1, POSITION_SENTINEL);
+    d_posVector.resize(max+1, +POSITION_SENTINEL);
     d_image.resize(max+1);
   }
 

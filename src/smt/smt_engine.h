@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file smt_engine.h
  ** \verbatim
- ** Original author: mdeters
+ ** Original author: Morgan Deters
  ** Major contributors: none
- ** Minor contributors (to current version): ajreynol, barrett, cconway, kshitij, dejan
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Minor contributors (to current version): Andrew Reynolds, Tim King, Clark Barrett, Christopher L. Conway, Kshitij Bansal, Dejan Jovanovic
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -249,7 +249,7 @@ class CVC4_PUBLIC SmtEngine {
    * like turning datatypes back into tuples, length-1-bitvectors back
    * into booleans, etc.
    */
-  Node postprocess(TNode n);
+  Node postprocess(TNode n, TypeNode expectedType);
 
   /**
    * This is something of an "init" procedure, but is idempotent; call
@@ -444,7 +444,7 @@ public:
    * by a SAT or INVALID query).  Only permitted if the SmtEngine is
    * set to operate interactively and produce-models is on.
    */
-  Expr getValue(const Expr& e) throw(ModalException, LogicException);
+  Expr getValue(const Expr& e) throw(ModalException, TypeCheckingException, LogicException);
 
   /**
    * Add a function to the set of expressions whose value is to be

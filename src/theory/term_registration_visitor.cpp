@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file term_registration_visitor.cpp
  ** \verbatim
- ** Original author: dejan
- ** Major contributors: mdeters, ajreynol
- ** Minor contributors (to current version): taking, barrett
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Dejan Jovanovic
+ ** Major contributors: Andrew Reynolds
+ ** Minor contributors (to current version): Tim King, Clark Barrett, Morgan Deters
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -171,9 +171,6 @@ bool SharedTermsVisitor::alreadyVisited(TNode current, TNode parent) const {
   TheoryId parentTheoryId  = Theory::theoryOf(parent);
 
   // Should we use the theory of the type
-#if 0
-  bool useType = current != parent && currentTheoryId != parentTheoryId;
-#else
   bool useType = false;
   TheoryId typeTheoryId = THEORY_LAST;
 
@@ -199,12 +196,10 @@ bool SharedTermsVisitor::alreadyVisited(TNode current, TNode parent) const {
       }
     }
   }
-#endif
 
   if (Theory::setContains(currentTheoryId, theories)) {
       if (Theory::setContains(parentTheoryId, theories)) {
         if (useType) {
-          ////TheoryId typeTheoryId = Theory::theoryOf(current.getType());
           return Theory::setContains(typeTheoryId, theories);
         } else {
           return true;
@@ -228,9 +223,6 @@ void SharedTermsVisitor::visit(TNode current, TNode parent) {
   TheoryId currentTheoryId = Theory::theoryOf(current);
   TheoryId parentTheoryId  = Theory::theoryOf(parent);
 
-#if 0
-  bool useType = current != parent && currentTheoryId != parentTheoryId;
-#else
   // Should we use the theory of the type
   bool useType = false;
   TheoryId typeTheoryId = THEORY_LAST;
@@ -257,7 +249,6 @@ void SharedTermsVisitor::visit(TNode current, TNode parent) {
       }
     }
   }
-#endif
 
   Theory::Set visitedTheories = d_visited[current];
   Debug("register::internal") << "SharedTermsVisitor::visit(" << current << "," << parent << "): previously registered with " << Theory::setToString(visitedTheories) << std::endl;
@@ -270,7 +261,6 @@ void SharedTermsVisitor::visit(TNode current, TNode parent) {
     Debug("register::internal") << "SharedTermsVisitor::visit(" << current << "," << parent << "): adding " << parentTheoryId << std::endl;
   }
   if (useType) {
-    //////TheoryId typeTheoryId = Theory::theoryOf(current.getType());
     if (!Theory::setContains(typeTheoryId, visitedTheories)) {
       visitedTheories = Theory::setInsert(typeTheoryId, visitedTheories);
       Debug("register::internal") << "SharedTermsVisitor::visit(" << current << "," << parent << "): adding " << typeTheoryId << std::endl;

@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file cvc_input.cpp
  ** \verbatim
- ** Original author: cconway
- ** Major contributors: mdeters
+ ** Original author: Christopher L. Conway
+ ** Major contributors: Morgan Deters
  ** Minor contributors (to current version): none
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -56,13 +56,11 @@ CvcInput::~CvcInput() {
   d_pCvcParser->free(d_pCvcParser);
 }
 
-Command* CvcInput::parseCommand()
-  throw (ParserException, TypeCheckingException) {
+Command* CvcInput::parseCommand() {
   return d_pCvcParser->parseCommand(d_pCvcParser);
 }
 
-Expr CvcInput::parseExpr()
-  throw (ParserException, TypeCheckingException) {
+Expr CvcInput::parseExpr() {
   return d_pCvcParser->parseExpr(d_pCvcParser);
 }
 

@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file antlr_input.h
  ** \verbatim
- ** Original author: cconway
- ** Major contributors: mdeters
- ** Minor contributors (to current version): taking, bobot, dejan
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Christopher L. Conway
+ ** Major contributors: Morgan Deters
+ ** Minor contributors (to current version): Tim King, Francois Bobot, Dejan Jovanovic
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -185,8 +185,9 @@ public:
   std::string getUnparsedText();
 
   /** Get the ANTLR3 lexer for this input. */
-  pANTLR3_LEXER getAntlr3Lexer(){ return d_lexer; };
+  pANTLR3_LEXER getAntlr3Lexer() { return d_lexer; }
 
+  pANTLR3_INPUT_STREAM getAntlr3InputStream() { return d_antlr3InputStream; }
 protected:
   /** Create an input. This input takes ownership of the given input stream,
    * and will delete it at destruction time.
@@ -209,7 +210,7 @@ protected:
   /**
    * Throws a <code>ParserException</code> with the given message.
    */
-  void parseError(const std::string& msg)
+  void parseError(const std::string& msg, bool eofException = false)
     throw (ParserException);
 
   /** Set the ANTLR3 lexer for this input. */
@@ -285,7 +286,14 @@ inline Rational AntlrInput::tokenToRational(pANTLR3_COMMON_TOKEN token) {
 
 inline BitVector AntlrInput::tokenToBitvector(pANTLR3_COMMON_TOKEN number, pANTLR3_COMMON_TOKEN size) {
   std::string number_str = tokenTextSubstr(number, 2);
-  return BitVector(tokenToUnsigned(size), Integer(number_str));
+  unsigned sz = tokenToUnsigned(size);
+  Integer val(number_str);
+  if(val.modByPow2(sz) != val) {
+    std::stringstream ss;
+    ss << "Overflow in bitvector construction (specified bitvector size " << sz << " too small to hold value " << tokenText(number) << ")";
+    throw std::invalid_argument(ss.str());
+  }
+  return BitVector(sz, val);
 }
 
 }/* CVC4::parser namespace */

@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file parser_exception.h
  ** \verbatim
- ** Original author: mdeters
- ** Major contributors: cconway
+ ** Original author: Morgan Deters
+ ** Major contributors: Christopher L. Conway
  ** Minor contributors (to current version): none
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -88,6 +88,30 @@ protected:
   unsigned long d_line;
   unsigned long d_column;
 };/* class ParserException */
+
+class CVC4_PUBLIC ParserEndOfFileException : public ParserException {
+public:
+
+  // Constructors same as ParserException's
+
+  ParserEndOfFileException() throw() :
+    ParserException() {
+  }
+
+  ParserEndOfFileException(const std::string& msg) throw() :
+    ParserException(msg) {
+  }
+
+  ParserEndOfFileException(const char* msg) throw() :
+    ParserException(msg) {
+  }
+
+  ParserEndOfFileException(const std::string& msg, const std::string& filename,
+                           unsigned long line, unsigned long column) throw() :
+    ParserException(msg, filename, line, column) {
+  }
+
+};/* class ParserEndOfFileException */
 
 }/* CVC4::parser namespace */
 }/* CVC4 namespace */

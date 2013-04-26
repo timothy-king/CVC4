@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file smt1_input.cpp
  ** \verbatim
- ** Original author: cconway
- ** Major contributors: mdeters
+ ** Original author: Morgan Deters
+ ** Major contributors: Christopher L. Conway
  ** Minor contributors (to current version): none
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -57,13 +57,11 @@ Smt1Input::~Smt1Input() {
   d_pSmt1Parser->free(d_pSmt1Parser);
 }
 
-Command* Smt1Input::parseCommand()
-  throw (ParserException, TypeCheckingException) {
+Command* Smt1Input::parseCommand() {
   return d_pSmt1Parser->parseCommand(d_pSmt1Parser);
 }
 
-Expr Smt1Input::parseExpr()
-  throw (ParserException, TypeCheckingException) {
+Expr Smt1Input::parseExpr() {
   return d_pSmt1Parser->parseExpr(d_pSmt1Parser);
 }
 

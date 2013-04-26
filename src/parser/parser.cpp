@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file parser.cpp
  ** \verbatim
- ** Original author: dejan
- ** Major contributors: cconway, mdeters
- ** Minor contributors (to current version): bobot, ajreynol
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Morgan Deters
+ ** Major contributors: Christopher L. Conway
+ ** Minor contributors (to current version): Tim King, Dejan Jovanovic, Francois Bobot, Andrew Reynolds
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -446,32 +446,20 @@ Command* Parser::nextCommand() throw(ParserException) {
   if(!d_commandQueue.empty()) {
     cmd = d_commandQueue.front();
     d_commandQueue.pop_front();
-    if(cmd == NULL) {
-      setDone();
-    }
+    setDone(cmd == NULL);
   } else {
-    if(!done()) {
-      try {
-        cmd = d_input->parseCommand();
-        d_commandQueue.push_back(cmd);
-        cmd = d_commandQueue.front();
-        d_commandQueue.pop_front();
-        if(cmd == NULL) {
-          setDone();
-        }
-      } catch(ParserException& e) {
-        setDone();
-        throw;
-      } catch(Exception& e) {
-        setDone();
-        stringstream ss;
-        // set the language of the stream, otherwise if it contains
-        // Exprs or Types it prints in the AST language
-        OutputLanguage outlang =
-          language::toOutputLanguage(d_input->getLanguage());
-        ss << Expr::setlanguage(outlang) << e;
-        parseError( ss.str() );
-      }
+    try {
+      cmd = d_input->parseCommand();
+      d_commandQueue.push_back(cmd);
+      cmd = d_commandQueue.front();
+      d_commandQueue.pop_front();
+      setDone(cmd == NULL);
+    } catch(ParserException& e) {
+      setDone();
+      throw;
+    } catch(exception& e) {
+      setDone();
+      parseError(e.what());
     }
   }
   Debug("parser") << "nextCommand() => " << cmd << std::endl;
@@ -484,17 +472,13 @@ Expr Parser::nextExpression() throw(ParserException) {
   if(!done()) {
     try {
       result = d_input->parseExpr();
-      if(result.isNull()) {
-        setDone();
-      }
+      setDone(result.isNull());
     } catch(ParserException& e) {
       setDone();
       throw;
-    } catch(Exception& e) {
+    } catch(exception& e) {
       setDone();
-      stringstream ss;
-      ss << e;
-      parseError( ss.str() );
+      parseError(e.what());
     }
   }
   Debug("parser") << "nextExpression() => " << result << std::endl;

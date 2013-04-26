@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file theory_uf.h
  ** \verbatim
- ** Original author: mdeters
- ** Major contributors: dejan
- ** Minor contributors (to current version): taking, ajreynol
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Tim King
+ ** Major contributors: Dejan Jovanovic, Morgan Deters
+ ** Minor contributors (to current version): Andrew Reynolds
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -35,11 +35,11 @@ namespace theory {
 namespace uf {
 
 class UfTermDb;
-class StrongSolverTheoryUf;
+class StrongSolverTheoryUF;
 
 class TheoryUF : public Theory {
 
-  friend class StrongSolverTheoryUf;
+  friend class StrongSolverTheoryUF;
 
 public:
 
@@ -116,7 +116,7 @@ private:
   NotifyClass d_notify;
 
   /** The associated theory strong solver (or NULL if none) */
-  StrongSolverTheoryUf* d_thss;
+  StrongSolverTheoryUF* d_thss;
 
   /** Equaltity engine */
   eq::EqualityEngine d_equalityEngine;
@@ -212,7 +212,7 @@ public:
     return &d_equalityEngine;
   }
 
-  StrongSolverTheoryUf* getStrongSolver() {
+  StrongSolverTheoryUF* getStrongSolver() {
     return d_thss;
   }
 

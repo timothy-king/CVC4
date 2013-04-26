@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file cdinsert_hashmap.h
  ** \verbatim
- ** Original author: taking
+ ** Original author: Tim King
  ** Major contributors: none
- ** Minor contributors (to current version): none
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Minor contributors (to current version): Morgan Deters
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -392,7 +392,7 @@ class CDInsertHashMap <TNode, Data, HashFcn > : public ContextObj {
    * If the key is a TNode and the backing (the hard node reference)
    * for the key in another data structure removes the key at the same context
    * the ref count could drop to 0.  The key would then not be eligible to be
-   * hashed. Getting the order right with a guarentee is to hard.
+   * hashed. Getting the order right with a guarantee is too hard.
    */
 
   BOOST_STATIC_ASSERT(sizeof(Data) == 0);

@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file output.h
  ** \verbatim
- ** Original author: mdeters
+ ** Original author: Morgan Deters
  ** Major contributors: none
- ** Minor contributors (to current version): taking, dejan
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Minor contributors (to current version): Tim King, Dejan Jovanovic
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -570,7 +570,7 @@ public:
  * used for clearly separating different phases of an algorithm,
  * or iterations of a loop, or... etc.
  */
-class IndentedScope {
+class CVC4_PUBLIC IndentedScope {
   CVC4ostream d_out;
 public:
   inline IndentedScope(CVC4ostream out);

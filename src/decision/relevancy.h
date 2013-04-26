@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file relevancy.h
  ** \verbatim
- ** Original author: kshitij
+ ** Original author: Kshitij Bansal
  ** Major contributors: none
- ** Minor contributors (to current version): mdeters
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Minor contributors (to current version): Tim King, Dejan Jovanovic, Morgan Deters
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -109,9 +109,10 @@ class Relevancy : public RelevancyStrategy {
   bool d_multipleBacktrace;
   //bool d_computeRelevancy;     // are we in a mode where we compute relevancy?
 
-  static const double secondsPerDecision = 0.001;
-  static const double secondsPerExpense = 1e-7;
-  static const double EPS = 1e-9;
+  static const double secondsPerDecision;
+  static const double secondsPerExpense;
+  static const double EPS;
+
   /** Maximum time this algorithm should spent as part of whole algorithm */
   double d_maxTimeAsPercentageOfTotalTime;
 

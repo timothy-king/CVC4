@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file quantifiers_rewriter.h
  ** \verbatim
- ** Original author: ajreynol
- ** Major contributors: mdeters
+ ** Original author: Morgan Deters
+ ** Major contributors: Andrew Reynolds
  ** Minor contributors (to current version): none
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -41,19 +41,21 @@ private:
   static void computeArgs( std::vector< Node >& args, std::vector< Node >& activeArgs, Node n );
   static bool hasArg( std::vector< Node >& args, Node n );
   static void setNestedQuantifiers( Node n, Node q );
-  static void computeArgs( std::map< Node, bool >& active, Node n );
   static Node computeClause( Node n );
 private:
   static Node computeMiniscoping( std::vector< Node >& args, Node body, Node ipl, bool isNested = false );
+  static Node computeAggressiveMiniscoping( std::vector< Node >& args, Node body, bool isNested = false );
   static Node computeNNF( Node body );
+  static Node computeSimpleIteLift( Node body );
   static Node computeVarElimination( Node body, std::vector< Node >& args, Node& ipl );
   static Node computeCNF( Node body, std::vector< Node >& args, NodeBuilder<>& defs, bool forcePred );
-  static Node computePrenex( Node body, std::vector< Node >& args, bool pol, bool polReq );
+  static Node computePrenex( Node body, std::vector< Node >& args, bool pol );
 private:
   enum{
     COMPUTE_MINISCOPING = 0,
+    COMPUTE_AGGRESSIVE_MINISCOPING,
     COMPUTE_NNF,
-    COMPUTE_PRE_SKOLEM,
+    COMPUTE_SIMPLE_ITE_LIFT,
     COMPUTE_PRENEX,
     COMPUTE_VAR_ELIMINATION,
     //COMPUTE_FLATTEN_ARGS_UF,

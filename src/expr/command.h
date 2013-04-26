@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file command.h
  ** \verbatim
- ** Original author: mdeters
+ ** Original author: Morgan Deters
  ** Major contributors: none
- ** Minor contributors (to current version): kshitij, cconway, dejan, bobot, ajreynol
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Minor contributors (to current version): Kshitij Bansal, Christopher L. Conway, Dejan Jovanovic, Francois Bobot, Andrew Reynolds
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -193,6 +193,12 @@ protected:
    */
   const CommandStatus* d_commandStatus;
 
+  /**
+   * True if this command is "muted"---i.e., don't print "success" on
+   * successful execution.
+   */
+  bool d_muted;
+
 public:
   typedef CommandPrintSuccess printsuccess;
 
@@ -208,6 +214,16 @@ public:
                         OutputLanguage language = language::output::LANG_AST) const throw();
 
   std::string toString() const throw();
+
+  /**
+   * If false, instruct this Command not to print a success message.
+   */
+  void setMuted(bool muted) throw() { d_muted = muted; }
+
+  /**
+   * Determine whether this Command will print a success message.
+   */
+  bool isMuted() throw() { return d_muted; }
 
   /**
    * Either the command hasn't run yet, or it completed successfully
@@ -401,7 +417,7 @@ public:
 
 /**
  * The command when an attribute is set by a user.  In SMT-LIBv2 this is done
- *  via the syntax (! expr :atrr)
+ *  via the syntax (! expr :attr)
  */
 class CVC4_PUBLIC SetUserAttributeCommand : public Command {
 protected:

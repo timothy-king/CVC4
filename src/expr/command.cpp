@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file command.cpp
  ** \verbatim
- ** Original author: mdeters
- ** Major contributors: bobot
- ** Minor contributors (to current version): kshitij, dejan, ajreynol
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Morgan Deters
+ ** Major contributors: Francois Bobot
+ ** Minor contributors (to current version): Kshitij Bansal, Dejan Jovanovic, Andrew Reynolds
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -74,11 +74,12 @@ ostream& operator<<(ostream& out, const CommandStatus* s) throw() {
 
 /* class Command */
 
-Command::Command() throw() : d_commandStatus(NULL) {
+Command::Command() throw() : d_commandStatus(NULL), d_muted(false) {
 }
 
 Command::Command(const Command& cmd) {
   d_commandStatus = (cmd.d_commandStatus == NULL) ? NULL : &cmd.d_commandStatus->clone();
+  d_muted = cmd.d_muted;
 }
 
 Command::~Command() throw() {
@@ -98,7 +99,9 @@ bool Command::fail() const throw() {
 
 void Command::invoke(SmtEngine* smtEngine, std::ostream& out) throw() {
   invoke(smtEngine);
-  printResult(out);
+  if(!(isMuted() && ok())) {
+    printResult(out);
+  }
 }
 
 std::string Command::toString() const throw() {
@@ -703,8 +706,12 @@ Expr SimplifyCommand::getTerm() const throw() {
 }
 
 void SimplifyCommand::invoke(SmtEngine* smtEngine) throw() {
-  d_result = smtEngine->simplify(d_term);
-  d_commandStatus = CommandSuccess::instance();
+  try {
+    d_result = smtEngine->simplify(d_term);
+    d_commandStatus = CommandSuccess::instance();
+  } catch(exception& e) {
+    d_commandStatus = new CommandFailure(e.what());
+  }
 }
 
 Expr SimplifyCommand::getResult() const throw() {

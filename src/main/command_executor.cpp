@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file command_executor.cpp
  ** \verbatim
- ** Original author: kshitij
- ** Major contributors: mdeters
+ ** Original author: Morgan Deters
+ ** Major contributors: Kshitij Bansal
  ** Minor contributors (to current version): none
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -59,7 +59,7 @@ bool CommandExecutor::doCommand(Command* cmd)
 bool CommandExecutor::doCommandSingleton(Command *cmd)
 {
   bool status = true;
-  if(d_options[options::verbosity] >= 0) {
+  if(d_options[options::verbosity] >= -1) {
     status = smtEngineInvoke(&d_smtEngine, cmd, d_options[options::out]);
   } else {
     status = smtEngineInvoke(&d_smtEngine, cmd, NULL);

@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file decision_engine.cpp
  ** \verbatim
- ** Original author: kshitij
+ ** Original author: Kshitij Bansal
  ** Major contributors: none
- ** Minor contributors (to current version): taking, mdeters
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Minor contributors (to current version): Tim King, Morgan Deters
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -29,7 +29,7 @@ using namespace std;
 namespace CVC4 {
 
 DecisionEngine::DecisionEngine(context::Context *sc,
-                                 context::Context *uc) :
+                               context::UserContext *uc) :
   d_enabledStrategies(),
   d_needIteSkolemMap(),
   d_relevancyStrategy(NULL),
@@ -96,7 +96,7 @@ bool DecisionEngine::isRelevant(SatVariable var)
 
 SatValue DecisionEngine::getPolarity(SatVariable var)
 {
-  Debug("decision") << "getPolariry(" << var <<")" << std::endl;
+  Debug("decision") << "getPolarity(" << var <<")" << std::endl;
   if(d_relevancyStrategy != NULL) {
     Assert(isRelevant(var));
     return d_relevancyStrategy->getPolarity( d_cnfStream->getNode(SatLiteral(var)) );

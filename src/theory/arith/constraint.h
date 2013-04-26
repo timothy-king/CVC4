@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file constraint.h
  ** \verbatim
- ** Original author: taking
+ ** Original author: Tim King
  ** Major contributors: none
- ** Minor contributors (to current version): mdeters
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Minor contributors (to current version): Morgan Deters
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -271,7 +271,7 @@ private:
    */
   AssertionOrder _d_assertionOrder;
   /**
-   * This is guarenteed to be on the fact queue.
+   * This is guaranteed to be on the fact queue.
    * For example if x + y = x + 1 is on the fact queue, then use this 
    */
   TNode d_witness;
@@ -489,8 +489,8 @@ public:
    * The explanation is the constant true.
    * explainInto() does nothing.
    */
-  //void setPsuedoConstraint();
-  //bool isPsuedoConstraint() const;
+  //void setPseudoConstraint();
+  //bool isPseudoConstraint() const;
 
   /**
    * Returns a explanation of the constraint that is appropriate for conflicts.
@@ -704,7 +704,7 @@ private:
    *
    * This is a special proof that is always a member of the list.
    */
-  //ProofId d_psuedoConstraintProof;
+  //ProofId d_pseudoConstraintProof;
 
   typedef context::CDList<Constraint, ConstraintValue::ProofCleanup> ProofCleanupList;
   typedef context::CDList<Constraint, ConstraintValue::CanBePropagatedCleanup> CBPList;

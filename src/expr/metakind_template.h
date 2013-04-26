@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file metakind_template.h
  ** \verbatim
- ** Original author: mdeters
+ ** Original author: Morgan Deters
  ** Major contributors: none
- ** Minor contributors (to current version): dejan
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Minor contributors (to current version): Dejan Jovanovic
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -325,6 +325,23 @@ ${metakind_ubchildren}
 
 }/* CVC4::kind::metakind namespace */
 }/* CVC4::kind namespace */
+
+#line 330 "${template}"
+
+namespace theory {
+
+static inline bool useTheoryValidate(std::string theory) {
+${use_theory_validations}
+  return false;
+}
+
+static const char *const useTheoryHelp = "\
+The following options are valid alternate implementations for use with\n\
+the --use-theory option:\n\
+\n\
+${theory_alternate_doc}";
+
+}/* CVC4::theory namespace */
 }/* CVC4 namespace */
 
 #endif /* __CVC4__NODE_MANAGER_NEEDS_CONSTANT_MAP */

@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file output_channel.h
  ** \verbatim
- ** Original author: mdeters
+ ** Original author: Morgan Deters
  ** Major contributors: none
- ** Minor contributors (to current version): taking, dejan, ajreynol
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Minor contributors (to current version): Andrew Reynolds, Dejan Jovanovic, Tim King
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -208,12 +208,20 @@ public:
    */
   virtual void spendResource() throw() {}
 
-  /** Handle user attribute
-    *   Associates theory t with the attribute attr.  Theory t will be
-    *   notifed whenever an attribute of name attr is set on a node.
-    *   This can happen through, for example, the SMT LIB v2 language.
-    */
-  virtual void handleUserAttribute( const char* attr, Theory* t ){}
+  /**
+   * Handle user attribute.
+   * Associates theory t with the attribute attr.  Theory t will be
+   * notified whenever an attribute of name attr is set on a node.
+   * This can happen through, for example, the SMT-LIBv2 language.
+   */
+  virtual void handleUserAttribute(const char* attr, Theory* t) {}
+
+
+  /** Demands that the search restart from sat search level 0.
+   * Using this leads to non-termination issues.
+   * It is appropraite for prototyping for theories.
+   */
+  virtual void demandRestart() throw(TypeCheckingExceptionPrivate, AssertionException) {}
 
 };/* class OutputChannel */
 

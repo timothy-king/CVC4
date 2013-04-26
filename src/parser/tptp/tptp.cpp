@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file tptp.cpp
  ** \verbatim
- ** Original author: bobot
+ ** Original author: Francois Bobot
  ** Major contributors: none
- ** Minor contributors (to current version): mdeters
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Minor contributors (to current version): Morgan Deters
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -151,7 +151,7 @@ void Tptp::includeFile(std::string fileName){
 
   if( d_tptpDir.empty() ){
     parseError("Couldn't open included file: " + fileName
-               + " at " + currentDirFileName + " and the TPTP directory is not specified (environnement variable TPTP)");
+               + " at " + currentDirFileName + " and the TPTP directory is not specified (environment variable TPTP)");
   };
 
   std::string tptpDirFileName = d_tptpDir + fileName;

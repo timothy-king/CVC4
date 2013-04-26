@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file interactive_shell.cpp
  ** \verbatim
- ** Original author: cconway
- ** Major contributors: mdeters
- ** Minor contributors (to current version): bobot
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Christopher L. Conway
+ ** Major contributors: Morgan Deters
+ ** Minor contributors (to current version): Francois Bobot
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -162,9 +162,15 @@ InteractiveShell::~InteractiveShell() {
 }
 
 Command* InteractiveShell::readCommand() {
+  char* lineBuf = NULL;
+  string line = "";
+
+restart:
+
   /* Don't do anything if the input is closed or if we've seen a
    * QuitCommand. */
-  if( d_in.eof() || d_quit ) {
+  if(d_in.eof() || d_quit) {
+    d_out << endl;
     return NULL;
   }
 
@@ -173,30 +179,32 @@ Command* InteractiveShell::readCommand() {
     throw ParserException("Interactive input broken.");
   }
 
-  char* lineBuf = NULL;
-  string input;
-  stringbuf sb;
-  string line;
-
   /* Prompt the user for input. */
   if(d_usingReadline) {
 #if HAVE_LIBREADLINE
-    lineBuf = ::readline(d_options[options::verbosity] >= 0 ? "CVC4> " : "");
+    lineBuf = ::readline(d_options[options::verbosity] >= 0 ? (line == "" ? "CVC4> " : "... > ") : "");
     if(lineBuf != NULL && lineBuf[0] != '\0') {
       ::add_history(lineBuf);
     }
-    line = lineBuf == NULL ? "" : lineBuf;
+    line += lineBuf == NULL ? "" : lineBuf;
     free(lineBuf);
 #endif /* HAVE_LIBREADLINE */
   } else {
     if(d_options[options::verbosity] >= 0) {
-      d_out << "CVC4> " << flush;
+      if(line == "") {
+        d_out << "CVC4> " << flush;
+      } else {
+        d_out << "... > " << flush;
+      }
     }
 
     /* Read a line */
-    d_in.get(sb,'\n');
-    line = sb.str();
+    stringbuf sb;
+    d_in.get(sb);
+    line += sb.str();
   }
+
+  string input = "";
   while(true) {
     Debug("interactive") << "Input now '" << input << line << "'" << endl << flush;
 
@@ -221,20 +229,24 @@ Command* InteractiveShell::readCommand() {
         (d_usingReadline && lineBuf == NULL) ) {
       input += line;
 
-      if( input.empty() ) {
+      if(input.empty()) {
         /* Nothing left to parse. */
+        d_out << endl;
         return NULL;
       }
 
       /* Some input left to parse, but nothing left to read.
          Jump out of input loop. */
-      break;
+      d_out << endl;
+      input = line = "";
+      d_in.clear();
+      goto restart;
     }
 
     if(!d_usingReadline) {
       /* Extract the newline delimiter from the stream too */
       int c CVC4_UNUSED = d_in.get();
-      assert( c == '\n' );
+      assert(c == '\n');
       Debug("interactive") << "Next char is '" << (char)c << "'" << endl << flush;
     }
 
@@ -259,7 +271,8 @@ Command* InteractiveShell::readCommand() {
         }
 
         /* Read a line */
-        d_in.get(sb,'\n');
+        stringbuf sb;
+        d_in.get(sb);
         line = sb.str();
       }
     } else {
@@ -296,6 +309,9 @@ Command* InteractiveShell::readCommand() {
 #endif /* HAVE_LIBREADLINE */
       }
     }
+  } catch(ParserEndOfFileException& pe) {
+    line += "\n";
+    goto restart;
   } catch(ParserException& pe) {
     d_out << pe << endl;
     // We can't really clear out the sequence and abort the current line,

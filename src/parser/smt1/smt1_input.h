@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file smt1_input.h
  ** \verbatim
- ** Original author: cconway
- ** Major contributors: mdeters
+ ** Original author: Morgan Deters
+ ** Major contributors: Christopher L. Conway
  ** Minor contributors (to current version): none
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -66,8 +66,7 @@ protected:
    *
    * @throws ParserException if an error is encountered during parsing.
    */
-  Command* parseCommand()
-    throw(ParserException, TypeCheckingException);
+  Command* parseCommand();
 
   /**
    * Parse an expression from the input. Returns a null
@@ -75,8 +74,7 @@ protected:
    *
    * @throws ParserException if an error is encountered during parsing.
    */
-  Expr parseExpr()
-    throw(ParserException, TypeCheckingException);
+  Expr parseExpr();
 
 private:
 

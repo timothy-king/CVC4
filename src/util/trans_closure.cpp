@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file trans_closure.cpp
  ** \verbatim
- ** Original author: barrett
- ** Major contributors: ajreynol
- ** Minor contributors (to current version): dejan, mdeters
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Clark Barrett
+ ** Major contributors: Andrew Reynolds
+ ** Minor contributors (to current version): Dejan Jovanovic, Morgan Deters
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **

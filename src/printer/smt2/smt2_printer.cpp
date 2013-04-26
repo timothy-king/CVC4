@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file smt2_printer.cpp
  ** \verbatim
- ** Original author: mdeters
+ ** Original author: Morgan Deters
  ** Major contributors: none
- ** Minor contributors (to current version): dejan, taking, lianah, bobot, ajreynol
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Minor contributors (to current version): Dejan Jovanovic, lianah, Tim King, Liana Hadarean, Francois Bobot, Andrew Reynolds
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -27,8 +27,10 @@
 #include "theory/substitutions.h"
 #include "util/language.h"
 #include "smt/smt_engine.h"
+#include "smt/options.h"
 
 #include "theory/model.h"
+#include "theory/arrays/theory_arrays_rewriter.h"
 
 using namespace std;
 
@@ -72,6 +74,17 @@ void Smt2Printer::toStream(std::ostream& out, TNode n,
   }
 }
 
+static std::string maybeQuoteSymbol(const std::string& s) {
+  // this is the set of SMT-LIBv2 permitted characters in "simple" (non-quoted) symbols
+  if(s.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789~!@$%^&*_-+=<>.?/") != string::npos) {
+    // need to quote it
+    stringstream ss;
+    ss << '|' << s << '|';
+    return ss.str();
+  }
+  return s;
+}
+
 void Smt2Printer::toStream(std::ostream& out, TNode n,
                            int toDepth, bool types) const throw() {
   // null
@@ -84,7 +97,7 @@ void Smt2Printer::toStream(std::ostream& out, TNode n,
   if(n.isVar()) {
     string s;
     if(n.getAttribute(expr::VarNameAttr(), s)) {
-      out << s;
+      out << maybeQuoteSymbol(s);
     } else {
       if(n.getKind() == kind::VARIABLE) {
         out << "var_";
@@ -173,7 +186,7 @@ void Smt2Printer::toStream(std::ostream& out, TNode n,
       break;
 
     case kind::DATATYPE_TYPE:
-      out << n.getConst<Datatype>().getName();
+      out << maybeQuoteSymbol(n.getConst<Datatype>().getName());
       break;
 
     case kind::UNINTERPRETED_CONSTANT: {
@@ -194,7 +207,7 @@ void Smt2Printer::toStream(std::ostream& out, TNode n,
   if(n.getKind() == kind::SORT_TYPE) {
     string name;
     if(n.getAttribute(expr::VarNameAttr(), name)) {
-      out << name;
+      out << maybeQuoteSymbol(name);
       return;
     }
   }
@@ -493,10 +506,10 @@ void Smt2Printer::toStream(std::ostream& out, const Command* c,
      tryToStream<QuitCommand>(out, c) ||
      tryToStream<CommandSequence>(out, c) ||
      tryToStream<DeclareFunctionCommand>(out, c) ||
-     tryToStream<DefineFunctionCommand>(out, c) ||
      tryToStream<DeclareTypeCommand>(out, c) ||
      tryToStream<DefineTypeCommand>(out, c) ||
      tryToStream<DefineNamedFunctionCommand>(out, c) ||
+     tryToStream<DefineFunctionCommand>(out, c) ||
      tryToStream<SimplifyCommand>(out, c) ||
      tryToStream<GetValueCommand>(out, c) ||
      tryToStream<GetModelCommand>(out, c) ||
@@ -552,21 +565,30 @@ void Smt2Printer::toStream(std::ostream& out, Model& m, const Command* c) const 
   theory::TheoryModel& tm = (theory::TheoryModel&) m;
   if(dynamic_cast<const DeclareTypeCommand*>(c) != NULL) {
     TypeNode tn = TypeNode::fromType( ((const DeclareTypeCommand*)c)->getType() );
-    if( tn.isSort() ){
-      //print the cardinality
-      if( tm.d_rep_set.d_type_reps.find( tn )!=tm.d_rep_set.d_type_reps.end() ){
-        out << "; cardinality of " << tn << " is " << (*tm.d_rep_set.d_type_reps.find(tn)).second.size() << std::endl;
+    if( options::modelUninterpDtEnum() && tn.isSort() &&
+        tm.d_rep_set.d_type_reps.find( tn )!=tm.d_rep_set.d_type_reps.end() ){
+      out << "(declare-datatypes () ((" << dynamic_cast<const DeclareTypeCommand*>(c)->getSymbol() << " ";
+      for( size_t i=0; i<(*tm.d_rep_set.d_type_reps.find(tn)).second.size(); i++ ){
+        out << "(" << (*tm.d_rep_set.d_type_reps.find(tn)).second[i] << ")";
       }
-    }
-    out << c << std::endl;
-    if( tn.isSort() ){
-      //print the representatives
-      if( tm.d_rep_set.d_type_reps.find( tn )!=tm.d_rep_set.d_type_reps.end() ){
-        for( size_t i=0; i<(*tm.d_rep_set.d_type_reps.find(tn)).second.size(); i++ ){
-          if( (*tm.d_rep_set.d_type_reps.find(tn)).second[i].isVar() ){
-            out << "(declare-fun " << (*tm.d_rep_set.d_type_reps.find(tn)).second[i] << " () " << tn << ")" << std::endl;
-          }else{
-            out << "; rep: " << (*tm.d_rep_set.d_type_reps.find(tn)).second[i] << std::endl;
+      out << ")))" << std::endl;
+    } else {
+      if( tn.isSort() ){
+        //print the cardinality
+        if( tm.d_rep_set.d_type_reps.find( tn )!=tm.d_rep_set.d_type_reps.end() ){
+          out << "; cardinality of " << tn << " is " << (*tm.d_rep_set.d_type_reps.find(tn)).second.size() << std::endl;
+        }
+      }
+      out << c << std::endl;
+      if( tn.isSort() ){
+        //print the representatives
+        if( tm.d_rep_set.d_type_reps.find( tn )!=tm.d_rep_set.d_type_reps.end() ){
+          for( size_t i=0; i<(*tm.d_rep_set.d_type_reps.find(tn)).second.size(); i++ ){
+            if( (*tm.d_rep_set.d_type_reps.find(tn)).second[i].isVar() ){
+              out << "(declare-fun " << (*tm.d_rep_set.d_type_reps.find(tn)).second[i] << " () " << tn << ")" << std::endl;
+            }else{
+              out << "; rep: " << (*tm.d_rep_set.d_type_reps.find(tn)).second[i] << std::endl;
+            }
           }
         }
       }
@@ -583,6 +605,13 @@ void Smt2Printer::toStream(std::ostream& out, Model& m, const Command* c) const 
           << " " << n.getType().getRangeType()
           << " " << val[1] << ")" << std::endl;
     } else {
+      if( options::modelUninterpDtEnum() && val.getKind() == kind::STORE ) {
+        TypeNode tn = val[1].getType();
+        if (tn.isSort() && tm.d_rep_set.d_type_reps.find( tn )!=tm.d_rep_set.d_type_reps.end() ){
+          Cardinality indexCard((*tm.d_rep_set.d_type_reps.find(tn)).second.size());
+          val = theory::arrays::TheoryArraysRewriter::normalizeConstant( val, indexCard );
+        }
+      }
       out << "(define-fun " << n << " () "
           << n.getType() << " " << val << ")" << std::endl;
     }

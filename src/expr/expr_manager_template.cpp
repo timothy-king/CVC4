@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file expr_manager_template.cpp
  ** \verbatim
- ** Original author: dejan
- ** Major contributors: cconway, mdeters
- ** Minor contributors (to current version): kshitij, ajreynol
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Morgan Deters
+ ** Major contributors: Dejan Jovanovic, Christopher L. Conway
+ ** Minor contributors (to current version): Kshitij Bansal, Andrew Reynolds
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -936,7 +936,7 @@ TypeNode exportTypeInternal(TypeNode n, NodeManager* from, NodeManager* to, Expr
       ("export of types belonging to theory of DATATYPES kinds unsupported");
   }
   if(n.getMetaKind() == kind::metakind::PARAMETERIZED &&
-     n.getKind() != kind::SORT_TYPE) { 
+     n.getKind() != kind::SORT_TYPE) {
     throw ExportUnsupportedException
       ("export of PARAMETERIZED-kinded types (other than SORT_KIND) not supported");
   }

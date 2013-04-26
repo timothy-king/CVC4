@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file input.h
  ** \verbatim
- ** Original author: cconway
- ** Major contributors: mdeters
- ** Minor contributors (to current version): bobot
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Christopher L. Conway
+ ** Major contributors: Morgan Deters
+ ** Minor contributors (to current version): Francois Bobot
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -168,8 +168,7 @@ protected:
    *
    * @throws ParserException if an error is encountered during parsing.
    */
-  virtual Command* parseCommand()
-    throw (ParserException, TypeCheckingException) = 0;
+  virtual Command* parseCommand() = 0;
 
   /**
    * Issue a warning to the user, with source file, line, and column info.
@@ -179,7 +178,7 @@ protected:
   /**
    * Throws a <code>ParserException</code> with the given message.
    */
-  virtual void parseError(const std::string& msg)
+  virtual void parseError(const std::string& msg, bool eofException = false)
     throw (ParserException) = 0;
 
   /** Parse an expression from the input by invoking the
@@ -188,8 +187,7 @@ protected:
    *
    * @throws ParserException if an error is encountered during parsing.
    */
-  virtual Expr parseExpr()
-    throw (ParserException, TypeCheckingException) = 0;
+  virtual Expr parseExpr() = 0;
 
   /** Set the Parser object for this input. */
   virtual void setParser(Parser& parser) = 0;

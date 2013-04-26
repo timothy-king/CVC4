@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file bounded_token_buffer.cpp
  ** \verbatim
- ** Original author: cconway
+ ** Original author: Christopher L. Conway
  ** Major contributors: none
- ** Minor contributors (to current version): mdeters
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Minor contributors (to current version): Morgan Deters
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -473,9 +473,11 @@ static pANTLR3_COMMON_TOKEN nextToken(pBOUNDED_TOKEN_BUFFER buffer) {
 
   tokenStream = buffer->commonTstream;
 
+  /*
   if( buffer->done == ANTLR3_TRUE ) {
     return &(tokenStream->tstream->tokenSource->eofToken);
   }
+  */
 
   /* Pick out the next token from the token source
    * Remember we just get a pointer (reference if you like) here
@@ -512,7 +514,7 @@ static pANTLR3_COMMON_TOKEN nextToken(pBOUNDED_TOKEN_BUFFER buffer) {
 }
 
 
-/// Return a string that represents the name assoicated with the input source
+/// Return a string that represents the name associated with the input source
 ///
 /// /param[in] is The ANTLR3_INT_STREAM interface that is representing this token stream.
 ///

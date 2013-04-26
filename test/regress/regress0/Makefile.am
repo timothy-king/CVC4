@@ -37,7 +37,8 @@ SMT_TESTS = \
 	simple2.smt \
 	simple-lra.smt \
 	simple-rdl.smt \
-	simple-uf.smt
+	simple-uf.smt \
+	constant-rewrite.smt
 
 # Regression tests for SMT2 inputs
 SMT2_TESTS = \
@@ -113,6 +114,7 @@ TPTP_TESTS = \
 
 # Regression tests derived from bug reports
 BUG_TESTS = \
+	smt2output.smt2 \
 	bug32.cvc \
 	bug49.smt \
 	bug161.smt \
@@ -144,7 +146,9 @@ BUG_TESTS = \
 	bug421b.smt2 \
 	bug425.cvc \
 	bug480.smt2 \
-	bug486.cvc
+	bug484.smt2 \
+	bug486.cvc \
+	bug497.cvc
 
 TESTS =	$(SMT_TESTS) $(SMT2_TESTS) $(CVC_TESTS) $(TPTP_TESTS) $(BUG_TESTS)
 

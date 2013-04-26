@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file inst_match.cpp
  ** \verbatim
- ** Original author: ajreynol
- ** Major contributors: bobot
- ** Minor contributors (to current version): barrett, mdeters
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Morgan Deters
+ ** Major contributors: Andrew Reynolds
+ ** Minor contributors (to current version): Clark Barrett, Francois Bobot
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -103,12 +103,12 @@ void InstMatch::makeComplete( Node f, QuantifiersEngine* qe ){
   }
 }
 
-void InstMatch::makeInternalRepresentative( QuantifiersEngine* qe ){
-  EqualityQueryQuantifiersEngine* eqqe = (EqualityQueryQuantifiersEngine*)qe->getEqualityQuery();
-  for( std::map< Node, Node >::iterator it = d_map.begin(); it != d_map.end(); ++it ){
-    d_map[ it->first ] = eqqe->getInternalRepresentative( it->second );
-  }
-}
+//void InstMatch::makeInternalRepresentative( QuantifiersEngine* qe ){
+//  EqualityQueryQuantifiersEngine* eqqe = (EqualityQueryQuantifiersEngine*)qe->getEqualityQuery();
+//  for( std::map< Node, Node >::iterator it = d_map.begin(); it != d_map.end(); ++it ){
+//    d_map[ it->first ] = eqqe->getInternalRepresentative( it->second );
+//  }
+//}
 
 void InstMatch::makeRepresentative( QuantifiersEngine* qe ){
   for( std::map< Node, Node >::iterator it = d_map.begin(); it != d_map.end(); ++it ){
@@ -140,7 +140,7 @@ void InstMatch::set(TNode var, TNode n){
   	//var.getType() == n.getType()
   	!n.getType().isSubtypeOf( var.getType() ) ){
     Trace("inst-match-warn") << var.getAttribute(InstConstantAttribute()) << std::endl;
-    Trace("inst-match-warn") << var << " " << var.getType() << n << " " << n.getType() << std::endl ;
+    Trace("inst-match-warn") << var << " " << var.getType() << " " << n << " " << n.getType() << std::endl ;
     Assert(false);
   }
   d_map[var] = n;

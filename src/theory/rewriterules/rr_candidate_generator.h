@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file rr_candidate_generator.h
  ** \verbatim
- ** Original author: ajreynol
- ** Major contributors: none
- ** Minor contributors (to current version): mdeters
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Morgan Deters
+ ** Major contributors: Andrew Reynolds, Francois Bobot
+ ** Minor contributors (to current version): none
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -32,7 +32,7 @@ typedef CVC4::theory::rrinst::CandidateGenerator CandidateGenerator;
 
 //New CandidateGenerator. They have a simpler semantic than the old one
 
-// Just iterate amoung the equivalence classes
+// Just iterate among the equivalence classes
 // node::Null() must be given to reset
 class CandidateGeneratorTheoryEeClasses : public CandidateGenerator{
 private:
@@ -54,7 +54,7 @@ public:
   };
 };
 
-// Just iterate amoung the equivalence class of the given node
+// Just iterate among the equivalence class of the given node
 // node::Null() *can't* be given to reset
 class CandidateGeneratorTheoryEeClass : public CandidateGenerator{
 private:

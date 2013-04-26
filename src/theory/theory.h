@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file theory.h
  ** \verbatim
- ** Original author: mdeters
- ** Major contributors: dejan
- ** Minor contributors (to current version): bobot, taking, barrett, ajreynol
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Morgan Deters
+ ** Major contributors: Dejan Jovanovic
+ ** Minor contributors (to current version): Francois Bobot, Tim King, Andrew Reynolds, Clark Barrett
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -514,6 +514,11 @@ public:
    * sub-theories to enable more efficient theory-combination.
    */
   virtual EqualityStatus getEqualityStatus(TNode a, TNode b) { return EQUALITY_UNKNOWN; }
+
+  /**
+   * Return the model value of the give shared term (or null if not avalilable.
+   */
+  virtual Node getModelValue(TNode var) { return Node::null(); }
 
   /**
    * Check the current assignment's consistency.

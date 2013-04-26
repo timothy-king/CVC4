@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file theory_quantifiers.cpp
  ** \verbatim
- ** Original author: ajreynol
+ ** Original author: Morgan Deters
  ** Major contributors: none
- ** Minor contributors (to current version): bobot, mdeters
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Minor contributors (to current version): Dejan Jovanovic, Andrew Reynolds
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -92,12 +92,14 @@ Node TheoryQuantifiers::getValue(TNode n) {
   }
 }
 
-void TheoryQuantifiers::collectModelInfo( TheoryModel* m, bool fullModel ){
-  if( fullModel ){
+void TheoryQuantifiers::collectModelInfo(TheoryModel* m, bool fullModel) {
+  if(fullModel) {
     for(assertions_iterator i = facts_begin(); i != facts_end(); ++i) {
       if((*i).assertion.getKind() == kind::NOT) {
+        Debug("quantifiers::collectModelInfo") << "got quant FALSE: " << (*i).assertion[0] << endl;
         m->assertPredicate((*i).assertion[0], false);
       } else {
+        Debug("quantifiers::collectModelInfo") << "got quant TRUE : " << *i << endl;
         m->assertPredicate(*i, true);
       }
     }

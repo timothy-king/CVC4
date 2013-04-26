@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file model_postprocessor.h
  ** \verbatim
- ** Original author: mdeters
+ ** Original author: Morgan Deters
  ** Major contributors: none
  ** Minor contributors (to current version): none
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -25,9 +25,12 @@ namespace CVC4 {
 namespace smt {
 
 class ModelPostprocessor {
+  std::hash_map<TNode, Node, TNodeHashFunction> d_nodes;
+
 public:
   typedef Node return_type;
-  std::hash_map<TNode, Node, TNodeHashFunction> d_nodes;
+
+  Node rewriteAs(TNode n, TypeNode asType);
 
   bool alreadyVisited(TNode current, TNode parent) {
     return d_nodes.find(current) != d_nodes.end();

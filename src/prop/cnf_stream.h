@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file cnf_stream.h
  ** \verbatim
- ** Original author: taking
- ** Major contributors: mdeters, dejan
- ** Minor contributors (to current version): barrett, lianah, cconway
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Tim King
+ ** Major contributors: Morgan Deters, Dejan Jovanovic
+ ** Minor contributors (to current version): Clark Barrett, Liana Hadarean, Christopher L. Conway
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -146,11 +146,12 @@ protected:
    * Acquires a new variable from the SAT solver to represent the node
    * and inserts the necessary data it into the mapping tables.
    * @param node a formula
-   * @param theoryLiteral whether this literal a theory literal (and
-   * therefore the theory is to be informed when set to true/false)
+   * @param isTheoryAtom is this a theory atom that needs to be asserted to theory
+   * @param preRegister whether to preregister the atom with the theory
+   * @param canEliminate whether the sat solver can safely eliminate this variable
    * @return the literal corresponding to the formula
    */
-  SatLiteral newLiteral(TNode node, bool theoryLiteral = false);
+  SatLiteral newLiteral(TNode node, bool isTheoryAtom = false, bool preRegister = false, bool canEliminate = true);
 
   /**
    * Constructs a new literal for an atom and returns it.  Calls

@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file theory_bv.h
  ** \verbatim
- ** Original author: mdeters
- ** Major contributors: dejan, lianah
- ** Minor contributors (to current version): barrett, ajreynol
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Morgan Deters
+ ** Major contributors: lianah, Dejan Jovanovic, Liana Hadarean
+ ** Minor contributors (to current version): Clark Barrett, Tim King, Andrew Reynolds
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -25,14 +25,15 @@
 #include "context/cdhashset.h"
 #include "theory/bv/theory_bv_utils.h"
 #include "util/statistics_registry.h"
-#include "context/cdqueue.h"
 #include "theory/bv/bv_subtheory.h"
-#include "theory/bv/bv_subtheory_eq.h"
-#include "theory/bv/bv_subtheory_bitblast.h"
 
 namespace CVC4 {
 namespace theory {
 namespace bv {
+
+class CoreSolver;
+class InequalitySolver;
+class BitblastSolver; 
 
 class TheoryBV : public Theory {
 
@@ -42,9 +43,9 @@ class TheoryBV : public Theory {
   /** Context dependent set of atoms we already propagated */
   context::CDHashSet<Node, NodeHashFunction> d_alreadyPropagatedSet;
   context::CDHashSet<Node, NodeHashFunction> d_sharedTermsSet;
-
-  BitblastSolver d_bitblastSolver;
-  EqualitySolver d_equalitySolver;
+  
+  std::vector<SubtheorySolver*> d_subtheories;
+  __gnu_cxx::hash_map<SubTheory, SubtheorySolver*, std::hash<int> > d_subtheoryMap; 
 public:
 
   TheoryBV(context::Context* c, context::UserContext* u, OutputChannel& out, Valuation valuation, const LogicInfo& logicInfo, QuantifiersEngine* qe);
@@ -67,6 +68,7 @@ public:
   PPAssertStatus ppAssert(TNode in, SubstitutionMap& outSubstitutions);
   Node ppRewrite(TNode t);
 
+  void presolve();
 private:
 
   class Statistics {
@@ -74,6 +76,8 @@ private:
     AverageStat d_avgConflictSize;
     IntStat     d_solveSubstitutions;
     TimerStat   d_solveTimer;
+    IntStat d_numCallsToCheckFullEffort;
+    IntStat d_numCallsToCheckStandardEffort; 
     Statistics();
     ~Statistics();
   };
@@ -99,10 +103,14 @@ private:
   typedef context::CDHashMap<Node, SubTheory, NodeHashFunction> PropagatedMap;
   PropagatedMap d_propagatedBy;
 
-  bool propagatedBy(TNode literal, SubTheory subtheory) const {
+  bool wasPropagatedBySubtheory(TNode literal) const {
+    return d_propagatedBy.find(literal) != d_propagatedBy.end(); 
+  }
+  
+  SubTheory getPropagatingSubtheory(TNode literal) const {
+    Assert(wasPropagatedBySubtheory(literal)); 
     PropagatedMap::const_iterator find = d_propagatedBy.find(literal);
-    if (find == d_propagatedBy.end()) return false;
-    else return (*find).second == subtheory;
+    return (*find).second;
   }
 
   /** Should be called to propagate the literal.  */
@@ -115,7 +123,11 @@ private:
 
   void addSharedTerm(TNode t);
 
+  bool isSharedTerm(TNode t) { return d_sharedTermsSet.contains(t); }
+  
   EqualityStatus getEqualityStatus(TNode a, TNode b);
+
+  Node getModelValue(TNode var);
 
   inline std::string indent()
   {
@@ -134,10 +146,13 @@ private:
 
   void sendConflict();
 
+  void lemma(TNode node) { d_out->lemma(node); }
+  
   friend class Bitblaster;
   friend class BitblastSolver;
   friend class EqualitySolver;
-
+  friend class CoreSolver;
+  friend class InequalitySolver; 
 };/* class TheoryBV */
 
 }/* CVC4::theory::bv namespace */

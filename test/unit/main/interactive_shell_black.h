@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file interactive_shell_black.h
  ** \verbatim
- ** Original author: cconway
+ ** Original author: Christopher L. Conway
  ** Major contributors: none
- ** Minor contributors (to current version): mdeters
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Minor contributors (to current version): Morgan Deters
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -69,13 +69,13 @@ private:
   }
 
   void testAssertTrue() {
-    *d_sin << "ASSERT TRUE;" << flush;
+    *d_sin << "ASSERT TRUE;\n" << flush;
     InteractiveShell shell(*d_exprManager, d_options);
     countCommands( shell, 1, 1 );
   }
 
   void testQueryFalse() {
-    *d_sin << "QUERY FALSE;" << flush;
+    *d_sin << "QUERY FALSE;\n" << flush;
     InteractiveShell shell(*d_exprManager, d_options);
     countCommands( shell, 1, 1 );
   }

@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file driver_unified.cpp
  ** \verbatim
- ** Original author: kshitij
- ** Major contributors: mdeters
- ** Minor contributors (to current version): none
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Kshitij Bansal
+ ** Major contributors: Morgan Deters
+ ** Minor contributors (to current version): Francois Bobot
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -26,6 +26,7 @@
 #include "cvc4autoconfig.h"
 #include "main/main.h"
 #include "main/interactive_shell.h"
+#include "main/options.h"
 #include "parser/parser.h"
 #include "parser/parser_builder.h"
 #include "parser/parser_exception.h"
@@ -187,17 +188,22 @@ int runCvc4(int argc, char* argv[], Options& opts) {
   DumpChannel.getStream() << Expr::setlanguage(opts[options::outputLanguage]);
 
   // Create the expression manager using appropriate options
+  ExprManager* exprMgr;
 # ifndef PORTFOLIO_BUILD
-  ExprManager* exprMgr = new ExprManager(opts);
-# else
-  vector<Options> threadOpts = parseThreadSpecificOptions(opts);
-  ExprManager* exprMgr = new ExprManager(threadOpts[0]);
-# endif
-
-# ifndef PORTFOLIO_BUILD
+  exprMgr = new ExprManager(opts);
   pExecutor = new CommandExecutor(*exprMgr, opts);
 # else
-  pExecutor = new CommandExecutorPortfolio(*exprMgr, opts, threadOpts);
+  vector<Options> threadOpts = parseThreadSpecificOptions(opts);
+  if(opts[options::incrementalSolving] && !opts[options::incrementalParallel]) {
+    Notice() << "Notice: In --incremental mode, using the sequential solver unless forced by...\n"
+             << "Notice: ...the experimental --incremental-parallel option.\n";
+    exprMgr = new ExprManager(opts);
+    pExecutor = new CommandExecutor(*exprMgr, opts);
+  }
+  else {
+    exprMgr = new ExprManager(threadOpts[0]);
+    pExecutor = new CommandExecutorPortfolio(*exprMgr, opts, threadOpts);
+  }
 # endif
 
   Parser* replayParser = NULL;
@@ -229,11 +235,20 @@ int runCvc4(int argc, char* argv[], Options& opts) {
     // Parse and execute commands until we are done
     Command* cmd;
     bool status = true;
-    if( opts[options::interactive] ) {
+    if(opts[options::interactive]) {
+#ifndef PORTFOLIO_BUILD
+      if(!opts.wasSetByUser(options::incrementalSolving)) {
+        cmd = new SetOptionCommand("incremental", true);
+        pExecutor->doCommand(cmd);
+        delete cmd;
+      }
+#endif /* PORTFOLIO_BUILD */
       InteractiveShell shell(*exprMgr, opts);
       Message() << Configuration::getPackageName()
                 << " " << Configuration::getVersionString();
-      if(Configuration::isSubversionBuild()) {
+      if(Configuration::isGitBuild()) {
+        Message() << " [" << Configuration::getGitId() << "]";
+      } else if(Configuration::isSubversionBuild()) {
         Message() << " [" << Configuration::getSubversionId() << "]";
       }
       Message() << (Configuration::isDebugBuild() ? " DEBUG" : "")

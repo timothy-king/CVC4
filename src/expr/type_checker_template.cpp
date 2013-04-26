@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file type_checker_template.cpp
  ** \verbatim
- ** Original author: mdeters
+ ** Original author: Morgan Deters
  ** Major contributors: none
- ** Minor contributors (to current version): dejan
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Minor contributors (to current version): lianah
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -39,10 +39,13 @@ TypeNode TypeChecker::computeType(NodeManager* nodeManager, TNode n, bool check)
   case kind::BUILTIN:
     typeNode = nodeManager->builtinOperatorType();
     break;
+  case kind::BITVECTOR_EXTRACT_OP :
+    typeNode = nodeManager->builtinOperatorType();
+    break; 
 
 ${typerules}
 
-#line 46 "${template}"
+#line 49 "${template}"
 
   default:
     Debug("getType") << "FAILURE" << std::endl;
@@ -65,7 +68,7 @@ bool TypeChecker::computeIsConst(NodeManager* nodeManager, TNode n)
   switch(n.getKind()) {
 ${construles}
 
-#line 69 "${template}"
+#line 72 "${template}"
 
   default:;
   }

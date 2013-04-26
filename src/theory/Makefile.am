@@ -1,9 +1,9 @@
 AM_CPPFLAGS = \
 	-D__BUILDING_CVC4LIB \
-	-I@srcdir@/../include -I@srcdir@/.. -I@builddir@/..
+	-I@builddir@/.. -I@srcdir@/../include -I@srcdir@/..
 AM_CXXFLAGS = -Wall -Wno-unknown-pragmas $(FLAG_VISIBILITY_HIDDEN)
 
-SUBDIRS = builtin booleans uf arith arrays bv datatypes quantifiers rewriterules
+SUBDIRS = builtin booleans uf arith bv arrays datatypes quantifiers rewriterules
 DIST_SUBDIRS = $(SUBDIRS) example
 
 noinst_LTLIBRARIES = libtheory.la

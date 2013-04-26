@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file bitblaster.h
  ** \verbatim
- ** Original author: lianah
+ ** Original author: Liana Hadarean
  ** Major contributors: none
- ** Minor contributors (to current version): mdeters, dejan
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Minor contributors (to current version): lianah, Morgan Deters, Dejan Jovanovic
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -124,7 +124,8 @@ class Bitblaster {
   // division is bitblasted in terms of constraints
   // so it needs to use private bitblaster interface
   void bbUdiv(TNode node, Bits& bits);
-  void bbUrem(TNode node, Bits& bits); 
+  void bbUrem(TNode node, Bits& bits);
+  bool hasValue(TNode a); 
 public:
   void cacheTermDef(TNode node, Bits def); // public so we can cache remainder for division
   void bbTerm(TNode node, Bits&  bits);
@@ -164,9 +165,9 @@ public:
   }
 
   bool isSharedTerm(TNode node);
-private:
 
-  
+private:
+ 
   class Statistics {
   public:
     IntStat d_numTermClauses, d_numAtomClauses;

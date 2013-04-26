@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file options_handlers.h
  ** \verbatim
- ** Original author: mdeters
- ** Major contributors: ajreynol
+ ** Original author: Morgan Deters
+ ** Major contributors: Andrew Reynolds
  ** Minor contributors (to current version): none
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -29,10 +29,10 @@ namespace quantifiers {
 static const std::string instWhenHelp = "\
 Modes currently supported by the --inst-when option:\n\
 \n\
-full\n\
+full (default)\n\
 + Run instantiation round at full effort, before theory combination.\n\
 \n\
-full-last-call (default)\n\
+full-last-call\n\
 + Alternate running instantiation rounds at full effort and last\n\
   call.  In other words, interleave instantiation and theory combination.\n\
 \n\

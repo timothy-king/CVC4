@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file options_handlers.h
  ** \verbatim
- ** Original author: mdeters
+ ** Original author: Morgan Deters
  ** Major contributors: none
  ** Minor contributors (to current version): none
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -18,6 +18,8 @@
 
 #ifndef __CVC4__THEORY__OPTIONS_HANDLERS_H
 #define __CVC4__THEORY__OPTIONS_HANDLERS_H
+
+#include "expr/metakind.h"
 
 namespace CVC4 {
 namespace theory {
@@ -43,6 +45,21 @@ inline TheoryOfMode stringToTheoryOfMode(std::string option, std::string optarg,
   } else {
     throw OptionException(std::string("unknown option for --theoryof-mode: `") +
                           optarg + "'.  Try --theoryof-mode help.");
+  }
+}
+
+inline void useTheory(std::string option, std::string optarg, SmtEngine* smt) {
+  if(optarg == "help") {
+    puts(useTheoryHelp);
+    exit(1);
+  }
+  if(useTheoryValidate(optarg)) {
+    std::map<std::string, bool> m = options::theoryAlternates();
+    m[optarg] = true;
+    options::theoryAlternates.set(m);
+  } else {
+    throw OptionException(std::string("unknown option for ") + option + ": `" +
+                          optarg + "'.  Try --use-theory help.");
   }
 }
 

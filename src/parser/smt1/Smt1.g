@@ -1,10 +1,11 @@
+/* *******************                                                        */
 /*! \file Smt1.g
  ** \verbatim
- ** Original author: cconway
- ** Major contributors: dejan, mdeters
- ** Minor contributors (to current version): ajreynol, taking
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Morgan Deters
+ ** Major contributors: Dejan Jovanovic, Christopher L. Conway
+ ** Minor contributors (to current version): Andrew Reynolds, Tim King
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -30,10 +31,8 @@ options {
 
 @header {
 /**
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009, 2010, 2011  The Analysis of Computer Systems Group (ACSys)
- ** Courant Institute of Mathematical Sciences
- ** New York University
+ ** This file is part of CVC4.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.
  **/
@@ -314,6 +313,10 @@ annotatedFormula[CVC4::Expr& expr]
       expr = MK_CONST( AntlrInput::tokenToRational($RATIONAL_TOK) ); }
   | n = BITVECTOR_BV_CONST '[' size = NUMERAL_TOK ']'
     { expr = MK_CONST( AntlrInput::tokenToBitvector($n, $size) ); }
+  | n = BITVECTOR1_BV_CONST
+    { unsigned int bit = AntlrInput::tokenText($n)[3] - '0';
+      expr = MK_CONST( BitVector(1, bit) );
+    }
     // NOTE: Theory constants go here
     /* TODO: quantifiers, arithmetic constants */
 
@@ -746,6 +749,13 @@ BITVECTOR_BV_CONST
   : 'bv' DIGIT+
   ;
 
+/**
+ * Matches a bit-vector constant of the form bit(0|1)
+ */
+BITVECTOR1_BV_CONST
+  : 'bit0' | 'bit1'
+  ;
+
 
 /**
  * Matches an identifier from the input. An identifier is a sequence of letters,
@@ -783,7 +793,15 @@ FLET_IDENTIFIER
  */
 userValue[std::string& s]
   : USER_VALUE
-    { s = AntlrInput::tokenText($USER_VALUE); }
+    { s = AntlrInput::tokenText($USER_VALUE);
+      assert(*s.begin() == '{');
+      assert(*s.rbegin() == '}');
+      // trim whitespace
+      s.erase(s.begin(), s.begin() + 1);
+      s.erase(s.begin(), std::find_if(s.begin(), s.end(), std::not1(std::ptr_fun<int, int>(std::isspace))));
+      s.erase(s.end() - 1);
+      s.erase(std::find_if(s.rbegin(), s.rend(), std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
+    }
   ;
 
 PATTERN_ANNOTATION_BEGIN

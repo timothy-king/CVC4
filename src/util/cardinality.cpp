@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file cardinality.cpp
  ** \verbatim
- ** Original author: mdeters
+ ** Original author: Morgan Deters
  ** Major contributors: none
- ** Minor contributors (to current version): none
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Minor contributors (to current version): Tim King
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -193,6 +193,10 @@ Cardinality::CardinalityComparison Cardinality::compare(const Cardinality& c) co
   Unreachable();
 }
 
+bool Cardinality::knownLessThanOrEqual(const Cardinality& c) const throw() {
+  CardinalityComparison cmp = this->compare(c);
+  return cmp == LESS || cmp == EQUAL;
+}
 
 std::string Cardinality::toString() const throw() {
   std::stringstream ss;

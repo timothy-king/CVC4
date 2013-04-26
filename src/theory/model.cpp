@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file model.cpp
  ** \verbatim
- ** Original author: ajreynol
- ** Major contributors: mdeters, barrett
- ** Minor contributors (to current version): taking
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Andrew Reynolds
+ ** Major contributors: Morgan Deters, Clark Barrett
+ ** Minor contributors (to current version): Tim King
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -51,13 +51,15 @@ Node TheoryModel::getValue( TNode n ) const{
   //apply substitutions
   Node nn = d_substitutions.apply( n );
   //get value in model
-  return getModelValue( nn );
+  nn = getModelValue( nn );
+  Assert(nn.isConst() || nn.getKind() == kind::LAMBDA);
+  return nn;
 }
 
 Expr TheoryModel::getValue( Expr expr ) const{
   Node n = Node::fromExpr( expr );
   Node ret = getValue( n );
-  return d_smt.postprocess(ret).toExpr();
+  return d_smt.postprocess(ret, TypeNode::fromType(expr.getType())).toExpr();
 }
 
 /** get cardinality for sort */
@@ -78,7 +80,23 @@ Cardinality TheoryModel::getCardinality( Type t ) const{
 Node TheoryModel::getModelValue(TNode n, bool hasBoundVars) const
 {
   if(n.getKind() == kind::EXISTS || n.getKind() == kind::FORALL) {
-    CheckArgument(d_equalityEngine.hasTerm(n), n, "Cannot get the model value for a previously-unseen quantifier: %s", n.toString().c_str());
+    // We should have terms, thanks to TheoryQuantifiers::collectModelInfo().
+    // However, if the Decision Engine stops us early, there might be a
+    // quantifier that isn't assigned.  In conjunction with miniscoping, this
+    // might lead to a perfectly good model.  Think of
+    //     ASSERT FORALL(x) : p OR x=5
+    // The p is pulled out by miniscoping, and set to TRUE by the decision
+    // engine, then the quantifier's value in the model doesn't matter, so the
+    // Decision Engine stops.  So even though the top-level quantifier was
+    // asserted, it can't be checked directly: first, it doesn't "exist" in
+    // non-miniscoped form, and second, no quantifiers have been asserted, so
+    // none is in the model.  We used to fail an assertion here, but that's
+    // no good.  Instead, return the quantifier itself.  If we're in
+    // checkModel(), and the quantifier actually matters, we'll get an
+    // assert-fail since the quantifier isn't a constant.
+    if(!d_equalityEngine.hasTerm(n)) {
+      return n;
+    }
   } else {
     if(n.getKind() == kind::LAMBDA) {
       NodeManager* nm = NodeManager::currentNM();
@@ -134,7 +152,6 @@ Node TheoryModel::getModelValue(TNode n, bool hasBoundVars) const
       if(val.getKind() == kind::CARDINALITY_CONSTRAINT) {
         val = NodeManager::currentNM()->mkConst(getCardinality(val[0].getType().toType()).getFiniteCardinality() <= val[1].getConst<Rational>().getNumerator());
       }
-      Assert(hasBoundVars || val.isConst());
       return val;
     }
 

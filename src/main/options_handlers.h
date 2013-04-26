@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file options_handlers.h
  ** \verbatim
- ** Original author: mdeters
+ ** Original author: Morgan Deters
  ** Major contributors: none
  ** Minor contributors (to current version): none
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -26,14 +26,24 @@ inline void showConfiguration(std::string option, SmtEngine* smt) {
   fputs(Configuration::about().c_str(), stdout);
   printf("\n");
   printf("version    : %s\n", Configuration::getVersionString().c_str());
-  if(Configuration::isSubversionBuild()) {
-    printf("subversion : yes [%s r%u%s]\n",
+  if(Configuration::isGitBuild()) {
+    const char* branchName = Configuration::getGitBranchName();
+    if(*branchName == '\0') {
+      branchName = "-";
+    }
+    printf("scm        : git [%s %s%s]\n",
+           branchName,
+           std::string(Configuration::getGitCommit()).substr(0, 8).c_str(),
+           Configuration::hasGitModifications() ?
+             " (with modifications)" : "");
+  } else if(Configuration::isSubversionBuild()) {
+    printf("scm        : svn [%s r%u%s]\n",
            Configuration::getSubversionBranchName(),
            Configuration::getSubversionRevision(),
            Configuration::hasSubversionModifications() ?
              " (with modifications)" : "");
   } else {
-    printf("subversion : %s\n", Configuration::isSubversionBuild() ? "yes" : "no");
+    printf("scm        : no\n");
   }
   printf("\n");
   printf("library    : %u.%u.%u\n",

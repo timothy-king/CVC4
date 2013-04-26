@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file valuation.h
  ** \verbatim
- ** Original author: mdeters
- ** Major contributors: dejan
- ** Minor contributors (to current version): taking, ajreynol, barrett
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Morgan Deters
+ ** Major contributors: Dejan Jovanovic
+ ** Minor contributors (to current version): Tim King, Andrew Reynolds, Clark Barrett
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -95,6 +95,11 @@ public:
    * The types of a and b must be the same.
    */
   EqualityStatus getEqualityStatus(TNode a, TNode b);
+
+  /**
+   * Returns the model value of the shared term (or null if not available).
+   */
+  Node getModelValue(TNode var);
 
   /**
    * Ensure that the given node will have a designated SAT literal

@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file term_database.h
  ** \verbatim
- ** Original author: ajreynol
- ** Major contributors: mdeters
+ ** Original author: Andrew Reynolds
+ ** Major contributors: Morgan Deters
  ** Minor contributors (to current version): none
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -167,7 +167,7 @@ public:
   /** get counterexample literal (for cbqi) */
   Node getCounterexampleLiteral( Node f );
   /** returns node n with bound vars of f replaced by instantiation constants of f
-      node n : is the futur pattern
+      node n : is the future pattern
       node f : is the quantifier containing which bind the variable
       return a pattern where the variable are replaced by variable for
       instantiation.
@@ -212,7 +212,7 @@ private:
   std::map< TNode, std::vector< TNode > > d_var_contains;
   /** triggers for each operator */
   std::map< Node, std::vector< inst::Trigger* > > d_op_triggers;
-  /** helper for is intance of */
+  /** helper for is instance of */
   bool isUnifiableInstanceOf( Node n1, Node n2, std::map< Node, Node >& subs );
 public:
   /** compute var contains */

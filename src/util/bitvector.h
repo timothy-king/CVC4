@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file bitvector.h
  ** \verbatim
- ** Original author: dejan
- ** Major contributors: mdeters, lianah
- ** Minor contributors (to current version): cconway
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Dejan Jovanovic
+ ** Major contributors: Morgan Deters, Liana Hadarean
+ ** Minor contributors (to current version): lianah, Christopher L. Conway
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -178,10 +178,23 @@ public:
     Integer prod = d_value * y.d_value;
     return BitVector(d_size, prod);
   }
+
+  BitVector setBit(uint32_t i) const {
+    CheckArgument(i < d_size, i);
+    Integer res = d_value.setBit(i);
+    return BitVector(d_size, res); 
+  }
+
+  bool isBitSet(uint32_t i) const {
+    CheckArgument(i < d_size, i); 
+    return d_value.isBitSet(i); 
+  }
+  
   /** 
    * Total division function that returns 0 when the denominator is 0.  
    */
   BitVector unsignedDivTotal (const BitVector& y) const {
+
     CheckArgument(d_size == y.d_size, y);
     if (y.d_value == 0) {
       return BitVector(d_size, 0u);
@@ -190,6 +203,7 @@ public:
     CheckArgument(y.d_value > 0, y);
     return BitVector(d_size, d_value.floorDivideQuotient(y.d_value)); 
   }
+  
   /** 
    * Total division function that returns 0 when the denominator is 0.  
    */

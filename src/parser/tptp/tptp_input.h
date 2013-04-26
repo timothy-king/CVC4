@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file tptp_input.h
  ** \verbatim
- ** Original author: bobot
+ ** Original author: Francois Bobot
  ** Major contributors: none
- ** Minor contributors (to current version): mdeters
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Minor contributors (to current version): Morgan Deters
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -75,8 +75,7 @@ protected:
    *
    * @throws ParserException if an error is encountered during parsing.
    */
-  Command* parseCommand()
-    throw(ParserException, TypeCheckingException);
+  Command* parseCommand();
 
   /**
    * Parse an expression from the input. Returns a null
@@ -84,8 +83,7 @@ protected:
    *
    * @throws ParserException if an error is encountered during parsing.
    */
-  Expr parseExpr()
-    throw(ParserException, TypeCheckingException);
+  Expr parseExpr();
 
 };/* class TptpInput */
 

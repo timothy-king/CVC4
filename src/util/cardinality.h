@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file cardinality.h
  ** \verbatim
- ** Original author: mdeters
+ ** Original author: Morgan Deters
  ** Major contributors: none
- ** Minor contributors (to current version): none
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Minor contributors (to current version): Tim King
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -245,6 +245,11 @@ public:
    */
   std::string toString() const throw();
 
+  /**
+   * Compare two cardinalities and if it is known that the current
+   * cardinality is smaller or equal to c, it returns true.
+   */
+  bool knownLessThanOrEqual(const Cardinality& c) const throw();
 };/* class Cardinality */
 
 

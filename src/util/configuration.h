@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file configuration.h
  ** \verbatim
- ** Original author: mdeters
+ ** Original author: Morgan Deters
  ** Major contributors: none
- ** Minor contributors (to current version): acsys, lianah, bobot
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Minor contributors (to current version): ACSYS, Liana Hadarean, Francois Bobot
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -38,6 +38,10 @@ class CVC4_PUBLIC Configuration {
   static const char* const SUBVERSION_BRANCH_NAME;
   static const unsigned SUBVERSION_REVISION;
   static const bool SUBVERSION_HAS_MODIFICATIONS;
+  static const bool IS_GIT_BUILD;
+  static const char* const GIT_BRANCH_NAME;
+  static const char* const GIT_COMMIT;
+  static const bool GIT_HAS_MODIFICATIONS;
 
 public:
 
@@ -100,6 +104,12 @@ public:
   static char const* const* getTraceTags();
   /* Test if the given argument is a known trace tag name */
   static bool isTraceTag(char const *);
+
+  static bool isGitBuild();
+  static const char* getGitBranchName();
+  static const char* getGitCommit();
+  static bool hasGitModifications();
+  static std::string getGitId();
 
   static bool isSubversionBuild();
   static const char* getSubversionBranchName();

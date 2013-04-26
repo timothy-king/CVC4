@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file model.h
  ** \verbatim
- ** Original author: ajreynol
- ** Major contributors: mdeters, barrett
- ** Minor contributors (to current version): taking
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Andrew Reynolds
+ ** Major contributors: Morgan Deters, Clark Barrett
+ ** Minor contributors (to current version): Tim King
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -87,7 +87,7 @@ public:
   void addSubstitution(TNode x, TNode t, bool invalidateCache = true);
   /** add term function
     *   addTerm( n ) will do any model-specific processing necessary for n,
-    *   such as contraining the interpretation of uninterpretted functions,
+    *   such as constraining the interpretation of uninterpreted functions,
     *   and adding n to the equality engine of this model
     */
   virtual void addTerm(TNode n);

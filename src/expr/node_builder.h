@@ -1,9 +1,9 @@
 /*********************                                                        */
 /*! \file node_builder.h
  ** \verbatim
- ** Original author: Dejan Jovanović <dejan.jovanovic@gmail.com>
- ** Major contributors: Morgan Deters <mdeters@cs.nyu.edu>
- ** Minor contributors (to current version): Tim King <taking@cs.nyu.edu>, Christopher L. Conway <christopherleeconway@gmail.com>
+ ** Original author: Dejan Jovanovic
+ ** Major contributors: Morgan Deters
+ ** Minor contributors (to current version): Tim King, Christopher L. Conway
  ** This file is part of the CVC4 project.
  ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
@@ -713,6 +713,10 @@ public:
   operator Node();
   operator Node() const;
 
+  // similarly for TypeNode
+  operator TypeNode();
+  operator TypeNode() const;
+
   NodeBuilder<nchild_thresh>& operator&=(TNode);
   NodeBuilder<nchild_thresh>& operator|=(TNode);
   NodeBuilder<nchild_thresh>& operator+=(TNode);
@@ -899,6 +903,16 @@ NodeBuilder<nchild_thresh>::operator Node() {
 template <unsigned nchild_thresh>
 NodeBuilder<nchild_thresh>::operator Node() const {
   return constructNode();
+}
+
+template <unsigned nchild_thresh>
+NodeBuilder<nchild_thresh>::operator TypeNode() {
+  return constructTypeNode();
+}
+
+template <unsigned nchild_thresh>
+NodeBuilder<nchild_thresh>::operator TypeNode() const {
+  return constructTypeNode();
 }
 
 template <unsigned nchild_thresh>

@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file smt2_input.h
  ** \verbatim
- ** Original author: cconway
- ** Major contributors: mdeters
+ ** Original author: Christopher L. Conway
+ ** Major contributors: Morgan Deters
  ** Minor contributors (to current version): none
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -41,7 +41,7 @@ class Smt2Input : public AntlrInput {
   /** The ANTLR3 SMT2 lexer for the input. */
   pSmt2Lexer d_pSmt2Lexer;
 
-  /** The ANTLR3 CVC parser for the input. */
+  /** The ANTLR3 SMT2 parser for the input. */
   pSmt2Parser d_pSmt2Parser;
 
   /**
@@ -75,8 +75,7 @@ protected:
    *
    * @throws ParserException if an error is encountered during parsing.
    */
-  Command* parseCommand()
-    throw(ParserException, TypeCheckingException);
+  Command* parseCommand();
 
   /**
    * Parse an expression from the input. Returns a null
@@ -84,8 +83,7 @@ protected:
    *
    * @throws ParserException if an error is encountered during parsing.
    */
-  Expr parseExpr()
-    throw(ParserException, TypeCheckingException);
+  Expr parseExpr();
 
 };/* class Smt2Input */
 

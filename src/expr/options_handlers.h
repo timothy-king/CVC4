@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file options_handlers.h
  ** \verbatim
- ** Original author: mdeters
+ ** Original author: Morgan Deters
  ** Major contributors: none
  ** Minor contributors (to current version): none
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -39,8 +39,7 @@ inline void setDefaultExprDepth(std::string option, int depth, SmtEngine* smt) {
   // intentionally exclude Dump stream from this list
 }
 
-inline void setDefaultDagThresh(std::string option, std::string optarg, SmtEngine* smt) {
-  int dag = atoi(optarg.c_str());
+inline void setDefaultDagThresh(std::string option, int dag, SmtEngine* smt) {
   if(dag < 0) {
     throw OptionException("--default-dag-thresh requires a nonnegative argument.");
   }

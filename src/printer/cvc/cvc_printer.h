@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file cvc_printer.h
  ** \verbatim
- ** Original author: mdeters
+ ** Original author: Morgan Deters
  ** Major contributors: none
- ** Minor contributors (to current version): dejan
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Minor contributors (to current version): Dejan Jovanovic
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -22,9 +22,6 @@
 #include <iostream>
 
 #include "printer/printer.h"
-#include "printer/dagification_visitor.h"
-#include "theory/substitutions.h"
-#include "util/node_visitor.h"
 
 namespace CVC4 {
 namespace printer {
@@ -34,6 +31,7 @@ class CvcPrinter : public CVC4::Printer {
   void toStream(std::ostream& out, TNode n, int toDepth, bool types, bool bracket) const throw();
   void toStream(std::ostream& out, Model& m, const Command* c) const throw();
 public:
+  using CVC4::Printer::toStream;
   void toStream(std::ostream& out, TNode n, int toDepth, bool types, size_t dag) const throw();
   void toStream(std::ostream& out, const Command* c, int toDepth, bool types, size_t dag) const throw();
   void toStream(std::ostream& out, const CommandStatus* s) const throw();

@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file trigger.h
  ** \verbatim
- ** Original author: ajreynol
- ** Major contributors: none
- ** Minor contributors (to current version): bobot, mdeters
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Morgan Deters
+ ** Major contributors: Andrew Reynolds
+ ** Minor contributors (to current version): Francois Bobot
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -109,7 +109,8 @@ public:
   static bool isAtomicTrigger( Node n );
   static bool isSimpleTrigger( Node n );
   /** get pattern arithmetic */
-  static bool getPatternArithmetic( Node f, Node n, std::map< Node, Node >& coeffs );
+  static bool isArithmeticTrigger( Node f, Node n, std::map< Node, Node >& coeffs );
+  static bool isBooleanTermTrigger( Node n );
 
   inline void toStream(std::ostream& out) const {
     out << "TRIGGER( ";

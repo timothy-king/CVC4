@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file smt2.cpp
  ** \verbatim
- ** Original author: cconway
- ** Major contributors: mdeters
- ** Minor contributors (to current version): barrett
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Christopher L. Conway
+ ** Major contributors: Morgan Deters
+ ** Minor contributors (to current version): Clark Barrett
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -290,7 +290,9 @@ void Smt2::checkThatLogicIsSet() {
 
       setLogic("ALL_SUPPORTED");
 
-      preemptCommand(new SetBenchmarkLogicCommand("ALL_SUPPORTED"));
+      Command* c = new SetBenchmarkLogicCommand("ALL_SUPPORTED");
+      c->setMuted(true);
+      preemptCommand(c);
     }
   }
 }

@@ -19,18 +19,18 @@ and finally:
   Theory$camel::check() in theory_$dir.cpp. Before writing the actual
   code, you will need :
 
-  * to determine which datastructures are context dependent and use for them
-    context dependent datastructures (context/cd*.h)
+  * to determine which data structures are context dependent and use for
+    them context-dependent data structures (context/cd*.h)
   * to choose which work will be done at QUICK_CHECK, STANDARD or at
     FULL_EFFORT.
 
 You'll probably find the Developer's wiki useful:
 
-  http://church.cims.nyu.edu/wiki/CVC_Portal
+  http://cvc4.cs.nyu.edu/wiki/
 
-...and in particular the Deverloper's Guide:
+...and in particular the Developer's Guide:
 
-  http://church.cims.nyu.edu/wiki/Developer%27s_Guide
+  http://cvc4.cs.nyu.edu/wiki/Developer%27s_Guide
 
 which contains coding guidelines for the CVC4 project.
 

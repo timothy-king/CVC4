@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file sexpr.h
  ** \verbatim
- ** Original author: cconway
- ** Major contributors: mdeters
- ** Minor contributors (to current version): dejan, taking
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Christopher L. Conway
+ ** Major contributors: Tim King, Morgan Deters
+ ** Minor contributors (to current version): Dejan Jovanovic
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -37,6 +37,13 @@
 
 namespace CVC4 {
 
+class CVC4_PUBLIC SExprKeyword {
+  std::string d_str;
+public:
+  SExprKeyword(const std::string& s) : d_str(s) {}
+  const std::string& getString() const { return d_str; }
+};/* class SExpr::Keyword */
+
 /**
  * A simple S-expression. An S-expression is either an atom with a
  * string value, or a list of other S-expressions.
@@ -65,11 +72,7 @@ class CVC4_PUBLIC SExpr {
 
 public:
 
-  class CVC4_PUBLIC Keyword : protected std::string {
-  public:
-    Keyword(const std::string& s) : std::string(s) {}
-    const std::string& getString() const { return *this; }
-  };/* class SExpr::Keyword */
+  typedef SExprKeyword Keyword;
 
   SExpr() :
     d_sexprType(SEXPR_STRING),

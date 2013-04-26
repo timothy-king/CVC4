@@ -1,8 +1,8 @@
 /*********************                                                        */
 /*! \file rep_set.cpp
  ** \verbatim
- ** Original author: Andrew Reynolds <andrew.j.reynolds@gmail.com>
- ** Major contributors: Morgan Deters <mdeters@cs.nyu.edu>
+ ** Original author: Andrew Reynolds
+ ** Major contributors: Morgan Deters
  ** Minor contributors (to current version): none
  ** This file is part of the CVC4 project.
  ** Copyright (c) 2009-2013  New York University and The University of Iowa
@@ -135,16 +135,9 @@ bool RepSetIterator::initialize(){
     }else if( tn.isInteger() || tn.isReal() ){
       Trace("fmf-incomplete") << "Incomplete because of infinite type " << tn << std::endl;
       d_incomplete = true;
-    }else if( tn.isDatatype() ){
-      const Datatype& dt = ((DatatypeType)(tn).toType()).getDatatype();
-      //if finite, then complete all values of the domain
-      if( dt.isFinite() ){
-        d_rep_set->complete( tn );
-        //d_incomplete = true;
-      }else{
-        Trace("fmf-incomplete") << "Incomplete because of infinite datatype " << tn << std::endl;
-        d_incomplete = true;
-      }
+    //enumerate if the sort is reasonably small, the upper bound of 128 is chosen arbitrarily for now
+    }else if( tn.getCardinality().isFinite() && tn.getCardinality().getFiniteCardinality().toUnsignedInt()<=128 ){
+      d_rep_set->complete( tn );
     }else{
       Trace("fmf-incomplete") << "Incomplete because of unknown type " << tn << std::endl;
       d_incomplete = true;

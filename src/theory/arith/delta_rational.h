@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file delta_rational.h
  ** \verbatim
- ** Original author: taking
- ** Major contributors: mdeters
- ** Minor contributors (to current version): dejan
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Tim King
+ ** Major contributors: none
+ ** Minor contributors (to current version): Dejan Jovanovic, Morgan Deters
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -264,7 +264,7 @@ public:
   }
 
   /**
-   * Computes a sufficient upperbound to seperate two DeltaRationals.
+   * Computes a sufficient upperbound to separate two DeltaRationals.
    * This value is stored in res.
    * For any rational d such that
    *   0 < d < res

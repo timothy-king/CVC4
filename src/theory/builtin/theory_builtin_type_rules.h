@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file theory_builtin_type_rules.h
  ** \verbatim
- ** Original author: dejan
- ** Major contributors: mdeters
- ** Minor contributors (to current version): taking, ajreynol, cconway
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Morgan Deters
+ ** Major contributors: none
+ ** Minor contributors (to current version): Tim King, Andrew Reynolds, Christopher L. Conway, Dejan Jovanovic
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -79,7 +79,7 @@ class EqualityTypeRule {
 
       if ( TypeNode::leastCommonTypeNode(lhsType, rhsType).isNull() ) {
         std::stringstream ss;
-        ss << "Subtypes must have a common type:" << std::endl;
+        ss << "Subexpressions must have a common base type:" << std::endl;
         ss << "Equation: " << n << std::endl;
         ss << "Type 1: " << lhsType << std::endl;
         ss << "Type 2: " << rhsType << std::endl;
@@ -169,11 +169,6 @@ public:
     }
     TypeNode rangeType = n[1].getType(check);
     return nodeManager->mkFunctionType(argTypes, rangeType);
-  }
-
-  inline static bool computeIsConst(NodeManager* nodeManager, TNode n) {
-    Assert(n.getKind() == kind::LAMBDA);
-    return false;
   }
 };/* class LambdaTypeRule */
 

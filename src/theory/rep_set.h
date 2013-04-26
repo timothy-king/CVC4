@@ -1,8 +1,8 @@
 /*********************                                                        */
 /*! \file rep_set.h
  ** \verbatim
- ** Original author: Andrew Reynolds <andrew.j.reynolds@gmail.com>
- ** Major contributors: Morgan Deters <mdeters@cs.nyu.edu>
+ ** Original author: Andrew Reynolds
+ ** Major contributors: Morgan Deters
  ** Minor contributors (to current version): none
  ** This file is part of the CVC4 project.
  ** Copyright (c) 2009-2013  New York University and The University of Iowa
@@ -14,8 +14,8 @@
 
 #include "cvc4_private.h"
 
-#ifndef __CVC4__REP_SET_H
-#define __CVC4__REP_SET_H
+#ifndef __CVC4__THEORY__REP_SET_H
+#define __CVC4__THEORY__REP_SET_H
 
 #include "expr/node.h"
 #include <map>
@@ -45,7 +45,7 @@ public:
   void complete( TypeNode t );
   /** debug print */
   void toStream(std::ostream& out);
-};
+};/* class RepSet */
 
 //representative domain
 typedef std::vector< int > RepDomain;
@@ -104,9 +104,9 @@ public:
   /** debug print */
   void debugPrint( const char* c );
   void debugPrintSmall( const char* c );
-};
+};/* class RepSetIterator */
 
-}
-}
+}/* CVC4::theory namespace */
+}/* CVC4 namespace */
 
-#endif
+#endif /* __CVC4__THEORY__REP_SET_H */

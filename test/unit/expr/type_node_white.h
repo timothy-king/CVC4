@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file type_node_white.h
  ** \verbatim
- ** Original author: mdeters
+ ** Original author: Morgan Deters
  ** Major contributors: none
  ** Minor contributors (to current version): none
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -61,7 +61,7 @@ public:
     TypeNode bvType = d_nm->mkBitVectorType(32);
     TypeNode subrangeType = d_nm->mkSubrangeType(SubrangeBounds(Integer(1), Integer(10)));
 
-    Node x = d_nm->mkVar("x", realType);
+    Node x = d_nm->mkBoundVar("x", realType);
     Node xPos = d_nm->mkNode(GT, x, d_nm->mkConst(Rational(0)));
     TypeNode funtype = d_nm->mkFunctionType(integerType, booleanType);
     Node lambda = d_nm->mkVar("lambda", funtype);

@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file arith_rewriter.cpp
  ** \verbatim
- ** Original author: taking
- ** Major contributors: mdeters
- ** Minor contributors (to current version): dejan
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Tim King
+ ** Major contributors: none
+ ** Minor contributors (to current version): Morgan Deters, Dejan Jovanovic
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -86,7 +86,7 @@ RewriteResponse ArithRewriter::preRewriteTerm(TNode t){
   }else if(t.isVar()){
     return rewriteVariable(t);
   }else{
-    switch(t.getKind()){
+    switch(Kind k = t.getKind()){
     case kind::MINUS:
       return rewriteMinus(t, true);
     case kind::UMINUS:
@@ -104,7 +104,7 @@ RewriteResponse ArithRewriter::preRewriteTerm(TNode t){
     case kind::INTS_MODULUS_TOTAL:
       return rewriteIntsDivModTotal(t,true);
     default:
-      Unreachable();
+      Unhandled(k);
     }
   }
 }

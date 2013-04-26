@@ -112,6 +112,7 @@ TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context
   d_soiSimplex(d_linEq, d_errorSet, RaiseConflict(*this), TempVarMalloc(*this)),
   d_DELTA_ZERO(0),
   d_fullCheckCounter(0),
+  d_cutCount(c, 0),
   d_cutInContext(c),
   d_statistics()
 {
@@ -1598,6 +1599,7 @@ void TheoryArithPrivate::branchVector(const std::vector<ArithVar>& lemmas){
     ArithVar v = *i;
     Assert(!d_cutInContext.contains(v));
     d_cutInContext.insert(v);
+    d_cutsInContext = d_cutsInContext + 1;
     Node lem = branchIntegerVariable(v);
     outputLemma(lem);
     ++(d_statistics.d_externalBranchAndBounds);
@@ -1746,7 +1748,7 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
 
   if(inConflict()){
     d_qflraStatus = Result::UNSAT;
-    if(previous == Result::SAT){
+    if(options::revertArithModels() && previous == Result::SAT){
       ++d_statistics.d_revertsOnConflicts;
       Debug("arith::bt") << "clearing here " << " " << newFacts << " " << previous << " " << d_qflraStatus  << endl;
       revertOutOfConflict();
@@ -1906,13 +1908,6 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
   if(!emmittedConflictOrSplit && Theory::fullEffort(effortLevel)){
     ++d_fullCheckCounter;
   }
-  // static const int CUT_ALL_BOUNDED_PERIOD = 4;
-  // if(!emmittedConflictOrSplit && Theory::fullEffort(effortLevel) &&
-  //    d_fullCheckCounter % CUT_ALL_BOUNDED_PERIOD == 1){
-  //   vector<ArithVar> lemmas = cutAllBounded();
-  //   branchVector(lemmas);
-  //   emmittedConflictOrSplit = lemmas.size() > 0;
-  // }
   if(!emmittedConflictOrSplit && Theory::fullEffort(effortLevel)){
     emmittedConflictOrSplit = splitDisequalities();
   }
@@ -1939,23 +1934,31 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
         //cout << "dio cut   " << possibleLemma << endl;
         emmittedConflictOrSplit = true;
         d_hasDoneWorkSinceCut = false;
+        d_cutsInContext = d_cutsInContext + 1;
         outputLemma(possibleLemma);
-      }else{
-        while(d_diosolver.hasMoreDecompositionLemmas()){
-          Node decompositionLemma = d_diosolver.nextDecompositionLemma();
-          Debug("arith") << "dio decomposition lemma   " << decompositionLemma << endl;
-          //cout << "dio decomposition lemma   " << decompositionLemma << endl;
-          outputLemma(decompositionLemma);
-        }
       }
+      
     }
 
     if(!emmittedConflictOrSplit) {
       Node possibleLemma = roundRobinBranch();
       if(!possibleLemma.isNull()){
         ++(d_statistics.d_externalBranchAndBounds);
+        d_cutsInContext = d_cutsInContext + 1;
         emmittedConflictOrSplit = true;
         outputLemma(possibleLemma);
+      }
+    }
+
+    if(options::maxCutsInContext() <= d_cutCount){
+      if(d_diosolver.hasMoreDecompositionLemmas()){
+        while(d_diosolver.hasMoreDecompositionLemmas()){
+          Node decompositionLemma = d_diosolver.nextDecompositionLemma();
+          Debug("arith") << "dio decomposition lemma   " << decompositionLemma << endl;
+          outputLemma(decompositionLemma);
+        }
+      }else{
+        d_out->demandRestart();
       }
     }
   }//if !emmittedConflictOrSplit && fullEffort(effortLevel) && !hasIntegerModel()

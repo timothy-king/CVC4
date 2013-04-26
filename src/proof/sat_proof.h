@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file sat_proof.h
  ** \verbatim
- ** Original author: lianah
- ** Major contributors: none
- ** Minor contributors (to current version): mdeters
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Liana Hadarean
+ ** Major contributors: Morgan Deters
+ ** Minor contributors (to current version): none
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -160,8 +160,8 @@ protected:
    * Does a depth first search on removed literals and adds the literals
    * to be removed in the proper order to the stack. 
    * 
-   * @param lit the literal we are recusing on
-   * @param removedSet the previously computed set of redundantant literals
+   * @param lit the literal we are recursing on
+   * @param removedSet the previously computed set of redundant literals
    * @param removeStack the stack of literals in reverse order of resolution
    */
   void removedDfs(::Minisat::Lit lit, LitSet* removedSet, LitVector& removeStack, LitSet& inClause, LitSet& seen);

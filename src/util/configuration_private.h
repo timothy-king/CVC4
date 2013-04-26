@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file configuration_private.h
  ** \verbatim
- ** Original author: mdeters
- ** Major contributors: acsys
- ** Minor contributors (to current version): lianah, cconway
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Christopher L. Conway
+ ** Major contributors: ACSYS, Morgan Deters
+ ** Minor contributors (to current version): Liana Hadarean
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -89,12 +89,6 @@ namespace CVC4 {
 #  define IS_COMPETITION_BUILD false
 #endif /* CVC4_COMPETITION_MODE */
 
-#ifdef CVC4_CUDD
-#  define IS_CUDD_BUILD true
-#else /* CVC4_CUDD */
-#  define IS_CUDD_BUILD false
-#endif /* CVC4_CUDD */
-
 #ifdef CVC4_GMP_IMP
 #  define IS_GMP_BUILD true
 #else /* CVC4_GMP_IMP */
@@ -115,13 +109,16 @@ namespace CVC4 {
 
 #define CVC4_ABOUT_STRING ( ::std::string("\
 This is CVC4 version " CVC4_RELEASE_STRING ) + \
+    ( ::CVC4::Configuration::isGitBuild() \
+        ? ( ::std::string(" [") + ::CVC4::Configuration::getGitId() + "]" ) \
+        : \
     ( ::CVC4::Configuration::isSubversionBuild() \
         ? ( ::std::string(" [") + ::CVC4::Configuration::getSubversionId() + "]" ) \
         : ::std::string("") \
-    ) + "\n\
+    )) + "\n\
 compiled with " + ::CVC4::Configuration::getCompiler() + "\n\
 on " + ::CVC4::Configuration::getCompiledDateTime() + "\n\n\
-Copyright (C) 2009, 2010, 2011, 2012\n\
+Copyright (C) 2009, 2010, 2011, 2012, 2013\n\
   New York University and The University of Iowa\n\n" + \
     ( IS_CLN_BUILD ? "\
 This CVC4 library uses CLN as its multi-precision arithmetic library.\n\n\

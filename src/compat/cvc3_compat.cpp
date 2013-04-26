@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file cvc3_compat.cpp
  ** \verbatim
- ** Original author: mdeters
+ ** Original author: Morgan Deters
  ** Major contributors: none
- ** Minor contributors (to current version): taking, dejan
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Minor contributors (to current version): Tim King, Dejan Jovanovic
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -1075,7 +1075,7 @@ Type ValidityChecker::subrangeType(const Expr& l, const Expr& r) {
 }
 
 Type ValidityChecker::subtypeType(const Expr& pred, const Expr& witness) {
-  Unimplemented("Records not supported by CVC4 yet (sorry!)");
+  Unimplemented("Predicate subtyping not supported by CVC4 yet (sorry!)");
   /*
   if(witness.isNull()) {
     return d_em->mkPredicateSubtype(pred);
@@ -1261,6 +1261,7 @@ Type ValidityChecker::createType(const std::string& typeName) {
 
 Type ValidityChecker::createType(const std::string& typeName, const Type& def) {
   d_parserContext->defineType(typeName, def);
+  return def;
 }
 
 Type ValidityChecker::lookupType(const std::string& typeName) {
@@ -1279,6 +1280,7 @@ Expr ValidityChecker::varExpr(const std::string& name, const Type& type,
                               const Expr& def) {
   CVC4::CheckArgument(def.getType() == type, def, "expected types to match");
   d_parserContext->defineVar(name, def);
+  return def;
 }
 
 Expr ValidityChecker::lookupVar(const std::string& name, Type* type) {

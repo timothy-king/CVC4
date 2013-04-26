@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file theory_uf.cpp
  ** \verbatim
- ** Original author: dejan
- ** Major contributors: mdeters
- ** Minor contributors (to current version): barrett, ajreynol
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Tim King
+ ** Major contributors: Morgan Deters, Dejan Jovanovic
+ ** Minor contributors (to current version): Clark Barrett, Andrew Reynolds
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -33,7 +33,7 @@ TheoryUF::TheoryUF(context::Context* c, context::UserContext* u, OutputChannel& 
   d_notify(*this),
   /* The strong theory solver can be notified by EqualityEngine::init(),
    * so make sure it's initialized first. */
-  d_thss(options::finiteModelFind() ? new StrongSolverTheoryUf(c, u, out, this) : NULL),
+  d_thss(options::finiteModelFind() ? new StrongSolverTheoryUF(c, u, out, this) : NULL),
   d_equalityEngine(d_notify, c, "theory::uf::TheoryUF"),
   d_conflict(c, false),
   d_literalsToPropagate(c),
@@ -101,12 +101,10 @@ void TheoryUF::check(Effort level) {
   }
 
 
-  if (d_thss != NULL) {
-    if (! d_conflict) {
-      d_thss->check(level);
-      if( d_thss->isConflict() ){
-        d_conflict = true;
-      }
+  if (d_thss != NULL && ! d_conflict) {
+    d_thss->check(level);
+    if( d_thss->isConflict() ){
+      d_conflict = true;
     }
   }
 

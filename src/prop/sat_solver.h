@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file sat_solver.h
  ** \verbatim
- ** Original author: lianah
- ** Major contributors: mdeters, dejan
+ ** Original author: Dejan Jovanovic
+ ** Major contributors: Morgan Deters, Liana Hadarean
  ** Minor contributors (to current version): none
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -40,8 +40,14 @@ public:
   /** Assert a clause in the solver. */
   virtual void addClause(SatClause& clause, bool removable) = 0;
 
-  /** Create a new boolean variable in the solver. */
-  virtual SatVariable newVar(bool theoryAtom = false) = 0;
+  /**
+   * Create a new boolean variable in the solver.
+   * @param isTheoryAtom is this a theory atom that needs to be asserted to theory
+   * @param preRegister whether to preregister the atom with the theory
+   * @param canErase whether the sat solver can safely eliminate this variable
+   *
+   */
+  virtual SatVariable newVar(bool isTheoryAtom, bool preRegister, bool canErase) = 0;
 
   /** Create a new (or return an existing) boolean variable representing the constant true */
   virtual SatVariable trueVar() = 0;

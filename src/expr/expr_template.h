@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file expr_template.h
  ** \verbatim
- ** Original author: dejan
- ** Major contributors: mdeters
- ** Minor contributors (to current version): lianah, kshitij, taking, cconway
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Morgan Deters
+ ** Major contributors: Dejan Jovanovic
+ ** Minor contributors (to current version): Liana Hadarean, Kshitij Bansal, Tim King, Christopher L. Conway
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -654,6 +654,11 @@ public:
         l = options::defaultExprDepth();
       }
       if(l == 0) {
+        // if called from outside the library, we may not have options
+        // available to us at this point (or perhaps the output language
+        // is not set in Options).  Default to something reasonable, but
+        // don't set "l" since that would make it "sticky" for this
+        // stream.
         return s_defaultPrintDepth;
       }
     }
@@ -797,7 +802,17 @@ public:
     if(l == 0) {
       // set the default dag setting on this ostream
       // (offset by one to detect whether default has been set yet)
-      l = s_defaultDag + 1;
+      if(&Options::current() != NULL) {
+        l = options::defaultDagThresh() + 1;
+      }
+      if(l == 0) {
+        // if called from outside the library, we may not have options
+        // available to us at this point (or perhaps the output language
+        // is not set in Options).  Default to something reasonable, but
+        // don't set "l" since that would make it "sticky" for this
+        // stream.
+        return s_defaultDag + 1;
+      }
     }
     return static_cast<size_t>(l - 1);
   }
@@ -920,7 +935,7 @@ public:
 
 ${getConst_instantiations}
 
-#line 924 "${template}"
+#line 939 "${template}"
 
 namespace expr {
 

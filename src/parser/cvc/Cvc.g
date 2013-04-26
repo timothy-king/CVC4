@@ -1,11 +1,11 @@
 /* *******************                                                        */
 /*! \file Cvc.g
  ** \verbatim
- ** Original author: cconway
- ** Major contributors: mdeters
- ** Minor contributors (to current version): taking, ajreynol, dejan
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Christopher L. Conway
+ ** Major contributors: Morgan Deters
+ ** Minor contributors (to current version): Tim King, Andrew Reynolds, Dejan Jovanovic
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -416,10 +416,8 @@ Expr addNots(ExprManager* em, size_t n, Expr e) {
 
 @header {
 /**
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009, 2010, 2011  The Analysis of Computer Systems Group (ACSys)
- ** Courant Institute of Mathematical Sciences
- ** New York University
+ ** This file is part of CVC4.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.
  **/
@@ -627,8 +625,7 @@ mainCommand[CVC4::Command*& cmd]
   : ASSERT_TOK formula[f] { cmd = new AssertCommand(f); }
 
   | QUERY_TOK formula[f] { cmd = new QueryCommand(f); }
-  | CHECKSAT_TOK formula[f] { cmd = new CheckSatCommand(f); }
-  | CHECKSAT_TOK { cmd = new CheckSatCommand(); }
+  | CHECKSAT_TOK formula[f]? { cmd = f.isNull() ? new CheckSatCommand() : new CheckSatCommand(f); }
 
     /* options */
   | OPTION_TOK
@@ -742,10 +739,7 @@ mainCommand[CVC4::Command*& cmd]
 
   | ECHO_TOK
     ( simpleSymbolicExpr[sexpr]
-      { std::stringstream ss;
-        ss << sexpr;
-        cmd = new EchoCommand(ss.str());
-      }
+      { cmd = new EchoCommand(sexpr.getValue()); }
     | { cmd = new EchoCommand(); }
     )
 

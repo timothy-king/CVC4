@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file inst_match.h
  ** \verbatim
- ** Original author: ajreynol
- ** Major contributors: bobot
- ** Minor contributors (to current version): mdeters
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Morgan Deters
+ ** Major contributors: Francois Bobot, Andrew Reynolds
+ ** Minor contributors (to current version): none
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -58,7 +58,7 @@ public:
   /** make complete */
   void makeComplete( Node f, QuantifiersEngine* qe );
   /** make internal representative */
-  void makeInternalRepresentative( QuantifiersEngine* qe );
+  //void makeInternalRepresentative( QuantifiersEngine* qe );
   /** make representative */
   void makeRepresentative( QuantifiersEngine* qe );
   /** get value */

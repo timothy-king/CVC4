@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file theory_arrays_rewriter.h
  ** \verbatim
- ** Original author: dejan
- ** Major contributors: mdeters, barrett
- ** Minor contributors (to current version): none
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Dejan Jovanovic
+ ** Major contributors: Morgan Deters, Clark Barrett
+ ** Minor contributors (to current version): Andrew Reynolds
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -37,8 +37,12 @@ typedef expr::Attribute<attr::ArrayConstantMostFrequentValueCountTag, uint64_t> 
 typedef expr::Attribute<attr::ArrayConstantMostFrequentValueTag, Node> ArrayConstantMostFrequentValueAttr;
 
 class TheoryArraysRewriter {
-
   static Node normalizeConstant(TNode node) {
+    return normalizeConstant(node, node[1].getType().getCardinality());
+  }
+public:
+  //this function is called by printers when using the option "--model-u-dt-enum"
+  static Node normalizeConstant(TNode node, Cardinality indexCard) {
     TNode store = node[0];
     TNode index = node[1];
     TNode value = node[2];
@@ -112,7 +116,6 @@ class TheoryArraysRewriter {
       return n;
     }
 
-    Cardinality indexCard = index.getType().getCardinality();
     if (indexCard.isInfinite()) {
       return n;
     }
@@ -189,13 +192,15 @@ class TheoryArraysRewriter {
     std::vector<Node> newIndices;
     TypeEnumerator te(index.getType());
     bool needToSort = false;
-    while (!te.isFinished()) {
+    unsigned numTe = 0;
+    while (!te.isFinished() && (!indexCard.isFinite() || numTe<indexCard.getFiniteCardinality().toUnsignedInt())) {
       if (indexSet.find(*te) == indexSet.end()) {
         if (!newIndices.empty() && (!(newIndices.back() < (*te)))) {
           needToSort = true;
         }
         newIndices.push_back(*te);
       }
+      ++numTe;
       ++te;
     }
     Assert(indexCard.compare(newIndices.size() + depth) == Cardinality::EQUAL);
