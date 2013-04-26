@@ -1599,7 +1599,7 @@ void TheoryArithPrivate::branchVector(const std::vector<ArithVar>& lemmas){
     ArithVar v = *i;
     Assert(!d_cutInContext.contains(v));
     d_cutInContext.insert(v);
-    d_cutsInContext = d_cutsInContext + 1;
+    d_cutCount = d_cutCount + 1;
     Node lem = branchIntegerVariable(v);
     outputLemma(lem);
     ++(d_statistics.d_externalBranchAndBounds);
@@ -1934,17 +1934,16 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
         //cout << "dio cut   " << possibleLemma << endl;
         emmittedConflictOrSplit = true;
         d_hasDoneWorkSinceCut = false;
-        d_cutsInContext = d_cutsInContext + 1;
+        d_cutCount = d_cutCount + 1;
         outputLemma(possibleLemma);
       }
-      
     }
 
     if(!emmittedConflictOrSplit) {
       Node possibleLemma = roundRobinBranch();
       if(!possibleLemma.isNull()){
         ++(d_statistics.d_externalBranchAndBounds);
-        d_cutsInContext = d_cutsInContext + 1;
+        d_cutCount = d_cutCount + 1;
         emmittedConflictOrSplit = true;
         outputLemma(possibleLemma);
       }
@@ -1958,7 +1957,7 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
           outputLemma(decompositionLemma);
         }
       }else{
-        d_out->demandRestart();
+        outputRestart();
       }
     }
   }//if !emmittedConflictOrSplit && fullEffort(effortLevel) && !hasIntegerModel()

@@ -534,6 +534,7 @@ private:
   }
   inline void outputLemma(TNode lem) { (d_containing.d_out)->lemma(lem); }
   inline void outputPropagate(TNode lit) { (d_containing.d_out)->propagate(lit); }
+  inline void outputRestart() { (d_containing.d_out)->demandRestart(); }
 
   inline bool isSatLiteral(TNode l) const {
     return (d_containing.d_valuation).isSatLiteral(l);
