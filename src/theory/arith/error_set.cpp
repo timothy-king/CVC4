@@ -154,7 +154,8 @@ ErrorSet::Statistics::~Statistics(){
 ErrorSet::ErrorSet(ArithVariables& vars, TableauSizes tabSizes, BoundCountingLookup lookups):
   d_variables(vars),
   d_errInfo(),
-  d_focus(ComparatorPivotRule(this, VAR_ORDER)),
+  d_selectionRule(VAR_ORDER),
+  d_focus(ComparatorPivotRule(this,d_selectionRule)),
   d_outOfFocus(),
   d_signals(),
   d_tableauSizes(tabSizes),
@@ -162,7 +163,7 @@ ErrorSet::ErrorSet(ArithVariables& vars, TableauSizes tabSizes, BoundCountingLoo
 {}
 
 ErrorSelectionRule ErrorSet::getSelectionRule() const{
-  return d_focus.value_comp().getRule();
+  return d_selectionRule;
 }
 
 void ErrorSet::recomputeAmount(ErrorInformation& ei, ErrorSelectionRule rule){
@@ -195,6 +196,7 @@ void ErrorSet::setSelectionRule(ErrorSelectionRule rule){
       }
     }
     d_focus.swap(into);
+    d_selectionRule = rule;
   }
   Assert(getSelectionRule() == rule);
 }
@@ -251,11 +253,11 @@ void ErrorSet::update(ErrorInformation& ei){
     case MINIMUM_AMOUNT:
     case MAXIMUM_AMOUNT:
       ei.setAmount(computeDiff(ei.getVariable()));
-      d_focus.update(ei.getHandle());
+      d_focus.modify(ei.getHandle(), ei.getVariable());
       break;
     case  SUM_METRIC:
       ei.setMetric(sumMetric(ei.getVariable()));
-      d_focus.update(ei.getHandle());
+      d_focus.modify(ei.getHandle(), ei.getVariable());
       break;
     case  VAR_ORDER:
       //do nothing

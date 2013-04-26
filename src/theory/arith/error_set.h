@@ -28,8 +28,8 @@
 #include "theory/arith/tableau_sizes.h"
 
 #include "util/statistics_registry.h"
-#include <boost/heap/d_ary_heap.hpp>
-
+//#include <boost/heap/d_ary_heap.hpp>
+#include <ext/pb_ds/priority_queue.hpp>
 
 #include <vector>
 
@@ -71,7 +71,6 @@ private:
   const ErrorSet* d_errorSet;
 
   ErrorSelectionRule d_rule;
- 
 public:
   ComparatorPivotRule();
   ComparatorPivotRule(const ErrorSet* es, ErrorSelectionRule r);
@@ -80,13 +79,20 @@ public:
   ErrorSelectionRule getRule() const { return d_rule; }
 };
 
-typedef boost::heap::d_ary_heap<
-  ArithVar,
-  boost::heap::arity<2>,
-  boost::heap::compare<ComparatorPivotRule>,
-  boost::heap::mutable_<true> > FocusSet;
+// typedef boost::heap::d_ary_heap<
+//   ArithVar,
+//   boost::heap::arity<2>,
+//   boost::heap::compare<ComparatorPivotRule>,
+//   boost::heap::mutable_<true> > FocusSet;
+//
+// typedef FocusSet::handle_type FocusSetHandle;
 
-typedef FocusSet::handle_type FocusSetHandle;
+typedef  __gnu_pbds::priority_queue<
+  ArithVar,
+  ComparatorPivotRule,
+  __gnu_pbds::pairing_heap_tag> FocusSet;
+
+typedef FocusSet::point_iterator FocusSetHandle;
 
 class ErrorInformation {
 private:
@@ -95,8 +101,8 @@ private:
 
   /**
    * The constraint that was violated.
-   * This needs to be saved in case that the 
-   * violated constraint  
+   * This needs to be saved in case that the
+   * violated constraint
    */
   Constraint d_violated;
 
@@ -117,7 +123,7 @@ private:
   /**
    * If this is true, then the variable is in the focus set and the focus heap.
    * d_handle is then a reasonable thing to interpret.
-   * If this is false, the variable is somewhere in 
+   * If this is false, the variable is somewhere in
    */
   bool d_inFocus;
   FocusSetHandle d_handle;
@@ -208,10 +214,12 @@ private:
    */
   ErrorInfoMap d_errInfo;
 
+  ErrorSelectionRule d_selectionRule;
   /**
    * The ordered heap for the variables that are in ErrorSet.
    */
   FocusSet d_focus;
+
 
   /**
    * A strict subset of the error set.
