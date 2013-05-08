@@ -52,6 +52,8 @@ public:
   virtual ApproxResult solveMIP() = 0;
   virtual Solution extractMIP() const = 0;
 
+  virtual std::vector<Node> extractCuts() const = 0;
+
   /** UTILIES FOR DEALING WITH ESTIMATES */
 
   static const double SMALL_FIXED_DELTA;

@@ -3,6 +3,7 @@
 #include "theory/arith/approx_simplex.h"
 #include "theory/arith/normal_form.h"
 #include "theory/arith/constraint.h"
+#include "theory/arith/arith_utilities.h"
 #include <math.h>
 #include <cmath>
 
@@ -105,6 +106,9 @@ public:
   virtual Solution extractMIP() const{
     return Solution();
   }
+  virtual std::vector<Node> extractCuts() const{
+    return std::vector<Node>();
+  }
 
   virtual void setOptCoeffs(const ArithRatPairVec& ref){}
 };
@@ -123,6 +127,13 @@ namespace CVC4 {
 namespace theory {
 namespace arith {
 
+struct SavedGLPKRow {
+  vector<pair<double, int> > entries;
+  int type;
+  double lb;
+  double ub;
+};
+
 class ApproxGLPK : public ApproximateSimplex {
 private:
   glp_prob* d_prob;
@@ -131,6 +142,7 @@ private:
   DenseMap<int> d_colIndices;
   DenseMap<int> d_rowIndices;
 
+  DenseMap<ArithVar> d_revColIndices;
 
   int d_instanceID;
 
@@ -138,6 +150,8 @@ private:
   bool d_solvedMIP;
 
   static int s_verbosity;
+
+  std::vector< SavedGLPKRow > d_savedRows;
 
 public:
   ApproxGLPK(const ArithVariables& vars);
@@ -156,13 +170,18 @@ public:
   }
   virtual void setOptCoeffs(const ArithRatPairVec& ref);
 
+  virtual std::vector<Node> extractCuts() const;
+
   static void printGLPKStatus(int status, std::ostream& out);
 private:
   Solution extractSolution(bool mip) const;
   int guessDir(ArithVar v) const;
+
+  Node extractCut(const SavedGLPKRow& r) const;
+
 };
 
-int ApproxGLPK::s_verbosity = 0;
+int ApproxGLPK::s_verbosity = 1;
 
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */
@@ -224,6 +243,7 @@ ApproxGLPK::ApproxGLPK(const ArithVariables& avars) :
     }else{
       ++numCols;
       d_colIndices.set(v, numCols);
+      d_revColIndices.set(numCols, v);
     }
   }
   glp_add_rows(d_prob, numRows);
@@ -334,6 +354,23 @@ int ApproxGLPK::guessDir(ArithVar v) const{
     }
 
     return 1;
+  }
+}
+
+void printGLPKVarType(int rowType, std::ostream& out){
+  switch(rowType){
+  case GLP_FX:
+    out << "GLP_FX"; break;
+  case GLP_DB:
+    out << "GLP_DB"; break;
+  case GLP_UP:
+    out << "GLP_UP"; break;
+  case GLP_LO:
+    out << "GLP_LO"; break;
+  case GLP_FR:
+    out << "GLP_FR"; break;
+  default:
+    out << "GLP Type UNKNOWN"; break;
   }
 }
 
@@ -662,14 +699,6 @@ ApproximateSimplex::Solution ApproxGLPK::extractSolution(bool mip) const{
         // Message() << "  to ub" << endl;
       }else{
 
-        double rounded = round(newAssign);
-        if(roughlyEqual(newAssign, rounded)){
-          // Message() << "roughly equal " << rounded << " " << newAssign << " " << oldAssign << endl;
-          newAssign = rounded;
-        }else{
-          // Message() << "not roughly equal " << rounded << " " << newAssign << " " << oldAssign << endl;
-        }
-
         DeltaRational proposal = estimateWithCFE(newAssign);
 
 
@@ -690,6 +719,10 @@ ApproximateSimplex::Solution ApproxGLPK::extractSolution(bool mip) const{
         }
         newValues.set(vi, proposal);
       }
+    }
+    if(!newValues.isKey(vi)){
+      cout << "here" << vi << endl;
+      exit(-1);
     }
   }
   return sol;
@@ -733,19 +766,145 @@ ApproximateSimplex::ApproxResult ApproxGLPK::solveRelaxation(){
   }
 }
 
+class IosCarry {
+  int d_pivotLimit;
+  int d_lastRowId;
+
+  int d_cacheAlloc;
+  double* d_cacheCoeffs;
+  int* d_cacheColVars;
+
+  std::vector< SavedGLPKRow >& d_rows;
+
+public:
+  IosCarry(int pl, int lrid, std::vector< SavedGLPKRow >& rs)
+    : d_pivotLimit(pl)
+    , d_lastRowId(lrid)
+    , d_cacheAlloc(0)
+    , d_cacheCoeffs(NULL)
+    , d_cacheColVars(NULL)
+    , d_rows(rs)
+  {}
+
+  ~IosCarry(){
+    clearCache();
+  }
+
+  int pivotLimit() const { return d_pivotLimit; }
+
+  int lastRowId () const { return d_lastRowId; }
+  void incrementLastRow() { ++d_lastRowId; }
+
+  void saveRow(glp_prob* prob, int row){
+    allocAtLeast(glp_get_num_cols(prob));
+
+    d_rows.push_back(SavedGLPKRow());
+    SavedGLPKRow& r = d_rows.back();
+
+    r.type = glp_get_row_type(prob, row);
+    r.lb = glp_get_row_lb(prob, row);
+    r.ub = glp_get_row_ub(prob, row);
+
+    int rowLen = glp_get_mat_row(prob, row, d_cacheColVars, d_cacheCoeffs);
+    for(int i = 1; i <= rowLen; ++i){
+      r.entries.push_back(make_pair(d_cacheCoeffs[i], d_cacheColVars[i]));
+      cout << d_cacheCoeffs[i] << " " << d_cacheColVars[i] << endl;
+    }
+  }
+
+private:
+  void clearCache(){
+    if(d_cacheAlloc != 0){
+      delete[] d_cacheCoeffs;
+      delete[] d_cacheColVars;
+    }
+    d_cacheAlloc = 0;
+    d_cacheCoeffs = NULL;
+    d_cacheColVars = NULL;
+  }
+
+  void allocAtLeast(int size){
+    Assert(size + 1 > size);
+    if(size >= d_cacheAlloc){
+      clearCache();
+      d_cacheAlloc = std::max(2 * size + 1, size+1);
+      d_cacheCoeffs = new double[d_cacheAlloc];
+      d_cacheColVars = new int[d_cacheAlloc];
+    }
+  }
+};
+
 void stopAtBingoOrPivotLimit(glp_tree *tree, void *info){
-  int pivotLimit = *((int*)info);
+  IosCarry* carry = (IosCarry*)info;
   switch(glp_ios_reason(tree)){
+  // case GLP_ISELECT:
+  //   cout << "GLP_ISELECT" << endl;
+  //   break;
+  // case GLP_IPREPRO:
+  //   cout << "GLP_IPREPRO" << endl;
+  //   break;
+  // case GLP_IROWGEN:
+  //   cout << "GLP_IROWGEN" << endl;
+  //   break;
+  // case GLP_IHEUR:
+  //   cout << "GLP_IHEUR" << endl;
+  //   break;
+  // case GLP_ICUTGEN:
+  //   cout << "GLP_ICUTGEN" << endl;
+  //   break;
+  // case GLP_IBRANCH:
+  //   cout << "GLP_IBRANCH" << endl;
+  //   break;
   case GLP_IBINGO:
     glp_ios_terminate(tree);
     break;
   default:
-    glp_prob* prob = glp_ios_get_prob(tree);
-    int iterationcount = lpx_get_int_parm(prob, LPX_K_ITCNT);
-    if(iterationcount > pivotLimit){
-      glp_ios_terminate(tree);
-    }
     break;
+  }
+
+  glp_prob* prob = glp_ios_get_prob(tree);
+  int iterationcount = lpx_get_int_parm(prob, LPX_K_ITCNT);
+  int numRows = glp_get_num_rows(prob);
+  if( numRows > carry->lastRowId()){
+    glp_attr attr;
+    while(carry->lastRowId() < numRows){
+      glp_ios_row_attr(tree, carry->lastRowId(), &attr);
+
+      cout << attr.level << " ";
+      switch(attr.origin){
+      case GLP_RF_REG:
+        cout << "GLP_RF_REG";
+        break;
+      case GLP_RF_LAZY:
+        cout << "GLP_RF_LAZY";
+        break;
+      case GLP_RF_CUT:
+        cout << "GLP_RF_CUT";
+        break;
+      default:
+        cout << "UNKNOWN";
+        break;
+      }
+      cout << " ";
+      switch(attr.klass){
+      case GLP_RF_MIR:
+        cout << "GLP_RF_MIR";
+        break;
+      default:
+        cout << "KLASS UNKNOWN";
+        break;
+      }
+      cout << endl;
+
+      if(attr.level == 0 && attr.origin == GLP_RF_CUT){
+        carry->saveRow(prob, carry->lastRowId());
+      }
+
+      carry->incrementLastRow();
+    }
+  }
+  if(iterationcount > carry->pivotLimit()){
+    glp_ios_terminate(tree);
   }
 }
 
@@ -755,20 +914,26 @@ ApproximateSimplex::ApproxResult ApproxGLPK::solveMIP(){
   // We need the basis thus the presolver must be off!
   // This is default, but this is just being cautious.
   glp_iocp parm;
+
+  IosCarry* iosCarry =
+    new IosCarry(d_pivotLimit, glp_get_num_rows(d_prob), d_savedRows);
+
   glp_init_iocp(&parm);
   parm.presolve = GLP_OFF;
   parm.pp_tech = GLP_PP_NONE;
   parm.fp_heur = GLP_ON;
-  parm.gmi_cuts = GLP_ON;
+  parm.gmi_cuts = GLP_OFF;
   parm.mir_cuts = GLP_ON;
   parm.cov_cuts = GLP_ON;
   parm.cb_func = stopAtBingoOrPivotLimit;
-  parm.cb_info = &d_pivotLimit;
+  parm.cb_info = (void*)(iosCarry);
   parm.msg_lev = GLP_MSG_OFF;
   if(s_verbosity >= 1){
     parm.msg_lev = GLP_MSG_ALL;
   }
+
   int res = glp_intopt(d_prob, &parm);
+  delete iosCarry;
 
   switch(res){
   case 0:
@@ -790,6 +955,70 @@ ApproximateSimplex::ApproxResult ApproxGLPK::solveMIP(){
   default:
     return ApproxError;
   }
+}
+
+Node ApproxGLPK::extractCut(const SavedGLPKRow& r) const{
+  bool lower;
+  switch(r.type){
+  case GLP_FX:
+  case GLP_DB:
+  case GLP_FR:
+    return Node::null();
+  case GLP_UP:
+    lower = false;
+    break;
+  case GLP_LO:
+    lower = true;
+    break;
+  default:
+    return Node::null();
+  }
+
+  if(r.entries.empty()){ return Node::null(); }
+
+  NodeManager* cnm = NodeManager::currentNM();
+  vector<Node> sum;
+  vector<pair<double, int> >::const_iterator ei = r.entries.begin();
+  vector<pair<double, int> >::const_iterator end = r.entries.end();
+  for(; ei != end; ++ei ){
+    cout << (*ei).first << endl;
+    Rational coeff = estimateWithCFE((*ei).first);
+    int colIndex = (*ei).second;
+    ArithVar v = d_revColIndices[colIndex];
+
+    if(coeff.complexity() >= 20) { return Node::null(); }
+
+    if(!d_vars.hasNode(v)){ return Node::null(); }
+    Node n = d_vars.asNode(v);
+    Node mult = cnm->mkNode(kind::MULT, mkRationalNode(coeff), n);
+    cout << mult << " ";
+    sum.push_back(mult);
+  }
+
+  Node plus = (sum.size() > 1) ? cnm->mkNode(kind::PLUS, sum) : sum[0];
+
+
+  cout <<  r.lb << " " << r.ub << endl;
+  Rational bound = estimateWithCFE(lower ? r.lb : r.ub);
+  Node boundNode = mkRationalNode(bound);
+
+  Node cmp = cnm->mkNode(lower ? kind::GEQ : kind::LEQ, plus, boundNode);
+  cout << cmp << endl;
+  return cmp;
+}
+
+std::vector<Node> ApproxGLPK::extractCuts() const{
+  vector<Node> cuts;
+  std::vector< SavedGLPKRow >::const_iterator riter = d_savedRows.begin();
+  std::vector< SavedGLPKRow >::const_iterator rend = d_savedRows.end();
+  for(; riter != rend; ++riter){
+    const SavedGLPKRow& saved = *riter;
+    Node proposal = extractCut(saved);
+    if(!proposal.isNull()){
+      cuts.push_back(proposal);
+    }
+  }
+  return cuts;
 }
 
 }/* CVC4::theory::arith namespace */

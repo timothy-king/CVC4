@@ -31,6 +31,14 @@ AttemptSolutionSDP::Statistics::~Statistics(){
 }
 
 bool AttemptSolutionSDP::matchesNewValue(const DenseMap<DeltaRational>& nv, ArithVar v) const{
+  if(!nv.isKey(v)){
+    cout << " nv " << v << endl;
+    exit(-1);
+  }
+  if(!d_variables.hasNode(v)){
+    cout << " vars " << v << endl;
+    exit(-1);
+  }
   return nv[v] == d_variables.getAssignment(v);
 }
 

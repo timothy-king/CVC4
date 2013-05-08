@@ -1168,6 +1168,8 @@ void TheoryArithPrivate::preRegisterTerm(TNode n) {
     Debug("arith::preregister") << "setup constraint" << c << endl;
     Assert(!c->canBePropagated());
     c->setPreregistered();
+
+    cout  <<"begin arith::preRegisterTerm("<< c->getVariable() <<")"<< endl;
   }
 
   Debug("arith::preregister") << "end arith::preRegisterTerm("<< n <<")" << endl;
@@ -1561,7 +1563,7 @@ bool TheoryArithPrivate::solveRealRelaxation(Theory::Effort effortLevel){
      (SimplexDecisionProcedure&)d_dualSimplex);
 
   bool useFancyFinal = options::fancyFinal() && ApproximateSimplex::enabled();
-
+  vector<Node> cuts;
   if(!useFancyFinal){
     d_qflraStatus = simplex.findModel(noPivotLimit);
   }else{
@@ -1575,7 +1577,7 @@ bool TheoryArithPrivate::solveRealRelaxation(Theory::Effort effortLevel){
 
     static const int32_t pass2Limit = 10;
     static const int32_t relaxationLimit = 10000;
-    static const int32_t mipLimit = 200000;
+    static const int32_t mipLimit = 50000;
 
     //cout << "start" << endl;
     d_qflraStatus = simplex.findModel(false);
@@ -1613,6 +1615,7 @@ bool TheoryArithPrivate::solveRealRelaxation(Theory::Effort effortLevel){
               mipSolution = approxSolver->extractMIP();
               d_qflraStatus = d_attemptSolSimplex.attempt(mipSolution);
             }else{
+              cuts = approxSolver->extractCuts();
               if(mipRes == ApproximateSimplex::ApproxUnsat){
                 d_likelyIntegerInfeasible = true;
               }
@@ -1642,7 +1645,8 @@ bool TheoryArithPrivate::solveRealRelaxation(Theory::Effort effortLevel){
 
     if(d_qflraStatus == Result::SAT_UNKNOWN){
       //Message() << "got sat unknown" << endl;
-      vector<ArithVar> toCut = cutAllBounded();
+      //vector<ArithVar> toCut = cutAllBounded();
+      vector<ArithVar> toCut;
       if(toCut.size() > 0){
         branchVector(toCut);
         emmittedConflictOrSplit = true;
@@ -1658,6 +1662,25 @@ bool TheoryArithPrivate::solveRealRelaxation(Theory::Effort effortLevel){
   // TODO Save zeroes with no conflicts
   d_linEq.stopTrackingBoundCounts();
   d_partialModel.startQueueingBoundCounts();
+
+  static int instance = 0 ;
+  ++instance;
+  int count = 0;
+  for(vector<Node>::const_iterator i=cuts.begin(), end=cuts.end(); i != end; ++i){
+    ++count;
+
+    Node cut = *i;
+    Node rewrite = Rewriter::rewrite(cut);
+    Node notRewrite = rewrite.negate();
+    //Node lem = rewrite.orNode(notRewrite);
+    cout << "gplk cut" << rewrite << endl;
+
+    if(instance <= 1){
+      emmittedConflictOrSplit = true;
+      d_cutCount = d_cutCount + 1;
+      outputLemma(rewrite);
+    }
+  }
 
   return emmittedConflictOrSplit;
 }
