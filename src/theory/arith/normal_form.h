@@ -241,6 +241,10 @@ public:
     case kind::INTS_MODULUS_TOTAL:
     case kind::DIVISION_TOTAL:
       return isDivMember(n);
+
+    // treating an ITE as a variable for now :-(
+    case kind::ITE:
+
     case kind::ABS:
     case kind::TO_INTEGER:
       // Treat to_int as a variable; it is replaced in early preprocessing

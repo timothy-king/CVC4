@@ -81,6 +81,164 @@ RewriteResponse ArithRewriter::rewriteUMinus(TNode t, bool pre){
     return RewriteResponse(REWRITE_AGAIN, noUminus);
 }
 
+
+RewriteResponse ArithRewriter::rewriteDivModTotalNext(TNode t, bool pre){
+  Assert(t.getKind()== kind::INTS_DIVISION_TOTAL || t.getKind()== kind::INTS_MODULUS_TOTAL);
+
+  bool isDiv = t.getKind()== kind::INTS_DIVISION_TOTAL;
+
+  TNode num = t[0];
+  TNode denom = t[1];
+
+  if(denom.getKind() == kind::CONST_RATIONAL){
+    Assert(denom.getConst<Rational>().isIntegral());
+    Integer d = denom.getConst<Rational>().getNumerator();
+    int origSgn = d.sgn();
+    bool negate = false;
+    if(origSgn == 0){
+      // (div_total x 0) :-> 0
+      // (mod_total x 0) :-> 0
+      return RewriteResponse(REWRITE_DONE, denom);
+    }else if(origSgn < 0){
+      // (div_total x (- d)) :-> -(div_total x d)
+      // (mod_total x (- d)) :-> (mod_total x d)
+      negate = isDiv;
+      d = -d;
+    }
+    Assert(d.sgn() > 0);
+
+    if(num.getKind() == kind::CONST_RATIONAL){
+      // (div_total n d) and d != 0 :-> euclidDiv(n,d)
+      // (mod_total n d) and d != 0 :-> euclidMod(n,d)
+      const Rational& numerator = num.getConst<Rational>();
+      Assert(numerator.isIntegral());
+
+      Integer n = numerator.getNumerator();
+      Integer res = isDiv ? n.euclidianDivideQuotient(d) : n.euclidianDivideRemainder(d);
+      if(negate){
+        res = -res;
+      }
+      Node resNode = mkRationalNode(Rational(res));
+      return RewriteResponse(REWRITE_DONE, resNode);
+    }
+    // num is not a constant
+
+    if(d.isOne()){
+      if(isDiv){
+        return RewriteResponse(REWRITE_AGAIN, conditionallyNegate(num, negate));
+      }else{
+        return RewriteResponse(REWRITE_DONE, mkRationalNode(0));
+      }
+    }
+    // d is an integer constant > 1
+    if(Polynomial::isMember(num)){
+      Polynomial p = Polynomial::parsePolynomial(num);
+      if(p.containsConstant()){
+        // move a constant in a sum out of the sum
+
+        Constant constant = p.getHead().getConstant();
+        Node tail = p.getTail().getNode();
+
+        const Rational& constantValue = constant.getValue();
+        Assert(constantValue.isIntegral());
+        Assert(!constantValue.isZero());
+        Integer c = constantValue.getNumerator();
+
+        Node sum = moveConstantOutOfIntDivMod(tail, c, d, isDiv);
+        Node res = conditionallyNegate(sum, negate);
+        Debug("nextrewriter") << "nextrewriter " << t << std::endl;
+        Debug("nextrewriter") << "-> " << res << std::endl;
+        return RewriteResponse(REWRITE_AGAIN_FULL, res);
+      }
+    }
+    if(origSgn < 0){
+      NodeManager* nm = NodeManager::currentNM();
+      Node dNode = mkRationalNode(Rational(d));
+      Node divMod = nm->mkNode(t.getKind(), num, dNode);
+      if(negate){
+        Node neg = conditionallyNegate(divMod, true);
+        return RewriteResponse(REWRITE_AGAIN, neg);
+      }else{
+        return RewriteResponse(REWRITE_DONE, divMod);
+      }
+    }
+  }
+  // fall back case
+  return RewriteResponse(REWRITE_DONE, t);
+}
+
+// This represents (op (+ t c) d) where op is either div_total or mod_total
+// where di >= 2 and ni != 0.
+Node ArithRewriter::moveConstantOutOfIntDivMod(Node t, const Integer& c, const Integer& d, bool div){
+  Assert(!c.isZero());
+  Assert(d.sgn() > 0 && !d.isOne());
+
+  // From smt lib
+  // (for all ((m Int) (n Int))
+  //   (=> (distinct n 0)
+  //       (let ((q (div m n)) (r (mod m n)))
+  //         (and (= m (+ (* n q) r))
+  //              (<= 0 r (- (abs n) 1))))))
+  // d > 1
+  // q = (div_tot (+ t c) d)
+  // r = (mod_tot (+ t c) d)
+  // t + c = d * q + r
+  // 0 <= r < d
+  // q and r are unique
+  //
+  // q' = (div_tot t d), r' = (mod_tot t d)
+  // t = d * q' + r'
+  // 0 <= r' < d
+  //
+  // t + c = d * q' + r' + c
+  //
+  // d > 0, euclidean div <=> floor div
+  // e = euclidQuot(c,d), f = euclidRem(c,d), 0 <= f < d
+  // c = d * e + f
+  // t + c = d * (q' + e) + (r' + f)
+  // if (r' + f) < d
+  //   0 <= (r' + f) < d
+  //   t + c = d * (q' + e) + (r' + f)
+  //   By uniqueness of solutions:
+  //   q = (q' + e), r = (r' + f)
+  // else
+  //   0 <= (q' + f - d) < d
+  //   t + c = d * (e + q' + 1) + (r' + f - d)
+  //   q = (q' + e + 1), r = (r' + f - d)
+  //
+  // (r' + f) < d iff r' < d - f
+  // q = q' + e + (ite (r' < d - f) 0 1)
+  // r = r' + f + (-d) * (ite (r' < d - f) 0 1)
+
+  Node dNode = mkRationalNode(Rational(d));
+
+  NodeManager* nm = NodeManager::currentNM();
+  Node t_mod_denom = nm->mkNode(kind::INTS_MODULUS_TOTAL, t, dNode);
+
+  Integer e,f;
+  Integer::euclidianQR(e, f, c, d);
+
+  // (r' < d - f)
+  Node zero = mkRationalNode(0);
+
+  // if f is 0, there is a specialization, but do this in atom instead
+  Rational diff = Rational(d - f);
+  Node lt = nm->mkNode(kind::LT, t_mod_denom, mkRationalNode(diff));
+  Node cnd = lt.iteNode(zero, mkRationalNode(1));
+
+  if(div){
+    Node t_div_denom = nm->mkNode(kind::INTS_DIVISION_TOTAL, t, dNode);
+    Node eNode = mkRationalNode(Rational(e));
+    Node sum = nm->mkNode(kind::PLUS, eNode, t_div_denom, cnd);
+    return sum;
+  }else{
+    Node fNode = mkRationalNode(Rational(f));
+    Node cndMult = nm->mkNode(kind::MULT, mkRationalNode(-d), cnd);
+    Node sum = nm->mkNode(kind::PLUS, fNode, t_mod_denom, cndMult);
+    return sum;
+  }
+}
+
 RewriteResponse ArithRewriter::preRewriteTerm(TNode t){
   if(t.isConst()){
     return rewriteConstant(t);
@@ -391,6 +549,11 @@ RewriteResponse ArithRewriter::rewriteIntsDivModTotal(TNode t, bool pre){
   //Leaving the function as before (INTS_MODULUS can be handled),
   // but restricting its use here
   Assert(k == kind::INTS_MODULUS_TOTAL || k == kind::INTS_DIVISION_TOTAL);
+
+  if(k == kind::INTS_MODULUS_TOTAL || k == kind::INTS_DIVISION_TOTAL){
+    return rewriteDivModTotalNext(t, pre);
+  }
+
   TNode n = t[0], d = t[1];
   bool dIsConstant = d.getKind() == kind::CONST_RATIONAL;
   if(dIsConstant && d.getConst<Rational>().isZero()){

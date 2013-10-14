@@ -51,6 +51,9 @@ private:
   static RewriteResponse rewriteUMinus(TNode t, bool pre);
   static RewriteResponse rewriteDiv(TNode t, bool pre);
   static RewriteResponse rewriteIntsDivModTotal(TNode t, bool pre);
+  // successor of the above
+  static RewriteResponse rewriteDivModTotalNext(TNode t, bool pre);
+  static Node moveConstantOutOfIntDivMod(Node t, const Integer& c, const Integer& d, bool div);
 
   static RewriteResponse preRewritePlus(TNode t);
   static RewriteResponse postRewritePlus(TNode t);
@@ -68,6 +71,9 @@ private:
     return !isAtom(n);
   }
 
+  static inline Node conditionallyNegate(TNode n, bool neg){
+    return neg ? ((Node)n) : NodeManager::currentNM()->mkNode(kind::UMINUS, n);
+  }
 };/* class ArithRewriter */
 
 }/* CVC4::theory::arith namespace */
