@@ -457,6 +457,40 @@ public:
     return d_value == -1;
   }
 
+  inline bool fitsSignedInt() const {
+    unsigned length = cln::integer_length(d_value);
+    return length <= 31;
+  }
+
+  inline bool fitsUnsignedInt() const {
+    if(sgn() >= 0){
+      unsigned length = cln::integer_length(d_value);
+      return length <= 32;
+    }else{
+      return false;
+    }
+  }
+
+  int getSignedInt() const {
+    // ensure there isn't overflow
+    CheckArgument(d_value <= std::numeric_limits<int>::max(), this,
+                  "Overflow detected in Integer::getSignedInt()");
+    CheckArgument(d_value >= std::numeric_limits<int>::min(), this,
+                  "Overflow detected in Integer::getSignedInt()");
+    CheckArgument(fitsSignedInt(), this, "Overflow detected in Integer::getSignedInt()");
+    return cln::cl_I_to_int(d_value);
+  }
+
+  unsigned int getUnsignedInt() const {
+    // ensure there isn't overflow
+    CheckArgument(d_value <= std::numeric_limits<unsigned int>::max(), this,
+                  "Overflow detected in Integer::getUnsignedInt()");
+    CheckArgument(d_value >= std::numeric_limits<unsigned int>::min(), this,
+                  "Overflow detected in Integer::getUnsignedInt()");
+    CheckArgument(fitsSignedInt(), this, "Overflow detected in Integer::getUnsignedInt()");
+    return cln::cl_I_to_uint(d_value);
+  }
+
   long getLong() const {
     // ensure there isn't overflow
     CheckArgument(d_value <= std::numeric_limits<long>::max(), this,

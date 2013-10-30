@@ -418,6 +418,33 @@ public:
   }
 
   //friend std::ostream& operator<<(std::ostream& os, const Integer& n);
+  inline bool fitsSignedInt() const {
+    return d_value.fits_sint_p();
+  }
+
+  inline bool fitsUnsignedInt() const {
+    return d_value.fits_uint_p();
+  }
+
+  int getSignedInt() const {
+    // ensure there isn't overflow
+    CheckArgument(d_value <= std::numeric_limits<int>::max(), this,
+                  "Overflow detected in Integer::getSignedInt()");
+    CheckArgument(d_value >= std::numeric_limits<int>::min(), this,
+                  "Overflow detected in Integer::getSignedInt()");
+    CheckArgument(fitsSignedInt(), this, "Overflow detected in Integer::getSignedInt()");
+    return (int) d_value.get_si();
+  }
+
+  unsigned int getUnsignedInt() const {
+    // ensure there isn't overflow
+    CheckArgument(d_value <= std::numeric_limits<unsigned int>::max(), this,
+                  "Overflow detected in Integer::getUnsignedInt()");
+    CheckArgument(d_value >= std::numeric_limits<unsigned int>::min(), this,
+                  "Overflow detected in Integer::getUnsignedInt()");
+    CheckArgument(fitsSignedInt(), this, "Overflow detected in Integer::getUnsignedInt()");
+    return (unsigned int) d_value.get_ui();
+  }
 
   long getLong() const {
     long si = d_value.get_si();
