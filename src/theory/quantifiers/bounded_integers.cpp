@@ -79,12 +79,18 @@ void BoundedIntegers::RangeModel::allocateRange() {
   int newBound = d_curr_max;
 
   Valuation& val = d_bi->getQuantifiersEngine()->getValuation();
-  std::pair<DeltaRational, Node> res = val.inferBound(d_range, false, -1, NULL);
+  std::pair<DeltaRational, Node> res = val.inferBound(d_range, true, -1, NULL);
   if(!res.second.isNull() && res.second != d_range){
-    Integer fl = (res.first).floor();
-    if(fl.fitsSignedInt()){
-      int flAsInt = fl.getSignedInt();
-      std::cout << flAsInt << std::endl;
+    Integer ceil = (res.first).ceiling();
+    if(ceil.fitsSignedInt()){
+      int ceilAsInt = ceil.getSignedInt();
+      std::cout << "TO THE MAX "  << ceilAsInt << std::endl;
+
+      if(ceilAsInt > d_curr_max){
+        d_curr_max = ceilAsInt;
+        newBound = d_curr_max;
+        std::cout << "Is this the right thing to do?" << std::endl;
+      }
     }
   }
 

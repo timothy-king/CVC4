@@ -406,6 +406,7 @@ public:
   Node getModelValue(TNode var);
 
 private:
+  context::CDQueue<Node> d_biDelay;
 
   /** The constant zero. */
   DeltaRational d_DELTA_ZERO;

@@ -113,6 +113,7 @@ TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context
   d_fcSimplex(d_linEq, d_errorSet, RaiseConflict(*this), TempVarMalloc(*this)),
   d_soiSimplex(d_linEq, d_errorSet, RaiseConflict(*this), TempVarMalloc(*this)),
   d_attemptSolSimplex(d_linEq, d_errorSet, RaiseConflict(*this), TempVarMalloc(*this)),
+  d_biDelay(c),
   d_DELTA_ZERO(0),
   d_fullCheckCounter(0),
   d_cutCount(c, 0),
@@ -1522,7 +1523,7 @@ Constraint TheoryArithPrivate::constraintFromFactQueue(){
   TNode assertion = get();
 
   if( options::finiteModelFind() && d_quantEngine && d_quantEngine->getBoundedIntegers() ){
-    d_quantEngine->getBoundedIntegers()->assertNode(assertion);
+    d_biDelay.push_back(assertion);
   }
 
   Kind simpleKind = Comparison::comparisonKind(assertion);
@@ -2071,6 +2072,14 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
   if(Theory::fullEffort(effortLevel) && d_nlIncomplete){
     // TODO this is total paranoia
     setIncomplete();
+  }
+
+  if(!emmittedConflictOrSplit){
+    while(!d_biDelay.empty()){
+      Node assertion = d_biDelay.front();
+      d_biDelay.pop();
+      d_quantEngine->getBoundedIntegers()->assertNode(assertion);
+    }
   }
 
   if(Debug.isOn("paranoid:check_tableau")){ d_linEq.debugCheckTableau(); }
@@ -3084,6 +3093,10 @@ const BoundsInfo& TheoryArithPrivate::boundsInfo(ArithVar basic) const{
 std::pair<DeltaRational, Node> TheoryArithPrivate::inferBound(TNode term, bool lb, int maxRounds, const DeltaRational* threshold){
   // This is implicitly maximizing
 
+  if(d_qflraStatus != Result::SAT){
+    cout << "called while not known to be sat" << endl;
+    return make_pair(DeltaRational(), Node::null());
+  }
   Assert(d_qflraStatus == Result::SAT);
   Assert(d_errorSet.noSignals());
 
@@ -3261,9 +3274,18 @@ std::pair<DeltaRational, Node> TheoryArithPrivate::inferBound(TNode term, bool l
     break;
   };
 
+  if(lb){
+    retValue = -retValue;
+  }
+
   d_linEq.stopTrackingRowIndex(ridx);
   d_tableau.removeBasicRow(optVar);
   releaseArithVar(optVar);
+
+  d_linEq.stopTrackingBoundCounts();
+  d_partialModel.startQueueingBoundCounts();
+
+
   return make_pair(retValue, exp);
 }
 
