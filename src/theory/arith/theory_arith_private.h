@@ -139,6 +139,26 @@ public:
   void releaseArithVar(ArithVar v);
   void signal(ArithVar v){ d_errorSet.signalVariable(v); }
 
+
+  /**
+   * Infers either a new upper/lower bound on term in the real relaxation.
+   * Either:
+   * - term is malformed (see below)
+   * - a maximum/minimum is found with the result being a pair
+   * -- <dr, exp> where
+   * -- term <?> dr is implies by exp
+   * -- <?> is <= if inferring an upper bound, >= otherwise
+   * -- exp is in terms of the assertions to the theory.
+   * - No upper or lower bound is inferrable in the real relaxation.
+   * -- Returns <0, Null()>
+   * - the maximum number of rounds was exhausted:
+   * -- Returns <v, term> where v is the current feasible value of term
+   * - Threshold reached:
+   * -- If theshold != NULL, and a feasible value is found to exceed threshold
+   * -- Simplex stops and returns <threshold, term>
+   */
+  std::pair<DeltaRational, Node> inferBound(TNode term, bool lb, int maxRounds = -1, const DeltaRational* threshold = NULL);
+
 private:
   /**
    * The map between arith variables to nodes.

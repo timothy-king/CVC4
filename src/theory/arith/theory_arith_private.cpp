@@ -3081,6 +3081,192 @@ const BoundsInfo& TheoryArithPrivate::boundsInfo(ArithVar basic) const{
   return d_rowTracking[ridx];
 }
 
+std::pair<DeltaRational, Node> TheoryArithPrivate::inferBound(TNode term, bool lb, int maxRounds, const DeltaRational* threshold){
+  // This is implicitly maximizing
+
+  Assert(d_qflraStatus == Result::SAT);
+  Assert(d_errorSet.noSignals());
+
+  // TODO Move me into a new file
+
+  enum ResultState {Unset, Inferred, NoBound, ReachedThreshold, ExhaustedRounds};
+  ResultState finalState = Unset;
+
+  // setup term
+  Node normTerm = lb
+    ? NodeManager::currentNM()->mkNode(kind::UMINUS, term)
+    : (Node) term;
+  Node t = Rewriter::rewrite(normTerm);
+  Polynomial p = Polynomial::parsePolynomial(t);
+  vector<ArithVar> variables;
+  vector<Rational> coefficients;
+  asVectors(p, coefficients, variables);
+
+  DeltaRational normThresh =
+    (threshold == NULL) ? DeltaRational() :
+    (lb ? (- (*threshold)) : (*threshold));
+
+  Node skolem = mkRealSkolem("tmpVar");
+  ArithVar optVar = requestArithVar(skolem, false);
+  d_tableau.addRow(optVar, coefficients, variables);
+  RowIndex ridx = d_tableau.basicToRowIndex(optVar);
+
+  DeltaRational newAssignment = d_linEq.computeRowValue(optVar, false);
+  d_partialModel.setAssignment(optVar, newAssignment);
+
+  d_linEq.trackRowIndex(d_tableau.basicToRowIndex(optVar));
+
+  // Setup simplex
+  d_partialModel.stopQueueingBoundCounts();
+  UpdateTrackingCallback utcb(&d_linEq);
+  d_partialModel.processBoundsQueue(utcb);
+  d_linEq.startTrackingBoundCounts();
+
+  // maximize optVar via primal Simplex
+  int rounds = 0;
+  while(finalState == Unset){
+    ++rounds;
+    if(maxRounds >= 0 && rounds > maxRounds){
+      finalState = ExhaustedRounds;
+      break;
+    }
+
+    // select entering by bland's rule
+    // TODO improve upon bland's
+    ArithVar entering = ARITHVAR_SENTINEL;
+    const Tableau::Entry* enteringEntry = NULL;
+    for(Tableau::RowIterator ri = d_tableau.ridRowIterator(ridx); !ri.atEnd(); ++ri){
+      const Tableau::Entry& entry = *ri;
+      ArithVar v = entry.getColVar();
+      if(v != optVar){
+        int sgn = entry.getCoefficient().sgn();
+        Assert(sgn != 0);
+        bool candidate = (sgn > 0)
+          ? (d_partialModel.cmpAssignmentUpperBound(v) != 0)
+          : (d_partialModel.cmpAssignmentLowerBound(v) != 0);
+        if(candidate && (entering == ARITHVAR_SENTINEL || entering > v)){
+          entering = v;
+          enteringEntry = &entry;
+        }
+      }
+    }
+    if(entering == ARITHVAR_SENTINEL){
+      finalState = Inferred;
+      break;
+    }
+    Assert(entering != ARITHVAR_SENTINEL);
+    Assert(enteringEntry != NULL);
+
+    int esgn = enteringEntry->getCoefficient().sgn();
+    Assert(esgn != 0);
+
+    // select leaving and ratio
+    ArithVar leaving = ARITHVAR_SENTINEL;
+    DeltaRational minRatio;
+    const Tableau::Entry* pivotEntry = NULL;
+
+    // Special case check the upper/lowerbound on entering
+    Constraint cOnEntering = (esgn > 0)
+      ? d_partialModel.getUpperBoundConstraint(entering)
+      : d_partialModel.getLowerBoundConstraint(entering);
+    if(cOnEntering != NullConstraint){
+      leaving = entering;
+      minRatio = d_partialModel.getAssignment(entering) - cOnEntering->getValue();
+    }
+    for(Tableau::ColIterator ci = d_tableau.colIterator(entering); !ci.atEnd(); ++ci){
+      const Tableau::Entry& centry = *ci;
+      ArithVar basic = d_tableau.rowIndexToBasic(centry.getRowIndex());
+      int csgn = centry.getCoefficient().sgn();
+      int basicDir = csgn * esgn;
+
+      Constraint bound = (basicDir > 0)
+        ? d_partialModel.getUpperBoundConstraint(basic)
+        : d_partialModel.getLowerBoundConstraint(basic);
+      if(bound != NullConstraint){
+        DeltaRational diff = d_partialModel.getAssignment(basic) - bound->getValue();
+        DeltaRational ratio = diff/(centry.getCoefficient());
+        bool selected = false;
+        if(leaving == ARITHVAR_SENTINEL){
+          selected = true;
+        }else{
+          int cmp = ratio.compare(minRatio);
+          if((csgn > 0) ? (cmp <= 0) : (cmp >= 0)){
+            selected = (cmp != 0) ||
+              ((leaving != entering) && (basic < leaving));
+          }
+        }
+        if(selected){
+          leaving = basic;
+          minRatio = ratio;
+          pivotEntry = &centry;
+        }
+      }
+    }
+
+
+    if(leaving == ARITHVAR_SENTINEL){
+      finalState = NoBound;
+      break;
+    }else if(leaving == entering){
+      d_linEq.update(entering, minRatio);
+    }else{
+      DeltaRational newLeaving = minRatio * (pivotEntry->getCoefficient());
+      d_linEq.pivotAndUpdate(leaving, entering, newLeaving);
+      // no conflicts clear signals
+      Assert(d_errorSet.noSignals());
+    }
+
+    if(threshold != NULL){
+      if(d_partialModel.getAssignment(optVar) >= normThresh){
+        finalState = ReachedThreshold;
+        break;
+      }
+    }
+  };
+
+  // tear down term
+  DeltaRational retValue = d_partialModel.getAssignment(optVar);
+  Node exp;
+  switch(finalState){
+  case Inferred:
+    {
+      NodeBuilder<> nb(kind::AND);
+      for(Tableau::RowIterator ri = d_tableau.ridRowIterator(ridx); !ri.atEnd(); ++ri){
+        const Tableau::Entry& e =*ri;
+        ArithVar colVar = e.getColVar();
+        if(colVar != optVar){
+          const Rational& q = e.getCoefficient();
+          Assert(q.sgn() != 0);
+          Constraint c = (q.sgn() > 0)
+            ? d_partialModel.getUpperBoundConstraint(colVar)
+            : d_partialModel.getLowerBoundConstraint(colVar);
+          c->explainForConflict(nb);
+        }
+      }
+      Assert(nb.getNumChildren() >= 1);
+      exp = (nb.getNumChildren() >= 2) ? (Node) nb : nb[0];
+      break;
+    }
+  case NoBound:
+    retValue = DeltaRational(0);
+    exp = Node::null();
+    break;
+  case ReachedThreshold:
+  case ExhaustedRounds:
+    exp = term;
+    break;
+  case Unset:
+  default:
+    Unreachable();
+    break;
+  };
+
+  d_linEq.stopTrackingRowIndex(ridx);
+  d_tableau.removeBasicRow(optVar);
+  releaseArithVar(optVar);
+  return make_pair(retValue, exp);
+}
+
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */
 }/* CVC4 namespace */

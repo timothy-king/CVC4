@@ -76,6 +76,8 @@ public:
   void addSharedTerm(TNode n);
 
   Node getModelValue(TNode var);
+
+  virtual std::pair<DeltaRational, Node> inferBound(TNode term, bool lb, int maxRounds, const DeltaRational* threshold);
 };/* class TheoryArith */
 
 }/* CVC4::theory::arith namespace */

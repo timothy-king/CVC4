@@ -91,6 +91,10 @@ Node TheoryArith::getModelValue(TNode var) {
   return d_internal->getModelValue( var );
 }
 
+std::pair<DeltaRational, Node> TheoryArith::inferBound(TNode term, bool lb, int maxRounds, const DeltaRational* threshold){
+  return d_internal->inferBound(term, lb, maxRounds, threshold);
+}
+
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */
 }/* CVC4 namespace */
