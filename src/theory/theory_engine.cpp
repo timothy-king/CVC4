@@ -51,6 +51,14 @@ using namespace std;
 using namespace CVC4;
 using namespace CVC4::theory;
 
+std::pair<DeltaRational, Node> TheoryEngine::inferBound(TNode term, bool lb, int maxRounds, const DeltaRational* threshold){
+  Theory* th = theoryOf(term);
+  Assert(th != NULL);
+
+  return th->inferBound(term, lb, maxRounds, threshold);
+}
+
+
 void TheoryEngine::finishInit() {
   if (d_logicInfo.isQuantified()) {
     d_quantEngine->finishInit();

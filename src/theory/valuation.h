@@ -23,6 +23,9 @@
 
 #include "expr/node.h"
 
+#warning "HACK. This is a hack for Andy. Do not let this into trunk!"
+#include "theory/arith/delta_rational.h"
+
 namespace CVC4 {
 
 class TheoryEngine;
@@ -124,6 +127,9 @@ public:
    * Get the assertion level of the SAT solver.
    */
   unsigned getAssertionLevel() const;
+
+#warning "This is a hack for Andy. Do not let this into trunk!"
+  std::pair<DeltaRational, Node> inferBound(TNode term, bool lb, int maxRounds, const DeltaRational* threshold);
 
 };/* class Valuation */
 

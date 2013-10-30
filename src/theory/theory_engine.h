@@ -47,6 +47,8 @@
 #include "theory/bv/bv_to_bool.h"
 #include "theory/atom_requests.h"
 
+#include "theory/arith/delta_rational.h"
+
 namespace CVC4 {
 
 /**
@@ -756,6 +758,9 @@ public:
    * has (or null if none);
    */
   Node getModelValue(TNode var);
+
+#warning "This is a hack for Andy. Do not let this into trunk!"
+  std::pair<DeltaRational, Node> inferBound(TNode term, bool lb, int maxRounds, const DeltaRational* threshold);
 
 private:
 

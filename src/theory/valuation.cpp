@@ -106,5 +106,10 @@ unsigned Valuation::getAssertionLevel() const{
   return d_engine->getPropEngine()->getAssertionLevel();
 }
 
+#warning "This is a hack for Andy. Do not let this into trunk!"
+std::pair<DeltaRational, Node> Valuation::inferBound(TNode term, bool lb, int maxRounds, const DeltaRational* threshold){
+  return d_engine->inferBound(term, lb, maxRounds, threshold);
+}
+
 }/* CVC4::theory namespace */
 }/* CVC4 namespace */

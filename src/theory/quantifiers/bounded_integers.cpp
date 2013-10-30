@@ -77,6 +77,17 @@ void BoundedIntegers::RangeModel::assertNode(Node n) {
 void BoundedIntegers::RangeModel::allocateRange() {
   d_curr_max++;
   int newBound = d_curr_max;
+
+  Valuation& val = d_bi->getQuantifiersEngine()->getValuation();
+  std::pair<DeltaRational, Node> res = val.inferBound(d_range, false, -1, NULL);
+  if(!res.second.isNull() && res.second != d_range){
+    Integer fl = (res.first).floor();
+    if(fl.fitsSignedInt()){
+      int flAsInt = fl.getSignedInt();
+      std::cout << flAsInt << std::endl;
+    }
+  }
+
   Trace("bound-int-proc") << "Allocate range bound " << newBound << " for " << d_range << std::endl;
   //TODO: newBound should be chosen in a smarter way
   Node ltr = NodeManager::currentNM()->mkNode( LEQ, d_range, NodeManager::currentNM()->mkConst( Rational(newBound) ) );

@@ -41,6 +41,9 @@
 #include <strings.h>
 #include <ext/hash_set>
 
+#warning "HACK. This is a hack for Andy. Do not let this into trunk!"
+#include "theory/arith/delta_rational.h"
+
 namespace CVC4 {
 
 class TheoryEngine;
@@ -300,6 +303,12 @@ protected:
   void debugPrintFacts() const;
 
 public:
+
+#warning "This is a hack for Andy. Do not let this into trunk!"
+  virtual std::pair<DeltaRational, Node> inferBound(TNode term, bool lb, int maxRounds, const DeltaRational* threshold){
+    Unimplemented();
+    return std::make_pair(DeltaRational(0), Node::null());
+  }
 
   /**
    * Return the ID of the theory responsible for the given type.
