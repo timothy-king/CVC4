@@ -17,7 +17,6 @@
 #include <vector>
 
 #include "util/ite_removal.h"
-#include "theory/rewriter.h"
 #include "expr/command.h"
 #include "theory/quantifiers/options.h"
 
@@ -45,11 +44,11 @@ Node RemoveITE::run(TNode node, std::vector<Node>& output,
 
   // The result may be cached already
   NodeManager *nodeManager = NodeManager::currentNM();
-  ITECache::iterator i = d_iteCache.find(node);
+  ITECache::const_iterator i = d_iteCache.find(node);
   if(i != d_iteCache.end()) {
-    Node cachedRewrite = (*i).second;
-    Debug("ite") << "removeITEs: in-cache: " << cachedRewrite << endl;
-    return cachedRewrite.isNull() ? Node(node) : cachedRewrite;
+    Node cached = (*i).second;
+    Debug("ite") << "removeITEs: in-cache: " << cached << endl;
+    return cached.isNull() ? Node(node) : cached;
   }
 
   // If an ITE replace it
@@ -81,7 +80,7 @@ Node RemoveITE::run(TNode node, std::vector<Node>& output,
       Debug("ite") << "removeITEs(" << node << ") => " << newAssertion << endl;
 
       // Attach the skolem
-      d_iteCache[node] = skolem;
+      d_iteCache.insert(node, skolem);
 
       // Remove ITEs from the new assertion, rewrite it and push it to the output
       newAssertion = run(newAssertion, output, iteSkolemMap, quantVar);
@@ -113,29 +112,74 @@ Node RemoveITE::run(TNode node, std::vector<Node>& output,
         newQuantVar.push_back( node[0][i] );
       }
     }
-    vector<Node> newChildren;
-    bool somethingChanged = false;
-    if(node.getMetaKind() == kind::metakind::PARAMETERIZED) {
-      newChildren.push_back(node.getOperator());
-    }
-    // Remove the ITEs from the children
-    for(TNode::const_iterator it = node.begin(), end = node.end(); it != end; ++it) {
-      Node newChild = run(*it, output, iteSkolemMap, newQuantVar);
-      somethingChanged |= (newChild != *it);
-      newChildren.push_back(newChild);
-    }
+    // Switches to using a 2 state automaton
+    if(options::lazyITEConstruction()){
+      // Search for the first modified position
+      // If there is no modified child, node return Node::null().
+      // If there is a modified child,
+      // push back the unmodified parts and begin constructing the modified node
+      Node newChild = Node::null();
+      TNode::const_iterator first_modified_pos = node.begin();
+      TNode::const_iterator end = node.end();
+      for(; first_modified_pos != end; ++first_modified_pos) {
+        newChild = run(*first_modified_pos, output, iteSkolemMap, newQuantVar);
+        if(newChild != *first_modified_pos){
+          break;
+        }
+      }
+      if(first_modified_pos == end){ // nothing was modified
+        d_iteCache.insert(node, Node::null());
+        return node;
+      }else{
+        // Something was modified
+        // Start constructing the new node now
+        NodeBuilder<> newChildren(nodeManager, node.getKind());
+        if(node.getMetaKind() == kind::metakind::PARAMETERIZED) {
+          newChildren << (node.getOperator());
+        }
+        TNode::const_iterator it = node.begin();
+        // Push back the untouched prefix
+        for(; it != first_modified_pos; ++it) {
+          newChildren << (*it);
+        }
+        Assert(it == first_modified_pos);
+        // Push_back the first modified child
+        newChildren << newChild;
+        // move the iterator past first_modified_pos
+        ++it;
+        for(; it != end; ++it){
+          newChild = run(*it, output, iteSkolemMap, newQuantVar);
+          newChildren << newChild;
+        }
+        Node cached = (Node)newChildren;
+        d_iteCache.insert(node, cached);
+        return cached;
+      }
+    }else{ // older implementation
+      vector<Node> newChildren;
+      bool somethingChanged = false;
+      if(node.getMetaKind() == kind::metakind::PARAMETERIZED) {
+        newChildren.push_back(node.getOperator());
+      }
+      // Remove the ITEs from the children
+      for(TNode::const_iterator it = node.begin(), end = node.end(); it != end; ++it) {
+        Node newChild = run(*it, output, iteSkolemMap, newQuantVar);
+        somethingChanged |= (newChild != *it);
+        newChildren.push_back(newChild);
+      }
 
-    // If changes, we rewrite
-    if(somethingChanged) {
-      Node cachedRewrite = nodeManager->mkNode(node.getKind(), newChildren);
-      d_iteCache[node] = cachedRewrite;
-      return cachedRewrite;
-    } else {
-      d_iteCache[node] = Node::null();
-      return node;
+      // If changes, we rewrite
+      if(somethingChanged) {
+        Node cached = nodeManager->mkNode(node.getKind(), newChildren);
+        d_iteCache.insert(node, cached);
+        return cached;
+      } else {
+        d_iteCache.insert(node, Node::null());
+        return node;
+      }
     }
   } else {
-    d_iteCache[node] = Node::null();
+    d_iteCache.insert(node, Node::null());
     return node;
   }
 }

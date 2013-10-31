@@ -22,14 +22,14 @@
 #include "expr/node.h"
 #include "util/dump.h"
 #include "context/context.h"
-#include "context/cdhashmap.h"
+#include "context/cdinsert_hashmap.h"
 
 namespace CVC4 {
 
 typedef std::hash_map<Node, unsigned, NodeHashFunction> IteSkolemMap;
 
 class RemoveITE {
-  typedef context::CDHashMap<Node, Node, NodeHashFunction> ITECache;
+  typedef context::CDInsertHashMap<Node, Node, NodeHashFunction> ITECache;
   ITECache d_iteCache;
 
 public:
