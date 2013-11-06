@@ -88,6 +88,25 @@ RewriteResponse flattenNode(TNode n, TNode trivialNode, TNode skipNode)
   }
 }
 
+// Equality parity returns
+// * 0 if no relation between a and b is found
+// * 1 if a == b
+// * 2 if a == not(b)
+// * 3 or b == not(a)
+inline int equalityParity(TNode a, TNode b){
+  if(a == b){
+    return 1;
+  }else if(a.getKind() == kind::NOT && a[0] == b){
+    return 2;
+  }else if(b.getKind() == kind::NOT && b[0] == a){
+    return 3;
+  }else{
+    return 0;
+  }
+}
+enum EqualToParity {NoRelation, EqualWithEvenParity, EqualWithOddParity};
+
+
 RewriteResponse TheoryBoolRewriter::preRewrite(TNode n) {
   NodeManager* nodeManager = NodeManager::currentNM();
   Node tt = nodeManager->mkConst(true);
@@ -261,20 +280,49 @@ RewriteResponse TheoryBoolRewriter::preRewrite(TNode n) {
       else if (n[1] == ff && n[2] == tt) {
         return RewriteResponse(REWRITE_AGAIN, n[0].notNode());
       }
+      // else if(n[1] == ff){
+      //   Node resp = (n[0].notNode()).andNode(n[2]);
+      //   return RewriteResponse(REWRITE_AGAIN, resp);
+      // }
     }
-    if (n[1] == n[2]) {
-      return RewriteResponse(REWRITE_AGAIN, n[1]);
+    // else if (n[2].isConst()) {
+    //   if(n[2] == ff){
+    //     Node resp = (n[0]).andNode(n[1]);
+    //     return RewriteResponse(REWRITE_AGAIN, resp);
+    //   }
+    // }
+
+    int parityTmp;
+    if ((parityTmp = equalityParity(n[1], n[2])) != 0) {
+      Node resp = (parityTmp == 1) ? (Node)n[1] : n[0].iffNode(n[1]);
+      return RewriteResponse(REWRITE_AGAIN, resp);
     // Curiously, this rewrite affects several benchmarks dramatically, including copy_array and some simple_startup - disable for now
     // } else if (n[0].getKind() == kind::NOT) {
     //   return RewriteResponse(REWRITE_AGAIN, n[0][0].iteNode(n[2], n[1]));
-    } else if (n[0] == n[1]) {
-      return RewriteResponse(REWRITE_AGAIN, n[0].iteNode(tt, n[2]));
-    } else if (n[0] == n[2]) {
-      return RewriteResponse(REWRITE_AGAIN, n[0].iteNode(n[1], ff));
-    } else if (n[1].getKind() == kind::NOT && n[1][0] == n[0]) {
-      return RewriteResponse(REWRITE_AGAIN, n[0].iteNode(ff, n[2]));
-    } else if (n[2].getKind() == kind::NOT && n[2][0] == n[0]) {
-      return RewriteResponse(REWRITE_AGAIN, n[0].iteNode(n[1], tt));
+    } else if((parityTmp = equalityParity(n[0], n[1])) != 0){
+      // (parityTmp == 1) if n[0] == n[1]
+      // otherwise, n[0] == not(n[1]) or not(n[0]) == n[1]
+      Node resp = n[0].iteNode( (parityTmp == 1) ? tt : ff, n[2]);
+      return RewriteResponse(REWRITE_AGAIN, resp);
+    } else if((parityTmp = equalityParity(n[0], n[2])) != 0){
+      // (parityTmp == 1) if n[0] == n[2]
+      // otherwise, n[0] == not(n[2]) or not(n[0]) == n[2]
+      Node resp = n[0].iteNode(n[1], (parityTmp == 1) ? ff : tt);
+      return RewriteResponse(REWRITE_AGAIN, resp);
+    } else if(n[1].getKind() == kind::ITE &&
+              (parityTmp = equalityParity(n[0], n[1][0])) != 0){
+      // (parityTmp == 1) then n : (ite c (ite c x y) z)
+      // (parityTmp > 1)  then n : (ite c (ite (not c) x y) z) or
+      // n: (ite (not c) (ite c x y) z)
+      Node resp = n[0].iteNode((parityTmp == 1) ? n[1][1] : n[1][2], n[2]);
+      return RewriteResponse(REWRITE_AGAIN, resp);
+    } else if(n[2].getKind() == kind::ITE &&
+              (parityTmp = equalityParity(n[0], n[2][0])) != 0){
+      // (parityTmp == 1) then n : (ite c x (ite c y z))
+      // (parityTmp > 1)  then n : (ite c x (ite (not c) y z)) or
+      // n: (ite (not c) x (ite c y z))
+      Node resp = n[0].iteNode(n[1], (parityTmp == 1) ? n[2][2] : n[2][1]);
+      return RewriteResponse(REWRITE_AGAIN, resp);
     }
     break;
   }
