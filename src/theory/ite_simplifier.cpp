@@ -19,21 +19,9 @@
 
 
 #include "theory/ite_simplifier.h"
-
-//#include <deque>
 #include <utility>
-
-//#include "prop/prop_engine.h"
-//#include "expr/command.h"
 #include "theory/rewriter.h"
 #include "theory/theory.h"
-//#include "context/cdhashset.h"
-//#include "util/hash.h"
-//#include "util/cache.h"
-//#include "theory/shared_terms_database.h"
-//#include "theory/term_registration_visitor.h"
-//#include "theory/valuation.h"
-
 
 using namespace std;
 using namespace CVC4;
