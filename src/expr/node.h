@@ -1293,6 +1293,11 @@ NodeTemplate<ref_count>::isConst() const {
     Debug("isConst") << "Node::isConst() returning false, it's a VARIABLE" << std::endl;
     return false;
   default:
+    if(expr::TypeChecker::neverIsConst(NodeManager::currentNM(), *this)){
+      Debug("isConst") << "Node::isConst() returning false, the kind is never const" << std::endl;
+      return false;
+    }
+
     if(getAttribute(IsConstComputedAttr())) {
       bool bval = getAttribute(IsConstAttr());
       Debug("isConst") << "Node::isConst() returning cached value " << (bval ? "true" : "false") << " for: " << *this << std::endl;
