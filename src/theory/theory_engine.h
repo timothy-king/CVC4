@@ -37,12 +37,8 @@
 #include "options/options.h"
 #include "smt/options.h"
 #include "util/statistics_registry.h"
-#include "util/hash.h"
-#include "util/cache.h"
 #include "util/cvc4_assert.h"
 #include "util/sort_inference.h"
-#include "theory/ite_simplifier.h"
-#include "theory/unconstrained_simplifier.h"
 #include "theory/uf/equality_engine.h"
 #include "theory/bv/bv_to_bool.h"
 #include "theory/atom_requests.h"
@@ -77,18 +73,19 @@ struct NodeTheoryPairHashFunction {
 
 
 
-
+/* Forward Declarations Block */
 namespace theory {
   class TheoryModel;
   class TheoryEngineModelBuilder;
+  class ITESimplifier;
 
   namespace eq {
     class EqualityEngine;
   }
 }/* CVC4::theory namespace */
-
-
 class DecisionEngine;
+class RemoveITE;
+class UnconstrainedSimplifier;
 
 /**
  * This is essentially an abstraction for a collection of theories.  A
@@ -771,11 +768,14 @@ private:
   /** Dump the assertions to the dump */
   void dumpAssertions(const char* tag);
 
-  /** For preprocessing pass simplifying ITEs */
-  theory::ITESimplifier d_iteSimplifier;
+  /**
+   * For preprocessing pass simplifying ITEs.
+   * Either NULL or intialized.
+   */
+  theory::ITESimplifier* d_iteSimplifier;
 
   /** For preprocessing pass simplifying unconstrained expressions */
-  UnconstrainedSimplifier d_unconstrainedSimp;
+  UnconstrainedSimplifier* d_unconstrainedSimp;
 
   /** For preprocessing pass lifting bit-vectors of size 1 to booleans */
   theory::bv::BvToBoolPreprocessor d_bvToBoolPreprocessor; 

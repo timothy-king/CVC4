@@ -35,6 +35,9 @@
 #include "util/node_visitor.h"
 #include "util/ite_removal.h"
 
+#include "theory/ite_simplifier.h"
+#include "theory/unconstrained_simplifier.h"
+
 #include "theory/model.h"
 #include "theory/quantifiers_engine.h"
 #include "theory/quantifiers/theory_quantifiers.h"
@@ -120,7 +123,8 @@ TheoryEngine::TheoryEngine(context::Context* context,
   d_factsAsserted(context, false),
   d_preRegistrationVisitor(this, context),
   d_sharedTermsVisitor(d_sharedTerms),
-  d_unconstrainedSimp(context, logicInfo),
+  d_iteSimplifier(NULL),
+  d_unconstrainedSimp(new UnconstrainedSimplifier(context, logicInfo)),
   d_bvToBoolPreprocessor()
 {
   for(TheoryId theoryId = theory::THEORY_FIRST; theoryId != theory::THEORY_LAST; ++ theoryId) {
@@ -158,6 +162,9 @@ TheoryEngine::~TheoryEngine() {
   delete d_masterEqualityEngine;
 
   StatisticsRegistry::unregisterStat(&d_combineTheoriesTime);
+
+  delete d_unconstrainedSimp;
+  if(d_iteSimplifier != NULL){ delete d_iteSimplifier; }
 }
 
 void TheoryEngine::interrupt() throw(ModalException) {
@@ -1398,9 +1405,30 @@ void TheoryEngine::ppBvToBool(const std::vector<Node>& assertions, std::vector<N
 
 Node TheoryEngine::ppSimpITE(TNode assertion)
 {
-  Node result = d_iteSimplifier.simpITE(assertion);
-  result = d_iteSimplifier.simplifyWithCare(Rewriter::rewrite(result));
-  result = Rewriter::rewrite(result);
+  if(d_iteSimplifier == NULL){
+    d_iteSimplifier = new ITESimplifier();
+  }
+
+  Node result = d_iteSimplifier->simpITE(assertion);
+  Node res_rewritten = Rewriter::rewrite(result);
+  Chat() << "simpITE() is done"
+         << " simpITE result " << result.getId()
+         << " rewritten " << res_rewritten.getId() << endl;
+
+  if(options::simplifyWithCareEnabled()){
+    Chat() << "starting simplifyWithCare()" << endl;
+    Node postSimpWithCare = d_iteSimplifier->simplifyWithCare(res_rewritten);
+    Chat() << "ending simplifyWithCare()"
+           << " post simplifyWithCare()" << postSimpWithCare.getId() << endl;
+    result = Rewriter::rewrite(postSimpWithCare);
+  }else{
+    result = res_rewritten;
+  }
+
+  if(d_iteSimplifier->shouldHeuristicallyClearCaches()){
+    d_iteSimplifier->clearSimpITECaches();
+  }
+
   return result;
 }
 
@@ -1478,7 +1506,7 @@ void TheoryEngine::getExplanation(std::vector<NodeTheoryPair>& explanationVector
 
 void TheoryEngine::ppUnconstrainedSimp(vector<Node>& assertions)
 {
-  d_unconstrainedSimp.processAssertions(assertions);
+  d_unconstrainedSimp->processAssertions(assertions);
 }
 
 
