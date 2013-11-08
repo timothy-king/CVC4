@@ -463,6 +463,11 @@ Node ITESimplifier::attemptLiftEquality(TNode atom){
 Node ITESimplifier::transformAtom(TNode atom){
   uint32_t h = termITEHeight(atom);
   if(h == 0){
+    if(atom.getKind() == kind::EQUAL &&
+       atom[0].isConst() && atom[1].isConst()){
+      // constant equality
+      return NodeManager::currentNM()->mkConst<bool>(atom[0] == atom[1]);
+    }
     //d_iteRemover.markAsNoTermITESubNodes(atom);
     return Node::null();
   }else{
@@ -825,11 +830,9 @@ Node ITESimplifier::simpITEAtom(TNode atom)
       <<  " from " <<  countReachable(atom, kind::ITE) << endl
       << "\t rewritten " << rewritten << endl
       << "\t input " << atom << endl;
-
-    if(instance % 10 == 0) {
-    }
     return rewritten;
   }
+
   if (leavesAreConst(atom)) {
     Node iteNode;
     Node simpVar;
