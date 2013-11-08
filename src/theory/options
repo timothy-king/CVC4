@@ -12,4 +12,16 @@ option - use-theory --use-theory=NAME argument :handler CVC4::theory::useTheory 
  use alternate theory implementation NAME (--use-theory=help for a list)
 option theoryAlternates ::std::map<std::string,bool> :include <map> :read-write
 
+option simpCndBeforeBranch --simp-cnd-before-branch bool :default false
+ tests conditions before visiting them
+
+option simpAtomsEarly --simp-atoms-early bool :default false
+ attempts constant removal before visiting atoms
+
+option simplifyWithCareEnabled --simp-with-care bool :default false
+ enables simplifyWithCare in ite simplificiation
+
+option simpIteClearCache --simp-ite-clear-caches bool :default false
+ enables clearing caches after ite simplification
+
 endmodule

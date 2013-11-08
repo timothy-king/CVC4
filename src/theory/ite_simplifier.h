@@ -22,23 +22,11 @@
 #ifndef __CVC4__ITE_SIMPLIFIER_H
 #define __CVC4__ITE_SIMPLIFIER_H
 
-#include <deque>
 #include <vector>
-#include <utility>
-
+#include <ext/hash_map>
+#include <ext/hash_set>
 #include "expr/node.h"
-#include "expr/command.h"
-#include "prop/prop_engine.h"
-#include "context/cdhashset.h"
-#include "theory/theory.h"
-#include "theory/rewriter.h"
-#include "theory/shared_terms_database.h"
-#include "theory/term_registration_visitor.h"
-#include "theory/valuation.h"
 #include "util/statistics_registry.h"
-#include "util/hash.h"
-#include "util/cache.h"
-#include "util/ite_removal.h"
 
 namespace CVC4 {
 namespace theory {
@@ -67,14 +55,14 @@ public:
    * encountered on any path from e to a leaf.
    * Inductively:
    *  - termITEHeight(leaves) = 0
-   *  - termITEHeight(e: term-ite(..) ) =
-   *     1 + max_{c in children(e)) (termITEHeight(c))
+   *  - termITEHeight(e: term-ite(c, t, e) ) =
+   *     1 + max(termITEHeight(t), termITEHeight(e)) ; Don't include c
    *  - termITEHeight(e not term ite) = max_{c in children(e)) (termITEHeight(c))
    */
   uint32_t termITEHeight(TNode e);
 
   /**
-   * Lookups up the term ite height of e.
+   * Safely looks up the term ite height of e.
    * If this is unknown (uncached and non-trivial), returns UINT32_MAX.
    */
   uint32_t lookupTermITEHeight(TNode e) const{
@@ -90,6 +78,10 @@ public:
     }
   }
 
+  /**
+   * From the definition of termITEHeight(e),
+   * e contains a term-ite iff termITEHeight(e) > 0
+   */
   bool containsTermITE(TNode e){
     return termITEHeight(e) > 0;
   }
@@ -101,6 +93,10 @@ private:
   typedef std::vector<Node> NodeVec;
   typedef std::hash_map<Node, NodeVec*, NodeHashFunction > ConstantLeavesMap;
   ConstantLeavesMap d_constantLeaves;
+
+  // Lists all of the vectors in d_constantLeaves for fast deletion.
+  std::vector<NodeVec*> d_allocatedConstantLeaves;
+
   // d_constantLeaves satisfies the following invariants:
   // not containsTermITE(x) then !isKey(x)
   // containsTermITE(x):
@@ -121,6 +117,7 @@ private:
   Node transformAtom(TNode atom);
   Node attemptConstantRemoval(TNode atom);
   Node attemptLiftEquality(TNode atom);
+  Node attemptEagerRemoval(TNode atom);
 
   // Searches for a fringe of a node where all leafs are constant ites,
   //bool searchConstantITEs(TNode f, std::vector<Node>& found, unsigned maxFound, int maxDepth);
@@ -151,8 +148,7 @@ private:
 
   std::hash_map<Node, bool, NodeHashFunction> d_leavesConstCache;
   bool leavesAreConst(TNode e, theory::TheoryId tid);
-  bool leavesAreConst(TNode e)
-    { return leavesAreConst(e, theory::Theory::theoryOf(e)); }
+  bool leavesAreConst(TNode e);
 
   typedef std::hash_map<Node, Node, NodeHashFunction> NodeMap;
   typedef std::hash_map<TNode, Node, TNodeHashFunction> TNodeMap;
@@ -172,6 +168,9 @@ private:
 
 public:
   Node simpITE(TNode assertion);
+
+  bool shouldHeuristicallyClearCaches() const;
+  void clearSimpITECaches();
 
 private:
 
@@ -238,6 +237,7 @@ private:
 public:
   Node simplifyWithCare(TNode e);
 
+
   ITESimplifier();
   ~ITESimplifier();
 
@@ -251,6 +251,7 @@ private:
     IntStat d_exactMatchFold;
     IntStat d_binaryPredFold;
     IntStat d_specialEqualityFolds;
+    IntStat d_simpITEVisits;
 
     HistogramStat<uint32_t> d_inSmaller;
 
@@ -258,7 +259,7 @@ private:
     ~Statistics();
   };
 
-  Statistics* d_statistics;
+  Statistics d_statistics;
 };
 
 }/* CVC4::theory namespace */
