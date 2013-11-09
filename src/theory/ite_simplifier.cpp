@@ -67,6 +67,7 @@ void ITESimplifier::clearSimpITECaches(){
     NodeVec* curr = d_allocatedConstantLeaves[i];
     delete curr;
   }
+  d_compressIteMap.clear();
   d_constantLeaves.clear();
   d_allocatedConstantLeaves.clear();
   d_termITEHeight.clear();
@@ -513,6 +514,10 @@ Node ITESimplifier::transformAtom(TNode atom){
 //   }
 // }
 
+static unsigned numBranches = 0;
+static unsigned numFalseBranches = 0;
+static unsigned itesMade = 0;
+
 Node ITESimplifier::constantIteEqualsConstant(TNode cite, TNode constant){
   static int instance = 0;
   ++instance;
@@ -546,6 +551,13 @@ Node ITESimplifier::constantIteEqualsConstant(TNode cite, TNode constant){
       Node tEqs = constantIteEqualsConstant(tB, constant);
       Node fEqs = constantIteEqualsConstant(fB, constant);
       Node boolIte = cnd.iteNode(tEqs, fEqs);
+      if(!(tEqs.isConst() || fEqs.isConst())){
+        ++numBranches;
+      }
+      if(!(tEqs == d_false || fEqs == d_false)){
+        ++numFalseBranches;
+      }
+      ++itesMade;
       d_constantIteEqualsConstantCache[pair] = boolIte;
       //Debug("ite::constantIteEqualsConstant") << instance << "->" << boolIte << endl;
       return boolIte;
@@ -557,16 +569,97 @@ Node ITESimplifier::constantIteEqualsConstant(TNode cite, TNode constant){
   }
 }
 
+Node ITESimplifier::compressITEIntoConjunct(Node ite){
+  Assert(ite.getKind() == kind::ITE);
+  Assert(ite.getType().isBoolean());
+  Assert(ite[1] == d_false || ite[2] == d_false);
+
+  NodeBuilder<> conjunctBuilder(kind::AND);
+
+  Node curr = ite;
+  // (ite c false e) <=> (and (not c) e)
+  // (ite c t false) <=> (and c t)
+  while(curr.getKind() == kind::ITE &&
+        (curr[1] == d_false || curr[2] == d_false)){
+    bool negate = (curr[1] == d_false);
+    if(negate ? (curr[0] == d_true) : (curr[0] == d_false)){
+      return d_false; // short cut falses
+    }
+    Node cnd = negate ? (curr[0]).notNode() : (Node)curr[0];
+    conjunctBuilder << cnd;
+    curr = negate ? curr[2] : curr[1];
+  }
+  Assert(compressing.size() > 0);
+
+  Assert(conjunctBuilder.getNumChildren() >= 1);
+  Node maybeRecurse =
+    (curr.getKind() == kind::ITE) ? compressITE(curr) : curr;
+  if(maybeRecurse.isConst()){
+    if(maybeRecurse == d_false){
+      return d_false;
+    }else{
+      Assert(maybeRecurse == d_true);
+      // is d_true, don't append
+    }
+  }else{
+    conjunctBuilder << maybeRecurse;
+  }
+  Node conjunct = (conjunctBuilder.getNumChildren() == 1) ?
+    conjunctBuilder[0] : (Node)conjunctBuilder;
+  return conjunct;
+}
+
+Node ITESimplifier::compressITE(Node ite){
+  if(ite.isConst()){
+    return ite;
+  }
+
+  NodeMap::const_iterator it = d_compressIteMap.find(ite);
+  if(it != d_compressIteMap.end()){
+    return (*it).second;
+  }else if(ite.getKind() != kind::ITE){
+    d_compressIteMap[ite] =ite;
+    return ite;
+  }else{
+    if(ite[0].isConst()){
+      Node branch = (ite[0] == d_true) ? ite[1] : ite[2];
+      // don't bother to cache!
+      return compressITE(branch);
+    }
+    if(ite[1] == d_false || ite[2] == d_false){
+      Node conjunct = compressITEIntoConjunct(ite);
+      d_compressIteMap[conjunct] = ite;
+      return ite;
+    }else{
+      Node compressThen = compressITE(ite[1]);
+      Node compressElse = compressITE(ite[2]);
+      Node newIte = ite[0].iteNode(compressThen, compressElse);
+      d_compressIteMap[ite] = newIte;
+      d_compressIteMap[newIte] = newIte;
+      return newIte;
+    }
+  }
+}
+
 Node ITESimplifier::intersectConstantIte(TNode lcite, TNode rcite){
   // intersect the constant ite trees lcite and rcite
 
-  if(lcite.isConst()){
+  if(lcite.isConst() || rcite.isConst()){
+    bool lIsConst = lcite.isConst();
+    TNode constant = lIsConst ? lcite : rcite;
+    TNode cite = lIsConst ? rcite : lcite;
+
     (d_statistics.d_inSmaller)<< 1;
-    return constantIteEqualsConstant(rcite, lcite);
-  }
-  if(rcite.isConst()){
-    (d_statistics.d_inSmaller)<< 1;
-    return constantIteEqualsConstant(lcite, rcite);
+    unsigned preItesMade = itesMade;
+    unsigned preNumBranches = numBranches;
+    unsigned preNumFalseBranches = numFalseBranches;
+    Node bterm = constantIteEqualsConstant(cite, constant);
+    Debug("intersectConstantIte")
+      << (numBranches - preNumBranches)
+      << " " << (numFalseBranches - preNumFalseBranches)
+      << " " << (itesMade - preItesMade) << endl;
+    Node compressed = compressITE(bterm);
+    return compressed;
   }
   Assert(lcite.getKind() == kind::ITE);
   Assert(rcite.getKind() == kind::ITE);
@@ -599,6 +692,7 @@ Node ITESimplifier::intersectConstantIte(TNode lcite, TNode rcite){
     return result;
   }
 }
+
 
 Node ITESimplifier::attemptEagerRemoval(TNode atom){
   if(atom.getKind() == kind::EQUAL){

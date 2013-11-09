@@ -130,6 +130,13 @@ private:
   // return a boolean expression equivalent to (= lcite c)
   Node constantIteEqualsConstant(TNode cite, TNode c);
 
+  typedef std::hash_map<Node, Node, NodeHashFunction> NodeMap;
+  typedef std::hash_map<TNode, Node, TNodeHashFunction> TNodeMap;
+
+  NodeMap d_compressIteMap;
+  Node compressITE(Node boolTerm);
+  Node compressITEIntoConjunct(Node ite);
+
   typedef std::pair<Node, Node> NodePair;
   struct NodePairHashFunction {
     size_t operator () (const NodePair& pair) const {
@@ -149,10 +156,6 @@ private:
   std::hash_map<Node, bool, NodeHashFunction> d_leavesConstCache;
   bool leavesAreConst(TNode e, theory::TheoryId tid);
   bool leavesAreConst(TNode e);
-
-  typedef std::hash_map<Node, Node, NodeHashFunction> NodeMap;
-  typedef std::hash_map<TNode, Node, TNodeHashFunction> TNodeMap;
-
 
   NodePairMap d_simpConstCache;
   Node simpConstants(TNode simpContext, TNode iteNode, TNode simpVar);

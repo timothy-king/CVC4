@@ -783,6 +783,7 @@ public:
 
   void ppBvToBool(const std::vector<Node>& assertions, std::vector<Node>& new_assertions); 
   Node ppSimpITE(TNode assertion);
+  void donePPSimpITE();
   void ppUnconstrainedSimp(std::vector<Node>& assertions);
 
   SharedTermsDatabase* getSharedTermsDatabase() { return &d_sharedTerms; }

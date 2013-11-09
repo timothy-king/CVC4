@@ -351,7 +351,7 @@ private:
   void bvToBool();
 
   // Simplify ITE structure
-  void simpITE();
+  bool simpITE();
 
   // Simplify based on unconstrained values
   void unconstrainedSimp();
@@ -2026,14 +2026,21 @@ void SmtEnginePrivate::bvToBool() {
   }
 }
 
-void SmtEnginePrivate::simpITE() {
+bool SmtEnginePrivate::simpITE() {
   TimerStat::CodeTimer simpITETimer(d_smt.d_stats->d_simpITETime);
 
   Trace("simplify") << "SmtEnginePrivate::simpITE()" << endl;
 
   for (unsigned i = 0; i < d_assertionsToCheck.size(); ++i) {
-    d_assertionsToCheck[i] = d_smt.d_theoryEngine->ppSimpITE(d_assertionsToCheck[i]);
+    Node result = d_smt.d_theoryEngine->ppSimpITE(d_assertionsToCheck[i]);
+    d_assertionsToCheck[i] = result;
+    if(result.isConst() && !result.getConst<bool>()){
+      d_smt.d_theoryEngine->donePPSimpITE();
+      return false;
+    }
   }
+  d_smt.d_theoryEngine->donePPSimpITE();
+  return true;
 }
 
 
@@ -2557,7 +2564,10 @@ bool SmtEnginePrivate::simplifyAssertions()
     // ITE simplification
     if(options::doITESimp()) {
       Chat() << "...doing ITE simplification..." << endl;
-      simpITE();
+      bool noConflict = simpITE();
+      if(!noConflict){
+        return false;
+      }
     }
 
     dumpAssertions("post-itesimp", d_assertionsToCheck);

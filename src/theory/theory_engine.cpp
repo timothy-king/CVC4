@@ -1411,9 +1411,6 @@ Node TheoryEngine::ppSimpITE(TNode assertion)
 
   Node result = d_iteSimplifier->simpITE(assertion);
   Node res_rewritten = Rewriter::rewrite(result);
-  Chat() << "simpITE() is done"
-         << " simpITE result " << result.getId()
-         << " rewritten " << res_rewritten.getId() << endl;
 
   if(options::simplifyWithCareEnabled()){
     Chat() << "starting simplifyWithCare()" << endl;
@@ -1425,11 +1422,16 @@ Node TheoryEngine::ppSimpITE(TNode assertion)
     result = res_rewritten;
   }
 
-  if(d_iteSimplifier->shouldHeuristicallyClearCaches()){
-    d_iteSimplifier->clearSimpITECaches();
-  }
 
   return result;
+}
+
+void TheoryEngine::donePPSimpITE(){
+  if(d_iteSimplifier != NULL){
+    if(d_iteSimplifier->shouldHeuristicallyClearCaches()){
+      d_iteSimplifier->clearSimpITECaches();
+    }
+  }
 }
 
 void TheoryEngine::getExplanation(std::vector<NodeTheoryPair>& explanationVector)
