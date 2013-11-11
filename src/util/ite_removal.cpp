@@ -184,4 +184,10 @@ Node RemoveITE::run(TNode node, std::vector<Node>& output,
   }
 }
 
+
+void RemoveITE::containsNoTermItes(Node n)
+{
+  d_iteCache.insert_safe(n, Node::null());
+}
+
 }/* CVC4 namespace */

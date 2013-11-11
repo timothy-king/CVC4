@@ -57,6 +57,13 @@ public:
   Node run(TNode node, std::vector<Node>& additionalAssertions,
            IteSkolemMap& iteSkolemMap, std::vector<Node>& quantVar);
 
+
+  /**
+   * Marks a node as containing no term ites.
+   * Use with caution!
+   */
+  void containsNoTermItes(Node n);
+
 };/* class RemoveTTE */
 
 }/* CVC4 namespace */

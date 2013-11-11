@@ -29,6 +29,10 @@
 #include "util/statistics_registry.h"
 
 namespace CVC4 {
+
+/* forward declarations */
+class RemoveITE;
+
 namespace theory {
 
 class ITESimplifier {
@@ -36,8 +40,8 @@ private:
   Node d_true;
   Node d_false;
 
-  typedef std::hash_map<Node, uint32_t, NodeHashFunction> HeightMap;
-  HeightMap d_termITEHeight;
+  typedef std::hash_map<Node, uint32_t, NodeHashFunction> NodeCountMap;
+  NodeCountMap d_termITEHeight;
 
   typedef std::hash_set<Node, NodeHashFunction> NodeSet;
 
@@ -48,6 +52,7 @@ public:
   inline bool triviallyContainsNoTermITEs(TNode e) const {
     return e.isConst() || e.isVar();
   }
+
 
   /**
    * Compute and [potentially] cache the termITEHeight() of e.
@@ -69,7 +74,7 @@ public:
     if(triviallyContainsNoTermITEs(e)){
       return 0;
     }else{
-      HeightMap::const_iterator pos = d_termITEHeight.find(e);
+      NodeCountMap ::const_iterator pos = d_termITEHeight.find(e);
       if(pos == d_termITEHeight.end() ){
         return (*d_termITEHeight.find(e)).second;
       }else{
@@ -176,6 +181,21 @@ public:
   void clearSimpITECaches();
 
 private:
+  NodeCountMap d_reachCount;
+  NodeVec* d_assertions;
+  RemoveITE* d_removeItes;
+  NodeMap d_compressed;
+
+public:
+  void computeReachability(const std::vector<Node>& assertions);
+  void compress(std::vector<Node>& assertions, RemoveITE* ri);
+
+private:
+  Node push_back_boolean(Node original, Node compressed);
+  bool multipleParents(TNode c);
+  Node compressBooleanITEs(Node toCompress);
+  Node compressTerm(Node toCompress);
+  Node compressBoolean(Node toCompress);
 
   class CareSetPtr;
   class CareSetPtrVal {

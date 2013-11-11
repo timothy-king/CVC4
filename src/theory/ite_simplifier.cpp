@@ -22,6 +22,7 @@
 #include <utility>
 #include "theory/rewriter.h"
 #include "theory/theory.h"
+#include "util/ite_removal.h"
 
 using namespace std;
 using namespace CVC4;
@@ -67,6 +68,8 @@ void ITESimplifier::clearSimpITECaches(){
     NodeVec* curr = d_allocatedConstantLeaves[i];
     delete curr;
   }
+  d_reachCount.clear();
+  d_compressed.clear();
   d_compressIteMap.clear();
   d_constantLeaves.clear();
   d_allocatedConstantLeaves.clear();
@@ -128,8 +131,8 @@ uint32_t ITESimplifier::termITEHeight(TNode e){
 
   if(triviallyContainsNoTermITEs(e)){ return 0; }
 
-  HeightMap::const_iterator end = d_termITEHeight.end();
-  HeightMap::const_iterator tmp_it = d_termITEHeight.find(e);
+  NodeCountMap::const_iterator end = d_termITEHeight.end();
+  NodeCountMap::const_iterator tmp_it = d_termITEHeight.find(e);
   if(tmp_it != end){
     return (*tmp_it).second;
   }
@@ -610,6 +613,8 @@ Node ITESimplifier::compressITEIntoConjunct(Node ite){
 }
 
 Node ITESimplifier::compressITE(Node ite){
+  return ite;
+
   if(ite.isConst()){
     return ite;
   }
@@ -1103,6 +1108,247 @@ Node ITESimplifier::simpITE(TNode assertion)
   return d_simpITECache[assertion];
 }
 
+
+bool isTheoryAtom(TNode a){
+  using namespace kind;
+  switch(a.getKind()){
+  case EQUAL:
+  case DISTINCT:
+    return !(a[0].getType().isBoolean());
+
+  case CONST_BOOLEAN:
+  case NOT:
+  case AND:
+  case IFF:
+  case IMPLIES:
+  case OR:
+  case XOR:
+  case ITE:
+    return false;
+
+  /* from uf */
+  case APPLY_UF:
+    return a.getType().isBoolean();
+  case CARDINALITY_CONSTRAINT:
+  case DIVISIBLE:
+  case LT:
+  case LEQ:
+  case GT:
+  case GEQ:
+  case IS_INTEGER:
+  case BITVECTOR_COMP:
+  case BITVECTOR_ULT:
+  case BITVECTOR_ULE:
+  case BITVECTOR_UGT:
+  case BITVECTOR_UGE:
+  case BITVECTOR_SLT:
+  case BITVECTOR_SLE:
+  case BITVECTOR_SGT:
+  case BITVECTOR_SGE:
+    return true;
+  default:
+    return false;
+  }
+}
+
+void ITESimplifier::computeReachability(const std::vector<Node>& assertions){
+  std::vector<TNode> stack(assertions.begin(), assertions.end());
+
+  while(!stack.empty()){
+    TNode back = stack.back();
+    stack.pop_back();
+
+    switch(back.getMetaKind()){
+    case kind::metakind::CONSTANT:
+    case kind::metakind::VARIABLE:
+      continue;
+    default:
+      if(d_reachCount.find(back) != d_reachCount.end()){
+        d_reachCount[back] = 1 + d_reachCount[back];
+        continue;
+      }else{
+        d_reachCount[back] = 1;
+        for(TNode::iterator cit=back.begin(), end = back.end(); cit != end; ++cit){
+          stack.push_back(*cit);
+        }
+      }
+    }
+  }
+}
+
+Node ITESimplifier::push_back_boolean(Node original, Node compressed){
+  Node rewritten = Rewriter::rewrite(compressed);
+  if(rewritten.isConst()){
+    d_compressed[compressed] = rewritten;
+    d_compressed[original] = rewritten;
+    return rewritten;
+  }else if(d_compressed.find(rewritten) != d_compressed.end()){
+    Node res = d_compressed[rewritten];
+    d_compressed[original] = res;
+    d_compressed[compressed] = res;
+    return res;
+  }else{
+    NodeManager* nm = NodeManager::currentNM();
+    Node skolem = nm->mkSkolem("compress_$$", nm->booleanType());
+    d_compressed[rewritten] = skolem;
+    d_compressed[original] = skolem;
+    d_compressed[skolem] = skolem;
+
+    Node iff = skolem.iffNode(rewritten);
+    d_assertions->push_back(iff);
+
+    if(!isTheoryAtom(rewritten)){
+      d_removeItes->containsNoTermItes(rewritten);
+    }
+
+    return skolem;
+  }
+}
+
+bool ITESimplifier::multipleParents(TNode c){
+  NodeCountMap::const_iterator it = d_reachCount.find(c);
+  return (*it).second >= 2;
+}
+
+Node ITESimplifier::compressBooleanITEs(Node toCompress){
+  Assert(toCompress.getKind() == kind::ITE);
+  Assert(toCompress.getType().isBoolean());
+
+  NodeBuilder<> nb(kind::AND);
+  Node curr = toCompress;
+  while(curr.getKind() == kind::ITE &&
+        (curr[1] == d_false || curr[2] == d_false) &&
+        (!multipleParents(curr) || curr == toCompress)){
+
+    bool negateCnd = (curr[1] == d_false);
+    Node compressCnd = compressBoolean(curr[0]);
+    if(compressCnd.isConst()){
+      if(compressCnd.getConst<bool>() == negateCnd){
+        return push_back_boolean(toCompress, d_false);
+      }else{
+        // equivalent to true don't push back
+      }
+    }else{
+      Node pb = negateCnd ? compressCnd.notNode() : compressCnd;
+      nb << pb;
+    }
+    curr = negateCnd ? curr[2] : curr[1];
+  }
+
+  if(toCompress == curr){
+    Node cmpCnd = compressBoolean(toCompress[0]);
+    if(cmpCnd.isConst()){
+      Node branch = (cmpCnd == d_true) ? toCompress[1] : toCompress[2];
+      Node res = compressBoolean(toCompress);
+      d_compressed[toCompress] = res;
+      return res;
+    }else{
+      Node cmpThen = compressBoolean(toCompress[1]);
+      Node cmpElse = compressBoolean(toCompress[2]);
+      Node newIte = cmpCnd.iteNode(cmpThen, cmpElse);
+      if(multipleParents(toCompress)){
+        return push_back_boolean(toCompress, newIte);
+      }else{
+        d_compressed[toCompress] = newIte;
+        return newIte;
+      }
+    }
+  }else{
+    nb << compressBoolean(curr);
+    Node res = nb.getNumChildren() == 1 ? nb[0] : (Node)nb;
+    return push_back_boolean(toCompress, res);
+  }
+}
+
+Node ITESimplifier::compressTerm(Node toCompress){
+  if(toCompress.isConst() || toCompress.isVar()){
+    return toCompress;
+  }
+
+  if(d_compressed.find(toCompress) != d_compressed.end()){
+    return d_compressed[toCompress];
+  }
+  if(toCompress.getKind() == kind::ITE){
+    Node cmpCnd = compressBoolean(toCompress[0]);
+    if(cmpCnd.isConst()){
+      Node branch = (cmpCnd == d_true) ? toCompress[1] : toCompress[2];
+      Node res = compressTerm(toCompress);
+      d_compressed[toCompress] = res;
+      return res;
+    }else{
+      Node cmpThen = compressTerm(toCompress[1]);
+      Node cmpElse = compressTerm(toCompress[2]);
+      Node newIte = cmpCnd.iteNode(cmpThen, cmpElse);
+      d_compressed[toCompress] = newIte;
+      return newIte;
+    }
+  }
+
+  NodeBuilder<> nb(toCompress.getKind());
+
+  if(toCompress.getMetaKind() == kind::metakind::PARAMETERIZED) {
+    nb << (toCompress.getOperator());
+  }
+  for(Node::iterator it = toCompress.begin(), end = toCompress.end(); it != end; ++it){
+    nb << compressTerm(*it);
+  }
+  Node compressed = (Node)nb;
+  if(multipleParents(toCompress)){
+    d_compressed[toCompress] = compressed;
+  }
+  return compressed;
+}
+
+Node ITESimplifier::compressBoolean(Node toCompress){
+  static int instance = 0;
+  ++instance;
+  if(toCompress.isConst() || toCompress.isVar()){
+    return toCompress;
+  }
+  if(d_compressed.find(toCompress) != d_compressed.end()){
+    return d_compressed[toCompress];
+  }else if(toCompress.getKind() == kind::ITE){
+    return compressBooleanITEs(toCompress);
+  }else{
+    bool ta = isTheoryAtom(toCompress);
+    NodeBuilder<> nb(toCompress.getKind());
+    if(toCompress.getMetaKind() == kind::metakind::PARAMETERIZED) {
+      nb << (toCompress.getOperator());
+    }
+    for(Node::iterator it = toCompress.begin(), end = toCompress.end(); it != end; ++it){
+      Node pb = (ta) ? compressTerm(*it) : compressBoolean(*it);
+      nb << pb;
+    }
+    Node compressed = nb;
+    if(ta || multipleParents(toCompress)){
+      return push_back_boolean(toCompress, compressed);
+    }else{
+      return compressed;
+    }
+  }
+}
+
+void ITESimplifier::compress(std::vector<Node>& assertions, RemoveITE* ite){
+  d_assertions = &assertions;
+  d_removeItes = ite;
+
+  computeReachability(assertions);
+
+  Chat() << "Computed reachability" << endl;
+
+  size_t original_size = assertions.size();
+  for(size_t i = 0; i < original_size; ++i){
+    Chat () << "compressing" << i << endl;
+    Node compressed = compressBoolean(assertions[i]);
+    Chat() << "rewriting " << i << endl;
+    Node rewritten = Rewriter::rewrite(compressed);
+    assertions[i] = rewritten;
+    d_removeItes->containsNoTermItes(rewritten);
+  }
+
+  d_assertions = NULL;
+  d_removeItes = NULL;
+}
 
 ITESimplifier::CareSetPtr ITESimplifier::getNewSet()
 {

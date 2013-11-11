@@ -2035,11 +2035,12 @@ bool SmtEnginePrivate::simpITE() {
     Node result = d_smt.d_theoryEngine->ppSimpITE(d_assertionsToCheck[i]);
     d_assertionsToCheck[i] = result;
     if(result.isConst() && !result.getConst<bool>()){
-      d_smt.d_theoryEngine->donePPSimpITE();
+      std::vector<Node> emp;
+      d_smt.d_theoryEngine->donePPSimpITE(emp);
       return false;
     }
   }
-  d_smt.d_theoryEngine->donePPSimpITE();
+  d_smt.d_theoryEngine->donePPSimpITE(d_assertionsToCheck);
   return true;
 }
 

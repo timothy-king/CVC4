@@ -1426,11 +1426,12 @@ Node TheoryEngine::ppSimpITE(TNode assertion)
   return result;
 }
 
-void TheoryEngine::donePPSimpITE(){
-  if(d_iteSimplifier != NULL){
-    if(d_iteSimplifier->shouldHeuristicallyClearCaches()){
-      d_iteSimplifier->clearSimpITECaches();
-    }
+void TheoryEngine::donePPSimpITE(std::vector<Node>& assertions){
+  if(d_iteSimplifier != NULL &&
+     d_iteSimplifier->shouldHeuristicallyClearCaches()){
+
+    d_iteSimplifier->compress(assertions, &d_iteRemover);
+    d_iteSimplifier->clearSimpITECaches();
   }
 }
 
