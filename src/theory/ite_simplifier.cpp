@@ -1361,7 +1361,7 @@ bool ITESimplifier::compress(std::vector<Node>& assertions, RemoveITE* ite){
     Assert(!containsTermITE(rewritten));
     d_removeItes->containsNoTermItes(rewritten);
 
-    nofalses = (rewritten == d_false);
+    nofalses = (rewritten != d_false);
   }
 
   d_assertions = NULL;
