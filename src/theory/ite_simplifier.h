@@ -92,6 +92,7 @@ public:
   }
 
 private:
+
   // ConstantIte is a small inductive sublanguage:
   //     constant
   // or  termITE(cnd, ConstantIte, ConstantIte)
@@ -134,6 +135,7 @@ private:
   // Given ConstantIte tree cite and a constant c,
   // return a boolean expression equivalent to (= lcite c)
   Node constantIteEqualsConstant(TNode cite, TNode c);
+  uint32_t d_citeEqConstApplications;
 
   typedef std::hash_map<Node, Node, NodeHashFunction> NodeMap;
   typedef std::hash_map<TNode, Node, TNodeHashFunction> TNodeMap;
@@ -177,7 +179,7 @@ private:
 public:
   Node simpITE(TNode assertion);
 
-  bool shouldHeuristicallyClearCaches() const;
+  bool doneALotOfWorkHeuristic() const;
   void clearSimpITECaches();
 
 private:
@@ -188,10 +190,12 @@ private:
 
 public:
   void computeReachability(const std::vector<Node>& assertions);
-  void compress(std::vector<Node>& assertions, RemoveITE* ri);
+
+  /* returns false if an assertion is discovered to be equal to false. */
+  bool compress(std::vector<Node>& assertions, RemoveITE* ri);
 
 private:
-  Node push_back_boolean(Node original, Node compressed);
+  Node push_back_boolean(Node original, Node compressed, bool theory_atom);
   bool multipleParents(TNode c);
   Node compressBooleanITEs(Node toCompress);
   Node compressTerm(Node toCompress);

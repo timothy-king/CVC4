@@ -24,4 +24,7 @@ option simplifyWithCareEnabled --simp-with-care bool :default false
 option simpIteClearCache --simp-ite-clear-caches bool :default false
  enables clearing caches after ite simplification
 
+option compressItes --simp-ite-compress bool :default false
+ enables compressing ites after ite simplification
+
 endmodule

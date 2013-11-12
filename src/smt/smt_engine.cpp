@@ -2040,8 +2040,7 @@ bool SmtEnginePrivate::simpITE() {
       return false;
     }
   }
-  d_smt.d_theoryEngine->donePPSimpITE(d_assertionsToCheck);
-  return true;
+  return d_smt.d_theoryEngine->donePPSimpITE(d_assertionsToCheck);
 }
 
 

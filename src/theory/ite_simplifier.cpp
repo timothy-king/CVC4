@@ -54,6 +54,7 @@ bool ITESimplifier::leavesAreConst(TNode e){
 ITESimplifier::ITESimplifier() {
   d_true = NodeManager::currentNM()->mkConst<bool>(true);
   d_false = NodeManager::currentNM()->mkConst<bool>(false);
+  d_citeEqConstApplications = 0;
 }
 
 ITESimplifier::~ITESimplifier() {
@@ -84,10 +85,10 @@ void ITESimplifier::clearSimpITECaches(){
   d_simpContextCache.clear();
 }
 
-bool ITESimplifier::shouldHeuristicallyClearCaches() const {
+bool ITESimplifier::doneALotOfWorkHeuristic() const {
   static const size_t SIZE_BOUND = 1000;
-  Chat() << "simpITECache size " << d_simpITECache.size() << endl;
-  return options::simpIteClearCache() && (d_simpITECache.size() > SIZE_BOUND);
+  Chat() << "d_citeEqConstApplications size " << d_citeEqConstApplications << endl;
+  return (d_citeEqConstApplications > SIZE_BOUND);
 }
 
 ITESimplifier::Statistics::Statistics():
@@ -538,6 +539,8 @@ Node ITESimplifier::constantIteEqualsConstant(TNode cite, TNode constant){
     return (*eq_pos).second;
   }
 
+  ++d_citeEqConstApplications;
+
   NodeVec* leaves = computeConstantLeaves(cite);
   Assert(leaves != NULL);
   if(std::binary_search(leaves->begin(), leaves->end(), constant)){
@@ -615,35 +618,35 @@ Node ITESimplifier::compressITEIntoConjunct(Node ite){
 Node ITESimplifier::compressITE(Node ite){
   return ite;
 
-  if(ite.isConst()){
-    return ite;
-  }
+  // if(ite.isConst()){
+  //   return ite;
+  // }
 
-  NodeMap::const_iterator it = d_compressIteMap.find(ite);
-  if(it != d_compressIteMap.end()){
-    return (*it).second;
-  }else if(ite.getKind() != kind::ITE){
-    d_compressIteMap[ite] =ite;
-    return ite;
-  }else{
-    if(ite[0].isConst()){
-      Node branch = (ite[0] == d_true) ? ite[1] : ite[2];
-      // don't bother to cache!
-      return compressITE(branch);
-    }
-    if(ite[1] == d_false || ite[2] == d_false){
-      Node conjunct = compressITEIntoConjunct(ite);
-      d_compressIteMap[conjunct] = ite;
-      return ite;
-    }else{
-      Node compressThen = compressITE(ite[1]);
-      Node compressElse = compressITE(ite[2]);
-      Node newIte = ite[0].iteNode(compressThen, compressElse);
-      d_compressIteMap[ite] = newIte;
-      d_compressIteMap[newIte] = newIte;
-      return newIte;
-    }
-  }
+  // NodeMap::const_iterator it = d_compressIteMap.find(ite);
+  // if(it != d_compressIteMap.end()){
+  //   return (*it).second;
+  // }else if(ite.getKind() != kind::ITE){
+  //   d_compressIteMap[ite] =ite;
+  //   return ite;
+  // }else{
+  //   if(ite[0].isConst()){
+  //     Node branch = (ite[0] == d_true) ? ite[1] : ite[2];
+  //     // don't bother to cache!
+  //     return compressITE(branch);
+  //   }
+  //   if(ite[1] == d_false || ite[2] == d_false){
+  //     Node conjunct = compressITEIntoConjunct(ite);
+  //     d_compressIteMap[conjunct] = ite;
+  //     return ite;
+  //   }else{
+  //     Node compressThen = compressITE(ite[1]);
+  //     Node compressElse = compressITE(ite[2]);
+  //     Node newIte = ite[0].iteNode(compressThen, compressElse);
+  //     d_compressIteMap[ite] = newIte;
+  //     d_compressIteMap[newIte] = newIte;
+  //     return newIte;
+  //   }
+  // }
 }
 
 Node ITESimplifier::intersectConstantIte(TNode lcite, TNode rcite){
@@ -1176,8 +1179,10 @@ void ITESimplifier::computeReachability(const std::vector<Node>& assertions){
   }
 }
 
-Node ITESimplifier::push_back_boolean(Node original, Node compressed){
+Node ITESimplifier::push_back_boolean(Node original, Node compressed, bool theory_atom){
   Node rewritten = Rewriter::rewrite(compressed);
+  // There is a bug if the rewritter takes a pure boolean expression
+  // and changes its theory
   if(rewritten.isConst()){
     d_compressed[compressed] = rewritten;
     d_compressed[original] = rewritten;
@@ -1192,13 +1197,19 @@ Node ITESimplifier::push_back_boolean(Node original, Node compressed){
     Node skolem = nm->mkSkolem("compress_$$", nm->booleanType());
     d_compressed[rewritten] = skolem;
     d_compressed[original] = skolem;
-    d_compressed[skolem] = skolem;
 
     Node iff = skolem.iffNode(rewritten);
     d_assertions->push_back(iff);
 
-    if(!isTheoryAtom(rewritten)){
+    // safely make if this is contains no term ites
+    if(!theory_atom){
+      // Because of the use of the rewriter at the beginning,
+      // theory atoms can now contain boolean structure.
+      // Instead fully recheck whether this contains a term-ite or not.
       d_removeItes->containsNoTermItes(rewritten);
+      // if(!containsTermITE(rewritten)){
+      //   d_removeItes->containsNoTermItes(rewritten);
+      // }
     }
 
     return skolem;
@@ -1214,28 +1225,7 @@ Node ITESimplifier::compressBooleanITEs(Node toCompress){
   Assert(toCompress.getKind() == kind::ITE);
   Assert(toCompress.getType().isBoolean());
 
-  NodeBuilder<> nb(kind::AND);
-  Node curr = toCompress;
-  while(curr.getKind() == kind::ITE &&
-        (curr[1] == d_false || curr[2] == d_false) &&
-        (!multipleParents(curr) || curr == toCompress)){
-
-    bool negateCnd = (curr[1] == d_false);
-    Node compressCnd = compressBoolean(curr[0]);
-    if(compressCnd.isConst()){
-      if(compressCnd.getConst<bool>() == negateCnd){
-        return push_back_boolean(toCompress, d_false);
-      }else{
-        // equivalent to true don't push back
-      }
-    }else{
-      Node pb = negateCnd ? compressCnd.notNode() : compressCnd;
-      nb << pb;
-    }
-    curr = negateCnd ? curr[2] : curr[1];
-  }
-
-  if(toCompress == curr){
+  if(!(toCompress[1] == d_false || toCompress[2] == d_false)){
     Node cmpCnd = compressBoolean(toCompress[0]);
     if(cmpCnd.isConst()){
       Node branch = (cmpCnd == d_true) ? toCompress[1] : toCompress[2];
@@ -1247,17 +1237,39 @@ Node ITESimplifier::compressBooleanITEs(Node toCompress){
       Node cmpElse = compressBoolean(toCompress[2]);
       Node newIte = cmpCnd.iteNode(cmpThen, cmpElse);
       if(multipleParents(toCompress)){
-        return push_back_boolean(toCompress, newIte);
+        return push_back_boolean(toCompress, newIte, false);
       }else{
         d_compressed[toCompress] = newIte;
         return newIte;
       }
     }
-  }else{
-    nb << compressBoolean(curr);
-    Node res = nb.getNumChildren() == 1 ? nb[0] : (Node)nb;
-    return push_back_boolean(toCompress, res);
   }
+
+  NodeBuilder<> nb(kind::AND);
+  Node curr = toCompress;
+  while(curr.getKind() == kind::ITE &&
+        (curr[1] == d_false || curr[2] == d_false) &&
+        (!multipleParents(curr) || curr == toCompress)){
+
+    bool negateCnd = (curr[1] == d_false);
+    Node compressCnd = compressBoolean(curr[0]);
+    if(compressCnd.isConst()){
+      if(compressCnd.getConst<bool>() == negateCnd){
+        return push_back_boolean(toCompress, d_false, false);
+      }else{
+        // equivalent to true don't push back
+      }
+    }else{
+      Node pb = negateCnd ? compressCnd.notNode() : compressCnd;
+      nb << pb;
+    }
+    curr = negateCnd ? curr[2] : curr[1];
+  }
+  Assert(toCompress != curr);
+
+  nb << compressBoolean(curr);
+  Node res = nb.getNumChildren() == 1 ? nb[0] : (Node)nb;
+  return push_back_boolean(toCompress, res, false);
 }
 
 Node ITESimplifier::compressTerm(Node toCompress){
@@ -1321,14 +1333,16 @@ Node ITESimplifier::compressBoolean(Node toCompress){
     }
     Node compressed = nb;
     if(ta || multipleParents(toCompress)){
-      return push_back_boolean(toCompress, compressed);
+      return push_back_boolean(toCompress, compressed, ta);
     }else{
       return compressed;
     }
   }
 }
 
-void ITESimplifier::compress(std::vector<Node>& assertions, RemoveITE* ite){
+
+
+bool ITESimplifier::compress(std::vector<Node>& assertions, RemoveITE* ite){
   d_assertions = &assertions;
   d_removeItes = ite;
 
@@ -1336,18 +1350,24 @@ void ITESimplifier::compress(std::vector<Node>& assertions, RemoveITE* ite){
 
   Chat() << "Computed reachability" << endl;
 
+  bool nofalses = true;
   size_t original_size = assertions.size();
-  for(size_t i = 0; i < original_size; ++i){
+  for(size_t i = 0; i < original_size && nofalses; ++i){
     Chat () << "compressing" << i << endl;
-    Node compressed = compressBoolean(assertions[i]);
+    Node compressed =  compressBoolean(assertions[i]);
     Chat() << "rewriting " << i << endl;
     Node rewritten = Rewriter::rewrite(compressed);
     assertions[i] = rewritten;
+    Assert(!containsTermITE(rewritten));
     d_removeItes->containsNoTermItes(rewritten);
+
+    nofalses = (rewritten == d_false);
   }
 
   d_assertions = NULL;
   d_removeItes = NULL;
+
+  return nofalses;
 }
 
 ITESimplifier::CareSetPtr ITESimplifier::getNewSet()

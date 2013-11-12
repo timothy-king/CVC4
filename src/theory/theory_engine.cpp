@@ -1426,13 +1426,19 @@ Node TheoryEngine::ppSimpITE(TNode assertion)
   return result;
 }
 
-void TheoryEngine::donePPSimpITE(std::vector<Node>& assertions){
+bool TheoryEngine::donePPSimpITE(std::vector<Node>& assertions){
+  bool result = true;
   if(d_iteSimplifier != NULL &&
-     d_iteSimplifier->shouldHeuristicallyClearCaches()){
+     d_iteSimplifier->doneALotOfWorkHeuristic()){
 
-    d_iteSimplifier->compress(assertions, &d_iteRemover);
-    d_iteSimplifier->clearSimpITECaches();
+    if(options::compressItes()){
+      result = d_iteSimplifier->compress(assertions, &d_iteRemover);
+    }
+    if(result && options::simpIteClearCache()){
+      d_iteSimplifier->clearSimpITECaches();
+    }
   }
+  return result;
 }
 
 void TheoryEngine::getExplanation(std::vector<NodeTheoryPair>& explanationVector)
