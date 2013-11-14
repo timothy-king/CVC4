@@ -163,11 +163,15 @@ class NodeManager {
    */
   unsigned d_abstractValueCount;
 
+  /** The reference counting map for managed node values. */
   typedef __gnu_cxx::hash_map<const expr::NodeValue*,
                               unsigned,
                               expr::NodeValueIDHashFunction,
                               expr::NodeValueEq> ManagedRefCountMap;
   ManagedRefCountMap d_managedRefCounts;
+
+  /** A list of NodeValues the user has made sticky. */
+  std::vector<expr::NodeValue*> d_madeSticky;
 
   /**
    * Look up a NodeValue in the pool associated to this NodeManager.
@@ -882,6 +886,29 @@ public:
    */
   void debugHook(int debugFlag);
 
+
+  /**
+   * Makes the current node sticky (not eligible for garbage collection)
+   * if it is not already. Due to garbage collection issues, the only
+   * nodes this is appropraite for is constants, operators, null, and
+   * basic type nodes:
+   *  examples: true, false, BoolType, IntType, etc.
+   * When in doubt, don't use this!
+   */
+  void makeSticky(Node n);
+
+  /**
+   * Makes the current node sticky (not eligible for garbage collection)
+   * if it is not already. Due to garbage collection issues, the only
+   * nodes this is appropraite for is constants, operators, null, and
+   * basic type nodes:
+   *  examples: true, false, BoolType, IntType, etc.
+   * When in doubt, don't use this!
+   */
+  void makeSticky(TypeNode n);
+
+private:
+  void makeSticky(expr::NodeValue* n);
 };/* class NodeManager */
 
 /**

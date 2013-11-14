@@ -408,6 +408,15 @@ public:
   {
     d_smt.d_nodeManager->subscribeEvents(this);
     d_true = NodeManager::currentNM()->mkConst(true);
+
+    /** setup sticky constants */
+    d_smt.d_nodeManager->makeSticky(d_true);
+    Node falseNode = NodeManager::currentNM()->mkConst(false);
+    d_smt.d_nodeManager->makeSticky(falseNode);
+    d_smt.d_nodeManager->makeSticky(d_smt.d_nodeManager->booleanType());
+    d_smt.d_nodeManager->makeSticky(d_smt.d_nodeManager->integerType());
+    d_smt.d_nodeManager->makeSticky(d_smt.d_nodeManager->realType());
+    
   }
 
   ~SmtEnginePrivate() {

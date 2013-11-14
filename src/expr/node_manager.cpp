@@ -109,12 +109,14 @@ NodeManager::NodeManager(context::Context* ctxt,
 
 void NodeManager::init() {
   poolInsert( &expr::NodeValue::s_null );
+  makeSticky(Node::null());
 
   for(unsigned i = 0; i < unsigned(kind::LAST_KIND); ++i) {
     Kind k = Kind(i);
 
     if(hasOperator(k)) {
       d_operators[i] = mkConst(Kind(k));
+      makeSticky(d_operators[i]);
     }
   }
 }
@@ -124,6 +126,7 @@ NodeManager::~NodeManager() {
   // destruction of operators, because they get GCed.
 
   NodeManagerScope nms(this);
+
 
   {
     ScopedBool dontGC(d_inReclaimZombies);
@@ -138,7 +141,11 @@ NodeManager::~NodeManager() {
     reclaimZombies();
   }
 
-  poolRemove( &expr::NodeValue::s_null );
+  while(!d_madeSticky.empty()){
+    expr::NodeValue* nv = d_madeSticky.back();
+    d_madeSticky.pop_back();
+    poolRemove(nv);
+  }
 
   if(Debug.isOn("gc:leaks")) {
     Debug("gc:leaks") << "still in pool:" << endl;
@@ -641,6 +648,25 @@ unsigned NodeManager::decrementManagedRefCount(const expr::NodeValue* nv){
       return rc_ref;
     }
   }
+}
+
+void NodeManager::makeSticky(NodeValue* nv){
+  if(nv->d_rc != NodeValue::STICKY_RC){
+    ManagedRefCountMap::iterator it = d_managedRefCounts.find(nv);
+    if(it == d_managedRefCounts.end()){
+      d_managedRefCounts.erase(it);
+    }
+    nv->d_rc = NodeValue::STICKY_RC;
+    d_madeSticky.push_back(nv);
+  }
+}
+
+void NodeManager::makeSticky(Node n){
+  makeSticky(n.d_nv);
+}
+
+void NodeManager::makeSticky(TypeNode n){
+  makeSticky(n.d_nv);
 }
 
 }/* CVC4 namespace */
