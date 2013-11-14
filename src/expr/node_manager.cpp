@@ -593,4 +593,54 @@ void NodeManager::deleteAttributes(const std::vector<const expr::attr::Attribute
 void NodeManager::debugHook(int debugFlag){
 }
 
+
+unsigned NodeManager::getManagedRefCount(const expr::NodeValue* nv) const{
+  Assert(nv->d_rc == NodeValue::MANAGED_RC);
+  ManagedRefCountMap::const_iterator it = d_managedRefCounts.find(nv);
+  if(it == d_managedRefCounts.end()){
+    return  NodeValue::MANAGED_RC;
+  }else{
+    return (*it).second;
+  }
+}
+
+unsigned NodeManager::incrementManagedRefCount(const expr::NodeValue* nv){
+  Assert(nv->d_rc == NodeValue::MANAGED_RC);
+  ManagedRefCountMap::iterator it = d_managedRefCounts.find(nv);
+  if(it == d_managedRefCounts.end()){
+    // if not in the table the ref count is exactly MANAGED_RC
+    d_managedRefCounts.insert(make_pair(nv,  NodeValue::MANAGED_RC + 1));
+    return NodeValue::MANAGED_RC + 1;
+  }else{
+    unsigned& rc_ref = ((*it).second);
+    ++rc_ref;
+    if(__builtin_expect( (rc_ref == NodeValue::MAXIMUM_RC), false)){
+      d_managedRefCounts.erase(it);
+      return NodeValue::STICKY_RC;
+    }else{
+      return rc_ref;
+    }
+  }
+}
+
+unsigned NodeManager::decrementManagedRefCount(const expr::NodeValue* nv){
+  Assert(nv->d_rc == NodeValue::MANAGED_RC);
+  ManagedRefCountMap::iterator it = d_managedRefCounts.find(nv);
+  if(it == d_managedRefCounts.end()){
+    // if not in the table the ref count is exactly MANAGED_RC
+    return  NodeValue::MANAGED_RC - 1;
+  }else{
+    unsigned& rc_ref = ((*it).second);
+    Assert(rc_ref > 0);
+    --rc_ref;
+    if(__builtin_expect( (rc_ref <= NodeValue::DEMOTE_RC), false) ){
+      unsigned copy = rc_ref;
+      d_managedRefCounts.erase(it);
+      return copy;
+    }else{
+      return rc_ref;
+    }
+  }
+}
+
 }/* CVC4 namespace */

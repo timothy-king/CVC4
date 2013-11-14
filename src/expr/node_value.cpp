@@ -79,5 +79,44 @@ void NodeValue::printAst(std::ostream& out, int ind) const {
   out << ')';
 }
 
+unsigned NodeValue::getRefCount() const {
+  switch(d_rc){
+  case STICKY_RC: return MAXIMUM_RC;
+  case MANAGED_RC:
+    Assert(NodeManager::currentNM() != NULL,
+           "No current NodeManager when getting a managed ref count of NodeValue");
+    return NodeManager::currentNM()->getManagedRefCount(this);
+  default: return d_rc;
+  }
+}
+
+NodeValue::RefCountGuard::RefCountGuard(const NodeValue* nv) :
+  d_nv(const_cast<NodeValue*>(nv)) {
+  // inc()
+  if(__builtin_expect( ( d_nv->d_rc < MANAGED_RC ), true )) {
+    ++d_nv->d_rc;
+  }else if(__builtin_expect( ( d_nv->d_rc == MANAGED_RC ), false )){
+    Assert(NodeManager::currentNM() != NULL,
+           "No current NodeManager when incrementing a managed ref count of NodeValue");
+    d_nv->d_rc = NodeManager::currentNM()->incrementManagedRefCount(d_nv);
+  }
+}
+
+NodeValue::RefCountGuard::~RefCountGuard() {
+  // dec() without marking for deletion: we don't want to garbage
+  // collect this NodeValue if ours is the last reference to it.
+  // E.g., this can happen when debugging code calls the print
+  // routines below.  As RefCountGuards are scoped on the stack,
+  // this should be fine---but not in multithreaded contexts!
+  if(__builtin_expect( ( d_nv->d_rc < MANAGED_RC ), true )) {
+    --d_nv->d_rc;
+  }else if(__builtin_expect( ( d_nv->d_rc == MANAGED_RC ), true )){
+    Assert(NodeManager::currentNM() != NULL,
+           "No current NodeManager when incrementing a managed ref count of NodeValue");
+    d_nv->d_rc = NodeManager::currentNM()->decrementManagedRefCount(d_nv);
+  }
+}
+
+
 }/* CVC4::expr namespace */
 }/* CVC4 namespace */

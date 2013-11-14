@@ -163,6 +163,12 @@ class NodeManager {
    */
   unsigned d_abstractValueCount;
 
+  typedef __gnu_cxx::hash_map<const expr::NodeValue*,
+                              unsigned,
+                              expr::NodeValueIDHashFunction,
+                              expr::NodeValueEq> ManagedRefCountMap;
+  ManagedRefCountMap d_managedRefCounts;
+
   /**
    * Look up a NodeValue in the pool associated to this NodeManager.
    * The NodeValue argument need not be a "completely-constructed"
@@ -236,6 +242,10 @@ class NodeManager {
       }
     }
   }
+
+  unsigned getManagedRefCount(const expr::NodeValue* nv) const;
+  unsigned incrementManagedRefCount(const expr::NodeValue* nv);
+  unsigned decrementManagedRefCount(const expr::NodeValue* nv);
 
   /**
    * Reclaim all zombies.

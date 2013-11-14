@@ -29,6 +29,7 @@
 #include "expr/kind.h"
 #include "util/language.h"
 
+#include <climits>
 #include <stdint.h>
 #include <string>
 #include <iterator>
@@ -82,9 +83,21 @@ class NodeValue {
   static const unsigned NBITS_ID = __CVC4__EXPR__NODE_VALUE__NBITS__ID;
   static const unsigned NBITS_NCHILDREN = __CVC4__EXPR__NODE_VALUE__NBITS__NCHILDREN;
 
-  /** Maximum reference count possible.  Used for sticky
-   *  reference-counting.  Should be (1 << num_bits(d_rc)) - 1 */
-  static const unsigned MAX_RC = (1u << NBITS_REFCOUNT) - 1;
+  /** Maximum reference count possible.  Once a node has this reference count
+   * it is set to be sticky. */
+  static const unsigned MAXIMUM_RC = UINT_MAX;
+
+  /** The sticky reference count. Such nodes can never be deleted!
+   * Should be (1 << num_bits(d_rc)) - 1 */
+  static const unsigned STICKY_RC = (1u << NBITS_REFCOUNT) - 1;
+
+  /** Nodes with d_rc == MANAGED_RC have their reference count managed by the current node manager.
+   * MANAGED_RC must be < STICKY_RC, and MANAGED_RC + 1 should equal STICKY_RC.
+   * MANAGED_RC must be > 0. */
+  static const unsigned MANAGED_RC = (1u << NBITS_REFCOUNT) - 2;
+
+  /** A heuristic reference count for demoting nodes back to being unmanaged by the node manager. */
+  static const unsigned DEMOTE_RC = (1u << (NBITS_REFCOUNT-1)) + (1u << (NBITS_REFCOUNT-2));
 
   /** A mask for d_kind */
   static const unsigned kindMask = (1u << NBITS_KIND) - 1;
@@ -264,7 +277,7 @@ public:
       : d_nchildren;
   }
 
-  unsigned getRefCount() const { return d_rc; }
+  unsigned getRefCount() const;
 
   std::string toString() const;
   void toStream(std::ostream& out, int toDepth = -1, bool types = false, size_t dag = 1,
@@ -298,23 +311,8 @@ private:
   class RefCountGuard {
     NodeValue* d_nv;
   public:
-    RefCountGuard(const NodeValue* nv) :
-      d_nv(const_cast<NodeValue*>(nv)) {
-      // inc()
-      if(__builtin_expect( ( d_nv->d_rc < MAX_RC ), true )) {
-        ++d_nv->d_rc;
-      }
-    }
-    ~RefCountGuard() {
-      // dec() without marking for deletion: we don't want to garbage
-      // collect this NodeValue if ours is the last reference to it.
-      // E.g., this can happen when debugging code calls the print
-      // routines below.  As RefCountGuards are scoped on the stack,
-      // this should be fine---but not in multithreaded contexts!
-      if(__builtin_expect( ( d_nv->d_rc < MAX_RC ), true )) {
-        --d_nv->d_rc;
-      }
-    }
+    RefCountGuard(const NodeValue* nv);
+    ~RefCountGuard();
   };/* NodeValue::RefCountGuard */
 
   friend class RefCountGuard;
@@ -386,7 +384,7 @@ namespace expr {
 
 inline NodeValue::NodeValue(int) :
   d_id(0),
-  d_rc(MAX_RC),
+  d_rc(STICKY_RC),
   d_kind(kind::NULL_EXPR),
   d_nchildren(0) {
 }
@@ -402,15 +400,31 @@ inline void NodeValue::inc() {
          "NodeValue is currently being deleted "
          "and increment is being called on it. Don't Do That!");
   // FIXME multithreading
-  if(__builtin_expect( ( d_rc < MAX_RC ), true )) {
+  if(__builtin_expect( ( d_rc < MANAGED_RC ), true )) {
     ++d_rc;
+  }else if(__builtin_expect( ( d_rc == MANAGED_RC ), false )){
+    Assert(NodeManager::currentNM() != NULL,
+           "No current NodeManager on incrementing a managed ref count."
+           "Maybe a public CVC4 interface function is missing a NodeManagerScope ?");
+    d_rc = NodeManager::currentNM()->incrementManagedRefCount(this);
   }
 }
 
 inline void NodeValue::dec() {
   // FIXME multithreading
-  if(__builtin_expect( ( d_rc < MAX_RC ), true )) {
+  if(__builtin_expect( ( d_rc < MANAGED_RC ), true )) {
     --d_rc;
+    if(__builtin_expect( ( d_rc == 0 ), false )) {
+      Assert(NodeManager::currentNM() != NULL,
+             "No current NodeManager on destruction of NodeValue: "
+             "maybe a public CVC4 interface function is missing a NodeManagerScope ?");
+      NodeManager::currentNM()->markForDeletion(this);
+    }
+  }else if(__builtin_expect( ( d_rc == MANAGED_RC ), false )){
+    Assert(NodeManager::currentNM() != NULL,
+           "No current NodeManager on incrementing a managed ref count."
+           "Maybe a public CVC4 interface function is missing a NodeManagerScope ?");
+    d_rc = NodeManager::currentNM()->decrementManagedRefCount(this);
     if(__builtin_expect( ( d_rc == 0 ), false )) {
       Assert(NodeManager::currentNM() != NULL,
              "No current NodeManager on destruction of NodeValue: "
