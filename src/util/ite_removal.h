@@ -32,11 +32,23 @@ class RemoveITE {
   typedef context::CDInsertHashMap<Node, Node, NodeHashFunction> ITECache;
   ITECache d_iteCache;
 
+  typedef std::hash_set<Node, NodeHashFunction> NodeSet;
+  typedef std::hash_set<TNode, TNodeHashFunction> TNodeSet;
+  NodeSet d_containNoTermITEs;
+
+  bool maybeAtomicKind(Kind k) const;
+
 public:
 
   RemoveITE(context::UserContext* u) :
     d_iteCache(u) {
   }
+
+  /**
+   * Marks a node as containing no term ites.
+   * Use with caution!
+   */
+  bool containsNoTermItes(Node n);
 
   /**
    * Removes the ITE nodes by introducing skolem variables. All
@@ -47,6 +59,15 @@ public:
    */
   void run(std::vector<Node>& assertions, IteSkolemMap& iteSkolemMap);
 
+  /** See run_internal for a full description.*/
+  Node run(TNode node, std::vector<Node>& additionalAssertions,
+           IteSkolemMap& iteSkolemMap, std::vector<Node>& quantVar);
+
+  void garbageCollect();
+
+private:
+
+
   /**
    * Removes the ITE from the node by introducing skolem
    * variables. All additional assertions are pushed into
@@ -54,15 +75,10 @@ public:
    * variables to the index in assertions containing the new Boolean
    * ite created in conjunction with that skolem variable.
    */
-  Node run(TNode node, std::vector<Node>& additionalAssertions,
+  Node run_internal(TNode node, std::vector<Node>& additionalAssertions,
            IteSkolemMap& iteSkolemMap, std::vector<Node>& quantVar);
 
 
-  /**
-   * Marks a node as containing no term ites.
-   * Use with caution!
-   */
-  void containsNoTermItes(Node n);
 
 };/* class RemoveTTE */
 

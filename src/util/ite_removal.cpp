@@ -25,6 +25,91 @@ using namespace std;
 
 namespace CVC4 {
 
+bool RemoveITE::maybeAtomicKind(Kind k) const{
+  using namespace kind;
+  switch(k){
+  case EQUAL:
+  case DISTINCT:
+  case CARDINALITY_CONSTRAINT:
+  case DIVISIBLE:
+  case LT:
+  case LEQ:
+  case GT:
+  case GEQ:
+  case IS_INTEGER:
+  case BITVECTOR_COMP:
+  case BITVECTOR_ULT:
+  case BITVECTOR_ULE:
+  case BITVECTOR_UGT:
+  case BITVECTOR_UGE:
+  case BITVECTOR_SLT:
+  case BITVECTOR_SLE:
+  case BITVECTOR_SGT:
+  case BITVECTOR_SGE:
+    return true;
+  default:
+    return false;
+  }
+}
+
+void RemoveITE::garbageCollect(){}
+
+bool RemoveITE::containsNoTermItes(Node n){
+
+  if(d_containNoTermITEs.find(n) != d_containNoTermITEs.end()){
+    return true;
+  }else if(d_iteCache.find(n) != d_iteCache.end()){
+    Node n = (*(d_iteCache.find(n))).second;
+    return n.isNull();
+  }
+
+  std::vector<TNode> atoms;
+
+  TNodeSet visited;
+  std::vector<TNode> fringe;
+  fringe.push_back(n);
+
+  bool notVisitedTermIte = true;
+  while(notVisitedTermIte && !fringe.empty()){
+    TNode back = fringe.back();
+    fringe.pop_back();
+    if(visited.find(back) == visited.end()){
+      visited.insert(back);
+      if(back.getKind() == kind::ITE && !back.getType().isBoolean()){
+        notVisitedTermIte = false;
+        break;
+      }
+      if(maybeAtomicKind(back.getKind())){
+        atoms.push_back(back);
+      }
+      for(TNode::iterator cit=back.begin(), end = back.end(); cit != end; ++cit){
+        fringe.push_back(*cit);
+      }
+    }
+  }
+
+  if(notVisitedTermIte){
+    d_containNoTermITEs.insert(n);
+    d_iteCache.insert_safe(n, Node::null());
+    for(size_t i=0, N=atoms.size(); i<N; ++i){
+      d_containNoTermITEs.insert(atoms[i]);
+      d_iteCache.insert_safe(atoms[i], Node::null());
+
+    }
+  }
+  return notVisitedTermIte;
+}
+
+Node RemoveITE::run(TNode node, std::vector<Node>& output,
+                    IteSkolemMap& iteSkolemMap,
+                    std::vector<Node>& quantVar) {
+  if(containsNoTermItes(node)){
+    return node;
+  }else{
+    return run_internal(node, output,iteSkolemMap,quantVar);
+  }
+}
+
 void RemoveITE::run(std::vector<Node>& output, IteSkolemMap& iteSkolemMap)
 {
   for (unsigned i = 0, i_end = output.size(); i < i_end; ++ i) {
@@ -32,13 +117,14 @@ void RemoveITE::run(std::vector<Node>& output, IteSkolemMap& iteSkolemMap)
     // Do this in two steps to avoid Node problems(?)
     // Appears related to bug 512, splitting this into two lines
     // fixes the bug on clang on Mac OS
-    Node itesRemoved = run(output[i], output, iteSkolemMap, quantVar);
+    Node itesRemoved = run_internal(output[i], output, iteSkolemMap, quantVar);
     output[i] = itesRemoved;
   }
 }
 
-Node RemoveITE::run(TNode node, std::vector<Node>& output,
-                    IteSkolemMap& iteSkolemMap, std::vector<Node>& quantVar) {
+Node RemoveITE::run_internal(TNode node, std::vector<Node>& output,
+                             IteSkolemMap& iteSkolemMap,
+                             std::vector<Node>& quantVar) {
   // Current node
   Debug("ite") << "removeITEs(" << node << ")" << endl;
 
@@ -83,7 +169,7 @@ Node RemoveITE::run(TNode node, std::vector<Node>& output,
       d_iteCache.insert(node, skolem);
 
       // Remove ITEs from the new assertion, rewrite it and push it to the output
-      newAssertion = run(newAssertion, output, iteSkolemMap, quantVar);
+      newAssertion = run_internal(newAssertion, output, iteSkolemMap, quantVar);
 
       if( !quantVar.empty() ){
         //if in the scope of free variables, it is a quantified assertion
@@ -122,7 +208,7 @@ Node RemoveITE::run(TNode node, std::vector<Node>& output,
       TNode::const_iterator first_modified_pos = node.begin();
       TNode::const_iterator end = node.end();
       for(; first_modified_pos != end; ++first_modified_pos) {
-        newChild = run(*first_modified_pos, output, iteSkolemMap, newQuantVar);
+        newChild = run_internal(*first_modified_pos, output, iteSkolemMap, newQuantVar);
         if(newChild != *first_modified_pos){
           break;
         }
@@ -148,7 +234,7 @@ Node RemoveITE::run(TNode node, std::vector<Node>& output,
         // move the iterator past first_modified_pos
         ++it;
         for(; it != end; ++it){
-          newChild = run(*it, output, iteSkolemMap, newQuantVar);
+          newChild = run_internal(*it, output, iteSkolemMap, newQuantVar);
           newChildren << newChild;
         }
         Node cached = (Node)newChildren;
@@ -163,7 +249,7 @@ Node RemoveITE::run(TNode node, std::vector<Node>& output,
       }
       // Remove the ITEs from the children
       for(TNode::const_iterator it = node.begin(), end = node.end(); it != end; ++it) {
-        Node newChild = run(*it, output, iteSkolemMap, newQuantVar);
+        Node newChild = run_internal(*it, output, iteSkolemMap, newQuantVar);
         somethingChanged |= (newChild != *it);
         newChildren.push_back(newChild);
       }
@@ -184,10 +270,5 @@ Node RemoveITE::run(TNode node, std::vector<Node>& output,
   }
 }
 
-
-void RemoveITE::containsNoTermItes(Node n)
-{
-  d_iteCache.insert_safe(n, Node::null());
-}
 
 }/* CVC4 namespace */

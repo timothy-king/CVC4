@@ -1200,13 +1200,15 @@ Node ITESimplifier::push_back_boolean(Node original, Node compressed, bool theor
 
     Node iff = skolem.iffNode(rewritten);
     d_assertions->push_back(iff);
+    d_pos[skolem] = d_assertions->size()-1;
+
 
     // safely make if this is contains no term ites
     if(!theory_atom){
       // Because of the use of the rewriter at the beginning,
       // theory atoms can now contain boolean structure.
       // Instead fully recheck whether this contains a term-ite or not.
-      d_removeItes->containsNoTermItes(rewritten);
+      //d_removeItes->containsNoTermItes(rewritten);
       // if(!containsTermITE(rewritten)){
       //   d_removeItes->containsNoTermItes(rewritten);
       // }
@@ -1359,15 +1361,59 @@ bool ITESimplifier::compress(std::vector<Node>& assertions, RemoveITE* ite){
     Node rewritten = Rewriter::rewrite(compressed);
     assertions[i] = rewritten;
     Assert(!containsTermITE(rewritten));
-    d_removeItes->containsNoTermItes(rewritten);
+    //d_removeItes->containsNoTermItes(rewritten);
 
     nofalses = (rewritten != d_false);
+  }
+
+  Chat() << "nofalses " << nofalses << endl;
+
+  if(false){
+    std::vector<uint32_t> reachIndices;
+    reachableAssertions(reachIndices, assertions, original_size);
+    Chat() << "size " << original_size << " becomes "
+           << assertions.size() << " becomes " << reachIndices.size() << endl;
   }
 
   d_assertions = NULL;
   d_removeItes = NULL;
 
   return nofalses;
+}
+
+void ITESimplifier::reachableAssertions(std::vector<uint32_t>& reachAssertions, const std::vector<Node>& assertions, uint32_t original_size){
+
+  vector<TNode> fringe;
+  NodeSet reach;
+
+  for(uint32_t i=0; i < original_size; ++i){
+    reachAssertions.push_back(i);
+  }
+
+  //Chat() << original_size << " becomes "<< assertions.size() << endl;
+  for(uint32_t i =0; i < reachAssertions.size();){
+    for(; i < reachAssertions.size(); ++i){
+      uint32_t index = reachAssertions[i];
+      fringe.push_back(assertions[index]);
+      //cout << i << " " << index << " " << endl << assertions[index] << endl;
+    }
+    while(!fringe.empty()){
+      TNode back = fringe.back();
+      fringe.pop_back();
+      if(reach.find(back) != reach.end()){
+        continue;
+      }else{
+        reach.insert(back);
+        if(d_pos.find(back) != d_pos.end()){
+          uint32_t pos = d_pos[back];
+          reachAssertions.push_back(pos);
+        }
+        for(TNode::iterator cit=back.begin(), end = back.end(); cit != end; ++cit){
+          fringe.push_back(*cit);
+        }
+      }
+    }
+  }
 }
 
 ITESimplifier::CareSetPtr ITESimplifier::getNewSet()

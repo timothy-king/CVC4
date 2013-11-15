@@ -187,6 +187,8 @@ private:
   NodeVec* d_assertions;
   RemoveITE* d_removeItes;
   NodeMap d_compressed;
+  NodeCountMap d_pos;
+  void reachableAssertions(std::vector<uint32_t>& reach, const std::vector<Node>& assertions, uint32_t original_size);
 
 public:
   void computeReachability(const std::vector<Node>& assertions);
