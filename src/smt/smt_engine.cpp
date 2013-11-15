@@ -2566,6 +2566,7 @@ bool SmtEnginePrivate::simplifyAssertions()
       Chat() << "...doing ITE simplification..." << endl;
       bool noConflict = simpITE();
       if(!noConflict){
+        Chat() << "...ITE simplification found unsat..." << endl;
         return false;
       }
     }

@@ -884,6 +884,11 @@ public:
    */
   static inline TypeNode fromType(Type t);
 
+  void clearNodeAttributes();
+  void reclaimAllZombies();
+
+  size_t poolSize() const;
+
 };/* class NodeManager */
 
 /**

@@ -27,4 +27,10 @@ option simpIteClearCache --simp-ite-clear-caches bool :default false
 option compressItes --simp-ite-compress bool :default false
  enables compressing ites after ite simplification
 
+option clearAttribute --simp-ite-clear-attr bool :default false
+ enables clearing rewriter post ite compression
+
+option clearAllZombies --simp-ite-hunt-zombies bool :default false
+ enables clearing all zombies post ite compression
+
 endmodule

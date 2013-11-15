@@ -169,6 +169,8 @@ public:
    * Remove all attributes from the tables.
    */
   void deleteAllAttributes();
+
+  void clearNodeAttributes();
 };
 
 }/* CVC4::expr::attr namespace */

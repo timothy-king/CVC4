@@ -432,4 +432,18 @@ TypeNode NodeManager::getDatatypeForTupleRecord(TypeNode t) {
   return dtt;
 }
 
+void NodeManager::clearNodeAttributes(){
+  d_attrManager.clearNodeAttributes();
+}
+
+void NodeManager::reclaimAllZombies(){
+  while(!d_zombies.empty()){
+    reclaimZombies();
+  }
+}
+
+size_t NodeManager::poolSize() const{
+  return d_nodeValuePool.size();
+}
+
 }/* CVC4 namespace */

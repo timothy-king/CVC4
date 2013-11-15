@@ -1437,6 +1437,15 @@ bool TheoryEngine::donePPSimpITE(std::vector<Node>& assertions){
     if(result && options::simpIteClearCache()){
       d_iteSimplifier->clearSimpITECaches();
     }
+    NodeManager* nm = NodeManager::currentNM();
+    if(result && options::clearAttribute()){
+      nm->clearNodeAttributes();
+    }
+    Chat() << "Pool size " << nm->poolSize() << endl;
+    if(result && options::clearAllZombies()){
+      nm->reclaimAllZombies();
+      Chat() << "Pool size post reclaim " << nm->poolSize() << endl;
+    }
   }
   return result;
 }

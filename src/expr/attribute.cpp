@@ -60,6 +60,12 @@ void AttributeManager::deleteAllAttributes() {
   d_cdptrs.clear();
 }
 
+void AttributeManager::clearNodeAttributes(){
+  deleteAllFromTable(d_nodes);
+  AttrHash<Node> tmp;
+  tmp.swap(d_nodes);
+}
+
 }/* CVC4::expr::attr namespace */
 }/* CVC4::expr namespace */
 }/* CVC4 namespace */
