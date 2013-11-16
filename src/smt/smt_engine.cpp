@@ -148,6 +148,9 @@ struct SmtEngineStatistics {
   /** time spent in processAssertions() */
   TimerStat d_processAssertionsTime;
 
+  /** Has something simplified to false? */
+  IntStat d_simplifiedToFalse;
+
   SmtEngineStatistics() :
     d_definitionExpansionTime("smt::SmtEngine::definitionExpansionTime"),
     d_rewriteBooleanTermsTime("smt::SmtEngine::rewriteBooleanTermsTime"),
@@ -166,7 +169,10 @@ struct SmtEngineStatistics {
     d_checkModelTime("smt::SmtEngine::checkModelTime"),
     d_solveTime("smt::SmtEngine::solveTime"),
     d_pushPopTime("smt::SmtEngine::pushPopTime"),
-    d_processAssertionsTime("smt::SmtEngine::processAssertionsTime") {
+    d_processAssertionsTime("smt::SmtEngine::processAssertionsTime"),
+    d_simplifiedToFalse("smt::SmtEngine::simplifiedToFalse", 0)
+
+ {
 
     StatisticsRegistry::registerStat(&d_definitionExpansionTime);
     StatisticsRegistry::registerStat(&d_rewriteBooleanTermsTime);
@@ -186,6 +192,7 @@ struct SmtEngineStatistics {
     StatisticsRegistry::registerStat(&d_solveTime);
     StatisticsRegistry::registerStat(&d_pushPopTime);
     StatisticsRegistry::registerStat(&d_processAssertionsTime);
+    StatisticsRegistry::registerStat(&d_simplifiedToFalse);
   }
 
   ~SmtEngineStatistics() {
@@ -207,6 +214,7 @@ struct SmtEngineStatistics {
     StatisticsRegistry::unregisterStat(&d_solveTime);
     StatisticsRegistry::unregisterStat(&d_pushPopTime);
     StatisticsRegistry::unregisterStat(&d_processAssertionsTime);
+    StatisticsRegistry::unregisterStat(&d_simplifiedToFalse);
   }
 };/* struct SmtEngineStatistics */
 
@@ -2922,6 +2930,9 @@ void SmtEnginePrivate::processAssertions() {
   dumpAssertions("pre-simplify", d_assertionsToPreprocess);
   Chat() << "simplifying assertions..." << endl;
   bool noConflict = simplifyAssertions();
+  if(!noConflict){
+    ++(d_smt.d_stats->d_simplifiedToFalse);
+  }
   dumpAssertions("post-simplify", d_assertionsToCheck);
 
   dumpAssertions("pre-static-learning", d_assertionsToCheck);
