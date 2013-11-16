@@ -61,9 +61,17 @@ void AttributeManager::deleteAllAttributes() {
 }
 
 void AttributeManager::clearNodeAttributes(){
+  AttrHash<Node>::const_iterator it = d_nodes.begin(), end = d_nodes.end();
+  std::vector<Node> noGCList(2*d_nodes.size());
+  for(; it != end; ++it){
+    Node key = Node((*it).first.second);
+    Node value = (*it).second;
+    noGCList.push_back(key);
+    noGCList.push_back(value);
+  }
   deleteAllFromTable(d_nodes);
-  AttrHash<Node> tmp;
-  tmp.swap(d_nodes);
+  //AttrHash<Node> tmp;
+  //tmp.swap(d_nodes);
 }
 
 }/* CVC4::expr::attr namespace */
