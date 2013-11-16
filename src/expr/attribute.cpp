@@ -26,7 +26,22 @@ namespace CVC4 {
 namespace expr {
 namespace attr {
 
+AttributeManager::AttributeManager(context::Context* ctxt) :
+  d_cdbools(ctxt),
+  d_cdints(ctxt),
+  d_cdtnodes(ctxt),
+  d_cdnodes(ctxt),
+  d_cdstrings(ctxt),
+  d_cdptrs(ctxt),
+  d_inDeleteAllFromTable(false)
+{}
+
+bool AttributeManager::inGarbageCollection() const {
+  return d_inDeleteAllFromTable;
+}
+
 void AttributeManager::deleteAllAttributes(NodeValue* nv) {
+  Assert(!d_inDeleteAllFromTable);
   d_bools.erase(nv);
   deleteFromTable(d_ints, nv);
   deleteFromTable(d_tnodes, nv);
@@ -61,18 +76,12 @@ void AttributeManager::deleteAllAttributes() {
 }
 
 void AttributeManager::clearNodeAttributes(){
-  AttrHash<Node>::const_iterator it = d_nodes.begin(), end = d_nodes.end();
-  std::vector<Node> noGCList(2*d_nodes.size());
-  for(; it != end; ++it){
-    Node key = Node((*it).first.second);
-    Node value = (*it).second;
-    noGCList.push_back(key);
-    noGCList.push_back(value);
-  }
   deleteAllFromTable(d_nodes);
-  //AttrHash<Node> tmp;
-  //tmp.swap(d_nodes);
+  AttrHash<Node> tmp;
+  tmp.swap(d_nodes);
 }
+
+
 
 }/* CVC4::expr::attr namespace */
 }/* CVC4::expr namespace */

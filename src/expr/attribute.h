@@ -94,17 +94,14 @@ class AttributeManager {
   template <class T, bool context_dep>
   friend struct getTable;
 
+  bool d_inDeleteAllFromTable;
+
+  void clearDeleteAllAttributesBuffer();
+
 public:
 
   /** Construct an attribute manager. */
-  AttributeManager(context::Context* ctxt) :
-    d_cdbools(ctxt),
-    d_cdints(ctxt),
-    d_cdtnodes(ctxt),
-    d_cdnodes(ctxt),
-    d_cdstrings(ctxt),
-    d_cdptrs(ctxt) {
-  }
+  AttributeManager(context::Context* ctxt);
 
   /**
    * Get a particular attribute on a particular node.
@@ -171,6 +168,8 @@ public:
   void deleteAllAttributes();
 
   void clearNodeAttributes();
+
+  bool inGarbageCollection() const ;
 };
 
 }/* CVC4::expr::attr namespace */
@@ -520,6 +519,8 @@ AttributeManager::setAttribute(NodeValue* nv,
 /**
  * Search for the NodeValue in all attribute tables and remove it,
  * calling the cleanup function if one is defined.
+ *
+ * This cannot use nv as anything other than a pointer!
  */
 template <class T>
 inline void AttributeManager::deleteFromTable(AttrHash<T>& table,
@@ -557,6 +558,9 @@ inline void AttributeManager::deleteFromTable(CDAttrHash<T>& table,
  */
 template <class T>
 inline void AttributeManager::deleteAllFromTable(AttrHash<T>& table) {
+  Assert(!d_inDeleteAllFromTable);
+  d_inDeleteAllFromTable = true;
+
   bool anyRequireClearing = false;
   typedef AttributeTraits<T, false> traits_t;
   typedef AttrHash<T> hash_t;
@@ -584,6 +588,8 @@ inline void AttributeManager::deleteAllFromTable(AttrHash<T>& table) {
     }
   }
   table.clear();
+  d_inDeleteAllFromTable = false;
+  Assert(!d_inDeleteAllFromTable);
 }
 
 

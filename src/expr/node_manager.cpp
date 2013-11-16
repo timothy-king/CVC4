@@ -132,6 +132,7 @@ NodeManager::~NodeManager() {
     d_operators[i] = Node::null();
   }
 
+  Assert(!d_attributeManager.inGarbageCollection() );
   while(!d_zombies.empty()) {
     reclaimZombies();
   }
@@ -158,6 +159,7 @@ NodeManager::~NodeManager() {
 
 void NodeManager::reclaimZombies() {
   // FIXME multithreading
+  Assert(!d_attributeManager.inGarbageCollection());
 
   Debug("gc") << "reclaiming " << d_zombies.size() << " zombie(s)!\n";
 
@@ -437,8 +439,10 @@ void NodeManager::clearNodeAttributes(){
 }
 
 void NodeManager::reclaimAllZombies(){
-  while(!d_zombies.empty()){
-    reclaimZombies();
+  if(!d_attrManager.inGarbageCollection()){
+    while(!d_zombies.empty()){
+      reclaimZombies();
+    }
   }
 }
 
