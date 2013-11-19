@@ -177,7 +177,8 @@ void TheoryBV::check(Effort e)
 
   while (!done()) {
     TNode fact = get().assertion;
-   	checkForLemma(fact);
+    checkForLemma(fact);
+
     for (unsigned i = 0; i < d_subtheories.size(); ++i) {
       d_subtheories[i]->assertFact(fact);
     }

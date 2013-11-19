@@ -38,6 +38,7 @@
 #include "expr/node.h"
 #include "expr/node_self_iterator.h"
 #include "prop/prop_engine.h"
+#include "proof/theory_proof.h"
 #include "smt/modal_exception.h"
 #include "smt/smt_engine.h"
 #include "smt/smt_engine_scope.h"
@@ -46,6 +47,7 @@
 #include "theory/bv/theory_bv_rewriter.h"
 #include "proof/proof_manager.h"
 #include "util/proof.h"
+#include "proof/proof.h"
 #include "util/boolean_simplification.h"
 #include "util/node_visitor.h"
 #include "util/configuration.h"
@@ -686,6 +688,7 @@ void SmtEngine::finishInit() {
   if(options::cumulativeMillisecondLimit() != 0) {
     setTimeLimit(options::cumulativeMillisecondLimit(), true);
   }
+  PROOF( ProofManager::currentPM()->setLogic(d_logic.getLogicString()); ); 
 }
 
 void SmtEngine::finalOptionsAreSet() {
@@ -3128,6 +3131,10 @@ Result SmtEngine::checkSat(const Expr& ex) throw(TypeCheckingException, ModalExc
   SmtScope smts(this);
   finalOptionsAreSet();
   doPendingPops();
+
+
+  PROOF( ProofManager::currentPM()->addAssertion(ex); ); 
+
   Trace("smt") << "SmtEngine::checkSat(" << ex << ")" << endl;
 
   if(d_queryMade && !options::incrementalSolving()) {
@@ -3271,6 +3278,7 @@ Result SmtEngine::assertFormula(const Expr& ex) throw(TypeCheckingException, Log
   SmtScope smts(this);
   finalOptionsAreSet();
   doPendingPops();
+  PROOF( ProofManager::currentPM()->addAssertion(ex);); 
   Trace("smt") << "SmtEngine::assertFormula(" << ex << ")" << endl;
 
   // Substitute out any abstract values in ex
@@ -3728,7 +3736,7 @@ Proof* SmtEngine::getProof() throw(ModalException) {
     throw ModalException(msg);
   }
 
-  return ProofManager::getProof();
+  return ProofManager::getProof(this);
 #else /* CVC4_PROOF */
   throw ModalException("This build of CVC4 doesn't have proof support.");
 #endif /* CVC4_PROOF */
