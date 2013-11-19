@@ -12,25 +12,13 @@ option - use-theory --use-theory=NAME argument :handler CVC4::theory::useTheory 
  use alternate theory implementation NAME (--use-theory=help for a list)
 option theoryAlternates ::std::map<std::string,bool> :include <map> :read-write
 
-option simpCndBeforeBranch --simp-cnd-before-branch bool :default false
- tests conditions before visiting them
-
-option simpAtomsEarly --simp-atoms-early bool :default false
- attempts constant removal before visiting atoms
-
 option simplifyWithCareEnabled --simp-with-care bool :default false
  enables simplifyWithCare in ite simplificiation
 
-option simpIteClearCache --simp-ite-clear-caches bool :default false
- enables clearing caches after ite simplification
-
-option compressItes --simp-ite-compress bool :default false
+option compressItes --simp-ite-compress bool :default true
  enables compressing ites after ite simplification
 
-option clearAttribute --simp-ite-clear-attr bool :default false
- enables clearing rewriter post ite compression
-
-option clearAllZombies --simp-ite-hunt-zombies bool :default false
- enables clearing all zombies post ite compression
+option zombieHuntThreshold --simp-ite-hunt-zombies uint32_t :default 524288
+ post ite compression enables zombie removal while the number of nodes is above this threshold
 
 endmodule

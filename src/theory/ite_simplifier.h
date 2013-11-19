@@ -140,9 +140,9 @@ private:
   typedef std::hash_map<Node, Node, NodeHashFunction> NodeMap;
   typedef std::hash_map<TNode, Node, TNodeHashFunction> TNodeMap;
 
-  NodeMap d_compressIteMap;
-  Node compressITE(Node boolTerm);
-  Node compressITEIntoConjunct(Node ite);
+  //NodeMap d_compressIteMap;
+  //Node compressITE(Node boolTerm);
+  //Node compressITEIntoConjunct(Node ite);
 
   typedef std::pair<Node, Node> NodePair;
   struct NodePairHashFunction {
@@ -187,11 +187,11 @@ private:
   NodeVec* d_assertions;
   RemoveITE* d_removeItes;
   NodeMap d_compressed;
-  NodeCountMap d_pos;
-  void reachableAssertions(std::vector<uint32_t>& reach, const std::vector<Node>& assertions, uint32_t original_size);
+  //NodeCountMap d_pos;
+  //void reachableAssertions(std::vector<uint32_t>& reach, const std::vector<Node>& assertions, uint32_t original_size);
 
-public:
   void computeReachability(const std::vector<Node>& assertions);
+public:
 
   /* returns false if an assertion is discovered to be equal to false. */
   bool compress(std::vector<Node>& assertions, RemoveITE* ri);

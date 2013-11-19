@@ -1405,25 +1405,29 @@ void TheoryEngine::ppBvToBool(const std::vector<Node>& assertions, std::vector<N
 
 Node TheoryEngine::ppSimpITE(TNode assertion)
 {
-  if(d_iteSimplifier == NULL){
-    d_iteSimplifier = new ITESimplifier();
-  }
-
-  Node result = d_iteSimplifier->simpITE(assertion);
-  Node res_rewritten = Rewriter::rewrite(result);
-
-  if(options::simplifyWithCareEnabled()){
-    Chat() << "starting simplifyWithCare()" << endl;
-    Node postSimpWithCare = d_iteSimplifier->simplifyWithCare(res_rewritten);
-    Chat() << "ending simplifyWithCare()"
-           << " post simplifyWithCare()" << postSimpWithCare.getId() << endl;
-    result = Rewriter::rewrite(postSimpWithCare);
+  if(d_iteRemover.containsNoTermItes(assertion)){
+    return assertion;
   }else{
-    result = res_rewritten;
+
+    if(d_iteSimplifier == NULL){
+      d_iteSimplifier = new ITESimplifier();
+    }
+
+    Node result = d_iteSimplifier->simpITE(assertion);
+    Node res_rewritten = Rewriter::rewrite(result);
+
+    if(options::simplifyWithCareEnabled()){
+      Chat() << "starting simplifyWithCare()" << endl;
+      Node postSimpWithCare = d_iteSimplifier->simplifyWithCare(res_rewritten);
+      Chat() << "ending simplifyWithCare()"
+             << " post simplifyWithCare()" << postSimpWithCare.getId() << endl;
+      result = Rewriter::rewrite(postSimpWithCare);
+    }else{
+      result = res_rewritten;
+    }
+
+    return result;
   }
-
-
-  return result;
 }
 
 bool TheoryEngine::donePPSimpITE(std::vector<Node>& assertions){
@@ -1434,17 +1438,18 @@ bool TheoryEngine::donePPSimpITE(std::vector<Node>& assertions){
     if(options::compressItes()){
       result = d_iteSimplifier->compress(assertions, &d_iteRemover);
     }
-    if(result && options::simpIteClearCache()){
-      d_iteSimplifier->clearSimpITECaches();
-    }
-    NodeManager* nm = NodeManager::currentNM();
-    if(result && options::clearAttribute()){
-      nm->clearNodeAttributes();
-    }
-    Chat() << "Pool size " << nm->poolSize() << endl;
-    if(result && options::clearAllZombies()){
-      nm->reclaimAllZombies();
-      Chat() << "Pool size post reclaim " << nm->poolSize() << endl;
+
+    if(result){
+      NodeManager* nm = NodeManager::currentNM();
+      // if false, don't bother to reclaim memory here.
+      if(nm->poolSize() >= options::zombieHuntThreshold()){
+        Chat() << "..ite simplifier did quite a bit of work.. " << nm->poolSize() << endl;
+        Chat() << "....node manager contains " << nm->poolSize() << " nodes before cleanup" << endl;
+        d_iteSimplifier->clearSimpITECaches();
+        nm->clearNodeAttributes();
+        nm->reclaimZombiesUntil(options::zombieHuntThreshold());
+        Chat() << "....node manager contains " << nm->poolSize() << " nodes after cleanup" << endl;
+      }
     }
   }
   return result;

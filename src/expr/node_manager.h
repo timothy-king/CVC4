@@ -887,8 +887,14 @@ public:
   static inline TypeNode fromType(Type t);
 
   void clearNodeAttributes();
+
+  /** Reclaim zombies while there are more than k nodes in the pool (if possible).*/
+  void reclaimZombiesUntil(uint32_t k);
+
+  /** Reclaims all zombies (if possible).*/
   void reclaimAllZombies();
 
+  /** Size of the node pool. */
   size_t poolSize() const;
 
 };/* class NodeManager */

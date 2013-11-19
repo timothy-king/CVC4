@@ -55,17 +55,18 @@ bool RemoveITE::maybeAtomicKind(Kind k) const{
 void RemoveITE::garbageCollect(){}
 
 bool RemoveITE::containsNoTermItes(Node n){
-
-  if(d_containNoTermITEs.find(n) != d_containNoTermITEs.end()){
-    return true;
-  }else if(d_iteCache.find(n) != d_iteCache.end()){
-    Node n = (*(d_iteCache.find(n))).second;
-    return n.isNull();
+  if(d_iteCache.find(n) != d_iteCache.end()){
+    Node fromNode = (*(d_iteCache.find(n))).second;
+    return fromNode.isNull();
+  }else if(n.getKind() == kind::ITE && !n.getType().isBoolean()){
+    return false;
   }
 
   std::vector<TNode> atoms;
 
+  typedef std::hash_set<TNode, TNodeHashFunction> TNodeSet;
   TNodeSet visited;
+
   std::vector<TNode> fringe;
   fringe.push_back(n);
 
@@ -73,28 +74,36 @@ bool RemoveITE::containsNoTermItes(Node n){
   while(notVisitedTermIte && !fringe.empty()){
     TNode back = fringe.back();
     fringe.pop_back();
-    if(visited.find(back) == visited.end()){
-      visited.insert(back);
-      if(back.getKind() == kind::ITE && !back.getType().isBoolean()){
+
+    if(d_iteCache.find(back) != d_iteCache.end()){
+      if(!d_iteCache[back].isNull()){
         notVisitedTermIte = false;
         break;
       }
+    }else if(visited.find(back) == visited.end()){
+      visited.insert(back);
       if(maybeAtomicKind(back.getKind())){
         atoms.push_back(back);
       }
       for(TNode::iterator cit=back.begin(), end = back.end(); cit != end; ++cit){
-        fringe.push_back(*cit);
+        TNode child = *cit;
+        if(!child.isConst() && !child.isVar()){
+          if(child.getKind() == kind::ITE && !child.getType().isBoolean()){
+            // 1 lookahead for term ites.
+            notVisitedTermIte = false;
+            break;
+          }else{
+            fringe.push_back(child);
+          }
+        }
       }
     }
   }
 
   if(notVisitedTermIte){
-    d_containNoTermITEs.insert(n);
     d_iteCache.insert_safe(n, Node::null());
     for(size_t i=0, N=atoms.size(); i<N; ++i){
-      d_containNoTermITEs.insert(atoms[i]);
       d_iteCache.insert_safe(atoms[i], Node::null());
-
     }
   }
   return notVisitedTermIte;

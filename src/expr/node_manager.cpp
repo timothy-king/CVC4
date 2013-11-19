@@ -439,8 +439,13 @@ void NodeManager::clearNodeAttributes(){
 }
 
 void NodeManager::reclaimAllZombies(){
+  reclaimZombiesUntil(0u);
+}
+
+/** Reclaim zombies while there are more than k nodes in the pool (if possible).*/
+void NodeManager::reclaimZombiesUntil(uint32_t k){
   if(!d_attrManager.inGarbageCollection()){
-    while(!d_zombies.empty()){
+    while(poolSize() >= k && !d_zombies.empty()){
       reclaimZombies();
     }
   }

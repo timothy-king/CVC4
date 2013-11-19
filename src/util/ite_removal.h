@@ -32,10 +32,8 @@ class RemoveITE {
   typedef context::CDInsertHashMap<Node, Node, NodeHashFunction> ITECache;
   ITECache d_iteCache;
 
-  typedef std::hash_set<Node, NodeHashFunction> NodeSet;
-  typedef std::hash_set<TNode, TNodeHashFunction> TNodeSet;
-  NodeSet d_containNoTermITEs;
 
+  /** Returns true if a kind may be that of an atom. */
   bool maybeAtomicKind(Kind k) const;
 
 public:
@@ -45,8 +43,9 @@ public:
   }
 
   /**
-   * Marks a node as containing no term ites.
-   * Use with caution!
+   * Checks if a node n can reach a node containing a term ite.
+   *
+   * Heuristically caches results on
    */
   bool containsNoTermItes(Node n);
 
@@ -59,7 +58,11 @@ public:
    */
   void run(std::vector<Node>& assertions, IteSkolemMap& iteSkolemMap);
 
-  /** See run_internal for a full description.*/
+  /**
+   * This first checks whether containsNoTermItes(node) and if
+   * it removes ites using run_internal(node).
+   * See these 2 functions for more details.
+   */
   Node run(TNode node, std::vector<Node>& additionalAssertions,
            IteSkolemMap& iteSkolemMap, std::vector<Node>& quantVar);
 
