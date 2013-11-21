@@ -480,10 +480,10 @@ Node ITESimplifier::transformAtom(TNode atom){
     if(!acr.isNull()){
       return acr;
     }
-    Node ale = attemptLiftEquality(atom);
-    if(!ale.isNull()){
-      //return ale;
-    }
+    // Node ale = attemptLiftEquality(atom);
+    // if(!ale.isNull()){
+    //   //return ale;
+    // }
     return Node::null();
   }
 }
@@ -675,9 +675,9 @@ Node ITESimplifier::intersectConstantIte(TNode lcite, TNode rcite){
   NodeVec* rightValues = computeConstantLeaves(rcite);
 
   uint32_t smaller = std::min(leftValues->size(), rightValues->size());
-  (d_statistics.d_inSmaller)<< smaller;
 
-  NodeVec intersection(std::max(leftValues->size(), leftValues->size()));
+  (d_statistics.d_inSmaller)<< smaller;
+  NodeVec intersection(smaller, Node::null());
   NodeVec::iterator newEnd;
   newEnd = std::set_intersection(leftValues->begin(), leftValues->end(),
                                  rightValues->begin(), rightValues->end(),
