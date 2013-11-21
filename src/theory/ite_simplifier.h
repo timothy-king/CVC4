@@ -29,10 +29,6 @@
 #include "util/statistics_registry.h"
 
 namespace CVC4 {
-
-/* forward declarations */
-class RemoveITE;
-
 namespace theory {
 
 class ITESimplifier {
@@ -45,7 +41,6 @@ private:
 
   typedef std::hash_set<Node, NodeHashFunction> NodeSet;
 
-public:
   inline bool isTermITE(TNode e) const {
     return (e.getKind() == kind::ITE && !e.getType().isBoolean());
   }
@@ -91,8 +86,6 @@ public:
     return termITEHeight(e) > 0;
   }
 
-private:
-
   // ConstantIte is a small inductive sublanguage:
   //     constant
   // or  termITE(cnd, ConstantIte, ConstantIte)
@@ -125,9 +118,6 @@ private:
   Node attemptLiftEquality(TNode atom);
   Node attemptEagerRemoval(TNode atom);
 
-  // Searches for a fringe of a node where all leafs are constant ites,
-  //bool searchConstantITEs(TNode f, std::vector<Node>& found, unsigned maxFound, int maxDepth);
-
   // Given ConstantIte trees lcite and rcite,
   // return a boolean expression eequivalent to (= lcite rcite)
   Node intersectConstantIte(TNode lcite, TNode rcite);
@@ -139,10 +129,6 @@ private:
 
   typedef std::hash_map<Node, Node, NodeHashFunction> NodeMap;
   typedef std::hash_map<TNode, Node, TNodeHashFunction> TNodeMap;
-
-  //NodeMap d_compressIteMap;
-  //Node compressITE(Node boolTerm);
-  //Node compressITEIntoConjunct(Node ite);
 
   typedef std::pair<Node, Node> NodePair;
   struct NodePairHashFunction {
@@ -172,37 +158,10 @@ private:
   NodeMap d_simpContextCache;
   Node createSimpContext(TNode c, Node& iteNode, Node& simpVar);
 
+  NodeMap d_simpITECache;
   Node simpITEAtom(TNode atom);
 
-  NodeMap d_simpITECache;
-
 public:
-  Node simpITE(TNode assertion);
-
-  bool doneALotOfWorkHeuristic() const;
-  void clearSimpITECaches();
-
-private:
-  NodeCountMap d_reachCount;
-  NodeVec* d_assertions;
-  RemoveITE* d_removeItes;
-  NodeMap d_compressed;
-  //NodeCountMap d_pos;
-  //void reachableAssertions(std::vector<uint32_t>& reach, const std::vector<Node>& assertions, uint32_t original_size);
-
-  void computeReachability(const std::vector<Node>& assertions);
-public:
-
-  /* returns false if an assertion is discovered to be equal to false. */
-  bool compress(std::vector<Node>& assertions, RemoveITE* ri);
-
-private:
-  Node push_back_boolean(Node original, Node compressed, bool theory_atom);
-  bool multipleParents(TNode c);
-  Node compressBooleanITEs(Node toCompress);
-  Node compressTerm(Node toCompress);
-  Node compressBoolean(Node toCompress);
-
   class CareSetPtr;
   class CareSetPtrVal {
     friend class ITESimplifier::CareSetPtr;
@@ -212,11 +171,13 @@ private:
     CareSetPtrVal(ITESimplifier& simp) : d_iteSimplifier(simp), d_refCount(1) {}
   };
 
+private:
   std::vector<CareSetPtrVal*> d_usedSets;
   void careSetPtrGC(CareSetPtrVal* val) {
     d_usedSets.push_back(val);
   }
 
+public:
   class CareSetPtr {
     CareSetPtrVal* d_val;
     CareSetPtr(CareSetPtrVal* val) : d_val(val) {}
@@ -264,14 +225,16 @@ private:
   Node substitute(TNode e, TNodeMap& substTable, TNodeMap& cache);
 
 public:
+  Node simpITE(TNode assertion);
   Node simplifyWithCare(TNode e);
-
 
   ITESimplifier();
   ~ITESimplifier();
 
-private:
+  bool doneALotOfWorkHeuristic() const;
+  void clearSimpITECaches();
 
+private:
   class Statistics {
   public:
     IntStat d_maxNonConstantsFolded;

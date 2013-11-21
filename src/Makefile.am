@@ -144,6 +144,8 @@ libcvc4_la_SOURCES = \
 	theory/term_registration_visitor.cpp \
 	theory/ite_simplifier.h \
 	theory/ite_simplifier.cpp \
+	theory/ite_compressor.h \
+	theory/ite_compressor.cpp \
 	theory/unconstrained_simplifier.h \
 	theory/unconstrained_simplifier.cpp \
 	theory/quantifiers_engine.h \

@@ -36,6 +36,7 @@
 #include "util/ite_removal.h"
 
 #include "theory/ite_simplifier.h"
+#include "theory/ite_compressor.h"
 #include "theory/unconstrained_simplifier.h"
 
 #include "theory/model.h"
@@ -126,6 +127,7 @@ TheoryEngine::TheoryEngine(context::Context* context,
   d_preRegistrationVisitor(this, context),
   d_sharedTermsVisitor(d_sharedTerms),
   d_iteSimplifier(NULL),
+  d_iteCompressor(NULL),
   d_unconstrainedSimp(new UnconstrainedSimplifier(context, logicInfo)),
   d_bvToBoolPreprocessor()
 {
@@ -1439,7 +1441,10 @@ bool TheoryEngine::donePPSimpITE(std::vector<Node>& assertions){
      d_iteSimplifier->doneALotOfWorkHeuristic()){
 
     if(options::compressItes()){
-      result = d_iteSimplifier->compress(assertions, &d_iteRemover);
+      if(d_iteCompressor == NULL){
+        d_iteCompressor = new ITECompressor();
+      }
+      result = d_iteCompressor->compress(assertions);
     }
 
     if(result){

@@ -78,6 +78,7 @@ namespace theory {
   class TheoryModel;
   class TheoryEngineModelBuilder;
   class ITESimplifier;
+  class ITECompressor;
 
   namespace eq {
     class EqualityEngine;
@@ -773,6 +774,12 @@ private:
    * Either NULL or intialized.
    */
   theory::ITESimplifier* d_iteSimplifier;
+
+  /**
+   * For preprocessing pass compressing ITEs.
+   * Either NULL or intialized.
+   */
+  theory::ITECompressor* d_iteCompressor;
 
   /** For preprocessing pass simplifying unconstrained expressions */
   UnconstrainedSimplifier* d_unconstrainedSimp;
