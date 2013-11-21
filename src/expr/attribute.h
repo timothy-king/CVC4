@@ -26,6 +26,7 @@
 
 #include <string>
 #include <stdint.h>
+#include "expr/attribute_unique_id.h"
 
 // include supporting templates
 #define CVC4_ATTRIBUTE_H__INCLUDING__ATTRIBUTE_INTERNALS_H
@@ -87,6 +88,12 @@ class AttributeManager {
   template <class T>
   void deleteAllFromTable(AttrHash<T>& table);
 
+  template <class T>
+  void deleteAttributesFromTable(AttrHash<T>& table, const std::vector<uint64_t>& ids);
+
+  template <class T>
+  void reconstructTable(AttrHash<T>& table);
+
   /**
    * getTable<> is a helper template that gets the right table from an
    * AttributeManager given its type.
@@ -94,7 +101,7 @@ class AttributeManager {
   template <class T, bool context_dep>
   friend struct getTable;
 
-  bool d_inDeleteAllFromTable;
+  bool d_inGarbageCollection;
 
   void clearDeleteAllAttributesBuffer();
 
@@ -168,14 +175,31 @@ public:
   void deleteAllAttributes();
 
   /**
-   * Clears the non-context dependent Node attributes.
-   */
-  void clearNodeAttributes();
-
-  /**
    * Returns true if a table is currently being deleted.
    */
   bool inGarbageCollection() const ;
+
+  /**
+   * Determines the AttrTableId of an attribute.
+   *
+   * @param attr the attribute
+   * @return the id of the attribute table.
+   */
+  template <class AttrKind>
+  static AttributeUniqueId getAttributeId(const AttrKind& attr);
+
+  /** A list of attributes. */
+  typedef std::vector< const AttributeUniqueId* > AttrIdVec;
+
+  /** Deletes a list of attributes. */
+  void deleteAttributes(const AttrIdVec& attributeIds);
+
+  /**
+   * debugHook() is an empty function for the purpose of debugging
+   * the AttributeManager without recompiling all of CVC4.
+   * Formally this is a nop.
+   */
+  void debugHook(int debugFlag);
 };
 
 }/* CVC4::expr::attr namespace */
@@ -194,6 +218,7 @@ struct getTable;
 /** Access the "d_bools" member of AttributeManager. */
 template <>
 struct getTable<bool, false> {
+  static const AttrTableId id = AttrTableBool;
   typedef AttrHash<bool> table_type;
   static inline table_type& get(AttributeManager& am) {
     return am.d_bools;
@@ -206,6 +231,7 @@ struct getTable<bool, false> {
 /** Access the "d_ints" member of AttributeManager. */
 template <>
 struct getTable<uint64_t, false> {
+  static const AttrTableId id = AttrTableUInt64;
   typedef AttrHash<uint64_t> table_type;
   static inline table_type& get(AttributeManager& am) {
     return am.d_ints;
@@ -218,6 +244,7 @@ struct getTable<uint64_t, false> {
 /** Access the "d_tnodes" member of AttributeManager. */
 template <>
 struct getTable<TNode, false> {
+  static const AttrTableId id = AttrTableTNode;
   typedef AttrHash<TNode> table_type;
   static inline table_type& get(AttributeManager& am) {
     return am.d_tnodes;
@@ -230,6 +257,7 @@ struct getTable<TNode, false> {
 /** Access the "d_nodes" member of AttributeManager. */
 template <>
 struct getTable<Node, false> {
+  static const AttrTableId id = AttrTableNode;
   typedef AttrHash<Node> table_type;
   static inline table_type& get(AttributeManager& am) {
     return am.d_nodes;
@@ -242,6 +270,7 @@ struct getTable<Node, false> {
 /** Access the "d_types" member of AttributeManager. */
 template <>
 struct getTable<TypeNode, false> {
+  static const AttrTableId id = AttrTableTypeNode;
   typedef AttrHash<TypeNode> table_type;
   static inline table_type& get(AttributeManager& am) {
     return am.d_types;
@@ -254,6 +283,7 @@ struct getTable<TypeNode, false> {
 /** Access the "d_strings" member of AttributeManager. */
 template <>
 struct getTable<std::string, false> {
+  static const AttrTableId id = AttrTableString;
   typedef AttrHash<std::string> table_type;
   static inline table_type& get(AttributeManager& am) {
     return am.d_strings;
@@ -266,6 +296,7 @@ struct getTable<std::string, false> {
 /** Access the "d_ptrs" member of AttributeManager. */
 template <class T>
 struct getTable<T*, false> {
+  static const AttrTableId id = AttrTablePointer;
   typedef AttrHash<void*> table_type;
   static inline table_type& get(AttributeManager& am) {
     return am.d_ptrs;
@@ -278,6 +309,7 @@ struct getTable<T*, false> {
 /** Access the "d_ptrs" member of AttributeManager. */
 template <class T>
 struct getTable<const T*, false> {
+  static const AttrTableId id = AttrTablePointer;
   typedef AttrHash<void*> table_type;
   static inline table_type& get(AttributeManager& am) {
     return am.d_ptrs;
@@ -290,6 +322,7 @@ struct getTable<const T*, false> {
 /** Access the "d_cdbools" member of AttributeManager. */
 template <>
 struct getTable<bool, true> {
+  static const AttrTableId id = AttrTableCDBool;
   typedef CDAttrHash<bool> table_type;
   static inline table_type& get(AttributeManager& am) {
     return am.d_cdbools;
@@ -302,6 +335,7 @@ struct getTable<bool, true> {
 /** Access the "d_cdints" member of AttributeManager. */
 template <>
 struct getTable<uint64_t, true> {
+  static const AttrTableId id = AttrTableCDUInt64;
   typedef CDAttrHash<uint64_t> table_type;
   static inline table_type& get(AttributeManager& am) {
     return am.d_cdints;
@@ -314,6 +348,7 @@ struct getTable<uint64_t, true> {
 /** Access the "d_tnodes" member of AttributeManager. */
 template <>
 struct getTable<TNode, true> {
+  static const AttrTableId id = AttrTableCDTNode;
   typedef CDAttrHash<TNode> table_type;
   static inline table_type& get(AttributeManager& am) {
     return am.d_cdtnodes;
@@ -326,6 +361,7 @@ struct getTable<TNode, true> {
 /** Access the "d_cdnodes" member of AttributeManager. */
 template <>
 struct getTable<Node, true> {
+  static const AttrTableId id = AttrTableCDNode;
   typedef CDAttrHash<Node> table_type;
   static inline table_type& get(AttributeManager& am) {
     return am.d_cdnodes;
@@ -338,6 +374,7 @@ struct getTable<Node, true> {
 /** Access the "d_cdstrings" member of AttributeManager. */
 template <>
 struct getTable<std::string, true> {
+  static const AttrTableId id = AttrTableCDString;
   typedef CDAttrHash<std::string> table_type;
   static inline table_type& get(AttributeManager& am) {
     return am.d_cdstrings;
@@ -350,6 +387,7 @@ struct getTable<std::string, true> {
 /** Access the "d_cdptrs" member of AttributeManager. */
 template <class T>
 struct getTable<T*, true> {
+  static const AttrTableId id = AttrTableCDPointer;
   typedef CDAttrHash<void*> table_type;
   static inline table_type& get(AttributeManager& am) {
     return am.d_cdptrs;
@@ -362,6 +400,7 @@ struct getTable<T*, true> {
 /** Access the "d_cdptrs" member of AttributeManager. */
 template <class T>
 struct getTable<const T*, true> {
+  static const AttrTableId id = AttrTableCDPointer;
   typedef CDAttrHash<void*> table_type;
   static inline table_type& get(AttributeManager& am) {
     return am.d_cdptrs;
@@ -564,8 +603,8 @@ inline void AttributeManager::deleteFromTable(CDAttrHash<T>& table,
  */
 template <class T>
 inline void AttributeManager::deleteAllFromTable(AttrHash<T>& table) {
-  Assert(!d_inDeleteAllFromTable);
-  d_inDeleteAllFromTable = true;
+  Assert(!d_inGarbageCollection);
+  d_inGarbageCollection = true;
 
   bool anyRequireClearing = false;
   typedef AttributeTraits<T, false> traits_t;
@@ -594,8 +633,61 @@ inline void AttributeManager::deleteAllFromTable(AttrHash<T>& table) {
     }
   }
   table.clear();
-  d_inDeleteAllFromTable = false;
-  Assert(!d_inDeleteAllFromTable);
+  d_inGarbageCollection = false;
+  Assert(!d_inGarbageCollection);
+}
+
+template <class AttrKind>
+AttributeUniqueId AttributeManager::getAttributeId(const AttrKind& attr){
+  typedef typename AttrKind::value_type value_type;
+  AttrTableId tableId = getTable<value_type,
+                                 AttrKind::context_dependent>::id;
+  return AttributeUniqueId(tableId, attr.getId());
+}
+
+template <class T>
+void AttributeManager::deleteAttributesFromTable(AttrHash<T>& table, const std::vector<uint64_t>& ids){
+  d_inGarbageCollection = true;
+  typedef AttributeTraits<T, false> traits_t;
+  typedef AttrHash<T> hash_t;
+
+  typename hash_t::iterator it = table.begin();
+  typename hash_t::iterator tmp;
+  typename hash_t::iterator it_end = table.end();
+
+  std::vector<uint64_t>::const_iterator begin_ids = ids.begin();
+  std::vector<uint64_t>::const_iterator end_ids = ids.end();
+
+  size_t initialSize = table.size();
+  while (it != it_end){
+    uint64_t id = (*it).first.first;
+
+    if(std::binary_search(begin_ids, end_ids, id)){
+      tmp = it;
+      ++it;
+      if(traits_t::getCleanup()[id] != NULL) {
+        traits_t::getCleanup()[id]((*tmp).second);
+      }
+      table.erase(tmp);
+    }else{
+      ++it;
+    }
+  }
+  d_inGarbageCollection = false;
+  static const size_t ReconstructShrinkRatio = 8;
+  if(initialSize/ReconstructShrinkRatio > table.size()){
+    reconstructTable(table);
+  }
+}
+
+template <class T>
+void AttributeManager::reconstructTable(AttrHash<T>& table){
+  d_inGarbageCollection = true;
+  typedef AttrHash<T> hash_t;
+  hash_t cpy;
+  cpy.insert(table.begin(), table.end());
+  cpy.swap(table);
+  d_inGarbageCollection = false;
 }
 
 

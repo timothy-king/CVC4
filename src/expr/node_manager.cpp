@@ -134,7 +134,7 @@ NodeManager::~NodeManager() {
     d_operators[i] = Node::null();
   }
 
-  Assert(!d_attributeManager.inGarbageCollection() );
+  Assert(!d_attrManager->inGarbageCollection() );
   while(!d_zombies.empty()) {
     reclaimZombies();
   }
@@ -162,7 +162,7 @@ NodeManager::~NodeManager() {
 
 void NodeManager::reclaimZombies() {
   // FIXME multithreading
-  Assert(!d_attributeManager.inGarbageCollection());
+  Assert(!d_attrManager->inGarbageCollection());
 
   Debug("gc") << "reclaiming " << d_zombies.size() << " zombie(s)!\n";
 
@@ -437,10 +437,6 @@ TypeNode NodeManager::getDatatypeForTupleRecord(TypeNode t) {
   return dtt;
 }
 
-void NodeManager::clearNodeAttributes(){
-  d_attrManager->clearNodeAttributes();
-}
-
 void NodeManager::reclaimAllZombies(){
   reclaimZombiesUntil(0u);
 }
@@ -612,6 +608,14 @@ Node NodeManager::mkAbstractValue(const TypeNode& type) {
 bool NodeManager::safeToReclaimZombies() const{
   // FIXME multithreading
   return !d_inReclaimZombies && !d_attrManager->inGarbageCollection();
+}
+
+void NodeManager::deleteAttributes(const std::vector<const expr::attr::AttributeUniqueId*>& ids){
+  d_attrManager->deleteAttributes(ids);
+}
+
+void NodeManager::debugHook(int debugFlag){
+  // For debugging purposes only, DO NOT CHECK IN ANY CODE!
 }
 
 }/* CVC4 namespace */
