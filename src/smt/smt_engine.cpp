@@ -52,6 +52,7 @@
 #include "util/node_visitor.h"
 #include "util/configuration.h"
 #include "util/exception.h"
+#include "util/nary_builder.h"
 #include "smt/command_list.h"
 #include "smt/boolean_terms.h"
 #include "smt/options.h"
@@ -365,6 +366,10 @@ private:
 
   // Simplify based on unconstrained values
   void unconstrainedSimp();
+
+  // Ensures the assertions asserted after before now
+  // effectively come before d_realAssertionsEnd
+  void compressBeforeRealAssertions(size_t before);
 
   /**
    * Any variable in an assertion that is declared as a subtype type
@@ -2044,18 +2049,51 @@ bool SmtEnginePrivate::simpITE() {
 
   Trace("simplify") << "SmtEnginePrivate::simpITE()" << endl;
 
+  unsigned numAssertionOnEntry = d_assertionsToCheck.size();
   for (unsigned i = 0; i < d_assertionsToCheck.size(); ++i) {
     Node result = d_smt.d_theoryEngine->ppSimpITE(d_assertionsToCheck[i]);
     d_assertionsToCheck[i] = result;
     if(result.isConst() && !result.getConst<bool>()){
-      std::vector<Node> emp;
-      d_smt.d_theoryEngine->donePPSimpITE(emp);
       return false;
     }
   }
-  return d_smt.d_theoryEngine->donePPSimpITE(d_assertionsToCheck);
+  bool result = d_smt.d_theoryEngine->donePPSimpITE(d_assertionsToCheck);
+  if(numAssertionOnEntry < d_assertionsToCheck.size()){
+    compressBeforeRealAssertions(numAssertionOnEntry);
+  }
+  return result;
 }
 
+void SmtEnginePrivate::compressBeforeRealAssertions(size_t before){
+  size_t curr = d_assertionsToCheck.size();
+  if(before >= curr ||
+     d_realAssertionsEnd <= 0 ||
+     d_realAssertionsEnd >= curr){
+    return;
+  }
+
+  // assertions
+  // original: [0 ... d_realAssertionsEnd)
+  //  can be modified
+  // ites skolems [d_realAssertionsEnd, before)
+  //  cannot be moved
+  // added [before, curr)
+  //  can be modified
+  Assert(0 < d_realAssertionsEnd);
+  Assert(d_realAssertionsEnd <= before);
+  Assert(before < curr);
+
+  std::vector<Node> intoConjunction;
+  for(size_t i = before; i<curr; ++i){
+    intoConjunction.push_back(d_assertionsToCheck[i]);
+  }
+  d_assertionsToCheck.resize(before);
+  size_t lastBeforeItes = d_realAssertionsEnd - 1;
+  intoConjunction.push_back(d_assertionsToCheck[lastBeforeItes]);
+  Node newLast = util::NaryBuilder::mkAssoc(kind::AND, intoConjunction);
+  d_assertionsToCheck[lastBeforeItes] = newLast;
+  Assert(d_assertionsToCheck.size() == before);
+}
 
 void SmtEnginePrivate::unconstrainedSimp() {
   TimerStat::CodeTimer unconstrainedSimpTimer(d_smt.d_stats->d_unconstrainedSimpTime);

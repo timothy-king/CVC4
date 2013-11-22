@@ -931,19 +931,6 @@ bool ITECompressor::compress(std::vector<Node>& assertions){
     assertions[i] = rewritten;
     Assert(!debugContainsTermITE(rewritten));
 
-
-    bool onSecond = d_statistics.d_compressCalls.getData() == 2;
-    if(onSecond && assertion.getKind() == kind::IFF){
-      Chat() << "com " << i << endl;
-      Chat () << "compressing" << assertion << endl;
-      Chat () << "compressing" << assertions[i] << endl;
-    }else if(onSecond && assertions[i].isConst()){
-      Chat() << "com " << i << endl;
-      Chat () << "compressing" << assertion << endl;
-      Chat () << "compressing" << assertions[i] << endl;
-    }else if(onSecond){
-      Chat() << "other compressing " << assertions[i] << endl;
-    }
     nofalses = (rewritten != d_false);
   }
 
