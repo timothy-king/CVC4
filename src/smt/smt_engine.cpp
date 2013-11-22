@@ -432,6 +432,7 @@ public:
     d_divByZero(),
     d_intDivByZero(),
     d_modZero(),
+    d_simplifyAssertionsDepth(0),
     d_iteSkolemMap(),
     d_iteRemover(smt.d_userContext),
     d_topLevelSubstitutions(smt.d_userContext)
@@ -3034,6 +3035,7 @@ void SmtEnginePrivate::processAssertions() {
   if(options::repeatSimp()) {
     d_assertionsToCheck.swap(d_assertionsToPreprocess);
     Chat() << "re-simplifying assertions..." << endl;
+    ScopeCounter depth(d_simplifyAssertionsDepth);
     noConflict &= simplifyAssertions();
     if (noConflict) {
       // Need to fix up assertion list to maintain invariants:

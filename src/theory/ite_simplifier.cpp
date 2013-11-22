@@ -69,9 +69,7 @@ void ITESimplifier::clearSimpITECaches(){
     NodeVec* curr = d_allocatedConstantLeaves[i];
     delete curr;
   }
-  //d_reachCount.clear();
-  //d_compressed.clear();
-  //d_compressIteMap.clear();
+  d_citeEqConstApplications = 0;
   d_constantLeaves.clear();
   d_allocatedConstantLeaves.clear();
   d_termITEHeight.clear();

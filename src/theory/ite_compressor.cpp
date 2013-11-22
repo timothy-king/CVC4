@@ -922,11 +922,10 @@ bool ITECompressor::compress(std::vector<Node>& assertions){
 
   bool nofalses = true;
   size_t original_size = assertions.size();
+  Chat () << "compressing " << original_size << endl;
   for(size_t i = 0; i < original_size && nofalses; ++i){
     Node assertion = assertions[i];
-    Chat () << "compressing" << i << endl;
     Node compressed =  compressBoolean(assertion);
-    Chat() << "rewriting " << i << endl;
     Node rewritten = Rewriter::rewrite(compressed);
     assertions[i] = rewritten;
     Assert(!debugContainsTermITE(rewritten));
