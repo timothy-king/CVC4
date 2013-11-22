@@ -24,5 +24,8 @@ option typeChecking /--no-type-checking bool :default DO_SEMANTIC_CHECKS_BY_DEFA
 option lazyITEConstruction --lazy-ites bool :default false
  constuct nodes during ite removal lazily. Option is for testing should not reach trunk.
 
+option biasedITERemoval --biased-ites bool :default false
+ try the new remove ite pass that is biased against term ites appearing
+
 endmodule
 

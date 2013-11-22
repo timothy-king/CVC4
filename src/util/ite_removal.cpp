@@ -126,7 +126,9 @@ void RemoveITE::run(std::vector<Node>& output, IteSkolemMap& iteSkolemMap)
     // Do this in two steps to avoid Node problems(?)
     // Appears related to bug 512, splitting this into two lines
     // fixes the bug on clang on Mac OS
-    Node itesRemoved = run_internal(output[i], output, iteSkolemMap, quantVar);
+    Node itesRemoved = (options::biasedITERemoval()) ?
+      run(output[i], output, iteSkolemMap, quantVar) :
+      run_internal(output[i], output, iteSkolemMap, quantVar);
     output[i] = itesRemoved;
   }
 }
