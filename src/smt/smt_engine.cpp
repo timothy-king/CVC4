@@ -91,6 +91,19 @@ namespace CVC4 {
 
 namespace smt {
 
+/** Useful for counting the number of recursive calls. */
+class ScopeCounter {
+private:
+  unsigned& d_depth;
+public:
+  ScopeCounter(unsigned& d) : d_depth(d) {
+    ++d_depth;
+  }
+  ~ScopeCounter(){
+    --d_depth;
+  }
+};
+
 /**
  * Representation of a defined function.  We keep these around in
  * SmtEngine to permit expanding definitions late (and lazily), to
@@ -313,6 +326,10 @@ class SmtEnginePrivate : public NodeManagerListener {
    * semantics.  Needed to deal with partial function "mod".
    */
   Node d_modZero;
+
+  /** Number of calls of simplify assertions active.
+   */
+  unsigned d_simplifyAssertionsDepth;
 
 public:
   /**
@@ -2543,11 +2560,13 @@ void SmtEnginePrivate::doMiplibTrick() {
   d_realAssertionsEnd = d_assertionsToCheck.size();
 }
 
+
 // returns false if simplification led to "false"
 bool SmtEnginePrivate::simplifyAssertions()
   throw(TypeCheckingException, LogicException) {
   Assert(d_smt.d_pendingPops == 0);
   try {
+    ScopeCounter depth(d_simplifyAssertionsDepth);
 
     Trace("simplify") << "SmtEnginePrivate::simplify()" << endl;
 
@@ -2613,7 +2632,8 @@ bool SmtEnginePrivate::simplifyAssertions()
     Debug("smt") << " d_assertionsToCheck     : " << d_assertionsToCheck.size() << endl;
 
     // ITE simplification
-    if(options::doITESimp()) {
+    if(options::doITESimp() &&
+       (d_simplifyAssertionsDepth <= 1 || options::doITESimpOnRepeat())) {
       Chat() << "...doing ITE simplification..." << endl;
       bool noConflict = simpITE();
       if(!noConflict){

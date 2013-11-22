@@ -54,6 +54,9 @@ option sortInference --sort-inference bool :read-write :default false
 common-option incrementalSolving incremental -i --incremental bool
  enable incremental solving
 
+option doITESimpOnRepeat --on-repeat-ite-simp bool :read-write :default false
+ do the ite simplification pass again if repeating simplification
+
 option abstractValues abstract-values --abstract-values bool :default false
  in models, output arrays (and in future, maybe others) using abstract values, as required by the SMT-LIB standard
 option modelUninterpDtEnum --model-u-dt-enum bool :default false
