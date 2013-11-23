@@ -1448,12 +1448,15 @@ bool TheoryEngine::donePPSimpITE(std::vector<Node>& assertions){
     }
 
     if(result){
-      NodeManager* nm = NodeManager::currentNM();
       // if false, don't bother to reclaim memory here.
+      NodeManager* nm = NodeManager::currentNM();
       if(nm->poolSize() >= options::zombieHuntThreshold()){
         Chat() << "..ite simplifier did quite a bit of work.. " << nm->poolSize() << endl;
         Chat() << "....node manager contains " << nm->poolSize() << " nodes before cleanup" << endl;
         d_iteSimplifier->clearSimpITECaches();
+        if(d_iteCompressor != NULL){
+          d_iteCompressor->garbageCollect();
+        }
         Rewriter::garbageCollect();
 
         nm->reclaimZombiesUntil(options::zombieHuntThreshold());
