@@ -1448,6 +1448,7 @@ bool TheoryEngine::donePPSimpITE(std::vector<Node>& assertions){
         Chat() << "....node manager contains " << nm->poolSize() << " nodes before cleanup" << endl;
         d_iteUtilities->clear();
         Rewriter::garbageCollect();
+        d_iteRemover.garbageCollect();
         nm->reclaimZombiesUntil(options::zombieHuntThreshold());
         Chat() << "....node manager contains " << nm->poolSize() << " nodes after cleanup" << endl;
       }
