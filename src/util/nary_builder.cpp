@@ -90,5 +90,94 @@ Node NaryBuilder::zeroArity(Kind k){
 }
 
 
+RePairAssocCommutativeOperators::RePairAssocCommutativeOperators()
+  : d_cache()
+{}
+RePairAssocCommutativeOperators::~RePairAssocCommutativeOperators(){}
+size_t RePairAssocCommutativeOperators::size() const{ return d_cache.size(); }
+void RePairAssocCommutativeOperators::clear(){ d_cache.clear(); }
+
+bool RePairAssocCommutativeOperators::isAssociateCommutative(Kind k){
+  using namespace kind;
+  switch(k){
+  case BITVECTOR_CONCAT:
+  case BITVECTOR_AND:
+  case BITVECTOR_OR:
+  case BITVECTOR_XOR:
+  case BITVECTOR_MULT:
+  case BITVECTOR_PLUS:
+  case DISTINCT:
+  case PLUS:
+  case MULT:
+  case AND:
+  case OR:
+    return true;
+  default:
+    return false;
+  }
+}
+
+Node RePairAssocCommutativeOperators::rePairAssocCommutativeOperators(TNode n){
+  if(d_cache.find(n) != d_cache.end()){
+    return d_cache[n];
+  }
+  Node result =
+    isAssociateCommutative(n.getKind()) ?
+    case_assoccomm(n) : case_other(n);
+
+  d_cache[n] = result;
+  return result;
+}
+
+Node RePairAssocCommutativeOperators::case_assoccomm(TNode n){
+  Kind k = n.getKind();
+  Assert(isAssociateCommutative(k));
+  Assert(!n.isParameterized());
+  unsigned N = n.getNumChildren();
+  Assert(N >= 2);
+
+
+  Node last = rePairAssocCommutativeOperators( n[N-1]);
+  Node nextToLast = rePairAssocCommutativeOperators(n[N-2]);
+
+  NodeManager* nm = NodeManager::currentNM();
+  Node last2 = nm->mkNode(k, nextToLast, last);
+
+  if(N <= 2){
+    return last2;
+  } else{
+    Assert(N > 2);
+    Node prevRound = last2;
+    for(unsigned prevPos = N-2; prevPos > 0; --prevPos){
+      unsigned currPos = prevPos-1;
+      Node curr = rePairAssocCommutativeOperators(n[currPos]);
+      Node round = nm->mkNode(k, curr, prevRound);
+      prevRound = round;
+    }
+    return prevRound;
+  }
+}
+
+Node RePairAssocCommutativeOperators::case_other(TNode n){
+  if(n.isConst() || n.isVar()){
+    return n;
+  }
+
+  NodeBuilder<> nb(n.getKind());
+
+  if(n.getMetaKind() == kind::metakind::PARAMETERIZED) {
+    nb << n.getOperator();
+  }
+
+  // Remove the ITEs from the children
+  for(TNode::const_iterator i = n.begin(), end = n.end(); i != end; ++i) {
+    Node newChild = rePairAssocCommutativeOperators(*i);
+    nb << newChild;
+  }
+
+  Node result = (Node)nb;
+  return result;
+}
+
 }/* util namespace */
 }/* CVC4 namespace */
