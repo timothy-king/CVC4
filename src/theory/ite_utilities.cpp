@@ -794,33 +794,6 @@ Node ITESimplifier::replaceOverTermIte(Node e, Node simpAtom, Node simpVar){
   }
 }
 
-TNode uniqueNonConstant(TNode term){
-  if(term.getKind() == kind::ITE ||
-     term.isVar() ||
-     term.getKind() == kind::APPLY_UF){
-    #warning "Don't commit to trunk"
-    return term;
-  }else if(term.getNumChildren() == 0){
-    return Node::null();
-  }else{
-    TNode found = Node::null();
-    for(unsigned i =0, N = term.getNumChildren(); i < N; ++i){
-      TNode child = term[i];
-      if(!child.isConst()){
-        TNode fromChild = uniqueNonConstant(child);
-        if(fromChild.isNull()){
-          return Node::null();
-        }else if(found.isNull()){
-          found = fromChild;
-        }else{
-          return Node::null();
-        }
-      }
-    }
-    return found;
-  }
-}
-
 Node ITESimplifier::attemptLiftEquality(TNode atom){
   if(atom.getKind() == kind::EQUAL){
     TNode left = atom[0];
@@ -880,7 +853,8 @@ Node ITESimplifier::attemptLiftEquality(TNode atom){
       }
     }
   }
-#warning "This is way too tailored. Must generalize!"
+
+  // TODO "This is way too tailored. Must generalize!"
   if(atom.getKind() == kind::EQUAL &&
      atom.getNumChildren() == 2 &&
      ite::isTermITE(atom[0]) &&
@@ -951,36 +925,6 @@ Node ITESimplifier::transformAtom(TNode atom){
   }
 }
 
-// if true, the search encountered a not okay term
-// bool ITESimplifier::searchConstantITEs(TNode f, std::vector<Node>& found, unsigned maxFound, int maxDepth){
-//   if(f.isConst()){
-//     found.push_back(f);
-//     return found.size() < maxFound;
-//   }else if(f.getKind() == kind::ITE){
-//     if(isConstantITE(f)){
-//       found.push_back(f);
-//       return found.size() < maxFound;
-//     }else{
-//       return true;
-//     }
-//   }else if(f.getNumChildren() > 0){
-//     if(f is parametric){
-//       return false;
-//     }else if(maxDepth >= 0){
-//       bool res = false;
-//       TNode::iterator it = f.begin(), f.end();
-//       for(; it != end && !res; ++it){
-//         res = searchConstantITEs(*it, found, maxFound, maxDepth-1);
-//       }
-//       return res;
-//     }else{
-//       return false;
-//     }
-//   }else{
-//     return false;
-//   }
-// }
-
 static unsigned numBranches = 0;
 static unsigned numFalseBranches = 0;
 static unsigned itesMade = 0;
@@ -1038,79 +982,6 @@ Node ITESimplifier::constantIteEqualsConstant(TNode cite, TNode constant){
   }
 }
 
-// Node ITESimplifier::compressITEIntoConjunct(Node ite){
-//   Assert(ite.getKind() == kind::ITE);
-//   Assert(ite.getType().isBoolean());
-//   Assert(ite[1] == d_false || ite[2] == d_false);
-
-//   NodeBuilder<> conjunctBuilder(kind::AND);
-
-//   Node curr = ite;
-//   // (ite c false e) <=> (and (not c) e)
-//   // (ite c t false) <=> (and c t)
-//   while(curr.getKind() == kind::ITE &&
-//         (curr[1] == d_false || curr[2] == d_false)){
-//     bool negate = (curr[1] == d_false);
-//     if(negate ? (curr[0] == d_true) : (curr[0] == d_false)){
-//       return d_false; // short cut falses
-//     }
-//     Node cnd = negate ? (curr[0]).notNode() : (Node)curr[0];
-//     conjunctBuilder << cnd;
-//     curr = negate ? curr[2] : curr[1];
-//   }
-//   Assert(compressing.size() > 0);
-
-//   Assert(conjunctBuilder.getNumChildren() >= 1);
-//   Node maybeRecurse =
-//     (curr.getKind() == kind::ITE) ? compressITE(curr) : curr;
-//   if(maybeRecurse.isConst()){
-//     if(maybeRecurse == d_false){
-//       return d_false;
-//     }else{
-//       Assert(maybeRecurse == d_true);
-//       // is d_true, don't append
-//     }
-//   }else{
-//     conjunctBuilder << maybeRecurse;
-//   }
-//   Node conjunct = (conjunctBuilder.getNumChildren() == 1) ?
-//     conjunctBuilder[0] : (Node)conjunctBuilder;
-//   return conjunct;
-// }
-
-// Node ITESimplifier::compressITE(Node ite){
-//   return ite;
-
-//   // if(ite.isConst()){
-//   //   return ite;
-//   // }
-
-//   // NodeMap::const_iterator it = d_compressIteMap.find(ite);
-//   // if(it != d_compressIteMap.end()){
-//   //   return (*it).second;
-//   // }else if(ite.getKind() != kind::ITE){
-//   //   d_compressIteMap[ite] =ite;
-//   //   return ite;
-//   // }else{
-//   //   if(ite[0].isConst()){
-//   //     Node branch = (ite[0] == d_true) ? ite[1] : ite[2];
-//   //     // don't bother to cache!
-//   //     return compressITE(branch);
-//   //   }
-//   //   if(ite[1] == d_false || ite[2] == d_false){
-//   //     Node conjunct = compressITEIntoConjunct(ite);
-//   //     d_compressIteMap[conjunct] = ite;
-//   //     return ite;
-//   //   }else{
-//   //     Node compressThen = compressITE(ite[1]);
-//   //     Node compressElse = compressITE(ite[2]);
-//   //     Node newIte = ite[0].iteNode(compressThen, compressElse);
-//   //     d_compressIteMap[ite] = newIte;
-//   //     d_compressIteMap[newIte] = newIte;
-//   //     return newIte;
-//   //   }
-//   // }
-// }
 
 Node ITESimplifier::intersectConstantIte(TNode lcite, TNode rcite){
   // intersect the constant ite trees lcite and rcite
@@ -1504,48 +1375,7 @@ Node ITESimplifier::simpITE(TNode assertion)
       d_simpITECache[current] = result;
       ++(d_statistics.d_simpITEVisits);
       toVisit.pop_back();
-    } else if( false // options::simpCndBeforeBranch()
-               && current.getKind() == kind::ITE) {
-      // TNode cnd = current[0];
-      // TNode tB = current[1];
-      // TNode eB = current[2];
-      // Node simpCnd = simpITE(cnd);
-
-      // if(simpCnd.isConst()){
-      //   TNode selected = (simpCnd == d_true) ? tB : eB;
-      //   Node simpSelected = simpITE(selected);
-      //   d_simpITECache[current] = simpSelected;
-      //   ++(d_statistics.d_simpITEVisits);
-      //   toVisit.pop_back();
-      // }else{
-      //   stackHead.children_added = true;
-      //   NodeMap::iterator childFind = d_simpITECache.find(tB);
-      //   if (childFind == d_simpITECache.end()) {
-      //     toVisit.push_back(tB);
-      //   }
-      //   childFind = d_simpITECache.find(eB);
-      //   if (childFind == d_simpITECache.end()) {
-      //     toVisit.push_back(eB);
-      //   }
-      // }
     } else {
-      // if(false //options::simpAtomsEarly() &&
-      //    && (Theory::theoryOf(current) != THEORY_BOOL &&
-      //     current.getType().isBoolean())) {
-      //   Node attempt = attemptEagerRemoval(current);
-      //   if(!attempt.isNull() && attempt.isConst()){
-      //     static int workedcount = 0;
-      //     ++workedcount;
-      //     if(workedcount % 200 == 0){
-      //       Chat() << "worked " << workedcount << endl;
-      //     }
-      //     Node moreSimp = (attempt.isConst()) ? attempt : simpITE(attempt);
-      //     d_simpITECache[current] = moreSimp;
-      //     ++(d_statistics.d_simpITEVisits);
-      //     toVisit.pop_back();
-      //     continue;
-      //   }
-      // }
       // Mark that we have added the children if any
       if (current.getNumChildren() > 0) {
         stackHead.children_added = true;
