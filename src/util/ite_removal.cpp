@@ -44,6 +44,10 @@ theory::ContainsTermITEVistor*  RemoveITE::getContainsVisitor(){
   return d_containsVisitor;
 }
 
+size_t RemoveITE::collectedCacheSizes() const{
+  return d_containsVisitor->cache_size() + d_iteCache.size();
+}
+
 void RemoveITE::run(std::vector<Node>& output, IteSkolemMap& iteSkolemMap)
 {
   for (unsigned i = 0, i_end = output.size(); i < i_end; ++ i) {

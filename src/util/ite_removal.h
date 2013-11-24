@@ -37,20 +37,10 @@ class RemoveITE {
   ITECache d_iteCache;
 
 
-  // /** Returns true if a kind may be that of an atom. */
-  // bool maybeAtomicKind(Kind k) const;
-
 public:
 
   RemoveITE(context::UserContext* u);
   ~RemoveITE();
-
-  // /**
-  //  * Checks if a node n can reach a node containing a term ite.
-  //  *
-  //  * Heuristically caches results on
-  //  */
-  // bool containsNoTermItes(Node n);
 
   /**
    * Removes the ITE nodes by introducing skolem variables. All
@@ -71,11 +61,18 @@ public:
   Node run(TNode node, std::vector<Node>& additionalAssertions,
            IteSkolemMap& iteSkolemMap, std::vector<Node>& quantVar);
 
+  /** Returns true if e contains a term ite.*/
+  bool containsTermITE(TNode e);
+
+  /** Returns the collected size of the caches.*/
+  size_t collectedCacheSizes() const;
+
+  /** Garbage collects non-context dependent data-structures.*/
   void garbageCollect();
 
+  /** Return the RemoveITE's containsVisitor.*/
   theory::ContainsTermITEVistor* getContainsVisitor();
 
-  bool containsTermITE(TNode e);
 private:
   theory::ContainsTermITEVistor* d_containsVisitor;
 
