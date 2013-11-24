@@ -26,96 +26,6 @@ using namespace std;
 
 namespace CVC4 {
 
-// bool RemoveITE::maybeAtomicKind(Kind k) const{
-//   using namespace kind;
-//   switch(k){
-//   case EQUAL:
-//   case DISTINCT:
-//   case CARDINALITY_CONSTRAINT:
-//   case DIVISIBLE:
-//   case LT:
-//   case LEQ:
-//   case GT:
-//   case GEQ:
-//   case IS_INTEGER:
-//   case BITVECTOR_COMP:
-//   case BITVECTOR_ULT:
-//   case BITVECTOR_ULE:
-//   case BITVECTOR_UGT:
-//   case BITVECTOR_UGE:
-//   case BITVECTOR_SLT:
-//   case BITVECTOR_SLE:
-//   case BITVECTOR_SGT:
-//   case BITVECTOR_SGE:
-//     return true;
-//   default:
-//     return false;
-//   }
-// }
-
-void RemoveITE::garbageCollect(){
-  d_containsVisitor->garbageCollect();
-}
-
-// bool RemoveITE::containsNoTermItes(Node n){
-//   if(d_iteCache.find(n) != d_iteCache.end()){
-//     Node fromNode = (*(d_iteCache.find(n))).second;
-//     return fromNode.isNull();
-//   }else if(n.getKind() == kind::ITE && !n.getType().isBoolean()){
-//     return false;
-//   }
-
-//   std::vector<TNode> atoms;
-
-//   typedef std::hash_set<TNode, TNodeHashFunction> TNodeSet;
-//   TNodeSet visited;
-
-//   std::vector<TNode> fringe;
-//   fringe.push_back(n);
-
-//   bool notVisitedTermIte = true;
-//   while(notVisitedTermIte && !fringe.empty()){
-//     TNode back = fringe.back();
-//     fringe.pop_back();
-
-//     if(d_iteCache.find(back) != d_iteCache.end()){
-//       if(!d_iteCache[back].isNull()){
-//         notVisitedTermIte = false;
-//         break;
-//       }
-//     }else if(visited.find(back) == visited.end()){
-//       visited.insert(back);
-//       if(maybeAtomicKind(back.getKind())){
-//         atoms.push_back(back);
-//       }
-//       for(TNode::iterator cit=back.begin(), end = back.end(); cit != end; ++cit){
-//         TNode child = *cit;
-//         if(!child.isConst() && !child.isVar()){
-//           if(child.getKind() == kind::ITE && !child.getType().isBoolean()){
-//             // 1 lookahead for term ites.
-//             notVisitedTermIte = false;
-//             break;
-//           }else{
-//             fringe.push_back(child);
-//           }
-//         }
-//       }
-//     }
-//   }
-
-//   if(notVisitedTermIte){
-//     d_iteCache.insert_safe(n, Node::null());
-//     for(size_t i=0, N=atoms.size(); i<N; ++i){
-//       d_iteCache.insert_safe(atoms[i], Node::null());
-//     }
-//   }
-//   return notVisitedTermIte;
-// }
-
-theory::ContainsTermITEVistor*  RemoveITE::getContainsVisitor(){
-  return d_containsVisitor;
-}
-
 RemoveITE::RemoveITE(context::UserContext* u)
   : d_iteCache(u)
 {
@@ -124,6 +34,14 @@ RemoveITE::RemoveITE(context::UserContext* u)
 
 RemoveITE::~RemoveITE(){
   delete d_containsVisitor;
+}
+
+void RemoveITE::garbageCollect(){
+  d_containsVisitor->garbageCollect();
+}
+
+theory::ContainsTermITEVistor*  RemoveITE::getContainsVisitor(){
+  return d_containsVisitor;
 }
 
 void RemoveITE::run(std::vector<Node>& output, IteSkolemMap& iteSkolemMap)
@@ -148,7 +66,8 @@ Node RemoveITE::run(TNode node, std::vector<Node>& output,
   // Current node
   Debug("ite") << "removeITEs(" << node << ")" << endl;
 
-  if(options::biasedITERemoval() && !containsTermITE(node)){
+  if(node.isVar() || node.isConst() ||
+     (options::biasedITERemoval() && !containsTermITE(node))){
     return Node(node);
   }
 
@@ -222,71 +141,26 @@ Node RemoveITE::run(TNode node, std::vector<Node>& output,
         newQuantVar.push_back( node[0][i] );
       }
     }
-    // Switches to using a 2 state automaton
-    if(options::lazyITEConstruction()){
-      // Search for the first modified position
-      // If there is no modified child, node return Node::null().
-      // If there is a modified child,
-      // push back the unmodified parts and begin constructing the modified node
-      Node newChild = Node::null();
-      TNode::const_iterator first_modified_pos = node.begin();
-      TNode::const_iterator end = node.end();
-      for(; first_modified_pos != end; ++first_modified_pos) {
-        newChild = run(*first_modified_pos, output, iteSkolemMap, newQuantVar);
-        if(newChild != *first_modified_pos){
-          break;
-        }
-      }
-      if(first_modified_pos == end){ // nothing was modified
-        d_iteCache.insert(node, Node::null());
-        return node;
-      }else{
-        // Something was modified
-        // Start constructing the new node now
-        NodeBuilder<> newChildren(nodeManager, node.getKind());
-        if(node.getMetaKind() == kind::metakind::PARAMETERIZED) {
-          newChildren << (node.getOperator());
-        }
-        TNode::const_iterator it = node.begin();
-        // Push back the untouched prefix
-        for(; it != first_modified_pos; ++it) {
-          newChildren << (*it);
-        }
-        Assert(it == first_modified_pos);
-        // Push_back the first modified child
-        newChildren << newChild;
-        // move the iterator past first_modified_pos
-        ++it;
-        for(; it != end; ++it){
-          newChild = run(*it, output, iteSkolemMap, newQuantVar);
-          newChildren << newChild;
-        }
-        Node cached = (Node)newChildren;
-        d_iteCache.insert(node, cached);
-        return cached;
-      }
-    }else{ // older implementation
-      vector<Node> newChildren;
-      bool somethingChanged = false;
-      if(node.getMetaKind() == kind::metakind::PARAMETERIZED) {
-        newChildren.push_back(node.getOperator());
-      }
-      // Remove the ITEs from the children
-      for(TNode::const_iterator it = node.begin(), end = node.end(); it != end; ++it) {
-        Node newChild = run(*it, output, iteSkolemMap, newQuantVar);
-        somethingChanged |= (newChild != *it);
-        newChildren.push_back(newChild);
-      }
+    vector<Node> newChildren;
+    bool somethingChanged = false;
+    if(node.getMetaKind() == kind::metakind::PARAMETERIZED) {
+      newChildren.push_back(node.getOperator());
+    }
+    // Remove the ITEs from the children
+    for(TNode::const_iterator it = node.begin(), end = node.end(); it != end; ++it) {
+      Node newChild = run(*it, output, iteSkolemMap, newQuantVar);
+      somethingChanged |= (newChild != *it);
+      newChildren.push_back(newChild);
+    }
 
-      // If changes, we rewrite
-      if(somethingChanged) {
-        Node cached = nodeManager->mkNode(node.getKind(), newChildren);
-        d_iteCache.insert(node, cached);
-        return cached;
-      } else {
-        d_iteCache.insert(node, Node::null());
-        return node;
-      }
+    // If changes, we rewrite
+    if(somethingChanged) {
+      Node cached = nodeManager->mkNode(node.getKind(), newChildren);
+      d_iteCache.insert(node, cached);
+      return cached;
+    } else {
+      d_iteCache.insert(node, Node::null());
+      return node;
     }
   } else {
     d_iteCache.insert(node, Node::null());
