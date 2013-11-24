@@ -26,6 +26,10 @@
 
 namespace CVC4 {
 
+namespace theory {
+class ContainsTermITEVistor;
+}
+
 typedef std::hash_map<Node, unsigned, NodeHashFunction> IteSkolemMap;
 
 class RemoveITE {
@@ -33,21 +37,20 @@ class RemoveITE {
   ITECache d_iteCache;
 
 
-  /** Returns true if a kind may be that of an atom. */
-  bool maybeAtomicKind(Kind k) const;
+  // /** Returns true if a kind may be that of an atom. */
+  // bool maybeAtomicKind(Kind k) const;
 
 public:
 
-  RemoveITE(context::UserContext* u) :
-    d_iteCache(u) {
-  }
+  RemoveITE(context::UserContext* u);
+  ~RemoveITE();
 
-  /**
-   * Checks if a node n can reach a node containing a term ite.
-   *
-   * Heuristically caches results on
-   */
-  bool containsNoTermItes(Node n);
+  // /**
+  //  * Checks if a node n can reach a node containing a term ite.
+  //  *
+  //  * Heuristically caches results on
+  //  */
+  // bool containsNoTermItes(Node n);
 
   /**
    * Removes the ITE nodes by introducing skolem variables. All
@@ -59,29 +62,22 @@ public:
   void run(std::vector<Node>& assertions, IteSkolemMap& iteSkolemMap);
 
   /**
-   * This first checks whether containsNoTermItes(node) and if
-   * it removes ites using run_internal(node).
-   * See these 2 functions for more details.
-   */
-  Node run(TNode node, std::vector<Node>& additionalAssertions,
-           IteSkolemMap& iteSkolemMap, std::vector<Node>& quantVar);
-
-  void garbageCollect();
-
-private:
-
-
-  /**
    * Removes the ITE from the node by introducing skolem
    * variables. All additional assertions are pushed into
    * assertions. iteSkolemMap contains a map from introduced skolem
    * variables to the index in assertions containing the new Boolean
    * ite created in conjunction with that skolem variable.
    */
-  Node run_internal(TNode node, std::vector<Node>& additionalAssertions,
+  Node run(TNode node, std::vector<Node>& additionalAssertions,
            IteSkolemMap& iteSkolemMap, std::vector<Node>& quantVar);
 
+  void garbageCollect();
 
+  theory::ContainsTermITEVistor* getContainsVisitor();
+
+  bool containsTermITE(TNode e);
+private:
+  theory::ContainsTermITEVistor* d_containsVisitor;
 
 };/* class RemoveTTE */
 

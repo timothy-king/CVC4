@@ -77,8 +77,7 @@ struct NodeTheoryPairHashFunction {
 namespace theory {
   class TheoryModel;
   class TheoryEngineModelBuilder;
-  class ITESimplifier;
-  class ITECompressor;
+  class ITEUtilities;
 
   namespace eq {
     class EqualityEngine;
@@ -770,16 +769,10 @@ private:
   void dumpAssertions(const char* tag);
 
   /**
-   * For preprocessing pass simplifying ITEs.
-   * Either NULL or intialized.
+   * A collection of ite preprocessing passes.
    */
-  theory::ITESimplifier* d_iteSimplifier;
+  theory::ITEUtilities* d_iteUtilities;
 
-  /**
-   * For preprocessing pass compressing ITEs.
-   * Either NULL or intialized.
-   */
-  theory::ITECompressor* d_iteCompressor;
 
   /** For preprocessing pass simplifying unconstrained expressions */
   UnconstrainedSimplifier* d_unconstrainedSimp;

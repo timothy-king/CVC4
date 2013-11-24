@@ -35,8 +35,9 @@
 #include "util/node_visitor.h"
 #include "util/ite_removal.h"
 
-#include "theory/ite_simplifier.h"
-#include "theory/ite_compressor.h"
+//#include "theory/ite_simplifier.h"
+//#include "theory/ite_compressor.h"
+#include "theory/ite_utilities.h"
 #include "theory/unconstrained_simplifier.h"
 
 #include "theory/model.h"
@@ -126,8 +127,6 @@ TheoryEngine::TheoryEngine(context::Context* context,
   d_factsAsserted(context, false),
   d_preRegistrationVisitor(this, context),
   d_sharedTermsVisitor(d_sharedTerms),
-  d_iteSimplifier(NULL),
-  d_iteCompressor(NULL),
   d_unconstrainedSimp(new UnconstrainedSimplifier(context, logicInfo)),
   d_bvToBoolPreprocessor()
 {
@@ -146,7 +145,9 @@ TheoryEngine::TheoryEngine(context::Context* context,
   StatisticsRegistry::registerStat(&d_combineTheoriesTime);
   d_true = NodeManager::currentNM()->mkConst<bool>(true);
   d_false = NodeManager::currentNM()->mkConst<bool>(false);
-  PROOF (ProofManager::currentPM()->initTheoryProof(); ); 
+  PROOF (ProofManager::currentPM()->initTheoryProof(); );
+
+  d_iteUtilities = new ITEUtilities(d_iteRemover.getContainsVisitor());
 }
 
 TheoryEngine::~TheoryEngine() {
@@ -169,7 +170,8 @@ TheoryEngine::~TheoryEngine() {
   StatisticsRegistry::unregisterStat(&d_combineTheoriesTime);
 
   delete d_unconstrainedSimp;
-  if(d_iteSimplifier != NULL){ delete d_iteSimplifier; }
+
+  delete d_iteUtilities;
 }
 
 void TheoryEngine::interrupt() throw(ModalException) {
@@ -1410,20 +1412,16 @@ void TheoryEngine::ppBvToBool(const std::vector<Node>& assertions, std::vector<N
 
 Node TheoryEngine::ppSimpITE(TNode assertion)
 {
-  if(d_iteRemover.containsNoTermItes(assertion)){
+  if(!d_iteRemover.containsTermITE(assertion)){
     return assertion;
   }else{
 
-    if(d_iteSimplifier == NULL){
-      d_iteSimplifier = new ITESimplifier();
-    }
-
-    Node result = d_iteSimplifier->simpITE(assertion);
+    Node result = d_iteUtilities->simpITE(assertion);
     Node res_rewritten = Rewriter::rewrite(result);
 
     if(options::simplifyWithCareEnabled()){
       Chat() << "starting simplifyWithCare()" << endl;
-      Node postSimpWithCare = d_iteSimplifier->simplifyWithCare(res_rewritten);
+      Node postSimpWithCare = d_iteUtilities->simplifyWithCare(res_rewritten);
       Chat() << "ending simplifyWithCare()"
              << " post simplifyWithCare()" << postSimpWithCare.getId() << endl;
       result = Rewriter::rewrite(postSimpWithCare);
@@ -1437,14 +1435,9 @@ Node TheoryEngine::ppSimpITE(TNode assertion)
 
 bool TheoryEngine::donePPSimpITE(std::vector<Node>& assertions){
   bool result = true;
-  if(d_iteSimplifier != NULL &&
-     d_iteSimplifier->doneALotOfWorkHeuristic()){
-
+  if(d_iteUtilities->simpIteDidALotOfWorkHeuristic()){
     if(options::compressItes()){
-      if(d_iteCompressor == NULL){
-        d_iteCompressor = new ITECompressor();
-      }
-      result = d_iteCompressor->compress(assertions);
+      result = d_iteUtilities->compress(assertions);
     }
 
     if(result){
@@ -1453,12 +1446,8 @@ bool TheoryEngine::donePPSimpITE(std::vector<Node>& assertions){
       if(nm->poolSize() >= options::zombieHuntThreshold()){
         Chat() << "..ite simplifier did quite a bit of work.. " << nm->poolSize() << endl;
         Chat() << "....node manager contains " << nm->poolSize() << " nodes before cleanup" << endl;
-        d_iteSimplifier->clearSimpITECaches();
-        if(d_iteCompressor != NULL){
-          d_iteCompressor->garbageCollect();
-        }
+        d_iteUtilities->clear();
         Rewriter::garbageCollect();
-
         nm->reclaimZombiesUntil(options::zombieHuntThreshold());
         Chat() << "....node manager contains " << nm->poolSize() << " nodes after cleanup" << endl;
       }

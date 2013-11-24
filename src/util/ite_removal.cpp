@@ -19,104 +19,111 @@
 #include "util/ite_removal.h"
 #include "expr/command.h"
 #include "theory/quantifiers/options.h"
+#include "theory/ite_utilities.h"
 
 using namespace CVC4;
 using namespace std;
 
 namespace CVC4 {
 
-bool RemoveITE::maybeAtomicKind(Kind k) const{
-  using namespace kind;
-  switch(k){
-  case EQUAL:
-  case DISTINCT:
-  case CARDINALITY_CONSTRAINT:
-  case DIVISIBLE:
-  case LT:
-  case LEQ:
-  case GT:
-  case GEQ:
-  case IS_INTEGER:
-  case BITVECTOR_COMP:
-  case BITVECTOR_ULT:
-  case BITVECTOR_ULE:
-  case BITVECTOR_UGT:
-  case BITVECTOR_UGE:
-  case BITVECTOR_SLT:
-  case BITVECTOR_SLE:
-  case BITVECTOR_SGT:
-  case BITVECTOR_SGE:
-    return true;
-  default:
-    return false;
-  }
+// bool RemoveITE::maybeAtomicKind(Kind k) const{
+//   using namespace kind;
+//   switch(k){
+//   case EQUAL:
+//   case DISTINCT:
+//   case CARDINALITY_CONSTRAINT:
+//   case DIVISIBLE:
+//   case LT:
+//   case LEQ:
+//   case GT:
+//   case GEQ:
+//   case IS_INTEGER:
+//   case BITVECTOR_COMP:
+//   case BITVECTOR_ULT:
+//   case BITVECTOR_ULE:
+//   case BITVECTOR_UGT:
+//   case BITVECTOR_UGE:
+//   case BITVECTOR_SLT:
+//   case BITVECTOR_SLE:
+//   case BITVECTOR_SGT:
+//   case BITVECTOR_SGE:
+//     return true;
+//   default:
+//     return false;
+//   }
+// }
+
+void RemoveITE::garbageCollect(){
+  d_containsVisitor->garbageCollect();
 }
 
-void RemoveITE::garbageCollect(){}
+// bool RemoveITE::containsNoTermItes(Node n){
+//   if(d_iteCache.find(n) != d_iteCache.end()){
+//     Node fromNode = (*(d_iteCache.find(n))).second;
+//     return fromNode.isNull();
+//   }else if(n.getKind() == kind::ITE && !n.getType().isBoolean()){
+//     return false;
+//   }
 
-bool RemoveITE::containsNoTermItes(Node n){
-  if(d_iteCache.find(n) != d_iteCache.end()){
-    Node fromNode = (*(d_iteCache.find(n))).second;
-    return fromNode.isNull();
-  }else if(n.getKind() == kind::ITE && !n.getType().isBoolean()){
-    return false;
-  }
+//   std::vector<TNode> atoms;
 
-  std::vector<TNode> atoms;
+//   typedef std::hash_set<TNode, TNodeHashFunction> TNodeSet;
+//   TNodeSet visited;
 
-  typedef std::hash_set<TNode, TNodeHashFunction> TNodeSet;
-  TNodeSet visited;
+//   std::vector<TNode> fringe;
+//   fringe.push_back(n);
 
-  std::vector<TNode> fringe;
-  fringe.push_back(n);
+//   bool notVisitedTermIte = true;
+//   while(notVisitedTermIte && !fringe.empty()){
+//     TNode back = fringe.back();
+//     fringe.pop_back();
 
-  bool notVisitedTermIte = true;
-  while(notVisitedTermIte && !fringe.empty()){
-    TNode back = fringe.back();
-    fringe.pop_back();
+//     if(d_iteCache.find(back) != d_iteCache.end()){
+//       if(!d_iteCache[back].isNull()){
+//         notVisitedTermIte = false;
+//         break;
+//       }
+//     }else if(visited.find(back) == visited.end()){
+//       visited.insert(back);
+//       if(maybeAtomicKind(back.getKind())){
+//         atoms.push_back(back);
+//       }
+//       for(TNode::iterator cit=back.begin(), end = back.end(); cit != end; ++cit){
+//         TNode child = *cit;
+//         if(!child.isConst() && !child.isVar()){
+//           if(child.getKind() == kind::ITE && !child.getType().isBoolean()){
+//             // 1 lookahead for term ites.
+//             notVisitedTermIte = false;
+//             break;
+//           }else{
+//             fringe.push_back(child);
+//           }
+//         }
+//       }
+//     }
+//   }
 
-    if(d_iteCache.find(back) != d_iteCache.end()){
-      if(!d_iteCache[back].isNull()){
-        notVisitedTermIte = false;
-        break;
-      }
-    }else if(visited.find(back) == visited.end()){
-      visited.insert(back);
-      if(maybeAtomicKind(back.getKind())){
-        atoms.push_back(back);
-      }
-      for(TNode::iterator cit=back.begin(), end = back.end(); cit != end; ++cit){
-        TNode child = *cit;
-        if(!child.isConst() && !child.isVar()){
-          if(child.getKind() == kind::ITE && !child.getType().isBoolean()){
-            // 1 lookahead for term ites.
-            notVisitedTermIte = false;
-            break;
-          }else{
-            fringe.push_back(child);
-          }
-        }
-      }
-    }
-  }
+//   if(notVisitedTermIte){
+//     d_iteCache.insert_safe(n, Node::null());
+//     for(size_t i=0, N=atoms.size(); i<N; ++i){
+//       d_iteCache.insert_safe(atoms[i], Node::null());
+//     }
+//   }
+//   return notVisitedTermIte;
+// }
 
-  if(notVisitedTermIte){
-    d_iteCache.insert_safe(n, Node::null());
-    for(size_t i=0, N=atoms.size(); i<N; ++i){
-      d_iteCache.insert_safe(atoms[i], Node::null());
-    }
-  }
-  return notVisitedTermIte;
+theory::ContainsTermITEVistor*  RemoveITE::getContainsVisitor(){
+  return d_containsVisitor;
 }
 
-Node RemoveITE::run(TNode node, std::vector<Node>& output,
-                    IteSkolemMap& iteSkolemMap,
-                    std::vector<Node>& quantVar) {
-  if(containsNoTermItes(node)){
-    return node;
-  }else{
-    return run_internal(node, output,iteSkolemMap,quantVar);
-  }
+RemoveITE::RemoveITE(context::UserContext* u)
+  : d_iteCache(u)
+{
+  d_containsVisitor = new theory::ContainsTermITEVistor();
+}
+
+RemoveITE::~RemoveITE(){
+  delete d_containsVisitor;
 }
 
 void RemoveITE::run(std::vector<Node>& output, IteSkolemMap& iteSkolemMap)
@@ -126,18 +133,24 @@ void RemoveITE::run(std::vector<Node>& output, IteSkolemMap& iteSkolemMap)
     // Do this in two steps to avoid Node problems(?)
     // Appears related to bug 512, splitting this into two lines
     // fixes the bug on clang on Mac OS
-    Node itesRemoved = (options::biasedITERemoval()) ?
-      run(output[i], output, iteSkolemMap, quantVar) :
-      run_internal(output[i], output, iteSkolemMap, quantVar);
+    Node itesRemoved = run(output[i], output, iteSkolemMap, quantVar);
     output[i] = itesRemoved;
   }
 }
 
-Node RemoveITE::run_internal(TNode node, std::vector<Node>& output,
-                             IteSkolemMap& iteSkolemMap,
-                             std::vector<Node>& quantVar) {
+bool RemoveITE::containsTermITE(TNode e){
+  return d_containsVisitor->containsTermITE(e);
+}
+
+Node RemoveITE::run(TNode node, std::vector<Node>& output,
+                    IteSkolemMap& iteSkolemMap,
+                    std::vector<Node>& quantVar) {
   // Current node
   Debug("ite") << "removeITEs(" << node << ")" << endl;
+
+  if(options::biasedITERemoval() && !containsTermITE(node)){
+    return Node(node);
+  }
 
   // The result may be cached already
   NodeManager *nodeManager = NodeManager::currentNM();
@@ -180,7 +193,7 @@ Node RemoveITE::run_internal(TNode node, std::vector<Node>& output,
       d_iteCache.insert(node, skolem);
 
       // Remove ITEs from the new assertion, rewrite it and push it to the output
-      newAssertion = run_internal(newAssertion, output, iteSkolemMap, quantVar);
+      newAssertion = run(newAssertion, output, iteSkolemMap, quantVar);
 
       if( !quantVar.empty() ){
         //if in the scope of free variables, it is a quantified assertion
@@ -219,7 +232,7 @@ Node RemoveITE::run_internal(TNode node, std::vector<Node>& output,
       TNode::const_iterator first_modified_pos = node.begin();
       TNode::const_iterator end = node.end();
       for(; first_modified_pos != end; ++first_modified_pos) {
-        newChild = run_internal(*first_modified_pos, output, iteSkolemMap, newQuantVar);
+        newChild = run(*first_modified_pos, output, iteSkolemMap, newQuantVar);
         if(newChild != *first_modified_pos){
           break;
         }
@@ -245,7 +258,7 @@ Node RemoveITE::run_internal(TNode node, std::vector<Node>& output,
         // move the iterator past first_modified_pos
         ++it;
         for(; it != end; ++it){
-          newChild = run_internal(*it, output, iteSkolemMap, newQuantVar);
+          newChild = run(*it, output, iteSkolemMap, newQuantVar);
           newChildren << newChild;
         }
         Node cached = (Node)newChildren;
@@ -260,7 +273,7 @@ Node RemoveITE::run_internal(TNode node, std::vector<Node>& output,
       }
       // Remove the ITEs from the children
       for(TNode::const_iterator it = node.begin(), end = node.end(); it != end; ++it) {
-        Node newChild = run_internal(*it, output, iteSkolemMap, newQuantVar);
+        Node newChild = run(*it, output, iteSkolemMap, newQuantVar);
         somethingChanged |= (newChild != *it);
         newChildren.push_back(newChild);
       }
