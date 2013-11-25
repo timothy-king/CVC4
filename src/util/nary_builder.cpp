@@ -132,7 +132,7 @@ Node RePairAssocCommutativeOperators::rePairAssocCommutativeOperators(TNode n){
 Node RePairAssocCommutativeOperators::case_assoccomm(TNode n){
   Kind k = n.getKind();
   Assert(isAssociateCommutative(k));
-  Assert(!n.isParameterized());
+  Assert(n.getMetaKind() != kind::metakind::PARAMETERIZED);
   unsigned N = n.getNumChildren();
   Assert(N >= 2);
 

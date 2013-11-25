@@ -19,8 +19,8 @@
 
 #include "cvc4_private.h"
 
-#ifndef __CVC4__ITE_COMPRESSOR_H
-#define __CVC4__ITE_COMPRESSOR_H
+#ifndef __CVC4__ITE_UTILITIES_H
+#define __CVC4__ITE_UTILITIES_H
 
 #include <vector>
 #include <ext/hash_map>

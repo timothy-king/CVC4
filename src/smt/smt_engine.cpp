@@ -900,11 +900,40 @@ void SmtEngine::setLogicInternal() throw() {
   }
   // Turn on ite simplification for QF_LIA and QF_AUFBV
   if(! options::doITESimp.wasSetByUser()) {
-    bool iteSimp = !d_logic.isQuantified() &&
-      ((d_logic.isPure(THEORY_ARITH) && d_logic.isLinear() && !d_logic.isDifferenceLogic() &&  !d_logic.areRealsUsed()) ||
-       (d_logic.isTheoryEnabled(THEORY_ARRAY) && d_logic.isTheoryEnabled(THEORY_UF) && d_logic.isTheoryEnabled(THEORY_BV)));
+    bool qf_aufbv = !d_logic.isQuantified() &&
+      d_logic.isTheoryEnabled(THEORY_ARRAY) &&
+      d_logic.isTheoryEnabled(THEORY_UF) &&
+      d_logic.isTheoryEnabled(THEORY_BV);
+    bool qf_lia = !d_logic.isQuantified() &&
+      d_logic.isPure(THEORY_ARITH) &&
+      d_logic.isLinear() &&
+      !d_logic.isDifferenceLogic() &&
+      !d_logic.areRealsUsed();
+
+    bool iteSimp = (qf_aufbv || qf_lia);
     Trace("smt") << "setting ite simplification to " << iteSimp << endl;
     options::doITESimp.set(iteSimp);
+  }
+  if(! options::compressItes.wasSetByUser() ){
+    bool qf_lia = !d_logic.isQuantified() &&
+      d_logic.isPure(THEORY_ARITH) &&
+      d_logic.isLinear() &&
+      !d_logic.isDifferenceLogic() &&
+      !d_logic.areRealsUsed();
+
+    bool compressIte = qf_lia;
+    Trace("smt") << "setting ite compression to " << compressIte << endl;
+    options::compressItes.set(compressIte);
+  }
+  if(! options::simplifyWithCareEnabled.wasSetByUser() ){
+    bool qf_aufbv = !d_logic.isQuantified() &&
+      d_logic.isTheoryEnabled(THEORY_ARRAY) &&
+      d_logic.isTheoryEnabled(THEORY_UF) &&
+      d_logic.isTheoryEnabled(THEORY_BV);
+
+    bool withCare = qf_aufbv;
+    Trace("smt") << "setting ite simplify with care to " << withCare << endl;
+    options::simplifyWithCareEnabled.set(withCare);
   }
   // Turn off array eager index splitting for QF_AUFLIA
   if(! options::arraysEagerIndexSplitting.wasSetByUser()) {

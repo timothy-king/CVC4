@@ -461,7 +461,7 @@ bool ITECompressor::compress(std::vector<Node>& assertions){
     Node compressed =  compressBoolean(assertion);
     Node rewritten = Rewriter::rewrite(compressed);
     assertions[i] = rewritten;
-    Assert(!debugContainsTermITE(rewritten));
+    Assert(!d_contains->containsTermITE(rewritten));
 
     nofalses = (rewritten != d_false);
   }
@@ -645,7 +645,7 @@ bool ITESimplifier::isConstantIte(TNode e){
 }
 
 ITESimplifier::NodeVec* ITESimplifier::computeConstantLeaves(TNode ite){
-  Assert(isTermITE(ite));
+  Assert(ite::isTermITE(ite));
   ConstantLeavesMap::const_iterator it = d_constantLeaves.find(ite);
   ConstantLeavesMap::const_iterator end = d_constantLeaves.end();
   if(it != end){
@@ -1401,8 +1401,6 @@ Node ITESimplifier::simpITE(TNode assertion)
 ITECareSimplifier::ITECareSimplifier()
   : d_usedSets()
 {
-  Assert(d_contains != NULL);
-
   d_true = NodeManager::currentNM()->mkConst<bool>(true);
   d_false = NodeManager::currentNM()->mkConst<bool>(false);
 }
