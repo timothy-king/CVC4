@@ -64,6 +64,7 @@
 
 #include "theory/arith/arith_utilities.h"
 #include "theory/arith/delta_rational.h"
+#include "theory/arith/infer_bounds.h"
 #include "theory/arith/partial_model.h"
 #include "theory/arith/matrix.h"
 
@@ -139,6 +140,13 @@ public:
   void releaseArithVar(ArithVar v);
   void signal(ArithVar v){ d_errorSet.signalVariable(v); }
 
+
+  InferBoundsResult inferBound(TNode term, const InferBoundsParameters& p);
+
+private:
+  // t does not contain constants
+  InferBoundsResult inferUpperBoundLookup(TNode t, const InferBoundsParameters& p);
+  InferBoundsResult inferUpperBoundSimplex(TNode t, const InferBoundsParameters& p);
 
   /**
    * Infers either a new upper/lower bound on term in the real relaxation.

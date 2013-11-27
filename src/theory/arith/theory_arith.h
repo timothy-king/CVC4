@@ -20,6 +20,7 @@
 #include "theory/theory.h"
 #include "expr/node.h"
 #include "theory/arith/theory_arith_private_forward.h"
+#include "theory/arith/infer_bounds.h"
 
 namespace CVC4 {
 namespace theory {
@@ -77,7 +78,7 @@ public:
 
   Node getModelValue(TNode var);
 
-  virtual std::pair<DeltaRational, Node> inferBound(TNode term, bool lb, int maxRounds, const DeltaRational* threshold);
+  InferBoundsResult inferBound(TNode term, const InferBoundsParameters& p);
 };/* class TheoryArith */
 
 }/* CVC4::theory::arith namespace */

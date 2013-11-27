@@ -3090,12 +3090,155 @@ const BoundsInfo& TheoryArithPrivate::boundsInfo(ArithVar basic) const{
   return d_rowTracking[ridx];
 }
 
-std::pair<DeltaRational, Node> TheoryArithPrivate::inferBound(TNode term, bool lb, int maxRounds, const DeltaRational* threshold){
-  // This is implicitly maximizing
+InferBoundsResult TheoryArithPrivate::inferBound(TNode term, const InferBoundsParameters& param){
+  Node t = Rewriter::rewrite(term);
+  Assert(Polynomial::isMember(t));
+  Polynomial p = Polynomial::parsePolynomial(t);
+  if(p.containsConstant()){
+    Constant c = p.getHead().getConstant();
+    if(p.isConstant()){
+      InferBoundsResult res(t, param.findLowerBound());
+      res.setBound((DeltaRational)c.getValue(), mkBoolNode(true));
+      return res;
+    }else{
+      Polynomial tail = p.getTail();
+      InferBoundsResult res = inferBound(tail.getNode(), param);
+      if(res.foundBound()){
+        DeltaRational newBound = res.getValue() + c.getValue();
+        if(tail.isIntegral()){
+          Integer asInt  = (param.findLowerBound()) ? newBound.ceiling() : newBound.floor();
+          newBound = DeltaRational(asInt);
+        }
+        res.setBound(newBound, res.getExplanation());
+      }
+      return res;
+    }
+  }else if(param.findLowerBound()){
+    InferBoundsParameters find_ub = param;
+    find_ub.setFindUpperBound();
+    find_ub.setThreshold(- param.getThreshold() );
+    Polynomial negP = -p;
+    InferBoundsResult res = inferBound(t, find_ub);
+    if(res.foundBound()){
+      res.setBound(-res.getValue(), res.getExplanation());
+    }
+    return res;
+  }else{
+    Assert(param.findUpperBound());
+    // does not contain a constant
+    switch(param.getEffort()){
+    case InferBoundsParameters::Lookup:
+      return inferUpperBoundLookup(t, param);
+    case InferBoundsParameters::Simplex:
+      return inferUpperBoundSimplex(t, param);
+    case InferBoundsParameters::LookupAndSimplexOnFailure:
+    case InferBoundsParameters::TryBoth:
+      {
+        InferBoundsResult lookup = inferUpperBoundLookup(t, param);
+        if(lookup.foundBound()){
+          if(param.getEffort() == InferBoundsParameters::LookupAndSimplexOnFailure ||
+             lookup.boundIsOptimal()){
+            return lookup;
+          }
+        }
+        InferBoundsResult simplex = inferUpperBoundSimplex(t, param);
+        if(lookup.foundBound() && simplex.foundBound()){
+          return (lookup.getValue() <= simplex.getValue()) ? lookup : simplex;
+        }else if(lookup.foundBound()){
+          return lookup;
+        }else{
+          return simplex;
+        }
+      }
+    default:
+      Unreachable();
+      return InferBoundsResult();
+    }
+  }
+}
 
-  if(d_qflraStatus != Result::SAT){
-    cout << "called while not known to be sat" << endl;
-    return make_pair(DeltaRational(), Node::null());
+InferBoundsResult TheoryArithPrivate::inferUpperBoundLookup(TNode t, const InferBoundsParameters& param){
+  Assert(param.findUpperBound());
+  Assert(Polynomial::isMember(t));
+  Polynomial p = Polynomial::parsePolynomial(t);
+  Assert(!p.containsConstant());
+
+  InferBoundsResult res;
+  Node signMod;
+  if(!p.leadingCoefficientIsPositive()){
+    Polynomial negP = -p;
+    signMod = negP.getNode();
+  }else {
+    signMod = signMod;
+  }
+  if(d_partialModel.hasArithVar(signMod)){
+    ArithVar v = d_partialModel.asArithVar(signMod);
+    if(d_partialModel.hasUpperBound(v)){
+      Constraint ub = d_partialModel.getUpperBoundConstraint(v);
+      res.setBound(ub->getValue(), ub->explainForConflict());
+      if(d_qflraStatus == Result::SAT &&
+         d_partialModel.getAssignment(v) == ub->getValue()){
+        res.setIsOptimal();
+        return res;
+      }
+    }
+  }
+
+  bool isOpt = true;
+  bool sumFailed = false;
+  DeltaRational sum;
+  NodeBuilder<> conjunctBuilder(kind::AND);
+  for(Polynomial::iterator i = p.begin(), end = p.end();
+      !sumFailed && i != end; ++i){
+    Monomial mono = *i;
+    int coeff_sgn = mono.getConstant().sgn();
+    const VarList& vl = mono.getVarList();
+    Node vl_node = vl.getNode();
+    if(d_partialModel.hasArithVar(vl_node)){
+      ArithVar v = d_partialModel.asArithVar(vl_node);
+      if((coeff_sgn <= 0) ?
+         d_partialModel.hasLowerBound(v) :
+         d_partialModel.hasUpperBound(v)){
+        Constraint c = (coeff_sgn <= 0) ?
+          d_partialModel.getLowerBoundConstraint(v) :
+          d_partialModel.getUpperBoundConstraint(v);
+
+        sum += c->getValue() * mono.getConstant().getValue();
+        c->explainForConflict(conjunctBuilder);
+
+        isOpt = isOpt &&
+          d_qflraStatus == Result::SAT &&
+          d_partialModel.getAssignment(v) == c->getValue();
+      }else{
+        sumFailed = true;
+      }
+    }else{
+      sumFailed = true;
+    }
+  }
+  if(!sumFailed){
+    Node exp = (conjunctBuilder.getNumChildren() == 0) ?
+      mkBoolNode(true) :
+      ((conjunctBuilder.getNumChildren() == 1) ?
+       (Node)conjunctBuilder[0] : (Node)conjunctBuilder);
+
+    if((!res.foundBound()) || (res.getValue() < sum)){
+      res.setBound(sum, exp);
+      if(isOpt){
+        res.setIsOptimal();
+      }
+    }
+  }
+  return res;
+}
+
+InferBoundsResult TheoryArithPrivate::inferUpperBoundSimplex(TNode t, const InferBoundsParameters& param){
+  Assert(param.findUpperBound());
+
+  if(!(d_qflraStatus == Result::SAT && d_errorSet.noSignals())){
+    InferBoundsResult inconsistent;
+    inconsistent.setInconsistent();
+    return inconsistent;
   }
   Assert(d_qflraStatus == Result::SAT);
   Assert(d_errorSet.noSignals());
@@ -3105,28 +3248,33 @@ std::pair<DeltaRational, Node> TheoryArithPrivate::inferBound(TNode term, bool l
   enum ResultState {Unset, Inferred, NoBound, ReachedThreshold, ExhaustedRounds};
   ResultState finalState = Unset;
 
+  int maxRounds = 0;
+  switch(param.getParamKind()){
+  case InferBoundsParameters::Unbounded:
+    maxRounds = -1;
+    break;
+  case InferBoundsParameters::NumVars:
+    maxRounds = d_partialModel.getNumberOfVariables() * param.getSimplexRoundParameter();
+    break;
+  case InferBoundsParameters::Direct:
+    maxRounds = param.getSimplexRoundParameter();
+    break;
+  default: maxRounds = 0; break;
+  }
+
   // setup term
-  Node normTerm = lb
-    ? NodeManager::currentNM()->mkNode(kind::UMINUS, term)
-    : (Node) term;
-  Node t = Rewriter::rewrite(normTerm);
   Polynomial p = Polynomial::parsePolynomial(t);
   vector<ArithVar> variables;
   vector<Rational> coefficients;
   asVectors(p, coefficients, variables);
 
-  DeltaRational normThresh =
-    (threshold == NULL) ? DeltaRational() :
-    (lb ? (- (*threshold)) : (*threshold));
-
-  Node skolem = mkRealSkolem("tmpVar");
+  Node skolem = mkRealSkolem("tmpVar$$");
   ArithVar optVar = requestArithVar(skolem, false);
   d_tableau.addRow(optVar, coefficients, variables);
   RowIndex ridx = d_tableau.basicToRowIndex(optVar);
 
   DeltaRational newAssignment = d_linEq.computeRowValue(optVar, false);
   d_partialModel.setAssignment(optVar, newAssignment);
-
   d_linEq.trackRowIndex(d_tableau.basicToRowIndex(optVar));
 
   // Setup simplex
@@ -3229,17 +3377,17 @@ std::pair<DeltaRational, Node> TheoryArithPrivate::inferBound(TNode term, bool l
       Assert(d_errorSet.noSignals());
     }
 
-    if(threshold != NULL){
-      if(d_partialModel.getAssignment(optVar) >= normThresh){
+    if(param.useThreshold()){
+      if(d_partialModel.getAssignment(optVar) >= threshold){
         finalState = ReachedThreshold;
         break;
       }
     }
   };
 
+  InferBoundsResult result(t, param.findUpperBound());
+
   // tear down term
-  DeltaRational retValue = d_partialModel.getAssignment(optVar);
-  Node exp;
   switch(finalState){
   case Inferred:
     {
@@ -3257,26 +3405,24 @@ std::pair<DeltaRational, Node> TheoryArithPrivate::inferBound(TNode term, bool l
         }
       }
       Assert(nb.getNumChildren() >= 1);
-      exp = (nb.getNumChildren() >= 2) ? (Node) nb : nb[0];
+      Node exp = (nb.getNumChildren() >= 2) ? (Node) nb : nb[0];
+      result.setBound(d_partialModel.getAssignment(optVar), exp);
+      result.setIsOptimal();
       break;
     }
   case NoBound:
-    retValue = DeltaRational(0);
-    exp = Node::null();
     break;
   case ReachedThreshold:
+    result.setReachedThreshold();
+    break;
   case ExhaustedRounds:
-    exp = term;
+    result.setBudgetExhausted();
     break;
   case Unset:
   default:
     Unreachable();
     break;
   };
-
-  if(lb){
-    retValue = -retValue;
-  }
 
   d_linEq.stopTrackingRowIndex(ridx);
   d_tableau.removeBasicRow(optVar);
@@ -3285,8 +3431,7 @@ std::pair<DeltaRational, Node> TheoryArithPrivate::inferBound(TNode term, bool l
   d_linEq.stopTrackingBoundCounts();
   d_partialModel.startQueueingBoundCounts();
 
-
-  return make_pair(retValue, exp);
+  return result;
 }
 
 }/* CVC4::theory::arith namespace */
