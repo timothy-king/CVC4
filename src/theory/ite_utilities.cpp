@@ -23,6 +23,8 @@
 #include "theory/rewriter.h"
 #include "theory/theory.h"
 
+#include "theory/arith/normal_form.h"
+
 using namespace std;
 namespace CVC4 {
 namespace theory {
@@ -34,6 +36,13 @@ inline static bool isTermITE(TNode e) {
 
 inline static bool triviallyContainsNoTermITEs(TNode e) {
   return e.isConst() || e.isVar();
+}
+
+inline static bool isArithTerm(TNode e) {
+  return e.getType().isReal();
+}
+inline static bool isIntegerTerm(TNode e) {
+  return e.getType().isInteger();
 }
 
 static bool isTheoryAtom(TNode a){
@@ -551,7 +560,10 @@ ITESimplifier::ITESimplifier(ContainsTermITEVistor* contains)
   : d_containsVisitor(contains)
   , d_termITEHeight()
   , d_constantLeaves()
-  , d_allocatedConstantLeaves()
+  , d_allocatedLeavesList()
+  , d_enumLeavesCache()
+  , d_liftPolynomialsCache()
+  , d_liftMultiplesCache()
   , d_citeEqConstApplications(0)
   , d_constantIteEqualsConstantCache()
   , d_replaceOverCache()
@@ -569,7 +581,7 @@ ITESimplifier::ITESimplifier(ContainsTermITEVistor* contains)
 ITESimplifier::~ITESimplifier() {
   clearSimpITECaches();
   Assert(d_constantLeaves.empty());
-  Assert(d_allocatedConstantLeaves.empty());
+  Assert(d_allocatedLeavesList.empty());
 }
 
 bool ITESimplifier::leavesAreConst(TNode e){
@@ -578,13 +590,16 @@ bool ITESimplifier::leavesAreConst(TNode e){
 
 void ITESimplifier::clearSimpITECaches(){
   Chat() << "clear ite caches " << endl;
-  for(size_t i = 0, N = d_allocatedConstantLeaves.size(); i < N; ++i){
-    NodeVec* curr = d_allocatedConstantLeaves[i];
+  for(size_t i = 0, N = d_allocatedLeavesList.size(); i < N; ++i){
+    NodeVec* curr = d_allocatedLeavesList[i];
     delete curr;
   }
   d_citeEqConstApplications = 0;
   d_constantLeaves.clear();
-  d_allocatedConstantLeaves.clear();
+  d_allocatedLeavesList.clear();
+  d_enumLeavesCache.clear();
+  d_liftPolynomialsCache.clear();
+  d_liftMultiplesCache.clear();
   d_termITEHeight.clear();
   d_constantIteEqualsConstantCache.clear();
   d_replaceOverCache.clear();
@@ -646,8 +661,8 @@ bool ITESimplifier::isConstantIte(TNode e){
 
 ITESimplifier::NodeVec* ITESimplifier::computeConstantLeaves(TNode ite){
   Assert(ite::isTermITE(ite));
-  ConstantLeavesMap::const_iterator it = d_constantLeaves.find(ite);
-  ConstantLeavesMap::const_iterator end = d_constantLeaves.end();
+  LeavesMap::const_iterator it = d_constantLeaves.find(ite);
+  LeavesMap::const_iterator end = d_constantLeaves.end();
   if(it != end){
     return (*it).second;
   }
@@ -659,6 +674,7 @@ ITESimplifier::NodeVec* ITESimplifier::computeConstantLeaves(TNode ite){
     NodeVec* pair = new NodeVec(2);
     (*pair)[0] = std::min(thenB, elseB);
     (*pair)[1] = std::max(thenB, elseB);
+    if(thenB == elseB){ pair->pop_back(); }
     d_constantLeaves[ite] = pair;
     return pair;
   }
@@ -901,6 +917,43 @@ Node ITESimplifier::attemptLiftEquality(TNode atom){
   return Node::null();
 }
 
+ITESimplifier::NodeVec* ITESimplifier::enumerateLeaves(Node a){
+  if(ite::isTermITE(a)){
+    if(d_enumLeavesCache.find(a) != d_enumLeavesCache.end()){
+      return d_enumLeavesCache[a];
+    }
+    Node thenB = a[1];
+    Node elseB = a[2];
+    NodeVec* inThen = enumerateLeaves(thenB);
+    NodeVec* inElse = enumerateLeaves(elseB);
+    NodeVec* inBoth = new NodeVec();
+    std::back_insert_iterator< NodeVec > back_it (*inBoth);
+    if(inThen == NULL && inElse == NULL){
+      back_it = thenB;
+      if(thenB != elseB){
+        back_it = elseB;
+        std::sort(inBoth->begin(), inBoth->end());
+      }
+    }else if(inThen == NULL || inElse == NULL){
+      NodeVec* nonemp = (inThen == NULL) ? inElse : inThen;
+      Node emp = (inThen == NULL) ? thenB : elseB;
+      NodeVec tmp;
+      tmp.push_back(emp);
+      std::set_union(nonemp->begin(), nonemp->end(),
+                     tmp.begin(), tmp.end(), back_it);
+    }else{
+      std::set_union(inThen->begin(), inThen->end(),
+                     inElse->begin(), inElse->end(), back_it);
+    }
+    Assert(inBoth != NULL);
+    d_enumLeavesCache[a] = inBoth;
+    d_allocatedLeavesList.push_back(inBoth);
+    return inBoth;
+  }else{
+    return NULL;
+  }
+}
+
 // Interesting classes of atoms:
 // 2. Contains constants and 1 constant term ite
 // 3. Contains 2 constant term ites
@@ -921,8 +974,158 @@ Node ITESimplifier::transformAtom(TNode atom){
     // if(!ale.isNull()){
     //   //return ale;
     // }
-    return Node::null();
+    Node res = liftPolynomials(atom);
+    res = liftMultiples(res);
+    if(res == atom){
+      return Node::null();
+    }else{
+      return res;
+    }
   }
+}
+
+
+Node ITESimplifier::applyAcrossIteTermTree(Kind k, TNode t, TNode p){
+  if(ite::isTermITE(t)){
+    Node thenB = applyAcrossIteTermTree(k, t[1], p);
+    Node elseB = applyAcrossIteTermTree(k, t[2], p);
+    return (t[0]).iteNode(thenB, elseB);
+  }else{
+    NodeManager* nm = NodeManager::currentNM();
+    Node apply = nm->mkNode(k, t, p);
+    Node nf = Rewriter::rewrite(apply);
+    return nf;
+  }
+}
+
+Node ITESimplifier::liftMultiples(TNode t){
+  using namespace arith;
+
+  // did not apply
+  if(t.getNumChildren() == 0){
+    return t;
+  }else if(!containsTermITE(t)){
+    return t;
+  }
+
+  if(d_liftMultiplesCache.find(t) != d_liftMultiplesCache.end()){
+    return d_liftMultiplesCache[t];
+  }
+
+  if(ite::isTermITE(t)){
+    std::cout << "lift multiples " << t.getType() << std::endl;
+  }
+
+  if(ite::isTermITE(t) && ite::isIntegerTerm(t)){
+    NodeVec* leaves = enumerateLeaves(t);
+    std::cout << "lift multiples " << t << std::endl;
+
+    if(leaves != NULL && leaves->size() >= 2){
+      NodeVec::const_iterator it = leaves->begin(), end = leaves->end();
+      Node first = Rewriter::rewrite(*it);
+      ++it;
+      Assert(Polynomial::isMember(first));
+      Polynomial p_first = Polynomial::parsePolynomial(first);
+      Integer g = p_first.numeratorGCD();
+      for(; !g.isOne() && it != end; ++it){
+        Node curr = Rewriter::rewrite(*it);
+        Assert(Polynomial::isMember(curr));
+        Polynomial q = Polynomial::parsePolynomial(curr);
+        Integer f = q.numeratorGCD();
+        g = g.gcd(f);
+      }
+      if(!g.isOne() && !g.isZero()){
+        Assert(g.sgn() > 0);
+        NodeManager* nm = NodeManager::currentNM();
+        Node gNode = nm->mkConst(Rational(g, 1));
+        Node recipG = nm->mkConst(Rational(1, g));
+        Node sft = applyAcrossIteTermTree(kind::MULT, t, recipG);
+        Node mult = nm->mkNode(kind::MULT, gNode, sft);
+        Node rewritten = Rewriter::rewrite(mult);
+        std::cout << " lm " << rewritten << std::endl;
+        return liftMultiples(rewritten);
+      }
+    }
+  }
+  Assert(t.getNumChildren() > 0);
+  NodeBuilder<> builder(t.getKind());
+  if (t.getMetaKind() == kind::metakind::PARAMETERIZED) {
+    builder << t.getOperator();
+  }
+  for (unsigned i = 0; i < t.getNumChildren(); ++ i) {
+    Node newChild = liftMultiples(t[i]);
+    builder << newChild;
+  }
+  Node res = builder;
+  d_liftMultiplesCache[t] = res;
+  return res;
+}
+
+Node ITESimplifier::liftPolynomials(TNode t){
+  using namespace arith;
+
+  // did not apply
+  if(t.getNumChildren() == 0){
+    return t;
+  }else if(!containsTermITE(t)){
+    return t;
+  }
+
+  if(d_liftPolynomialsCache.find(t) != d_liftPolynomialsCache.end()){
+    return d_liftPolynomialsCache[t];
+  }
+
+  if(ite::isTermITE(t) && ite::isArithTerm(t)){
+    NodeVec* leaves = enumerateLeaves(t);
+
+    std::cout << "enum " << t << std::endl;
+
+    if(leaves->size() >= 2){
+      NodeVec::const_iterator it = leaves->begin(), end = leaves->end();
+      Node first = Rewriter::rewrite(*it);
+      ++it;
+      Assert(Polynomial::isMember(first));
+      Polynomial p_first = Polynomial::parsePolynomial(first);
+      if(!p_first.isConstant()){
+        std::cout << " first " << first << std::endl;
+        Polynomial justp = p_first.containsConstant() ?
+          p_first.getTail() : p_first ;
+        bool failure = false;
+        for(; !failure && it != end; ++it){
+          Node curr = Rewriter::rewrite(*it);
+          Assert(Polynomial::isMember(curr));
+          Polynomial q = Polynomial::parsePolynomial(curr);
+          Polynomial diff = q - p_first;
+          std::cout << " q " << q.getNode()
+                    << " diff " << diff.getNode() << std::endl;
+          if(!diff.isConstant()){
+            failure = true;
+          }
+        }
+        if(!failure){
+          Node p = justp.getNode();
+          Node sft = applyAcrossIteTermTree(kind::MINUS, t, p);
+          NodeManager* nm = NodeManager::currentNM();
+          Node added = nm->mkNode(kind::PLUS, p, sft);
+          Node rewritten = Rewriter::rewrite(added);
+          std::cout << " rewritten " << rewritten << std::endl;
+          return liftPolynomials(rewritten);
+        }
+      }
+    }
+  }
+  Assert(t.getNumChildren() > 0);
+  NodeBuilder<> builder(t.getKind());
+  if (t.getMetaKind() == kind::metakind::PARAMETERIZED) {
+    builder << t.getOperator();
+  }
+  for (unsigned i = 0; i < t.getNumChildren(); ++ i) {
+    Node newChild = liftPolynomials(t[i]);
+    builder << newChild;
+  }
+  Node res = builder;
+  d_liftPolynomialsCache[t] = res;
+  return res;
 }
 
 static unsigned numBranches = 0;

@@ -316,7 +316,7 @@ Integer Polynomial::numeratorGCD() const {
 
   Integer d = (*i).getConstant().getValue().getNumerator().abs();
   ++i;
-  for(; i!=e; ++i){
+  for(; !d.isOne() && i!=e; ++i){
     Integer c = (*i).getConstant().getValue().getNumerator();
     d = d.gcd(c);
   }

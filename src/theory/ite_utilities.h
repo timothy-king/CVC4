@@ -205,8 +205,8 @@ private:
   //     constant
   // or  termITE(cnd, ConstantIte, ConstantIte)
   typedef std::vector<Node> NodeVec;
-  typedef std::hash_map<Node, NodeVec*, NodeHashFunction > ConstantLeavesMap;
-  ConstantLeavesMap d_constantLeaves;
+  typedef std::hash_map<Node, NodeVec*, NodeHashFunction > LeavesMap;
+  LeavesMap d_constantLeaves;
 
   // d_constantLeaves satisfies the following invariants:
   // not containsTermITE(x) then !isKey(x)
@@ -221,8 +221,22 @@ private:
   NodeVec* computeConstantLeaves(TNode ite);
 
   // Lists all of the vectors in d_constantLeaves for fast deletion.
-  std::vector<NodeVec*> d_allocatedConstantLeaves;
+  std::vector<NodeVec*> d_allocatedLeavesList;
 
+  // enumerateLeaves(a : not an term ite) = {a}
+  // enumerateLeaves(a : term ite(c, t, e) ) =
+  //   enumerateLeaves(t) \union enumerateLeaves(e)
+  // if a is not a term ite, returns node null
+  NodeVec* enumerateLeaves(Node a);
+  LeavesMap d_enumLeavesCache;
+
+  typedef std::hash_map<Node, Node, NodeHashFunction> NodeMap;
+  Node liftPolynomials(TNode t);
+  Node applyAcrossIteTermTree(Kind k, TNode t, TNode p);
+  NodeMap d_liftPolynomialsCache;
+
+  Node liftMultiples(TNode t);
+  NodeMap d_liftMultiplesCache;
 
   /* transforms */
   Node transformAtom(TNode atom);
@@ -264,7 +278,6 @@ private:
   std::hash_map<TypeNode, Node, TypeNode::HashFunction> d_simpVars;
   Node getSimpVar(TypeNode t);
 
-  typedef std::hash_map<Node, Node, NodeHashFunction> NodeMap;
   NodeMap d_simpContextCache;
   Node createSimpContext(TNode c, Node& iteNode, Node& simpVar);
 
