@@ -1012,13 +1012,13 @@ Node ITESimplifier::liftMultiples(TNode t){
     return d_liftMultiplesCache[t];
   }
 
-  if(ite::isTermITE(t)){
-    std::cout << "lift multiples " << t.getType() << std::endl;
+  if(Debug.isOn("ite::liftMultiples") && ite::isTermITE(t)){
+    Debug("ite::liftMultiples") << "lift multiples "<< t.getType() << std::endl;
   }
 
   if(ite::isTermITE(t) && ite::isIntegerTerm(t)){
     NodeVec* leaves = enumerateLeaves(t);
-    std::cout << "lift multiples " << t << std::endl;
+    Debug("ite::liftMultiples") << "lift multiples " << t << std::endl;
 
     if(leaves != NULL && leaves->size() >= 2){
       NodeVec::const_iterator it = leaves->begin(), end = leaves->end();
@@ -1042,7 +1042,7 @@ Node ITESimplifier::liftMultiples(TNode t){
         Node sft = applyAcrossIteTermTree(kind::MULT, t, recipG);
         Node mult = nm->mkNode(kind::MULT, gNode, sft);
         Node rewritten = Rewriter::rewrite(mult);
-        std::cout << " lm " << rewritten << std::endl;
+        Debug("ite::liftMultiples") << " lm " << rewritten << std::endl;
         return liftMultiples(rewritten);
       }
     }
@@ -1078,7 +1078,7 @@ Node ITESimplifier::liftPolynomials(TNode t){
   if(ite::isTermITE(t) && ite::isArithTerm(t)){
     NodeVec* leaves = enumerateLeaves(t);
 
-    std::cout << "enum " << t << std::endl;
+    Debug("ite::liftPolynomials") << "enum " << t << std::endl;
 
     if(leaves->size() >= 2){
       NodeVec::const_iterator it = leaves->begin(), end = leaves->end();
@@ -1087,7 +1087,7 @@ Node ITESimplifier::liftPolynomials(TNode t){
       Assert(Polynomial::isMember(first));
       Polynomial p_first = Polynomial::parsePolynomial(first);
       if(!p_first.isConstant()){
-        std::cout << " first " << first << std::endl;
+        Debug("ite::liftPolynomials") << " first " << first << std::endl;
         Polynomial justp = p_first.containsConstant() ?
           p_first.getTail() : p_first ;
         bool failure = false;
@@ -1096,8 +1096,8 @@ Node ITESimplifier::liftPolynomials(TNode t){
           Assert(Polynomial::isMember(curr));
           Polynomial q = Polynomial::parsePolynomial(curr);
           Polynomial diff = q - p_first;
-          std::cout << " q " << q.getNode()
-                    << " diff " << diff.getNode() << std::endl;
+          Debug("ite::liftPolynomials") << " q " << q.getNode();
+          Debug("ite::liftPolynomials") << " diff " << diff.getNode() << std::endl;
           if(!diff.isConstant()){
             failure = true;
           }
@@ -1108,7 +1108,7 @@ Node ITESimplifier::liftPolynomials(TNode t){
           NodeManager* nm = NodeManager::currentNM();
           Node added = nm->mkNode(kind::PLUS, p, sft);
           Node rewritten = Rewriter::rewrite(added);
-          std::cout << " rewritten " << rewritten << std::endl;
+          Debug("ite::liftPolynomials") << " rewritten " << rewritten << std::endl;
           return liftPolynomials(rewritten);
         }
       }
