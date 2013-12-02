@@ -47,8 +47,6 @@
 #include "theory/bv/bv_to_bool.h"
 #include "theory/atom_requests.h"
 
-#include "theory/arith/delta_rational.h"
-
 namespace CVC4 {
 
 /**
@@ -86,6 +84,9 @@ namespace theory {
 
   namespace eq {
     class EqualityEngine;
+  }
+  namespace arith {
+    class TheoryArith;
   }
 }/* CVC4::theory namespace */
 
@@ -759,8 +760,9 @@ public:
    */
   Node getModelValue(TNode var);
 
-#warning "This is a hack for Andy. Do not let this into trunk!"
-  std::pair<DeltaRational, Node> inferBound(TNode term, bool lb, int maxRounds, const DeltaRational* threshold);
+
+  /** returns a pointer to the theory of arithmetic. */
+  theory::arith::TheoryArith* getTheoryArith();
 
 private:
 

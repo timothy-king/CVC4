@@ -22,6 +22,7 @@
 
 #include <string>
 #include <iostream>
+#include <limits>
 
 #include "util/gmp_util.h"
 #include "util/exception.h"

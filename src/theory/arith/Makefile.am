@@ -31,6 +31,8 @@ libarith_la_SOURCES = \
 	linear_equality.cpp \
 	simplex_update.h \
 	simplex_update.cpp \
+	infer_bounds.h \
+	infer_bounds.cpp \
 	callbacks.h \
 	callbacks.cpp \
 	matrix.h \

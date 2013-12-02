@@ -23,12 +23,16 @@
 
 #include "expr/node.h"
 
-#warning "HACK. This is a hack for Andy. Do not let this into trunk!"
-#include "theory/arith/delta_rational.h"
-
 namespace CVC4 {
 
+// forward declarations
 class TheoryEngine;
+
+namespace theory {
+namespace arith {
+class TheoryArith;
+}/* CVC4::theory::arith namespace */
+}/* CVC4::theory namespace */
 
 namespace theory {
 
@@ -128,9 +132,8 @@ public:
    */
   unsigned getAssertionLevel() const;
 
-#warning "This is a hack for Andy. Do not let this into trunk!"
-  std::pair<DeltaRational, Node> inferBound(TNode term, bool lb, int maxRounds, const DeltaRational* threshold);
-
+  /** Returns a pointer to the theory of arithmetic. */
+  arith::TheoryArith* getTheoryArith();
 };/* class Valuation */
 
 }/* CVC4::theory namespace */

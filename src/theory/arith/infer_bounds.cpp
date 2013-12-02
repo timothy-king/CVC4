@@ -1,3 +1,6 @@
+#include "theory/arith/infer_bounds.h"
+#include "theory/rewriter.h"
+
 namespace CVC4 {
 namespace theory {
 namespace arith {
@@ -6,79 +9,91 @@ InferBoundsParameters::InferBoundsParameters()
   : d_effort(LookupAndSimplexOnFailure)
   , d_paramKind(NumVars)
   , d_parameter(1)
-  , d_lowerBound(true)
+  , d_upperBound(true)
   , d_threshold()
 {}
 
-static InferBoundsParameters InferBoundsParameters::mkLookup() {
-  return InferBoundsParameters(Lookup, Direct, 0);
+InferBoundsParameters::~InferBoundsParameters(){}
+
+InferBoundsParameters InferBoundsParameters::mkLookup() {
+  return InferBoundsParameters(Lookup, Direct, 0, true);
 }
-static InferBoundsParameters InferBoundsParameters::mkUnbounded(){
-  return InferBoundsParameters(TryBoth, Unbounded, 0);
+InferBoundsParameters InferBoundsParameters::mkUnbounded(){
+  return InferBoundsParameters(TryBoth, Unbounded, 0, true);
 }
-static InferBoundsParameters InferBoundsParameters::mkKRounds(int param){
-  return InferBoundsParameters(Simplex, Direct, param);
+InferBoundsParameters InferBoundsParameters::mkKRounds(int param){
+  return InferBoundsParameters(Simplex, Direct, param, true);
 }
 
-Effort InferBoundsParameters::getEffort() const {
+InferBoundsParameters::Effort InferBoundsParameters::getEffort() const {
   return d_effort;
 }
 
-SimplexRoundParamKind InferBoundsParameters::getParamKind() const {
+InferBoundsParameters::SimplexParamKind InferBoundsParameters::getParamKind() const {
   return d_paramKind;
 }
 
-int InferBoundsParameters::getParamKind() const {
+int InferBoundsParameters::getSimplexRoundParameter() const {
   return d_parameter;
 }
 
 bool InferBoundsParameters::findLowerBound() const {
-  return d_lowerBound;
+  return ! findUpperBound();
 }
 
 bool InferBoundsParameters::findUpperBound() const {
-  return !findLowerBound();
+  return d_upperBound;
 }
 
-void InferBoundsParameters::setThreshold(const DeltaRational* th) const{
-  if(d_threshold == NULL){
-    d_threshold = new DeltaRational();
-  }
-  if(th == NULL){
-    delete d_threshold;
-    d_threshold = NULL;
-  }else{
-    (*d_threshold) = *th;
-  }
+void InferBoundsParameters::setThreshold(const DeltaRational& th){
+  d_threshold = th;
+  d_useThreshold = true;
 }
 
-const DeltaRational* InferBoundsParameters::getThreshold() const{
+bool InferBoundsParameters::useThreshold() const{
+  return d_useThreshold;
+}
+
+const DeltaRational& InferBoundsParameters::getThreshold() const{
   return d_threshold;
 }
 
-InferBoundsParameters::InferBoundsParameters(Effort e, SimplexRoundParamKind k, int p, bool lb)
+InferBoundsParameters::InferBoundsParameters(Effort e, SimplexParamKind k, int p, bool ub)
   : d_effort(e)
   , d_paramKind(k)
   , d_parameter(p)
-  , d_lowerBound(lb)
-  , d_threshold(NULL)
+  , d_upperBound(ub)
+  , d_useThreshold(false)
+  , d_threshold()
 {}
 
 
-  
 InferBoundsResult::InferBoundsResult()
   : d_foundBound(false)
   , d_budgetExhausted(false)
   , d_boundIsProvenOpt(false)
   , d_inconsistentState(false)
+  , d_reachedThreshold(false)
   , d_value(false)
   , d_term(Node::null())
-  , d_lowerBound(true)
+  , d_upperBound(true)
   , d_explanation(Node::null())
 {}
 
-bool InferBoundsResult::foundABound() const {
-  return d_found;
+InferBoundsResult::InferBoundsResult(Node term, bool ub)
+  : d_foundBound(false)
+  , d_budgetExhausted(false)
+  , d_boundIsProvenOpt(false)
+  , d_inconsistentState(false)
+  , d_reachedThreshold(false)
+  , d_value(false)
+  , d_term(term)
+  , d_upperBound(ub)
+  , d_explanation(Node::null())
+{}
+
+bool InferBoundsResult::foundBound() const {
+  return d_foundBound;
 }
 bool InferBoundsResult::boundIsOptimal() const {
   return d_boundIsProvenOpt;
@@ -117,15 +132,15 @@ Node InferBoundsResult::getLiteral() const{
 
   Kind k;
   if(d_upperBound){
-    // q + c*delta <= x
-    Assert(getValue().infinitesimalSgn() >= 0);
+    // x <= q + c*delta
+    Assert(getValue().infinitesimalSgn() <= 0);
     k = boundIsRational() ? kind::LEQ : kind::LT;
   }else{
-    // q + c*delta >= x
-    Assert(getValue().infinitesimalSgn() <= 0);
+    // x >= q + c*delta
+    Assert(getValue().infinitesimalSgn() >= 0);
     k = boundIsRational() ? kind::GEQ : kind::GT;
   }
-  Node atom = nm->mkNode(k, qnode, getTerm());
+  Node atom = nm->mkNode(k, getTerm(), qnode);
   Node lit = Rewriter::rewrite(atom);
   return lit;
 }
@@ -142,13 +157,64 @@ void InferBoundsResult::setBound(const DeltaRational& dr, Node exp){
   d_explanation = exp;
 }
 
-bool InferBoundsResult::foundBound() const { return d_foundBound; }
-bool InferBoundsResult::boundIsOptimal() const { return d_boundIsProvenOpt; }
-bool InferBoundsResult::inconsistentState() const { return d_inconsistentState; }
+//bool InferBoundsResult::foundBound() const { return d_foundBound; }
+//bool InferBoundsResult::boundIsOptimal() const { return d_boundIsProvenOpt; }
+//bool InferBoundsResult::inconsistentState() const { return d_inconsistentState; }
+
   
 void InferBoundsResult::setBudgetExhausted() { d_budgetExhausted = true; }
 void InferBoundsResult::setReachedThreshold() { d_reachedThreshold = true; }
-void InferBoundsResult::setIsOpt() { d_boundIsProvenOpt = true; }
+void InferBoundsResult::setIsOptimal() { d_boundIsProvenOpt = true; }
+void InferBoundsResult::setInconsistent() { d_inconsistentState = true; }
+
+bool InferBoundsResult::thresholdWasReached() const{
+  return d_reachedThreshold;
+}
+bool InferBoundsResult::budgetIsExhausted() const{
+  return d_budgetExhausted;
+}
+
+std::ostream& operator<<(std::ostream& os, const InferBoundsResult& ibr){
+  os << "{InferBoundsResult " << std::endl;
+  os << "on " << ibr.getTerm() << ", ";
+  if(ibr.findUpperBound()){
+    os << "find upper bound, ";
+  }else{
+    os << "find lower bound, ";
+  }
+  if(ibr.foundBound()){
+    os << "found a bound: ";
+    if(ibr.boundIsInteger()){
+      os << ibr.valueAsInteger() << "(int), ";
+    }else if(ibr.boundIsRational()){
+      os << ibr.valueAsRational() << "(rat), ";
+    }else{
+      os << ibr.getValue() << "(extended), ";
+    }
+
+    os << "as term " << ibr.getLiteral() << ", ";
+    os << "explanation " << ibr.getExplanation() << ", ";
+  }else {
+    os << "did not find a bound, ";
+  }
+
+  if(ibr.boundIsOptimal()){
+    os << "(opt), ";
+  }
+
+  if(ibr.inconsistentState()){
+    os << "(inconsistent), ";
+  }
+  if(ibr.budgetIsExhausted()){
+    os << "(budget exhausted), ";
+  }
+  if(ibr.thresholdWasReached()){
+    os << "(reached threshold), ";
+  }
+  os << "}";
+  return os;
+}
+
 
 } /* namespace arith */
 } /* namespace theory */

@@ -17,6 +17,9 @@
 #include "theory/quantifiers/first_order_model.h"
 #include "theory/quantifiers/model_engine.h"
 
+
+#include "theory/arith/theory_arith.h"
+
 using namespace CVC4;
 using namespace std;
 using namespace CVC4::theory;
@@ -79,11 +82,18 @@ void BoundedIntegers::RangeModel::allocateRange() {
   int newBound = d_curr_max;
 
   Valuation& val = d_bi->getQuantifiersEngine()->getValuation();
-  std::pair<DeltaRational, Node> res = val.inferBound(d_range, true, -1, NULL);
-  if(!res.second.isNull() && res.second != d_range){
-    Integer ceil = (res.first).ceiling();
-    if(ceil.fitsSignedInt()){
-      int ceilAsInt = ceil.getSignedInt();
+  std::cout << "Result of inferBounds "  << std::endl;
+
+  arith::TheoryArith* th_arith = val.getTheoryArith();
+  arith::InferBoundsParameters ibp;
+  ibp.setFindLowerBound();
+  arith::InferBoundsResult ibr = th_arith->inferBound(d_range, ibp);
+  std::cout << "Result of inferBounds " << ibr << std::endl;
+  if(ibr.foundBound()){
+    Assert(ibr.boundIsInteger());
+    Integer lb = ibr.valueAsInteger();
+    if(lb.fitsSignedInt()){
+      int ceilAsInt = lb.getSignedInt();
       std::cout << "TO THE MAX "  << ceilAsInt << std::endl;
 
       if(ceilAsInt > d_curr_max){

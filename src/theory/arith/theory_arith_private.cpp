@@ -3116,10 +3116,14 @@ InferBoundsResult TheoryArithPrivate::inferBound(TNode term, const InferBoundsPa
   }else if(param.findLowerBound()){
     InferBoundsParameters find_ub = param;
     find_ub.setFindUpperBound();
-    find_ub.setThreshold(- param.getThreshold() );
+    if(param.useThreshold()){
+      find_ub.setThreshold(- param.getThreshold() );
+    }
     Polynomial negP = -p;
-    InferBoundsResult res = inferBound(t, find_ub);
+    InferBoundsResult res = inferBound(negP.getNode(), find_ub);
+    res.setFindLowerBound();
     if(res.foundBound()){
+      res.setTerm(p.getNode());
       res.setBound(-res.getValue(), res.getExplanation());
     }
     return res;
@@ -3378,7 +3382,7 @@ InferBoundsResult TheoryArithPrivate::inferUpperBoundSimplex(TNode t, const Infe
     }
 
     if(param.useThreshold()){
-      if(d_partialModel.getAssignment(optVar) >= threshold){
+      if(d_partialModel.getAssignment(optVar) >= param.getThreshold()){
         finalState = ReachedThreshold;
         break;
       }
