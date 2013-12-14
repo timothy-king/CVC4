@@ -747,7 +747,8 @@ void stopAtBingoOrPivotLimit(glp_tree *tree, void *info){
     break;
   default:
     glp_prob* prob = glp_ios_get_prob(tree);
-    int iterationcount = lpx_get_int_parm(prob, LPX_K_ITCNT);
+    //int iterationcount = lpx_get_int_parm(prob, LPX_K_ITCNT);
+    int iterationcount = glp_get_it_cnt(prob);
     if(iterationcount > pivotLimit){
       glp_ios_terminate(tree);
     }
