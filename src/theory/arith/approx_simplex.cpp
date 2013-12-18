@@ -739,18 +739,184 @@ ApproximateSimplex::ApproxResult ApproxGLPK::solveRelaxation(){
   }
 }
 
-void stopAtBingoOrPivotLimit(glp_tree *tree, void *info){
+struct GmiInfo {
+  double cut_rhs;
+  int cut_type;
+
+  int cut_len;
+  int* cut_ind;
+  double* cut_coeffs;
+
+  int tab_len;
+  int* tab_ind;
+  double* tab_coeffs;
+  int* tab_statuses;
+
+  GmiInfo()
+    : cut_ind(NULL)
+    , cut_coeffs(NULL)
+    , tab_ind(NULL)
+    , tab_coeffs(NULL)
+    , tab_statuses(NULL)
+  {
+    Assert(!initialized());
+  }
+
+  ~GmiInfo(){
+    if(initialized()){
+      clear();
+    }
+  }
+
+  bool initialized() const {
+    return cut_ind != NULL;
+  }
+
+  void init(int N){
+    if(initialized()){
+      clear();
+    }
+
+    cut_ind = new int[N+1];
+    cut_coeffs = new double[N+1];
+    tab_ind = new int[N+1];
+    tab_coeffs = new double[N+1];
+    tab_statuses = new int[N+1];
+  }
+
+  void clear() {
+    delete[] cut_ind;
+    delete[] cut_coeffs;
+    delete[] tab_ind;
+    delete[] tab_coeffs;
+    delete[] tab_statuses;
+  }
+
+  void print(ostream& out){
+    Assert(initialized());
+    out << cut_len << " " << cut_type << " " << cut_rhs << endl;
+    for(int i = 1; i <= cut_len; ++i){
+      out << "["<< cut_ind[i] <<", " << cut_coeffs[i]<<"]";
+    }
+    out << endl;
+  }
+};
+
+static GmiInfo* gmiCut(glp_tree *tree, int cut_ord){
+  cout << "gmiCut()" << endl;
+
+  int N;
+  int M;
+  int cut_klass;
+  int gmi_var;
+  int write_pos;
+  int read_pos;
+  int stat;
+  int ind;
+  int i;
+
+  GmiInfo* gmi;
+  glp_prob* lp;
+
+  gmi = new GmiInfo();
+  lp = glp_ios_get_prob(tree);
+
+  N = glp_get_num_cols(lp);
+  M = glp_get_num_rows(lp);
+
+  gmi->init(N);
+
+
+  // Get the cut
+  gmi->cut_len = glp_ios_get_cut(tree, cut_ord,
+                                 gmi->cut_ind, gmi->cut_coeffs,
+                                 &cut_klass, &(gmi->cut_type), &(gmi->cut_rhs));
+  Assert(cut_klass == GLP_RF_GMI);
+
+  // Get the tableau row
+  glp_ios_cut_get_aux(tree, cut_ord, &gmi_var, NULL, NULL, NULL);
+  gmi->tab_len = glp_eval_tab_row(lp, M+gmi_var, gmi->tab_ind, gmi->tab_coeffs);
+
+  cout << "gmi_var " << gmi_var << endl;
+
+  cout << "tab_pos " << gmi->tab_len << endl;
+  write_pos = 1;
+  for(read_pos = 1; read_pos <= gmi->tab_len; ++read_pos){
+    if (fabs(gmi->tab_coeffs[read_pos]) < 1e-10){
+    }else{
+      gmi->tab_coeffs[write_pos] = gmi->tab_coeffs[read_pos];
+      gmi->tab_ind[write_pos] = gmi->tab_ind[read_pos];
+      ++write_pos;
+    }
+  }
+  gmi->tab_len = write_pos-1;
+  cout << "write_pos " << write_pos << endl;
+  Assert(gmi->tab_len > 0);
+
+  for(i = 1; i <= gmi->tab_len; ++i){
+    ind = gmi->tab_ind[i];
+    cout << "ind " << i << " " << ind << endl;
+    stat = (ind <= M) ? glp_get_row_stat(lp, ind) : glp_get_col_stat(lp, ind-M);
+
+    switch (stat){
+    case GLP_NL:
+    case GLP_NU:
+    case GLP_NS:
+      gmi->tab_statuses[i] = stat;
+      break;
+    case GLP_NF:
+    default:
+      Unreachable();
+    }
+  }
+  gmi->print(cout);
+  return gmi;
+}
+
+static void stopAtBingoOrPivotLimit(glp_tree *tree, void *info){
   int pivotLimit = *((int*)info);
   switch(glp_ios_reason(tree)){
   case GLP_IBINGO:
     glp_ios_terminate(tree);
     break;
+  case GLP_ICUTADDED:
+    {
+      int cut_ord = glp_ios_pool_size(tree);
+      int glpk_node = glp_ios_curr_node(tree);
+      Assert(cut_ord > 0);
+      cout << "tree size " << cut_ord << endl;
+      cout << "curr node " << glpk_node << endl;
+      int klass;
+      glp_ios_get_cut(tree, cut_ord, NULL, NULL, &klass, NULL, NULL);
+
+      switch(klass){
+      case GLP_RF_GMI:
+        {
+          GmiInfo* gmi = gmiCut(tree, cut_ord);
+          delete gmi;
+        }
+        break;
+      case GLP_RF_MIR:
+        cout << "GLP_RF_MIR" << endl;
+        break;
+      case GLP_RF_COV:
+        cout << "GLP_RF_COV" << endl;
+        break;
+      case GLP_RF_CLQ:
+        cout << "GLP_RF_CLQ" << endl;
+        break;
+      default:
+        break;
+      }
+    }
+    break;
   default:
-    glp_prob* prob = glp_ios_get_prob(tree);
-    //int iterationcount = lpx_get_int_parm(prob, LPX_K_ITCNT);
-    int iterationcount = glp_get_it_cnt(prob);
-    if(iterationcount > pivotLimit){
-      glp_ios_terminate(tree);
+    {
+      glp_prob* prob = glp_ios_get_prob(tree);
+      int iterationcount = glp_get_it_cnt(prob);
+      if(iterationcount > pivotLimit){
+        glp_ios_terminate(tree);
+      }
     }
     break;
   }
