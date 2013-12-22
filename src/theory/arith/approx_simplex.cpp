@@ -802,6 +802,40 @@ struct GmiInfo {
   }
 };
 
+static void mirCut(glp_tree *tree, int cut_ord){
+  cout << "mirCut()" << endl;
+  glp_prob* lp;
+
+  int N;
+  int M;
+  int cut_klass;
+  int nrows;
+  int *rvars;
+  double *rcoeffs;
+
+  lp = glp_ios_get_prob(tree);
+
+  N = glp_get_num_cols(lp);
+  M = glp_get_num_rows(lp);
+
+  nrows = glp_ios_cut_get_aux_nrows(tree, cut_ord);
+  rvars = new int[1+nrows];
+  rcoeffs = new double[1+nrows];
+
+  glp_ios_cut_get_aux_rows(tree, cut_ord, rvars, rcoeffs);
+
+  static int mir_id = 0;
+  mir_id++;
+  cout << "mir_id: " << mir_id << endl;
+  for( int i = 1; i <= nrows; i++){
+    int row_id = rvars[i];
+    cout << " " << row_id << " " << rcoeffs[i] << endl;
+  }
+
+  delete[] rvars;
+  delete[] rcoeffs;
+}
+
 static GmiInfo* gmiCut(glp_tree *tree, int cut_ord){
   cout << "gmiCut()" << endl;
 
@@ -834,7 +868,12 @@ static GmiInfo* gmiCut(glp_tree *tree, int cut_ord){
   Assert(cut_klass == GLP_RF_GMI);
 
   // Get the tableau row
-  glp_ios_cut_get_aux(tree, cut_ord, &gmi_var, NULL, NULL, NULL);
+  int nrows = glp_ios_cut_get_aux_nrows(tree, cut_ord);
+  Assert(nrows == 1);
+  int rows[1+1];
+  glp_ios_cut_get_aux_rows(tree, cut_ord, rows, NULL);
+  gmi_var = rows[1];
+
   gmi->tab_len = glp_eval_tab_row(lp, M+gmi_var, gmi->tab_ind, gmi->tab_coeffs);
 
   cout << "gmi_var " << gmi_var << endl;
@@ -898,6 +937,7 @@ static void stopAtBingoOrPivotLimit(glp_tree *tree, void *info){
         break;
       case GLP_RF_MIR:
         cout << "GLP_RF_MIR" << endl;
+        mirCut(tree, cut_ord);
         break;
       case GLP_RF_COV:
         cout << "GLP_RF_COV" << endl;
