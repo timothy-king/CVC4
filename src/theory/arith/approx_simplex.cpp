@@ -12,6 +12,163 @@ namespace CVC4 {
 namespace theory {
 namespace arith {
 
+struct PrimitiveVec {
+  int len;
+  int* inds;
+  double* coeffs;
+  PrimitiveVec()
+    : len(0)
+    , inds(NULL)
+    , coeffs(NULL)
+  {}
+
+  ~PrimitiveVec(){
+    clear();
+  }
+
+  bool initialized() const { return inds != NULL; }
+  void clear() {
+    if(initialized()){
+      delete[] inds;
+      delete[] coeffs;
+      len = 0;
+      inds = NULL;
+      coeffs = NULL;      
+    }
+  }
+  void setup(int l){
+    Assert(!initialized());
+    len = l;
+    inds = new int[1+len];
+    coeffs = new double[1+len];
+  }
+  void print(std::ostream& out){
+    Assert(initialized());
+    out << len << " ";
+    for(int i = 1; i <= len; ++i){
+      out << "["<< inds[i] <<", " << coeffs[i]<<"]";
+    }
+    out << endl;
+  }
+};
+
+enum CutInfoKlass{ MirCutKlass, GmiCutKlass, UnknownKlass};
+
+class CutInfo {
+public:
+  CutInfoKlass klass;
+  int ord;    /* cut's orderinal in the current node pool */
+  int cut_type;   /* Lowerbound or upperbound. */
+  double cut_rhs; /* right hand side of the cut */
+  PrimitiveVec cut_vec; /* vector of the cut */
+  CutInfo(CutInfoKlass kl, int o)
+    : klass(kl)
+    , ord(o)
+    , cut_type(-1)
+    , cut_rhs()
+    , cut_vec()
+  {}
+
+  virtual ~CutInfo(){}
+    
+  void print(ostream& out){
+    out << ord << " " << cut_type << " " << cut_rhs << endl;
+    cut_vec.print(out);
+  }
+  void init_cut(int l){
+    cut_vec.setup(l);
+  }
+};
+
+class CutsOnNode{
+private:
+  int d_nid;
+  std::vector<CutInfo*> d_cuts;
+  std::set<int> d_selected;
+
+  void shrinkCuts(size_t n){
+    Assert(n <= d_cuts.size());
+    while(d_cuts.size() > n){
+      CutInfo* cut = d_cuts.back();
+      d_cuts.pop_back();
+      delete cut;
+    }
+    Assert(d_cuts.size() == n);
+  }
+
+public:
+  CutsOnNode()
+    : d_nid(-1)
+    , d_cuts()
+    , d_selected()
+  {}
+
+  CutsOnNode(int node)
+    : d_nid(node)
+    , d_cuts()
+    , d_selected()
+  {}
+
+  ~CutsOnNode(){
+    shrinkCuts(0);
+    Assert(d_cuts.empty());
+  }
+
+  int getNodeId() const { return d_nid; }
+
+  void addSelected(int ord){
+    d_selected.insert(ord);
+  }
+
+  void addSelected(int n, const int* ords){
+    for(int i = 1; i <= n; ++i){
+      addSelected(ords[i]);
+    }
+  }
+
+  void applySelected() {
+    size_t iter, newEnd;
+    for(iter = 0, newEnd = d_cuts.size(); iter < newEnd; ++iter){
+      CutInfo* curr = d_cuts[iter];
+      if(d_selected.find(curr->ord) == d_selected.end()){// drop
+        --newEnd;
+        std::swap(d_cuts[iter], d_cuts[newEnd]);
+      }
+    }
+    shrinkCuts(newEnd);
+  }
+
+  void addCut(CutInfo* ci){
+    Assert(ci != NULL);
+    d_cuts.push_back(ci);
+  }
+};
+
+class TreeLog {
+  std::map<int, CutsOnNode> d_toNode;
+
+public:
+  void addCut(int nid, CutInfo* ci){
+    if(d_toNode.find(nid) == d_toNode.end()){
+      d_toNode.insert(make_pair(nid, CutsOnNode(nid) ));
+    }
+    CutsOnNode& node = d_toNode[nid];
+    node.addCut(ci);
+  }
+
+  void addSelected(int nid, int ord){
+    Assert(d_toNode.find(nid) != d_toNode.end());
+    
+    CutsOnNode& node = d_toNode[nid];
+    node.addSelected(ord);
+  }
+};
+
+struct AuxInfo {
+  TreeLog tl;
+  int pivotLimit;
+};
+  
 ApproximateSimplex::ApproximateSimplex() :
   d_pivotLimit(std::numeric_limits<int>::max())
 {}
@@ -168,7 +325,7 @@ private:
   int guessDir(ArithVar v) const;
 };
 
-int ApproxGLPK::s_verbosity = 0;
+int ApproxGLPK::s_verbosity = 1;
 
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */
@@ -205,6 +362,16 @@ bool ApproximateSimplex::enabled() {
 namespace CVC4 {
 namespace theory {
 namespace arith {
+
+static CutInfoKlass fromGlpkClass(int klass){
+  switch(klass){
+  case GLP_RF_GMI: return GmiCutKlass;
+  case GLP_RF_MIR: return MirCutKlass;
+  case GLP_RF_COV:
+  case GLP_RF_CLQ:
+  default:         return UnknownKlass;
+  }
+}
 
 ApproxGLPK::ApproxGLPK(const ArithVariables& avars) :
   d_vars(avars), d_solvedRelaxation(false), d_solvedMIP(false)
@@ -739,101 +906,124 @@ ApproximateSimplex::ApproxResult ApproxGLPK::solveRelaxation(){
   }
 }
 
-struct GmiInfo {
-  double cut_rhs;
-  int cut_type;
 
-  int cut_len;
-  int* cut_ind;
-  double* cut_coeffs;
 
-  int tab_len;
-  int* tab_ind;
-  double* tab_coeffs;
-  int* tab_statuses;
 
-  GmiInfo()
-    : cut_ind(NULL)
-    , cut_coeffs(NULL)
-    , tab_ind(NULL)
-    , tab_coeffs(NULL)
-    , tab_statuses(NULL)
-  {
-    Assert(!initialized());
+struct MirInfo : public CutInfo {
+
+  /** a sum of input rows. */
+  PrimitiveVec row_sum;  
+
+  int n;
+  char* cset;
+  MirInfo(int ord)
+    : CutInfo(MirCutKlass, ord)
+    , n(0)
+    , cset(NULL)
+  {}
+
+  ~MirInfo(){
+    clearCSet();
   }
-
-  ~GmiInfo(){
-    if(initialized()){
-      clear();
+  void clearCSet(){
+    if(cset != NULL){
+      delete cset;
+      n = 0;
+      cset = NULL;
     }
   }
-
-  bool initialized() const {
-    return cut_ind != NULL;
-  }
-
-  void init(int N){
-    if(initialized()){
-      clear();
-    }
-
-    cut_ind = new int[N+1];
-    cut_coeffs = new double[N+1];
-    tab_ind = new int[N+1];
-    tab_coeffs = new double[N+1];
-    tab_statuses = new int[N+1];
-  }
-
-  void clear() {
-    delete[] cut_ind;
-    delete[] cut_coeffs;
-    delete[] tab_ind;
-    delete[] tab_coeffs;
-    delete[] tab_statuses;
-  }
-
-  void print(ostream& out){
-    Assert(initialized());
-    out << cut_len << " " << cut_type << " " << cut_rhs << endl;
-    for(int i = 1; i <= cut_len; ++i){
-      out << "["<< cut_ind[i] <<", " << cut_coeffs[i]<<"]";
-    }
-    out << endl;
+  void initCSet(int nvars){
+    clearCSet();
+    n = nvars;
+    cset = new char[1+nvars];
   }
 };
 
-static void mirCut(glp_tree *tree, int cut_ord){
+struct GmiInfo : public CutInfo {
+
+  PrimitiveVec tab_row;
+  int* tab_statuses;
+  /* has the length tab_row.length */
+
+  GmiInfo(int ord)
+    : CutInfo(GmiCutKlass, ord)
+    , tab_row()
+    , tab_statuses(NULL)
+  {
+    Assert(!initialized_tab());
+  }
+
+  ~GmiInfo(){
+    if(initialized_tab()){
+      clear_tab();
+    }
+  }
+
+  bool initialized_tab() const {
+    return tab_statuses != NULL;
+  }
+
+  void init_tab(int N){
+    if(initialized_tab()){
+      clear_tab();
+    }
+    tab_row.setup(N);
+    tab_statuses = new int[1+N];
+  }
+
+  void clear_tab() {
+    delete[] tab_statuses;
+    tab_statuses = NULL;
+    tab_row.clear();
+  }
+};
+
+static void loadCut(glp_tree *tree, CutInfo* cut){
+  int ord, cut_len, cut_klass;
+  int* cut_inds;
+  double* cut_coeffs;
+  int* cut_type;
+  double* cut_rhs;
+
+  ord = cut->ord;
+
+  // Get the cut
+  cut_len = glp_ios_get_cut(tree, ord, NULL, NULL, &cut_klass, NULL, NULL);
+  cut->init_cut(cut_len);
+  Assert(fromGlpkClass(cut_klass) == cut->klass);
+
+  PrimitiveVec& cut_vec = cut->cut_vec;
+  cut_inds = cut_vec.inds;
+  cut_coeffs = cut_vec.coeffs;
+  cut_type = &(cut->cut_type);
+  cut_rhs = &(cut->cut_rhs);
+
+  cut_vec.len = glp_ios_get_cut(tree, ord, cut_inds, cut_coeffs, &cut_klass, cut_type, cut_rhs);
+  Assert(fromGlpkClass(cut_klass) == cut->klass);
+  Assert(cut_vec.len == cut_len);
+}
+
+static MirInfo* mirCut(glp_tree *tree, int cut_ord){
   cout << "mirCut()" << endl;
-  glp_prob* lp;
 
-  int N;
-  int M;
-  int cut_klass;
+  MirInfo* mir;
   int nrows;
-  int *rvars;
-  double *rcoeffs;
 
-  lp = glp_ios_get_prob(tree);
-
-  N = glp_get_num_cols(lp);
-  M = glp_get_num_rows(lp);
+  mir = new MirInfo(cut_ord);
+  loadCut(tree, mir);
 
   nrows = glp_ios_cut_get_aux_nrows(tree, cut_ord);
-  rvars = new int[1+nrows];
-  rcoeffs = new double[1+nrows];
 
-  glp_ios_cut_get_aux_rows(tree, cut_ord, rvars, rcoeffs);
+  PrimitiveVec& row_sum = mir->row_sum;
+  row_sum.setup(nrows);
+  glp_ios_cut_get_aux_rows(tree, cut_ord, row_sum.inds, row_sum.coeffs);
 
   static int mir_id = 0;
   mir_id++;
   cout << "mir_id: " << mir_id << endl;
-  for( int i = 1; i <= nrows; i++){
-    int row_id = rvars[i];
-    cout << " " << row_id << " " << rcoeffs[i] << endl;
-  }
+  row_sum.print(cout);
 
-  delete[] rvars;
-  delete[] rcoeffs;
+  return mir;
 }
 
 static GmiInfo* gmiCut(glp_tree *tree, int cut_ord){
@@ -841,7 +1031,6 @@ static GmiInfo* gmiCut(glp_tree *tree, int cut_ord){
 
   int N;
   int M;
-  int cut_klass;
   int gmi_var;
   int write_pos;
   int read_pos;
@@ -852,48 +1041,45 @@ static GmiInfo* gmiCut(glp_tree *tree, int cut_ord){
   GmiInfo* gmi;
   glp_prob* lp;
 
-  gmi = new GmiInfo();
+  gmi = new GmiInfo(cut_ord);
+  loadCut(tree, gmi);
+
   lp = glp_ios_get_prob(tree);
 
   N = glp_get_num_cols(lp);
   M = glp_get_num_rows(lp);
 
-  gmi->init(N);
-
-
-  // Get the cut
-  gmi->cut_len = glp_ios_get_cut(tree, cut_ord,
-                                 gmi->cut_ind, gmi->cut_coeffs,
-                                 &cut_klass, &(gmi->cut_type), &(gmi->cut_rhs));
-  Assert(cut_klass == GLP_RF_GMI);
 
   // Get the tableau row
-  int nrows = glp_ios_cut_get_aux_nrows(tree, cut_ord);
+  int nrows CVC4_UNUSED = glp_ios_cut_get_aux_nrows(tree, gmi->ord);
   Assert(nrows == 1);
   int rows[1+1];
-  glp_ios_cut_get_aux_rows(tree, cut_ord, rows, NULL);
+  glp_ios_cut_get_aux_rows(tree, gmi->ord, rows, NULL);
   gmi_var = rows[1];
 
-  gmi->tab_len = glp_eval_tab_row(lp, M+gmi_var, gmi->tab_ind, gmi->tab_coeffs);
+  gmi->init_tab(N);
+  PrimitiveVec& tab_row = gmi->tab_row;
+  cout << "Is N sufficient here?" << endl;
+  tab_row.len = glp_eval_tab_row(lp, M+gmi_var, tab_row.inds, tab_row.coeffs);
 
   cout << "gmi_var " << gmi_var << endl;
 
-  cout << "tab_pos " << gmi->tab_len << endl;
+  cout << "tab_pos " << tab_row.len << endl;
   write_pos = 1;
-  for(read_pos = 1; read_pos <= gmi->tab_len; ++read_pos){
-    if (fabs(gmi->tab_coeffs[read_pos]) < 1e-10){
+  for(read_pos = 1; read_pos <= tab_row.len; ++read_pos){
+    if (fabs(tab_row.coeffs[read_pos]) < 1e-10){
     }else{
-      gmi->tab_coeffs[write_pos] = gmi->tab_coeffs[read_pos];
-      gmi->tab_ind[write_pos] = gmi->tab_ind[read_pos];
+      tab_row.coeffs[write_pos] = tab_row.coeffs[read_pos];
+      tab_row.inds[write_pos] = tab_row.inds[read_pos];
       ++write_pos;
     }
   }
-  gmi->tab_len = write_pos-1;
+  tab_row.len = write_pos-1;
   cout << "write_pos " << write_pos << endl;
-  Assert(gmi->tab_len > 0);
+  Assert(tab_row.len > 0);
 
-  for(i = 1; i <= gmi->tab_len; ++i){
-    ind = gmi->tab_ind[i];
+  for(i = 1; i <= tab_row.len; ++i){
+    ind = tab_row.inds[i];
     cout << "ind " << i << " " << ind << endl;
     stat = (ind <= M) ? glp_get_row_stat(lp, ind) : glp_get_col_stat(lp, ind-M);
 
@@ -913,7 +1099,10 @@ static GmiInfo* gmiCut(glp_tree *tree, int cut_ord){
 }
 
 static void stopAtBingoOrPivotLimit(glp_tree *tree, void *info){
-  int pivotLimit = *((int*)info);
+  AuxInfo* aux = (AuxInfo*)(info);
+  int pivotLimit = aux->pivotLimit;
+  TreeLog& tl = aux->tl;
+
   switch(glp_ios_reason(tree)){
   case GLP_IBINGO:
     glp_ios_terminate(tree);
@@ -932,12 +1121,14 @@ static void stopAtBingoOrPivotLimit(glp_tree *tree, void *info){
       case GLP_RF_GMI:
         {
           GmiInfo* gmi = gmiCut(tree, cut_ord);
-          delete gmi;
+          tl.addCut(glpk_node, gmi);
         }
         break;
       case GLP_RF_MIR:
-        cout << "GLP_RF_MIR" << endl;
-        mirCut(tree, cut_ord);
+        {
+          MirInfo* mir = mirCut(tree, cut_ord);
+          tl.addCut(glpk_node, mir);
+        }
         break;
       case GLP_RF_COV:
         cout << "GLP_RF_COV" << endl;
@@ -967,6 +1158,9 @@ ApproximateSimplex::ApproxResult ApproxGLPK::solveMIP(){
   // Explicitly disable presolving
   // We need the basis thus the presolver must be off!
   // This is default, but this is just being cautious.
+  AuxInfo aux;
+  aux.pivotLimit = d_pivotLimit;
+
   glp_iocp parm;
   glp_init_iocp(&parm);
   parm.presolve = GLP_OFF;
@@ -976,7 +1170,7 @@ ApproximateSimplex::ApproxResult ApproxGLPK::solveMIP(){
   parm.mir_cuts = GLP_ON;
   parm.cov_cuts = GLP_ON;
   parm.cb_func = stopAtBingoOrPivotLimit;
-  parm.cb_info = &d_pivotLimit;
+  parm.cb_info = &aux;
   parm.msg_lev = GLP_MSG_OFF;
   if(s_verbosity >= 1){
     parm.msg_lev = GLP_MSG_ALL;
