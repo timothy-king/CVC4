@@ -5,6 +5,7 @@
 #include "theory/arith/constraint.h"
 #include <math.h>
 #include <cmath>
+#include <map>
 
 using namespace std;
 
@@ -33,7 +34,7 @@ struct PrimitiveVec {
       delete[] coeffs;
       len = 0;
       inds = NULL;
-      coeffs = NULL;      
+      coeffs = NULL;
     }
   }
   void setup(int l){
@@ -61,16 +62,20 @@ public:
   int cut_type;   /* Lowerbound or upperbound. */
   double cut_rhs; /* right hand side of the cut */
   PrimitiveVec cut_vec; /* vector of the cut */
+
+  int selected;
+
   CutInfo(CutInfoKlass kl, int o)
     : klass(kl)
     , ord(o)
     , cut_type(-1)
     , cut_rhs()
     , cut_vec()
+    , selected(-1)
   {}
 
   virtual ~CutInfo(){}
-    
+
   void print(ostream& out){
     out << ord << " " << cut_type << " " << cut_rhs << endl;
     cut_vec.print(out);
@@ -84,7 +89,7 @@ class CutsOnNode{
 private:
   int d_nid;
   std::vector<CutInfo*> d_cuts;
-  std::set<int> d_selected;
+  std::map<int, int> d_selected;
 
   void shrinkCuts(size_t n){
     Assert(n <= d_cuts.size());
@@ -116,23 +121,21 @@ public:
 
   int getNodeId() const { return d_nid; }
 
-  void addSelected(int ord){
-    d_selected.insert(ord);
-  }
-
-  void addSelected(int n, const int* ords){
-    for(int i = 1; i <= n; ++i){
-      addSelected(ords[i]);
-    }
+  void addSelected(int ord, int sel){
+    d_selected[ord] = sel;
+    cout << "addSelected("<< ord << ", "<< sel << ")" << endl;
   }
 
   void applySelected() {
     size_t iter, newEnd;
-    for(iter = 0, newEnd = d_cuts.size(); iter < newEnd; ++iter){
+    for(iter = 0, newEnd = d_cuts.size(); iter < newEnd; ){
       CutInfo* curr = d_cuts[iter];
       if(d_selected.find(curr->ord) == d_selected.end()){// drop
         --newEnd;
         std::swap(d_cuts[iter], d_cuts[newEnd]);
+      }else{
+        curr->selected = d_selected[curr->ord];
+        ++iter;
       }
     }
     shrinkCuts(newEnd);
@@ -142,9 +145,23 @@ public:
     Assert(ci != NULL);
     d_cuts.push_back(ci);
   }
+
+  void print(ostream& o){
+    o << "[n" << getNodeId();
+    std::vector<CutInfo*>::iterator iter, end;
+    for( iter = d_cuts.begin(), end = d_cuts.end(); iter != end; ++iter ){
+      CutInfo* cut = *iter;
+      o << ", " << cut->ord;
+      if(cut->selected >= 0){
+        o << " " << cut->selected;
+      }
+    }
+    o << "]" << std::endl;
+  }
 };
 
 class TreeLog {
+private:
   std::map<int, CutsOnNode> d_toNode;
 
 public:
@@ -156,11 +173,28 @@ public:
     node.addCut(ci);
   }
 
-  void addSelected(int nid, int ord){
+  void addSelected(int nid, int ord, int sel){
     Assert(d_toNode.find(nid) != d_toNode.end());
-    
+
     CutsOnNode& node = d_toNode[nid];
-    node.addSelected(ord);
+    node.addSelected(ord, sel);
+  }
+
+  void applySelected() {
+    std::map<int, CutsOnNode>::iterator iter, end;
+    for(iter = d_toNode.begin(), end = d_toNode.end(); iter != end; ++iter){
+      CutsOnNode& onNode = (*iter).second;
+      onNode.applySelected();
+    }
+  }
+
+  void print(ostream& o) {
+    o << "TreeLog: " << d_toNode.size() << std::endl;
+    std::map<int, CutsOnNode>::iterator iter, end;
+    for(iter = d_toNode.begin(), end = d_toNode.end(); iter != end; ++iter){
+      CutsOnNode& onNode = (*iter).second;
+      onNode.print(o);
+    }
   }
 };
 
@@ -168,7 +202,7 @@ struct AuxInfo {
   TreeLog tl;
   int pivotLimit;
 };
-  
+
 ApproximateSimplex::ApproximateSimplex() :
   d_pivotLimit(std::numeric_limits<int>::max())
 {}
@@ -912,7 +946,7 @@ ApproximateSimplex::ApproxResult ApproxGLPK::solveRelaxation(){
 struct MirInfo : public CutInfo {
 
   /** a sum of input rows. */
-  PrimitiveVec row_sum;  
+  PrimitiveVec row_sum;
 
   int n;
   char* cset;
@@ -1141,6 +1175,22 @@ static void stopAtBingoOrPivotLimit(glp_tree *tree, void *info){
       }
     }
     break;
+  case GLP_ICUTSELECT:
+    {
+      int glpk_node = glp_ios_curr_node(tree);
+      int cuts = glp_ios_pool_size(tree);
+      int* ords = new int[1+cuts];
+      int* rows = new int[1+cuts];
+      int N = glp_ios_selected_cuts(tree, ords, rows);
+
+      cout << glpk_node << " " << cuts << " " << N << std::endl;
+      for(int i = 1; i <= N; ++i){
+        tl.addSelected(glpk_node, ords[i], rows[i]);
+      }
+      delete[] ords;
+      delete[] rows;
+    }
+    break;
   default:
     {
       glp_prob* prob = glp_ios_get_prob(tree);
@@ -1176,6 +1226,11 @@ ApproximateSimplex::ApproxResult ApproxGLPK::solveMIP(){
     parm.msg_lev = GLP_MSG_ALL;
   }
   int res = glp_intopt(d_prob, &parm);
+
+  TreeLog& tl = aux.tl;
+  tl.print(cout);
+  tl.applySelected();
+  tl.print(cout);
 
   switch(res){
   case 0:
