@@ -13,195 +13,195 @@ namespace CVC4 {
 namespace theory {
 namespace arith {
 
-struct PrimitiveVec {
-  int len;
-  int* inds;
-  double* coeffs;
-  PrimitiveVec()
-    : len(0)
-    , inds(NULL)
-    , coeffs(NULL)
-  {}
+struct CutScratchPad {
+  ArithVar d_basic; // a variable that is basic in the approximate solver
+  DenseMap<Rational> d_tabRow;    // a row in the tableau not including d_basic
+  DenseMap<Constraint> d_toBound; // each variable in toBound maps each variable in tabRow to either an upper/lower bound
 
-  ~PrimitiveVec(){
+
+  bool d_failure; // if the construction was unsuccessful
+  DenseMap<Rational> d_cutLhs; //
+  Rational d_cutRhs;
+  std::set<Constraint> d_explanation; // use pointer equality
+  CutScratchPad(){
     clear();
   }
+  void clear(){
+    d_basic = ARITHVAR_SENTINEL;
+    d_tabRow.purge();
+    d_toBound.purge(); // each variable in toBound maps each variable in tabRow to either an upper/lower bound
 
-  bool initialized() const { return inds != NULL; }
-  void clear() {
-    if(initialized()){
-      delete[] inds;
-      delete[] coeffs;
-      len = 0;
-      inds = NULL;
-      coeffs = NULL;
-    }
-  }
-  void setup(int l){
-    Assert(!initialized());
-    len = l;
-    inds = new int[1+len];
-    coeffs = new double[1+len];
-  }
-  void print(std::ostream& out){
-    Assert(initialized());
-    out << len << " ";
-    for(int i = 1; i <= len; ++i){
-      out << "["<< inds[i] <<", " << coeffs[i]<<"]";
-    }
-    out << endl;
-  }
-};
-
-enum CutInfoKlass{ MirCutKlass, GmiCutKlass, UnknownKlass};
-
-class CutInfo {
-public:
-  CutInfoKlass klass;
-  int ord;    /* cut's orderinal in the current node pool */
-  int cut_type;   /* Lowerbound or upperbound. */
-  double cut_rhs; /* right hand side of the cut */
-  PrimitiveVec cut_vec; /* vector of the cut */
-
-  int selected;
-
-  CutInfo(CutInfoKlass kl, int o)
-    : klass(kl)
-    , ord(o)
-    , cut_type(-1)
-    , cut_rhs()
-    , cut_vec()
-    , selected(-1)
-  {}
-
-  virtual ~CutInfo(){}
-
-  void print(ostream& out){
-    out << ord << " " << cut_type << " " << cut_rhs << endl;
-    cut_vec.print(out);
-  }
-  void init_cut(int l){
-    cut_vec.setup(l);
-  }
-};
-
-class CutsOnNode{
-private:
-  int d_nid;
-  std::vector<CutInfo*> d_cuts;
-  std::map<int, int> d_selected;
-
-  void shrinkCuts(size_t n){
-    Assert(n <= d_cuts.size());
-    while(d_cuts.size() > n){
-      CutInfo* cut = d_cuts.back();
-      d_cuts.pop_back();
-      delete cut;
-    }
-    Assert(d_cuts.size() == n);
-  }
-
-public:
-  CutsOnNode()
-    : d_nid(-1)
-    , d_cuts()
-    , d_selected()
-  {}
-
-  CutsOnNode(int node)
-    : d_nid(node)
-    , d_cuts()
-    , d_selected()
-  {}
-
-  ~CutsOnNode(){
-    shrinkCuts(0);
-    Assert(d_cuts.empty());
-  }
-
-  int getNodeId() const { return d_nid; }
-
-  void addSelected(int ord, int sel){
-    d_selected[ord] = sel;
-    cout << "addSelected("<< ord << ", "<< sel << ")" << endl;
-  }
-
-  void applySelected() {
-    size_t iter, newEnd;
-    for(iter = 0, newEnd = d_cuts.size(); iter < newEnd; ){
-      CutInfo* curr = d_cuts[iter];
-      if(d_selected.find(curr->ord) == d_selected.end()){// drop
-        --newEnd;
-        std::swap(d_cuts[iter], d_cuts[newEnd]);
-      }else{
-        curr->selected = d_selected[curr->ord];
-        ++iter;
-      }
-    }
-    shrinkCuts(newEnd);
-  }
-
-  void addCut(CutInfo* ci){
-    Assert(ci != NULL);
-    d_cuts.push_back(ci);
-  }
-
-  void print(ostream& o){
-    o << "[n" << getNodeId();
-    std::vector<CutInfo*>::iterator iter, end;
-    for( iter = d_cuts.begin(), end = d_cuts.end(); iter != end; ++iter ){
-      CutInfo* cut = *iter;
-      o << ", " << cut->ord;
-      if(cut->selected >= 0){
-        o << " " << cut->selected;
-      }
-    }
-    o << "]" << std::endl;
-  }
-};
-
-class TreeLog {
-private:
-  std::map<int, CutsOnNode> d_toNode;
-
-public:
-  void addCut(int nid, CutInfo* ci){
-    if(d_toNode.find(nid) == d_toNode.end()){
-      d_toNode.insert(make_pair(nid, CutsOnNode(nid) ));
-    }
-    CutsOnNode& node = d_toNode[nid];
-    node.addCut(ci);
-  }
-
-  void addSelected(int nid, int ord, int sel){
-    Assert(d_toNode.find(nid) != d_toNode.end());
-
-    CutsOnNode& node = d_toNode[nid];
-    node.addSelected(ord, sel);
-  }
-
-  void applySelected() {
-    std::map<int, CutsOnNode>::iterator iter, end;
-    for(iter = d_toNode.begin(), end = d_toNode.end(); iter != end; ++iter){
-      CutsOnNode& onNode = (*iter).second;
-      onNode.applySelected();
-    }
-  }
-
-  void print(ostream& o) {
-    o << "TreeLog: " << d_toNode.size() << std::endl;
-    std::map<int, CutsOnNode>::iterator iter, end;
-    for(iter = d_toNode.begin(), end = d_toNode.end(); iter != end; ++iter){
-      CutsOnNode& onNode = (*iter).second;
-      onNode.print(o);
-    }
+    d_failure = false;
+    d_cutLhs.purge();
+    d_cutRhs = Rational(0);
+    d_explanation.clear();
   }
 };
 
 struct AuxInfo {
-  TreeLog tl;
+  TreeLog* tl;
   int pivotLimit;
+  int branchLimit;
 };
+
+PrimitiveVec::PrimitiveVec()
+  : len(0)
+  , inds(NULL)
+  , coeffs(NULL)
+{}
+
+PrimitiveVec::~PrimitiveVec(){
+  clear();
+}
+bool PrimitiveVec::initialized() const {
+  return inds != NULL;
+}
+void PrimitiveVec::clear() {
+  if(initialized()){
+    delete[] inds;
+    delete[] coeffs;
+    len = 0;
+    inds = NULL;
+    coeffs = NULL;
+  }
+}
+void PrimitiveVec::setup(int l){
+  Assert(!initialized());
+  len = l;
+  inds = new int[1+len];
+  coeffs = new double[1+len];
+}
+void PrimitiveVec::print(std::ostream& out) const{
+  Assert(initialized());
+  out << len << " ";
+  for(int i = 1; i <= len; ++i){
+    out << "["<< inds[i] <<", " << coeffs[i]<<"]";
+  }
+  out << endl;
+}
+
+CutInfo::CutInfo(CutInfoKlass kl, int o)
+  : klass(kl)
+  , ord(o)
+  , cut_type_(kind::UNDEFINED_KIND)
+  , cut_rhs()
+  , cut_vec()
+  , M(-1)
+  , selected(-1)
+  , asLiteral(Node::null())
+  , explanation(Node::null())
+{}
+
+void CutInfo::print(ostream& out) const{
+  out << ord << " " << cut_type_ << " " << cut_rhs << endl;
+  cut_vec.print(out);
+}
+
+void CutInfo::init_cut(int l){
+  cut_vec.setup(l);
+}
+
+CutsOnNode::CutsOnNode()
+  : d_nid(-1)
+  , d_cuts()
+  , d_selected()
+{}
+
+CutsOnNode::CutsOnNode(int node)
+  : d_nid(node)
+  , d_cuts()
+  , d_selected()
+{}
+CutsOnNode::~CutsOnNode(){
+  shrinkCuts(0);
+  Assert(d_cuts.empty());
+}
+
+int CutsOnNode::getNodeId() const {
+  return d_nid;
+}
+void CutsOnNode::addSelected(int ord, int sel){
+  d_selected[ord] = sel;
+  cout << "addSelected("<< ord << ", "<< sel << ")" << endl;
+}
+void CutsOnNode::applySelected() {
+  size_t iter, newEnd;
+  for(iter = 0, newEnd = d_cuts.size(); iter < newEnd; ){
+    CutInfo* curr = d_cuts[iter];
+    if(d_selected.find(curr->ord) == d_selected.end()){// drop
+      --newEnd;
+      std::swap(d_cuts[iter], d_cuts[newEnd]);
+    }else{
+      curr->selected = d_selected[curr->ord];
+      ++iter;
+    }
+  }
+  shrinkCuts(newEnd);
+}
+
+
+void CutsOnNode::addCut(CutInfo* ci){
+  Assert(ci != NULL);
+  d_cuts.push_back(ci);
+}
+
+void CutsOnNode::shrinkCuts(size_t n){
+  Assert(n <= d_cuts.size());
+  while(d_cuts.size() > n){
+    CutInfo* cut = d_cuts.back();
+    d_cuts.pop_back();
+    delete cut;
+  }
+  Assert(d_cuts.size() == n);
+}
+
+void CutsOnNode::print(ostream& o) const{
+  o << "[n" << getNodeId();
+  for(const_iterator iter = begin(), iend = end(); iter != iend; ++iter ){
+    CutInfo* cut = *iter;
+    o << ", " << cut->ord;
+    if(cut->selected >= 0){
+      o << " " << cut->selected;
+    }
+  }
+  o << "]" << std::endl;
+}
+
+TreeLog::TreeLog()
+  : d_toNode()
+{}
+
+void TreeLog::addCut(int nid, CutInfo* ci){
+  if(d_toNode.find(nid) == d_toNode.end()){
+    d_toNode.insert(make_pair(nid, CutsOnNode(nid) ));
+  }
+  CutsOnNode& node = d_toNode[nid];
+  node.addCut(ci);
+}
+
+void TreeLog::addSelected(int nid, int ord, int sel){
+  Assert(d_toNode.find(nid) != d_toNode.end());
+
+  CutsOnNode& node = d_toNode[nid];
+  node.addSelected(ord, sel);
+}
+
+void TreeLog::applySelected() {
+  std::map<int, CutsOnNode>::iterator iter, end;
+  for(iter = d_toNode.begin(), end = d_toNode.end(); iter != end; ++iter){
+    CutsOnNode& onNode = (*iter).second;
+    onNode.applySelected();
+  }
+}
+
+void TreeLog::print(ostream& o) const{
+  o << "TreeLog: " << d_toNode.size() << std::endl;
+  for(const_iterator iter = begin(), iend = end(); iter != iend; ++iter){
+    const CutsOnNode& onNode = (*iter).second;
+    onNode.print(o);
+  }
+}
+
 
 ApproximateSimplex::ApproximateSimplex() :
   d_pivotLimit(std::numeric_limits<int>::max())
@@ -251,7 +251,7 @@ std::vector<Integer> ApproximateSimplex::rationalToCfe(const Rational& q, int de
       mods.push_back(Integer());
       Integer& back = mods.back();
       back = carry.floor();
-      //cout << "  cfe["<<i<<"]: " << back << endl;
+      cout << "  cfe["<<i<<"]: " << back << endl;
       carry -= back;
       if(carry.isZero()){
         break;
@@ -265,13 +265,78 @@ std::vector<Integer> ApproximateSimplex::rationalToCfe(const Rational& q, int de
   return mods;
 }
 
-Rational ApproximateSimplex::estimateWithCFE(const Rational& q, int depth){
-  std::vector<Integer> cfe = rationalToCfe(q,depth);
-  return cfeToRational(cfe);
+// Rational ApproximateSimplex::estimateWithCFE(const Rational& q, int depth){
+//   cout << "estimateWithCFE("<<q<<", "<<depth<<")"<<endl;
+//   std::vector<Integer> cfe = rationalToCfe(q,depth);
+//   return cfeToRational(cfe);
+// }
+
+
+Rational ApproximateSimplex::estimateWithCFE(const Rational& r, const Integer& K){
+  cout << "estimateWithCFE(" << r << ", " << K << ")" <<endl;
+  // references
+  // page 4: http://carlossicoli.free.fr/C/Cassels_J.W.S.-An_introduction_to_diophantine_approximation-University_Press(1965).pdf
+  // http://en.wikipedia.org/wiki/Continued_fraction
+  Assert(K >= Integer(1));
+  if( r.getDenominator() <= K ){
+    return r;
+  }else if( K.isOne() ){
+    return Rational(r.floor());
+  }
+
+  // current numerator and denominator that has not been resolved in the cfe
+  Integer num = r.getNumerator(), den = r.getDenominator();
+  Integer quot,rem;
+
+  unsigned t = 0;
+  // For a sequence of candidate solutions q_t/p_t
+  // we keep only 3 time steps: 0[prev], 1[current], 2[next]
+  // timesteps with a fake timestep 0 (p is 0 and q is 1)
+  // at timestep 1
+  Integer p[3]; // h
+  Integer q[3]; // k
+  // load the first 3 time steps manually
+  p[0] =    0; q[0] = 1; // timestep -2
+  p[1] =    1; q[1] = 0; // timestep -1
+
+  Integer::floorQR(quot, rem, num, den);
+  num = den; den = rem;
+
+  q[2] = q[0] + quot*q[1];
+  p[2] = p[0] + quot*p[1];
+
+  cout << "  cfe["<<t<<"]: " << p[2] <<"/"<< q[2] << endl;
+  while( q[2] <= K ){
+    p[0] = p[1]; p[1] = p[2];
+    q[0] = q[1]; q[1] = q[2];
+
+
+    Integer::floorQR(quot, rem, num, den);
+    num = den; den = rem;
+
+    p[2] = p[0]+quot*p[1];
+    q[2] = q[0]+quot*q[1];
+    ++t;
+    cout << "  cfe["<<t<<"]: " << p[2] <<"/"<< q[2] << endl;
+  }
+
+  Integer k = (K-q[0]).floorDivideQuotient(q[1]);
+  Rational cand_prev(p[0]+k*p[1], q[0]+k*q[1]);
+  Rational cand_curr(p[1], q[1]);
+  Rational dist_prev = (cand_prev - r).abs();
+  Rational dist_curr = (cand_curr - r).abs();
+  if(dist_prev <= dist_curr){
+    cout<< cand_prev << " is closer than " << cand_curr << endl;
+    return cand_prev;
+  }else{
+    cout<< cand_curr << " is closer than " << cand_prev << endl;
+    return cand_curr;
+  }
 }
 
 Rational ApproximateSimplex::estimateWithCFE(double d){
-  return estimateWithCFE(Rational::fromDouble(d), 10);
+  Integer maxInt(1<<26);
+  return estimateWithCFE(Rational::fromDouble(d), maxInt);
 }
 
 class ApproxNoOp : public ApproximateSimplex {
@@ -320,6 +385,19 @@ namespace CVC4 {
 namespace theory {
 namespace arith {
 
+Kind glpk_type_to_kind(int glpk_cut_type){
+  switch(glpk_cut_type){
+  case GLP_LO: return kind::LEQ;
+  case GLP_UP: return kind::GEQ;
+  case GLP_FX: return kind::EQUAL;
+  case GLP_DB:
+  case GLP_FR:
+  default:     return kind::UNDEFINED_KIND;
+  }
+}
+
+class GmiInfo;
+class MirInfo;
 class ApproxGLPK : public ApproximateSimplex {
 private:
   glp_prob* d_prob;
@@ -328,6 +406,8 @@ private:
   DenseMap<int> d_colIndices;
   DenseMap<int> d_rowIndices;
 
+  DenseMap<ArithVar> d_rowToArithVar;
+  DenseMap<ArithVar> d_colToArithVar;
 
   int d_instanceID;
 
@@ -335,6 +415,8 @@ private:
   bool d_solvedMIP;
 
   static int s_verbosity;
+
+  CutScratchPad d_pad;
 
 public:
   ApproxGLPK(const ArithVariables& vars);
@@ -357,6 +439,19 @@ public:
 private:
   Solution extractSolution(bool mip) const;
   int guessDir(ArithVar v) const;
+
+  // get this stuff out of here
+  void tryCut(int nid, CutInfo& cut);
+
+  ArithVar _getArithVar(int nid, int M, int ind) const;
+  bool guessIsConstructable(const DenseMap<Rational>& guess) const;
+  bool loadToBound(int node, int M, int len, int* inds, int* statuses, DenseMap<Constraint>& toBound) const;
+  bool checkCutOnPad(int nid, CutInfo& cut) const;
+  void finalizeCut(int nid, CutInfo& cut) const;
+  void attemptGmi(int nid, GmiInfo& gmi);
+  void attemptConstructTableRow(int node, int M, const PrimitiveVec& vec);
+
+  void constructGmiCut();
 };
 
 int ApproxGLPK::s_verbosity = 1;
@@ -428,9 +523,13 @@ ApproxGLPK::ApproxGLPK(const ArithVariables& avars) :
     if(d_vars.isSlack(v)){
       ++numRows;
       d_rowIndices.set(v, numRows);
+      d_rowToArithVar.set(numRows, v);
+      cout << "Row vars: " << v << "<->" << numRows << endl;
     }else{
       ++numCols;
       d_colIndices.set(v, numCols);
+      d_colToArithVar.set(numCols, v);
+      cout << "Col vars: " << v << "<->" << numCols << endl;
     }
   }
   glp_add_rows(d_prob, numRows);
@@ -941,8 +1040,6 @@ ApproximateSimplex::ApproxResult ApproxGLPK::solveRelaxation(){
 }
 
 
-
-
 struct MirInfo : public CutInfo {
 
   /** a sum of input rows. */
@@ -974,13 +1071,14 @@ struct MirInfo : public CutInfo {
 };
 
 struct GmiInfo : public CutInfo {
-
+  int basic;
   PrimitiveVec tab_row;
   int* tab_statuses;
   /* has the length tab_row.length */
 
   GmiInfo(int ord)
     : CutInfo(GmiCutKlass, ord)
+    , basic(-1)
     , tab_row()
     , tab_statuses(NULL)
   {
@@ -1009,6 +1107,7 @@ struct GmiInfo : public CutInfo {
     delete[] tab_statuses;
     tab_statuses = NULL;
     tab_row.clear();
+    basic = -1;
   }
 };
 
@@ -1016,7 +1115,7 @@ static void loadCut(glp_tree *tree, CutInfo* cut){
   int ord, cut_len, cut_klass;
   int* cut_inds;
   double* cut_coeffs;
-  int* cut_type;
+  int glpk_cut_type;
   double* cut_rhs;
 
   ord = cut->ord;
@@ -1029,13 +1128,16 @@ static void loadCut(glp_tree *tree, CutInfo* cut){
   PrimitiveVec& cut_vec = cut->cut_vec;
   cut_inds = cut_vec.inds;
   cut_coeffs = cut_vec.coeffs;
-  cut_type = &(cut->cut_type);
   cut_rhs = &(cut->cut_rhs);
 
-  cut_vec.len = glp_ios_get_cut(tree, ord, cut_inds, cut_coeffs, &cut_klass, cut_type, cut_rhs);
+  cut_vec.len = glp_ios_get_cut(tree, ord, cut_inds, cut_coeffs, &cut_klass, &glpk_cut_type, cut_rhs);
   Assert(fromGlpkClass(cut_klass) == cut->klass);
   Assert(cut_vec.len == cut_len);
+
+  cut->cut_type_ = glpk_type_to_kind(glpk_cut_type);
+  Assert(cut->cut_type_ == kind::LEQ || cut->cut_type_ == kind::GEQ);
 }
+
 
 static MirInfo* mirCut(glp_tree *tree, int cut_ord){
   cout << "mirCut()" << endl;
@@ -1064,7 +1166,6 @@ static GmiInfo* gmiCut(glp_tree *tree, int cut_ord){
   cout << "gmiCut()" << endl;
 
   int N;
-  int M;
   int gmi_var;
   int write_pos;
   int read_pos;
@@ -1081,7 +1182,7 @@ static GmiInfo* gmiCut(glp_tree *tree, int cut_ord){
   lp = glp_ios_get_prob(tree);
 
   N = glp_get_num_cols(lp);
-  M = glp_get_num_rows(lp);
+  gmi->M = glp_get_num_rows(lp);
 
 
   // Get the tableau row
@@ -1092,9 +1193,13 @@ static GmiInfo* gmiCut(glp_tree *tree, int cut_ord){
   gmi_var = rows[1];
 
   gmi->init_tab(N);
+  gmi->basic = gmi->M+gmi_var;
+  cout << gmi <<" " << gmi->basic << " "
+       << cut_ord<<" "  << gmi->M <<" " << gmi_var << endl;
+
   PrimitiveVec& tab_row = gmi->tab_row;
   cout << "Is N sufficient here?" << endl;
-  tab_row.len = glp_eval_tab_row(lp, M+gmi_var, tab_row.inds, tab_row.coeffs);
+  tab_row.len = glp_eval_tab_row(lp, gmi->basic, tab_row.inds, tab_row.coeffs);
 
   cout << "gmi_var " << gmi_var << endl;
 
@@ -1115,8 +1220,10 @@ static GmiInfo* gmiCut(glp_tree *tree, int cut_ord){
   for(i = 1; i <= tab_row.len; ++i){
     ind = tab_row.inds[i];
     cout << "ind " << i << " " << ind << endl;
-    stat = (ind <= M) ? glp_get_row_stat(lp, ind) : glp_get_col_stat(lp, ind-M);
+    stat = (ind <= gmi->M) ?
+      glp_get_row_stat(lp, ind) : glp_get_col_stat(lp, ind - gmi->M);
 
+    cout << "ind " << i << " " << ind << " stat " << stat << endl;
     switch (stat){
     case GLP_NL:
     case GLP_NU:
@@ -1135,7 +1242,7 @@ static GmiInfo* gmiCut(glp_tree *tree, int cut_ord){
 static void stopAtBingoOrPivotLimit(glp_tree *tree, void *info){
   AuxInfo* aux = (AuxInfo*)(info);
   int pivotLimit = aux->pivotLimit;
-  TreeLog& tl = aux->tl;
+  TreeLog& tl = *(aux->tl);
 
   switch(glp_ios_reason(tree)){
   case GLP_IBINGO:
@@ -1148,6 +1255,7 @@ static void stopAtBingoOrPivotLimit(glp_tree *tree, void *info){
       Assert(cut_ord > 0);
       cout << "tree size " << cut_ord << endl;
       cout << "curr node " << glpk_node << endl;
+      cout << "depth " << glp_ios_node_level(tree, glpk_node) << endl;
       int klass;
       glp_ios_get_cut(tree, cut_ord, NULL, NULL, &klass, NULL, NULL);
 
@@ -1210,6 +1318,8 @@ ApproximateSimplex::ApproxResult ApproxGLPK::solveMIP(){
   // This is default, but this is just being cautious.
   AuxInfo aux;
   aux.pivotLimit = d_pivotLimit;
+  aux.branchLimit = d_branchLimit;
+  aux.tl = &d_log;
 
   glp_iocp parm;
   glp_init_iocp(&parm);
@@ -1227,10 +1337,18 @@ ApproximateSimplex::ApproxResult ApproxGLPK::solveMIP(){
   }
   int res = glp_intopt(d_prob, &parm);
 
-  TreeLog& tl = aux.tl;
-  tl.print(cout);
-  tl.applySelected();
-  tl.print(cout);
+  d_log.print(cout);
+  d_log.applySelected();
+  d_log.print(cout);
+
+  for(TreeLog::const_iterator i = d_log.begin(), iend=d_log.end(); i!=iend;++i){
+    int nid = (*i).first;
+    const CutsOnNode& con = (*i).second;
+    for(CutsOnNode::const_iterator j = con.begin(),jend=con.end(); j!=jend;++j){
+      CutInfo* cut = *j;
+      tryCut(nid, *cut);
+    }
+  }
 
   switch(res){
   case 0:
@@ -1253,6 +1371,433 @@ ApproximateSimplex::ApproxResult ApproxGLPK::solveMIP(){
     return ApproxError;
   }
 }
+
+
+
+Node explainSet(const set<Constraint>& inp){
+  Assert(!inp.empty());
+  NodeBuilder<> nb(kind::AND);
+  set<Constraint>::const_iterator iter, end;
+  for(iter = inp.begin(), end = inp.end(); iter != end; ++iter){
+    const Constraint c = *iter;
+    Assert(c != NullConstraint);
+    c->explainForConflict(nb);
+  }
+  Node ret = safeConstructNary(nb);
+  Node rew = Rewriter::rewrite(ret);
+  if(rew.getNumChildren() < ret.getNumChildren()){
+    cout << "explainSet " << ret << " " << rew << endl;
+  }
+  return rew;
+}
+
+DeltaRational sumConstraints(const DenseMap<Rational>& xs, const DenseMap<Constraint>& cs, bool* anyinf){
+  if(anyinf != NULL){
+    *anyinf = false;
+  }
+
+  DeltaRational beta(0);
+  DenseMap<Rational>::const_iterator iter, end;
+  iter = xs.begin();
+  end = xs.end();
+  cout << "sumConstraints";
+  for(; iter != end; ++iter){
+    ArithVar x = *iter;
+    const Rational& psi = xs[x];
+    Constraint c = cs[x];
+    Assert(c != NullConstraint);
+
+    const DeltaRational& bound = c->getValue();
+    beta += bound * psi;
+    cout << " +("<<bound << "*" << psi <<")";
+    if(anyinf != NULL ){
+      *anyinf = *anyinf || !bound.infinitesimalIsZero();
+    }
+  }
+  cout << "= " << beta << endl;
+  return beta;
+}
+
+// remove fixed variables from the vector
+Rational removeFixed(const ArithVariables& vars, DenseMap<Rational>& vec, set<Constraint>& exp){
+  Rational removed(0);
+  vector<ArithVar> equal;
+  DenseMap<Rational>::const_iterator vec_iter, vec_end;
+  vec_iter = vec.begin(), vec_end = vec.end();
+  for(; vec_iter != vec_end; ++vec_iter){
+    ArithVar x = *vec_iter;
+    if(vars.boundsAreEqual(x)){
+      equal.push_back(x);
+    }
+  }
+  vector<ArithVar>::const_iterator equal_iter, equal_end;
+  equal_iter = equal.begin(), equal_end = equal.end();
+  for(; equal_iter != equal_end; ++equal_iter){
+    ArithVar x = *equal_iter;
+    Assert(vars.boundsAreEqual(x));
+    const DeltaRational& lb = vars.getLowerBound(x);
+    Assert(lb.infinitesimalIsZero());
+    removed += (vec[x]) * lb.getNoninfinitesimalPart();
+
+    vec.remove(x);
+
+    std::pair<Constraint, Constraint> p = vars.explainEqualBounds(x);
+    exp.insert(p.first);
+    cout << p.first << endl;
+    if(p.second != NullConstraint){
+      exp.insert(p.second);
+      cout << p.second << endl;
+    }
+  }
+  return removed;
+}
+void removeZeroes(DenseMap<Rational>& v){
+  // Remove Slack variables
+  vector<ArithVar> zeroes;
+  DenseMap<Rational>::const_iterator i, iend;
+  for(i = v.begin(), iend = v.end(); i != iend; ++i){
+    ArithVar x = *i;
+    if(v[x].isZero()){
+      zeroes.push_back(x);
+    }
+  }
+
+  vector<ArithVar>::const_iterator j, jend;
+  for(j = zeroes.begin(), jend = zeroes.end(); j != jend; ++j){
+    ArithVar x = *j;
+    v.remove(x);
+  }
+}
+void removeSlackVariables(const ArithVariables& vars, DenseMap<Rational>& vec){
+  // Remove Slack variables
+  vector<ArithVar> slacks;
+  DenseMap<Rational>::const_iterator vec_iter, vec_end;
+  vec_iter = vec.begin(), vec_end = vec.end();
+  for(; vec_iter != vec_end; ++vec_iter){
+    ArithVar x = *vec_iter;
+    if(vars.isSlack(x)){
+      slacks.push_back(x);
+    }
+  }
+
+  vector<ArithVar>::const_iterator slack_iter, slack_end;
+  slack_iter = slacks.begin(), slack_end = slacks.end();
+  for(; slack_iter != slack_end; ++slack_iter){
+    ArithVar s = *slack_iter;
+    const Rational& s_coeff = vec[s];
+    Assert(vars.isSlack(s));
+    Assert(vars.hasNode(s));
+    Node sAsNode = vars.asNode(s);
+    Polynomial p = Polynomial::parsePolynomial(sAsNode);
+    for(Polynomial::iterator j = p.begin(), p_end=p.end(); j != p_end; ++j){
+      Monomial m = *j;
+      const Rational& ns_coeff = m.getConstant().getValue();
+      Node vl = m.getVarList().getNode();
+      ArithVar ns = vars.asArithVar(vl);
+      Rational prod = s_coeff * ns_coeff;
+      if(vec.isKey(ns)){
+        vec.get(ns) += prod;
+      }else{
+        vec.set(ns, prod);
+      }
+    }
+    // remove s
+    vec.remove(s);
+  }
+  removeZeroes(vec);
+}
+
+ArithVar ApproxGLPK::_getArithVar(int nid, int M, int ind) const{
+  Assert(ind >= 0);
+  if(ind <= M){
+    // this is a row
+    if((unsigned)ind < d_rowToArithVar.size()){
+      return d_rowToArithVar[ind];
+    }else{
+      // replace by a looking up this new row
+      Assert(false);
+      return ARITHVAR_SENTINEL;
+    }
+  }else{
+    int col_ord = ind - M;
+    Assert(col_ord >= 0);
+    return d_colToArithVar[(unsigned)col_ord];
+  }
+}
+
+void printDV(ostream& out, const DenseMap<Rational>& v){
+  out << "[DenseVec len " <<  v.size();
+  DenseMap<Rational>::const_iterator iter, end;
+  for(iter = v.begin(), end = v.end(); iter != end; ++iter){
+    ArithVar x = *iter;
+    out << ", "<< x << " " << v[x];
+  }
+  out << "]";
+}
+
+bool ApproxGLPK::guessIsConstructable(const DenseMap<Rational>& guess) const {
+  // basic variable
+  // sum g[i] * x_i
+  DenseMap<Rational> g = guess;
+  removeSlackVariables(d_vars, g);
+  cout << "guessIsConstructable " << g.size() << endl;
+  printDV(cout, g);
+  return g.empty();
+}
+
+bool ApproxGLPK::loadToBound(int nid, int M, int len, int* inds, int* statuses, DenseMap<Constraint>& toBound) const{
+  for(int i = 1; i <= len; ++i){
+    int status = statuses[i];
+    int ind = inds[i];
+    ArithVar v = _getArithVar(nid, M, ind);
+    Constraint c = NullConstraint;
+    if(v == ARITHVAR_SENTINEL){ return true; }
+
+    switch(status){
+    case GLP_NL:
+      c = d_vars.getLowerBoundConstraint(v);
+      break;
+    case GLP_NU:
+    case GLP_NS: // upper bound sufficies for fixed variables
+      c = d_vars.getUpperBoundConstraint(v);
+      break;
+    case GLP_NF:
+    default:
+      return true;
+    }
+    if(c == NullConstraint){
+      cout << "couldn't find " << v << " @ " << nid << endl;
+      return true;
+    }
+    Assert(c != NullConstraint);
+    toBound.set(v, c);
+  }
+  return false;
+}
+
+bool ApproxGLPK::checkCutOnPad(int nid, CutInfo& cut) const{
+
+  const DenseMap<Rational>& constructedLhs = d_pad.d_cutLhs;
+  const Rational& constructedRhs = d_pad.d_cutRhs;
+  hash_set<ArithVar> visited;
+
+  if(constructedLhs.empty()){ return true; }
+
+  double norm = (cut.cut_type_ == kind::LEQ ? + 1.0 : - 1.0);
+
+  double normRhs = norm * cut.cut_rhs;
+  if(!roughlyEqual(normRhs, constructedRhs.getDouble())){ cout << "failure"; return true; }
+  const PrimitiveVec& cv = cut.cut_vec;
+  for(int i = 1; i <= cv.len; ++i){
+    int ind = cv.inds[i]; // this is always a structural variable
+    double coeff = cv.coeffs[i];
+    double norm_coeff = norm * coeff;
+
+    if(!d_colToArithVar.isKey(ind)){ return true; }
+    ArithVar x = d_colToArithVar[ind];
+    //if(x == ARITHVAR_SENTINEL){ return true; }
+    visited.insert(x);
+
+    if(!constructedLhs.isKey(x)){ return true; }
+    const Rational& onConstructed = constructedLhs[x];
+    if(!roughlyEqual(norm_coeff, onConstructed.getDouble())){
+      cout << "failure"; return true;
+    }
+  }
+  if(visited.size() != constructedLhs.size()){ return true; }
+  return false;
+}
+
+Node toSumNode(const ArithVariables& vars, const DenseMap<Rational>& sum){
+  NodeBuilder<> nb(kind::PLUS);
+  NodeManager* nm = NodeManager::currentNM();
+  DenseMap<Rational>::const_iterator iter, end;
+  iter = sum.begin(), end = sum.end();
+  for(; iter != end; ++iter){
+    ArithVar x = *iter;
+    if(!vars.hasNode(x)){ return Node::null(); }
+    Node xNode = vars.asNode(x);
+    const Rational& q = sum[x];
+    nb << nm->mkNode(kind::MULT, mkRationalNode(q), xNode);
+  }
+  return safeConstructNary(nb);
+}
+
+void ApproxGLPK::finalizeCut(int nid, CutInfo& cut) const{
+  Assert(!d_pad.d_failure);
+  Assert(!d_pad.d_cutLhs.empty());
+
+  NodeManager* nm = NodeManager::currentNM();
+  Node sumLhs = toSumNode(d_vars, d_pad.d_cutLhs);
+  Node ineq = nm->mkNode(kind::GEQ, sumLhs, mkRationalNode(d_pad.d_cutRhs) );
+
+  cut.asLiteral = Rewriter::rewrite(ineq);
+  cut.explanation = explainSet(d_pad.d_explanation);
+
+  cout << "commit the cut: " <<cut.asLiteral <<  cut.explanation << endl;
+}
+
+void ApproxGLPK::attemptGmi(int nid, GmiInfo& gmi){
+  d_pad.clear();
+
+  ArithVar b = _getArithVar(nid, gmi.M, gmi.basic);
+  if(b == ARITHVAR_SENTINEL){
+    d_pad.d_failure = true; return;
+  }
+  if(!d_vars.isInteger(b)){
+    d_pad.d_failure = true; return;
+  }
+  d_pad.d_basic = b;
+
+
+  PrimitiveVec& tab = gmi.tab_row;
+  attemptConstructTableRow(nid, gmi.M, tab);
+  if(d_pad.d_failure){ return; }
+
+  d_pad.d_failure = loadToBound(nid, gmi.M, tab.len, tab.inds, gmi.tab_statuses, d_pad.d_toBound);
+  if(d_pad.d_failure){ return; }
+
+  constructGmiCut();
+  if(d_pad.d_failure){ return; }
+
+  d_pad.d_failure = checkCutOnPad(nid, gmi);
+  if(d_pad.d_failure){ return; }
+
+  finalizeCut(nid, gmi);
+}
+
+void ApproxGLPK::attemptConstructTableRow(int nid, int M, const PrimitiveVec& vec){
+  ArithVar basic = d_pad.d_basic;
+  DenseMap<Rational>& tab = d_pad.d_tabRow;
+  Assert(basic != ARITHVAR_SENTINEL);
+
+  cout << "attemptConstructTableRow("<<nid <<", "<< basic<< ")"<<endl;
+  vec.print(cout);
+  cout << "match " << basic << "("<<d_vars.asNode(basic)<<")"<<endl;
+
+  tab.set(basic, Rational(-1));
+  for(int i = 1; i <= vec.len; ++i){
+    int ind = vec.inds[i];
+    double coeff = vec.coeffs[i];
+    ArithVar var = _getArithVar(nid, M, ind);
+    if(var == ARITHVAR_SENTINEL){
+      cout << "couldn't find" << var << endl;
+      d_pad.d_failure = true; return;
+    }
+    cout << "match " << ind << "," << var << "("<<d_vars.asNode(var)<<")"<<endl;
+
+    Rational cfe = estimateWithCFE(coeff);
+    tab.set(var, cfe);
+    cout << var << " cfe " << cfe << endl;
+  }
+  if(!guessIsConstructable(tab)){
+    d_pad.d_failure = true; return;
+  }
+  tab.remove(basic);
+}
+
+/* Maps an ArithVar to either an upper/lower bound */
+void ApproxGLPK::constructGmiCut(){
+  const DenseMap<Rational>& tabRow = d_pad.d_tabRow;
+  const DenseMap<Constraint>& toBound = d_pad.d_toBound;
+  DenseMap<Rational>& cut = d_pad.d_cutLhs;
+  std::set<Constraint>& explanation = d_pad.d_explanation;
+  Rational& rhs = d_pad.d_cutRhs;
+
+  DenseMap<Rational>::const_iterator iter, end;
+  Assert(cut.empty());
+
+  // compute beta for a "fake" assignment
+  bool anyInf;
+  DeltaRational dbeta = sumConstraints(tabRow, toBound, &anyInf);
+  const Rational& beta = dbeta.getNoninfinitesimalPart();
+  cout << dbeta << endl;
+  if(anyInf || beta.isIntegral()){
+    d_pad.d_failure = true; return; // this is going to fail
+  }
+
+  Rational one = Rational(1);
+  Rational fbeta = beta.floor_frac();
+  rhs = fbeta;
+  Assert(fbeta.sgn() > 0);
+  Assert(fbeta < one);
+  Rational one_sub_fbeta = one - fbeta;
+  for(iter = tabRow.begin(), end = tabRow.end(); iter != end; ++iter){
+    ArithVar x = *iter;
+    const Rational& psi = tabRow[x];
+    Constraint c = toBound[x];
+    const Rational& bound = c->getValue().getNoninfinitesimalPart();
+    if(d_vars.boundsAreEqual(x)){
+      // do not add a coefficient
+      // implictly substitute the variable w/ its constraint
+      std::pair<Constraint, Constraint> exp = d_vars.explainEqualBounds(x);
+      explanation.insert(exp.first);
+      cout << exp.first << endl;
+      if(exp.second != NullConstraint){
+        explanation.insert(exp.second);
+        cout << exp.second << endl;
+      }
+    }else if(d_vars.isInteger(x) && psi.isIntegral()){
+      // do not add a coefficient
+      // nothing to explain
+    }else{
+      explanation.insert(c);
+      Rational phi;
+      Rational alpha = (c->isUpperBound() ? psi : -psi);
+
+      // x - ub <= 0 and lb - x <= 0
+      if(d_vars.isInteger(x)){
+        Assert(!psi.isIntegral());
+        // alpha = slack_sgn * psi
+        Rational falpha = alpha.floor_frac();
+        Assert(falpha.sgn() > 0);
+        Assert(falpha < one);
+        phi = (falpha <= fbeta) ?
+          falpha : ((fbeta / one_sub_fbeta) * (one - falpha));
+      }else{
+        phi = (alpha >= 0) ?
+          alpha : ((fbeta / one_sub_fbeta) * (- alpha));
+      }
+      Assert(phi.sgn() != 0);
+      if(c->isUpperBound()){
+        cut.set(x, -phi);
+        rhs -= phi * bound;
+      }else{
+        cut.set(x, phi);
+        rhs += phi * bound;
+      }
+    }
+  }
+  cout << "pre removeSlackVariables";
+  printDV(cout, cut);
+  removeSlackVariables(d_vars, cut);
+  cout << "post removeSlackVariables";  printDV(cout, cut);
+  Rational sumRemoved = removeFixed(d_vars, cut, explanation);
+  cout << "post removeFixed";
+  printDV(cout, cut);
+  rhs -= sumRemoved;
+  cout << "rhs " << rhs << " " <<sumRemoved << endl;
+}
+
+void ApproxGLPK::tryCut(int nid, CutInfo& cut){
+  static int success = 0;
+  static int attempts = 0;
+  switch(cut.klass){
+  case GmiCutKlass:
+    attempts++;
+    attemptGmi(nid, static_cast<GmiInfo&>(cut));
+    if(!cut.asLiteral.isNull()){
+      success++;
+    }
+    cout << "success rate :" << success << "/"<<attempts<<endl;
+    break;
+  case MirCutKlass:
+    Unimplemented();
+  default:
+    break;
+  }
+}
+
 
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */

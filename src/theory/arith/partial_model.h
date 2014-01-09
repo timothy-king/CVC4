@@ -413,6 +413,15 @@ public:
 
   void printEntireModel(std::ostream& out) const;
 
+
+  /**
+   * Precondition: assumes boundsAreEqual(x).
+   * If the either the lower/ upper bound is an equality, eq,
+   * this returns make_pair(eq, NullConstraint).
+   * Otherwise, this returns make_pair(lb, ub).
+   */
+  std::pair<Constraint, Constraint> explainEqualBounds(ArithVar x) const;
+
 private:
 
   /**

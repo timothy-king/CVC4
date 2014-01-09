@@ -232,6 +232,21 @@ bool ArithVariables::boundsAreEqual(ArithVar x) const{
   }
 }
 
+
+std::pair<Constraint, Constraint> ArithVariables::explainEqualBounds(ArithVar x) const{
+  Assert(boundsAreEqual(x));
+
+  Constraint lb = getLowerBoundConstraint(x);
+  Constraint ub = getUpperBoundConstraint(x);
+  if(lb->isEquality()){
+    return make_pair(lb, NullConstraint);
+  }else if(ub->isEquality()){
+    return make_pair(ub, NullConstraint);
+  }else{
+    return make_pair(lb, ub);
+  }
+}
+
 void ArithVariables::setAssignment(ArithVar x, const DeltaRational& r){
   Debug("partial_model") << "pm: updating the assignment to" << x
                          << " now " << r <<endl;
