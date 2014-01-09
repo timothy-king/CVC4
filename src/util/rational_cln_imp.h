@@ -259,6 +259,10 @@ public:
     return Integer(cln::ceiling1(d_value));
   }
 
+  Rational floor_frac() const {
+    return (*this) - Rational(floor());
+  }
+
   Rational& operator=(const Rational& x){
     if(this == &x) return *this;
     d_value = x.d_value;
