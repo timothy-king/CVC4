@@ -25,10 +25,12 @@ struct PrimitiveVec {
   void print(std::ostream& out) const;
 };
 
-enum CutInfoKlass{ MirCutKlass, GmiCutKlass, UnknownKlass};
+enum CutInfoKlass{ MirCutKlass, GmiCutKlass, BranchCutKlass, UnknownKlass};
 
 class CutInfo {
 public:
+  int execOrd;
+
   CutInfoKlass klass;
   int ord;    /* cut's ordinal in the current node pool */
   //int cut_type;   /* Lowerbound or upperbound. */
@@ -38,33 +40,49 @@ public:
   int M;     /* the number of rows at the time the cut was made.
              * this is required to descramble indices later*/
 
-  int selected; /* if selected, make this non-zero */
+  int row_id; /* if selected, make this non-zero */
 
   /* if the cut is successfully reproduced this is non-null */
   Node asLiteral;
   Node explanation;
 
-  CutInfo(CutInfoKlass kl, int ordinal);
+  CutInfo(CutInfoKlass kl, int cutid, int ordinal);
 
   virtual ~CutInfo(){}
 
   void print(std::ostream& out) const;
   void init_cut(int l);
+
+  int operator<(const CutInfo& o) const{
+    return execOrd < o.execOrd;
+  }
 };
 
-class CutsOnNode{
+class TreeLog;
+class NodeLog {
 private:
   int d_nid;
-  std::vector<CutInfo*> d_cuts;
-  std::map<int, int> d_selected;
+  struct CmpCutPointer{
+    int operator()(const CutInfo* a, const CutInfo* b) const{
+      return *a < *b;
+    }
+  };
+  typedef std::set<CutInfo*, CmpCutPointer> CutSet;
+  CutSet d_cuts;
+  std::map<int, int> d_rowIdsSelected;
 
-  /* keeps the first n cuts in d_cuts. */
-  void shrinkCuts(size_t n);
+  enum Status {Open, Closed, Branched};
+  Status stat;
+
+  int br_var; // branching variable
+  double br_val;
+  int dn;
+  int up;
 
 public:
-  CutsOnNode();
-  CutsOnNode(int node);
-  ~CutsOnNode();
+  NodeLog();
+  NodeLog(int node);
+  ~NodeLog();
 
   int getNodeId() const;
   void addSelected(int ord, int sel);
@@ -72,25 +90,52 @@ public:
   void addCut(CutInfo* ci);
   void print(std::ostream& o) const;
 
-  typedef std::vector<CutInfo*>::const_iterator const_iterator;
+  typedef CutSet::const_iterator const_iterator;
   const_iterator begin() const { return d_cuts.begin(); }
   const_iterator end() const { return d_cuts.end(); }
+
+private:
+
+  friend class TreeLog;
+  void closeNode();
+  void setBranchVal(int br, double val);
+  void setChildren(int dn, int up);
 };
 
 class TreeLog {
 private:
-  std::map<int, CutsOnNode> d_toNode;
+  int next_exec_ord;
+  typedef std::map<int, NodeLog> ToNodeMap;
+  ToNodeMap d_toNode;
 
 public:
   TreeLog();
-  void addCut(int nid, CutInfo* ci);
-  void addSelected(int nid, int ord, int sel);
+
+  NodeLog& getNode(int nid) {
+    ToNodeMap::iterator i = d_toNode.find(nid);
+    Assert(i != d_toNode.end());
+    return (*i).second;
+  }
+
+  //void addCut(int nid, CutInfo* ci);
+  //void addSelected(int nid, int ord, int sel);
+
+  void branch(int nid, int br, double val, int dn, int up);
+  void branchClose(int nid, int br, double val);
+  void close(int nid);
+
   void applySelected();
   void print(std::ostream& o) const;
 
-  typedef std::map<int, CutsOnNode>::const_iterator const_iterator;
+  typedef ToNodeMap::const_iterator const_iterator;
   const_iterator begin() const { return d_toNode.begin(); }
   const_iterator end() const { return d_toNode.end(); }
+
+  int getExecutionOrd(){
+    int res = next_exec_ord;
+    ++next_exec_ord;
+    return res;
+  }
 };
 
 class ApproximateSimplex{

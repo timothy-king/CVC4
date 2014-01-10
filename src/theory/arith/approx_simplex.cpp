@@ -80,14 +80,15 @@ void PrimitiveVec::print(std::ostream& out) const{
   out << endl;
 }
 
-CutInfo::CutInfo(CutInfoKlass kl, int o)
-  : klass(kl)
+CutInfo::CutInfo(CutInfoKlass kl, int eid, int o)
+  : execOrd(eid)
+  , klass(kl)
   , ord(o)
   , cut_type_(kind::UNDEFINED_KIND)
   , cut_rhs()
   , cut_vec()
   , M(-1)
-  , selected(-1)
+  , row_id(-1)
   , asLiteral(Node::null())
   , explanation(Node::null())
 {}
@@ -101,95 +102,154 @@ void CutInfo::init_cut(int l){
   cut_vec.setup(l);
 }
 
-CutsOnNode::CutsOnNode()
+NodeLog::NodeLog()
   : d_nid(-1)
   , d_cuts()
-  , d_selected()
+  , d_rowIdsSelected()
+  , stat(Open)
+  , br_var(-1)
+  , br_val(0.0)
+  , dn(-1)
+  , up(-1)
 {}
 
-CutsOnNode::CutsOnNode(int node)
+NodeLog::NodeLog(int node)
   : d_nid(node)
   , d_cuts()
-  , d_selected()
+  , d_rowIdsSelected()
+  , stat(Open)
+  , br_var(-1)
+  , br_val(0.0)
+  , dn(-1)
+  , up(-1)
 {}
-CutsOnNode::~CutsOnNode(){
-  shrinkCuts(0);
+
+NodeLog::~NodeLog(){
+  CutSet::iterator i = d_cuts.begin(), iend = d_cuts.end();
+  for(; i != iend; ++i){
+    CutInfo* c = *i;
+    delete c;
+  }
+  d_cuts.clear();
   Assert(d_cuts.empty());
 }
 
-int CutsOnNode::getNodeId() const {
+int NodeLog::getNodeId() const {
   return d_nid;
 }
-void CutsOnNode::addSelected(int ord, int sel){
-  d_selected[ord] = sel;
+void NodeLog::addSelected(int ord, int sel){
+  d_rowIdsSelected[ord] = sel;
   cout << "addSelected("<< ord << ", "<< sel << ")" << endl;
 }
-void CutsOnNode::applySelected() {
-  size_t iter, newEnd;
-  for(iter = 0, newEnd = d_cuts.size(); iter < newEnd; ){
-    CutInfo* curr = d_cuts[iter];
-    if(d_selected.find(curr->ord) == d_selected.end()){// drop
-      --newEnd;
-      std::swap(d_cuts[iter], d_cuts[newEnd]);
+void NodeLog::applySelected() {
+  CutSet::iterator iter = d_cuts.begin(), iend = d_cuts.end(), todelete;
+  while(iter != iend){
+    CutInfo* curr = *iter;
+    if(curr->klass == BranchCutKlass){
+      // skip
+      ++iter;
+    }else if(d_rowIdsSelected.find(curr->ord) == d_rowIdsSelected.end()){
+      todelete = iter;
+      ++iter;
+      d_cuts.erase(todelete);
+      delete curr;
     }else{
-      curr->selected = d_selected[curr->ord];
+      curr->row_id = d_rowIdsSelected[curr->ord];
       ++iter;
     }
   }
-  shrinkCuts(newEnd);
 }
 
 
-void CutsOnNode::addCut(CutInfo* ci){
+void NodeLog::addCut(CutInfo* ci){
   Assert(ci != NULL);
-  d_cuts.push_back(ci);
+  d_cuts.insert(ci);
 }
 
-void CutsOnNode::shrinkCuts(size_t n){
-  Assert(n <= d_cuts.size());
-  while(d_cuts.size() > n){
-    CutInfo* cut = d_cuts.back();
-    d_cuts.pop_back();
-    delete cut;
-  }
-  Assert(d_cuts.size() == n);
-}
+// void NodeLog::shrinkCuts(size_t n){
+//   Assert(n <= d_cuts.size());
+//   while(d_cuts.size() > n){
+//     CutInfo* cut = d_cuts.back();
+//     d_cuts.pop_back();
+//     delete cut;
+//   }
+//   Assert(d_cuts.size() == n);
+// }
 
-void CutsOnNode::print(ostream& o) const{
+void NodeLog::print(ostream& o) const{
   o << "[n" << getNodeId();
   for(const_iterator iter = begin(), iend = end(); iter != iend; ++iter ){
     CutInfo* cut = *iter;
     o << ", " << cut->ord;
-    if(cut->selected >= 0){
-      o << " " << cut->selected;
+    if(cut->row_id >= 0){
+      o << " " << cut->row_id;
     }
   }
   o << "]" << std::endl;
 }
 
+void NodeLog::closeNode(){
+  Assert(stat == Open);
+  stat = Closed;
+}
+
+void NodeLog::setBranchVal(int br, double val){
+  Assert(stat == Open);
+  br_var = br; br_val = val;
+}
+void NodeLog::setChildren(int d, int u){
+  Assert(stat == Open);
+  dn = d; up = u;
+  stat = Branched;
+}
+
 TreeLog::TreeLog()
   : d_toNode()
-{}
-
-void TreeLog::addCut(int nid, CutInfo* ci){
-  if(d_toNode.find(nid) == d_toNode.end()){
-    d_toNode.insert(make_pair(nid, CutsOnNode(nid) ));
-  }
-  CutsOnNode& node = d_toNode[nid];
-  node.addCut(ci);
+{
+  // add root
+  int rid = 1;
+  d_toNode.insert(make_pair(rid, NodeLog(rid)));
 }
 
-void TreeLog::addSelected(int nid, int ord, int sel){
-  Assert(d_toNode.find(nid) != d_toNode.end());
+void TreeLog::branch(int nid, int br, double val, int dn, int up){
+  NodeLog& nl = getNode(nid);
+  nl.setBranchVal(br, val);
+  nl.setChildren(dn, up);
 
-  CutsOnNode& node = d_toNode[nid];
-  node.addSelected(ord, sel);
+  d_toNode.insert(make_pair(dn, NodeLog(dn)));
+  d_toNode.insert(make_pair(up, NodeLog(up)));
 }
+
+void TreeLog::close(int nid){
+  NodeLog& nl = getNode(nid);
+  nl.closeNode();
+}
+
+void TreeLog::branchClose(int nid, int br, double val){
+  NodeLog& nl = getNode(nid);
+  nl.setBranchVal(br, val);
+  nl.closeNode();
+}
+
+// void TreeLog::addCut(int nid, CutInfo* ci){
+//   if(d_toNode.find(nid) == d_toNode.end()){
+//     d_toNode.insert(make_pair(nid, NodeLog(nid) ));
+//   }
+//   NodeLog& node = d_toNode[nid];
+//   node.addCut(ci);
+// }
+
+// void TreeLog::addSelected(int nid, int ord, int sel){
+//   Assert(d_toNode.find(nid) != d_toNode.end());
+
+//   NodeLog& node = d_toNode[nid];
+//   node.addSelected(ord, sel);
+// }
 
 void TreeLog::applySelected() {
-  std::map<int, CutsOnNode>::iterator iter, end;
+  std::map<int, NodeLog>::iterator iter, end;
   for(iter = d_toNode.begin(), end = d_toNode.end(); iter != end; ++iter){
-    CutsOnNode& onNode = (*iter).second;
+    NodeLog& onNode = (*iter).second;
     onNode.applySelected();
   }
 }
@@ -197,7 +257,7 @@ void TreeLog::applySelected() {
 void TreeLog::print(ostream& o) const{
   o << "TreeLog: " << d_toNode.size() << std::endl;
   for(const_iterator iter = begin(), iend = end(); iter != iend; ++iter){
-    const CutsOnNode& onNode = (*iter).second;
+    const NodeLog& onNode = (*iter).second;
     onNode.print(o);
   }
 }
@@ -398,6 +458,8 @@ Kind glpk_type_to_kind(int glpk_cut_type){
 
 class GmiInfo;
 class MirInfo;
+class BranchCutInfo;
+
 class ApproxGLPK : public ApproximateSimplex {
 private:
   glp_prob* d_prob;
@@ -1047,8 +1109,8 @@ struct MirInfo : public CutInfo {
 
   int n;
   char* cset;
-  MirInfo(int ord)
-    : CutInfo(MirCutKlass, ord)
+  MirInfo(int execOrd, int ord)
+    : CutInfo(MirCutKlass, execOrd, ord)
     , n(0)
     , cset(NULL)
   {}
@@ -1076,8 +1138,8 @@ struct GmiInfo : public CutInfo {
   int* tab_statuses;
   /* has the length tab_row.length */
 
-  GmiInfo(int ord)
-    : CutInfo(GmiCutKlass, ord)
+  GmiInfo(int execOrd, int ord)
+    : CutInfo(GmiCutKlass, execOrd, ord)
     , basic(-1)
     , tab_row()
     , tab_statuses(NULL)
@@ -1111,6 +1173,19 @@ struct GmiInfo : public CutInfo {
   }
 };
 
+struct BranchCutInfo : public CutInfo {
+  BranchCutInfo(int execOrd, int br,  Kind dir, double val)
+    : CutInfo(BranchCutKlass, execOrd, 0)
+  {
+    init_cut(1);
+    cut_vec.inds[1] = br;
+    cut_vec.coeffs[1] = +1.0;
+    cut_rhs = val;
+    cut_type_ = dir;
+  }
+};
+
+
 static void loadCut(glp_tree *tree, CutInfo* cut){
   int ord, cut_len, cut_klass;
   int* cut_inds;
@@ -1139,13 +1214,13 @@ static void loadCut(glp_tree *tree, CutInfo* cut){
 }
 
 
-static MirInfo* mirCut(glp_tree *tree, int cut_ord){
+static MirInfo* mirCut(glp_tree *tree, int exec_ord, int cut_ord){
   cout << "mirCut()" << endl;
 
   MirInfo* mir;
   int nrows;
 
-  mir = new MirInfo(cut_ord);
+  mir = new MirInfo(exec_ord, cut_ord);
   loadCut(tree, mir);
 
   nrows = glp_ios_cut_get_aux_nrows(tree, cut_ord);
@@ -1162,7 +1237,7 @@ static MirInfo* mirCut(glp_tree *tree, int cut_ord){
   return mir;
 }
 
-static GmiInfo* gmiCut(glp_tree *tree, int cut_ord){
+static GmiInfo* gmiCut(glp_tree *tree, int exec_ord, int cut_ord){
   cout << "gmiCut()" << endl;
 
   int N;
@@ -1176,7 +1251,7 @@ static GmiInfo* gmiCut(glp_tree *tree, int cut_ord){
   GmiInfo* gmi;
   glp_prob* lp;
 
-  gmi = new GmiInfo(cut_ord);
+  gmi = new GmiInfo(exec_ord, cut_ord);
   loadCut(tree, gmi);
 
   lp = glp_ios_get_prob(tree);
@@ -1239,10 +1314,33 @@ static GmiInfo* gmiCut(glp_tree *tree, int cut_ord){
   return gmi;
 }
 
+static BranchCutInfo* branchCut(glp_tree *tree, int exec_ord, int br_var, double br_val, bool down_bad){
+  //(tree, br_var, br_val, dn < 0);
+  double rhs;
+  Kind k;
+  if(down_bad){
+    // down branch is infeasible
+    // new lower bound
+    k = kind::GEQ;
+    rhs = std::ceil(br_val);
+  }else{
+    // down branch is infeasible
+    // new upper bound
+    k = kind::LEQ;
+    rhs = std::floor(br_val);
+  }
+  BranchCutInfo* br_cut = new BranchCutInfo(exec_ord, br_var, k, rhs);
+  return br_cut;
+}
+
 static void stopAtBingoOrPivotLimit(glp_tree *tree, void *info){
   AuxInfo* aux = (AuxInfo*)(info);
   int pivotLimit = aux->pivotLimit;
   TreeLog& tl = *(aux->tl);
+
+  int exec = tl.getExecutionOrd();
+  int glpk_node_p = -1;
+  int node_ord = -1;
 
   switch(glp_ios_reason(tree)){
   case GLP_IBINGO:
@@ -1251,25 +1349,27 @@ static void stopAtBingoOrPivotLimit(glp_tree *tree, void *info){
   case GLP_ICUTADDED:
     {
       int cut_ord = glp_ios_pool_size(tree);
-      int glpk_node = glp_ios_curr_node(tree);
+      glpk_node_p = glp_ios_curr_node(tree);
+      node_ord = glp_ios_node_ord(tree, glpk_node_p);
       Assert(cut_ord > 0);
       cout << "tree size " << cut_ord << endl;
-      cout << "curr node " << glpk_node << endl;
-      cout << "depth " << glp_ios_node_level(tree, glpk_node) << endl;
+      cout << "curr node " << glpk_node_p << endl;
+      cout << "depth " << glp_ios_node_level(tree, glpk_node_p) << endl;
       int klass;
       glp_ios_get_cut(tree, cut_ord, NULL, NULL, &klass, NULL, NULL);
 
+      NodeLog& node = tl.getNode(node_ord);
       switch(klass){
       case GLP_RF_GMI:
         {
-          GmiInfo* gmi = gmiCut(tree, cut_ord);
-          tl.addCut(glpk_node, gmi);
+          GmiInfo* gmi = gmiCut(tree, exec, cut_ord);
+          node.addCut(gmi);
         }
         break;
       case GLP_RF_MIR:
         {
-          MirInfo* mir = mirCut(tree, cut_ord);
-          tl.addCut(glpk_node, mir);
+          MirInfo* mir = mirCut(tree, exec, cut_ord);
+          node.addCut(mir);
         }
         break;
       case GLP_RF_COV:
@@ -1285,18 +1385,56 @@ static void stopAtBingoOrPivotLimit(glp_tree *tree, void *info){
     break;
   case GLP_ICUTSELECT:
     {
-      int glpk_node = glp_ios_curr_node(tree);
+      glpk_node_p = glp_ios_curr_node(tree);
+      node_ord = glp_ios_node_ord(tree, glpk_node_p);
       int cuts = glp_ios_pool_size(tree);
       int* ords = new int[1+cuts];
       int* rows = new int[1+cuts];
       int N = glp_ios_selected_cuts(tree, ords, rows);
 
-      cout << glpk_node << " " << cuts << " " << N << std::endl;
+      NodeLog& nl = tl.getNode(node_ord);
+      cout << glpk_node_p << " " << node_ord << " " << cuts << " " << N << std::endl;
       for(int i = 1; i <= N; ++i){
-        tl.addSelected(glpk_node, ords[i], rows[i]);
+        nl.addSelected(ords[i], rows[i]);
       }
       delete[] ords;
       delete[] rows;
+    }
+    break;
+  case GLP_LI_BRANCH:
+    {
+      // a branch was just made
+      int br_var;
+      int p, dn, up;
+      int p_ord, dn_ord, up_ord;
+      double br_val;
+      br_var = glp_ios_branch_log(tree, &br_val, &p, &dn, &up);
+      p_ord = glp_ios_node_ord(tree, p);
+      if(dn >= 0){ dn_ord = glp_ios_node_ord(tree, dn); }
+      if(up >= 0){ up_ord = glp_ios_node_ord(tree, up); }
+
+      cout << "branch: "<< br_var << " "  << br_val << " tree " << p << " " << dn << " " << up << endl;
+      cout << "\t " << p_ord << " " << dn_ord << " " << up_ord << endl;
+      if(dn < 0 && up < 0){
+        cout << "branch close" << endl;
+        tl.branchClose(p_ord, br_var, br_val);
+      }else if(dn < 0 || up < 0){
+        cout << "branch cut" << endl;
+        NodeLog& node = tl.getNode(p_ord);
+        BranchCutInfo* cut_br = branchCut(tree, exec, br_var, br_val, dn < 0);
+        node.addCut(cut_br);
+      }else{
+        cout << "normal branch" << endl;
+        tl.branch(p_ord, br_var, br_val, dn_ord, up_ord);
+      }
+    }
+    break;
+  case GLP_LI_CLOSE:
+    {
+      glpk_node_p = glp_ios_curr_node(tree);
+      node_ord = glp_ios_node_ord(tree, glpk_node_p);
+      cout << "close " << glpk_node_p << endl;
+      tl.close(node_ord);
     }
     break;
   default:
@@ -1343,8 +1481,8 @@ ApproximateSimplex::ApproxResult ApproxGLPK::solveMIP(){
 
   for(TreeLog::const_iterator i = d_log.begin(), iend=d_log.end(); i!=iend;++i){
     int nid = (*i).first;
-    const CutsOnNode& con = (*i).second;
-    for(CutsOnNode::const_iterator j = con.begin(),jend=con.end(); j!=jend;++j){
+    const NodeLog& con = (*i).second;
+    for(NodeLog::const_iterator j = con.begin(),jend=con.end(); j!=jend;++j){
       CutInfo* cut = *j;
       tryCut(nid, *cut);
     }
