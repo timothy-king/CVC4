@@ -33,12 +33,12 @@ public:
 
   CutInfoKlass klass;
   int ord;    /* cut's ordinal in the current node pool */
-  //int cut_type;   /* Lowerbound or upperbound. */
   Kind cut_type_;   /* Lowerbound, upperbound or undefined. */
   double cut_rhs; /* right hand side of the cut */
   PrimitiveVec cut_vec; /* vector of the cut */
   int M;     /* the number of rows at the time the cut was made.
              * this is required to descramble indices later*/
+  int N;
 
   int row_id; /* if selected, make this non-zero */
 

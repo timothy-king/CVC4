@@ -252,7 +252,7 @@ inline Node getIdentity(Kind k){
 inline Node safeConstructNary(NodeBuilder<>& nb){
   switch(nb.getNumChildren()){
   case 0:  return getIdentity(nb.getKind());
-  case 1:  return nb[1];
+  case 1:  return nb[0];
   default: return (Node)nb;
   }
 }
