@@ -489,6 +489,10 @@ void ArithVariables::printModel(ArithVar x, std::ostream& out) const{
     out << getUpperBound(x) << " ";
     out << getUpperBoundConstraint(x) << " ";
   }
+
+  if(isInteger(x) && !integralAssignment(x)){
+    out << "(not an integer)" << endl;
+  }
   out << endl;
 }
 

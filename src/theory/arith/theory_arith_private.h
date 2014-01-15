@@ -88,6 +88,9 @@ namespace quantifiers {
 }
 namespace arith {
 
+class TreeLog;
+class ApproximateStatistics;
+
 /**
  * Implementation of QF_LRA.
  * Based upon:
@@ -323,6 +326,20 @@ private:
 
   bool solveRealRelaxation(Theory::Effort effortLevel);
 
+  /* Returns true if this is heuristically a good time to try
+   * to solve the integers.
+   */
+  bool attemptSolveInteger(Theory::Effort effortLevel, bool emmmittedLemmaOrSplit);
+  bool replayLemmas(ApproximateSimplex* approx);
+  bool solveInteger(Theory::Effort effortLevel);
+  SimplexDecisionProcedure& selectSimplex();
+  SimplexDecisionProcedure* d_selectedSDP;
+  /* Sets d_qflraStatus */
+  void importSolution(const ApproximateSimplex::Solution& solution);
+  bool solveRelaxationOrPanic(Theory::Effort effortLevel);
+  context::CDO<int> d_lastContextIntegerAttempted;
+  bool replayLog(ApproximateSimplex* approx);
+
   class ModelException : public Exception {
   public:
     ModelException(TNode n, const char* msg) throw ();
@@ -411,13 +428,25 @@ private:
 
 
   /**
-   * Looks for the next integer variable without an integer assignment in a round robin fashion.
-   * Changes the value of d_nextIntegerCheckVar.
+   * Looks for the next integer variable without an integer assignment in a
+   * round-robin fashion. Changes the value of d_nextIntegerCheckVar.
    *
-   * If this returns false, d_nextIntegerCheckVar does not have an integer assignment.
-   * If this returns true, all integer variables have an integer assignment.
+   * This returns true if all integer variables have integer assignments.
+   * If this returns false, d_nextIntegerCheckVar does not have an integer
+   * assignment.
    */
   bool hasIntegerModel();
+
+  /**
+   * Looks for through the variables starting at d_nextIntegerCheckVar
+   * for the first integer variable that is between its upper and lower bounds
+   * that has a non-integer assignment.
+   *
+   * If assumeBounds is true, skip the check that the variable is in bounds.
+   *
+   * If there is no such variable, returns ARITHVAR_SENTINEL;
+   */
+  ArithVar nextIntegerViolatation(bool assumeBounds) const;
 
   /**
    * Issues branches for non-slack integer variables with non-integer assignments.
@@ -564,6 +593,7 @@ private:
     return (d_containing.d_valuation).getSatValue(n);
   }
 
+  context::CDQueue<Node> d_approxCuts;
 
   /** Counts the number of fullCheck calls to arithmetic. */
   uint32_t d_fullCheckCounter;
@@ -579,6 +609,14 @@ private:
 
   context::CDO<bool> d_guessedCoeffSet;
   ArithRatPairVec d_guessedCoeffs;
+
+
+  TreeLog* d_treeLog;
+  TreeLog& getTreeLog();
+
+  /* Approximate simpplex solvers are given a copy of their stats */
+  ApproximateStatistics* d_approxStats;
+  ApproximateStatistics& getApproxStats();
 
   /** These fields are designed to be accessible to TheoryArith methods. */
   class Statistics {

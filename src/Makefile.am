@@ -368,6 +368,8 @@ libcvc4_la_SOURCES = \
 	theory/arith/arith_unate_lemma_mode.cpp \
 	theory/arith/arith_propagation_mode.h \
 	theory/arith/arith_propagation_mode.cpp \
+	theory/arith/cut_log.h \
+	theory/arith/cut_log.cpp \
 	theory/arith/options_handlers.h \
 	theory/booleans/type_enumerator.h \
 	theory/booleans/theory_bool.h \

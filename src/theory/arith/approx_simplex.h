@@ -13,136 +13,76 @@ namespace CVC4 {
 namespace theory {
 namespace arith {
 
-struct PrimitiveVec {
-  int len;
-  int* inds;
-  double* coeffs;
-  PrimitiveVec();
-  ~PrimitiveVec();
-  bool initialized() const;
-  void clear();
-  void setup(int l);
-  void print(std::ostream& out) const;
+enum LinResult {
+  LinUnknown,  /* Unknown error */
+  LinFeasible, /* Relaxation is feasible */
+  LinInfeasible,   /* Relaxation is infeasible/all integer branches closed */
+  LinExhausted
 };
 
-enum CutInfoKlass{ MirCutKlass, GmiCutKlass, BranchCutKlass, UnknownKlass};
+enum MipResult {
+  MipUnknown,  /* Unknown error */
+  MipBingo,    /* Integer feasible */
+  MipClosed,   /* All integer branches closed */
+  BranchesExhausted, /* Exhausted number of branches */
+  PivotsExhauasted,  /* Exhausted number of pivots */
+  ExecExhausted      /* Exhausted total operations */
+};
+std::ostream& operator<<(std::ostream& out, MipResult res);
 
-class CutInfo {
+class ApproximateStatistics {
 public:
-  int execOrd;
+  IntStat d_relaxCalls;
+  IntStat d_relaxUnknowns;
+  IntStat d_relaxFeasible;
+  IntStat d_relaxInfeasible;
+  IntStat d_relaxPivotsExhausted;
 
-  CutInfoKlass klass;
-  int ord;    /* cut's ordinal in the current node pool */
-  Kind cut_type_;   /* Lowerbound, upperbound or undefined. */
-  double cut_rhs; /* right hand side of the cut */
-  PrimitiveVec cut_vec; /* vector of the cut */
-  int M;     /* the number of rows at the time the cut was made.
-             * this is required to descramble indices later*/
-  int N;
+  IntStat d_mipCalls;
+  IntStat d_mipUnknowns;
+  IntStat d_mipBingo;
+  IntStat d_mipClosed;
+  IntStat d_mipBranchesExhausted;
+  IntStat d_mipPivotsExhausted;
+  IntStat d_mipExecExhausted;
 
-  int row_id; /* if selected, make this non-zero */
 
-  /* if the cut is successfully reproduced this is non-null */
-  Node asLiteral;
-  Node explanation;
+  IntStat d_gmiGen;
+  IntStat d_gmiReplay;
+  IntStat d_mipGen;
+  IntStat d_mipReplay;
 
-  CutInfo(CutInfoKlass kl, int cutid, int ordinal);
+  IntStat d_branchMaxDepth;
+  IntStat d_branchTotal;
+  IntStat d_branchCuts;
+  IntStat d_branchesMaxOnAVar;
 
-  virtual ~CutInfo(){}
-
-  void print(std::ostream& out) const;
-  void init_cut(int l);
-
-  int operator<(const CutInfo& o) const{
-    return execOrd < o.execOrd;
-  }
+  ApproximateStatistics();
+  ~ApproximateStatistics();
 };
+
 
 class TreeLog;
-class NodeLog {
-private:
-  int d_nid;
-  struct CmpCutPointer{
-    int operator()(const CutInfo* a, const CutInfo* b) const{
-      return *a < *b;
-    }
-  };
-  typedef std::set<CutInfo*, CmpCutPointer> CutSet;
-  CutSet d_cuts;
-  std::map<int, int> d_rowIdsSelected;
-
-  enum Status {Open, Closed, Branched};
-  Status stat;
-
-  int br_var; // branching variable
-  double br_val;
-  int dn;
-  int up;
-
-public:
-  NodeLog();
-  NodeLog(int node);
-  ~NodeLog();
-
-  int getNodeId() const;
-  void addSelected(int ord, int sel);
-  void applySelected();
-  void addCut(CutInfo* ci);
-  void print(std::ostream& o) const;
-
-  typedef CutSet::const_iterator const_iterator;
-  const_iterator begin() const { return d_cuts.begin(); }
-  const_iterator end() const { return d_cuts.end(); }
-
-private:
-
-  friend class TreeLog;
-  void closeNode();
-  void setBranchVal(int br, double val);
-  void setChildren(int dn, int up);
-};
-
-class TreeLog {
-private:
-  int next_exec_ord;
-  typedef std::map<int, NodeLog> ToNodeMap;
-  ToNodeMap d_toNode;
-
-public:
-  TreeLog();
-
-  NodeLog& getNode(int nid) {
-    ToNodeMap::iterator i = d_toNode.find(nid);
-    Assert(i != d_toNode.end());
-    return (*i).second;
-  }
-
-  //void addCut(int nid, CutInfo* ci);
-  //void addSelected(int nid, int ord, int sel);
-
-  void branch(int nid, int br, double val, int dn, int up);
-  void branchClose(int nid, int br, double val);
-  void close(int nid);
-
-  void applySelected();
-  void print(std::ostream& o) const;
-
-  typedef ToNodeMap::const_iterator const_iterator;
-  const_iterator begin() const { return d_toNode.begin(); }
-  const_iterator end() const { return d_toNode.end(); }
-
-  int getExecutionOrd(){
-    int res = next_exec_ord;
-    ++next_exec_ord;
-    return res;
-  }
-};
+class ArithVariables;
 
 class ApproximateSimplex{
 protected:
+  const ArithVariables& d_vars;
+  TreeLog& d_log;
+  ApproximateStatistics& d_stats;
+
   int d_pivotLimit;
+  /* the maximum pivots allowed in a query. */
+
   int d_branchLimit;
-  TreeLog d_log;
+  /* maximum branches allowed on a variable */
+
+  int d_maxDepth;
+  /* maxmimum branching depth allowed.*/
+
+  static Integer s_defaultMaxDenom;
+  /* Default denominator for diophatine approximation.
+  * 2^{26}*/
 
 public:
 
@@ -152,31 +92,40 @@ public:
    * If glpk is enabled, return a subclass that can do something.
    * If glpk is disabled, return a subclass that does nothing.
    */
-  static ApproximateSimplex* mkApproximateSimplexSolver(const ArithVariables& vars);
-  ApproximateSimplex();
+  static ApproximateSimplex* mkApproximateSimplexSolver(const ArithVariables& vars, TreeLog& l, ApproximateStatistics& s);
+  ApproximateSimplex(const ArithVariables& v, TreeLog& l, ApproximateStatistics& s);
   virtual ~ApproximateSimplex(){}
 
+  /* the maximum pivots allowed in a query. */
+  void setPivotLimit(int pl);
+
+  /* maximum branches allowed on a variable */
+  void setBranchOnVariableLimit(int bl);
+
+  /* maximum branches allowed on a variable */
+  void setBranchingDepth(int bd);
+
   /** A result is either sat, unsat or unknown.*/
-  enum ApproxResult {ApproxError, ApproxSat, ApproxUnsat};
+  //enum ApproxResult {ApproxError, ApproxSat, ApproxUnsat};
   struct Solution {
     DenseSet newBasis;
     DenseMap<DeltaRational> newValues;
     Solution() : newBasis(), newValues(){}
   };
 
-  /** Sets a deterministic effort limit. */
-  void setPivotLimit(int pivotLimit);
-
   /** Sets a maximization criteria for the approximate solver.*/
   virtual void setOptCoeffs(const ArithRatPairVec& ref) = 0;
 
   virtual ArithRatPairVec heuristicOptCoeffs() const = 0;
 
-  virtual ApproxResult solveRelaxation() = 0;
+  virtual LinResult solveRelaxation() = 0;
   virtual Solution extractRelaxation() const = 0;
 
-  virtual ApproxResult solveMIP() = 0;
+  virtual MipResult solveMIP(bool activelyLog) = 0;
   virtual Solution extractMIP() const = 0;
+
+  virtual std::vector<Node> getValidCuts() = 0;
+  virtual std::vector<Node> getBranches() = 0;
 
   /** UTILITIES FOR DEALING WITH ESTIMATES */
 

@@ -85,8 +85,11 @@ option restrictedPivots --restrict-pivots bool :default true :read-write
 option collectPivots --collect-pivot-stats bool :default false :read-write
  collect the pivot history
 
-option fancyFinal --fancy-final bool :default false :read-write
- tuning how final check works for really hard problems
+option useApprox --use-approx bool :default false :read-write
+ attempt to use an approximate solver
+
+option maxApproxDepth --approx-branch-depth int16_t :default 200 :read-write
+ maximum branch depth the approximate solver is allowed to take
 
 option exportDioDecompositions --dio-decomps bool :default false :read-write
  let skolem variables for integer divisibility constraints leak from the dio solver

@@ -3,6 +3,7 @@
 #include "theory/arith/approx_simplex.h"
 #include "theory/arith/normal_form.h"
 #include "theory/arith/constraint.h"
+#include "theory/arith/cut_log.h"
 #include <math.h>
 #include <cmath>
 #include <map>
@@ -13,8 +14,35 @@ namespace CVC4 {
 namespace theory {
 namespace arith {
 
+struct AuxInfo {
+  TreeLog* tl;
+  int pivotLimit;
+  int branchLimit;
+  int branchDepth;
+  MipResult term; /* terminatation */
+};
+
 enum SlackReplace { SlackUndef=0, SlackLB, SlackUB, SlackVLB, SlackVUB };
 
+std::ostream& operator<<(std::ostream& out, MipResult res){
+  switch(res){
+  case MipUnknown:
+    out << "MipUnknown"; break;
+  case MipBingo:
+    out << "MipBingo"; break;
+  case MipClosed:
+    out << "MipClosed"; break;
+  case BranchesExhausted:
+    out << "BranchesExhausted"; break;
+  case PivotsExhauasted:
+    out << "PivotsExhauasted"; break;
+  case ExecExhausted:
+    out << "ExecExhausted"; break;
+  default:
+    out << "Unexpected Mip Value!"; break;
+  }
+  return out;
+}
 struct VirtualBound {
   // Either x <= d * y or x >= d * y
   ArithVar x; // variable being bounded
@@ -37,15 +65,6 @@ struct VirtualBound {
     , y(bounding)
     , c(orig)
   { Assert(k == kind::LEQ || k == kind::GEQ); }
-};
-
-struct DenseVector {
-  DenseMap<Rational> lhs;
-  Rational rhs;
-  void purge() {
-    lhs.purge();
-    rhs = Rational(0);
-  }
 };
 
 struct CutScratchPad {
@@ -104,217 +123,60 @@ struct CutScratchPad {
     d_explanation.clear();
   }
 };
-
-struct AuxInfo {
-  TreeLog* tl;
-  int pivotLimit;
-  int branchLimit;
-};
-
-PrimitiveVec::PrimitiveVec()
-  : len(0)
-  , inds(NULL)
-  , coeffs(NULL)
-{}
-
-PrimitiveVec::~PrimitiveVec(){
-  clear();
-}
-bool PrimitiveVec::initialized() const {
-  return inds != NULL;
-}
-void PrimitiveVec::clear() {
-  if(initialized()){
-    delete[] inds;
-    delete[] coeffs;
-    len = 0;
-    inds = NULL;
-    coeffs = NULL;
-  }
-}
-void PrimitiveVec::setup(int l){
-  Assert(!initialized());
-  len = l;
-  inds = new int[1+len];
-  coeffs = new double[1+len];
-}
-void PrimitiveVec::print(std::ostream& out) const{
-  Assert(initialized());
-  out << len << " ";
-  for(int i = 1; i <= len; ++i){
-    out << "["<< inds[i] <<", " << coeffs[i]<<"]";
-  }
-  out << endl;
-}
-
-CutInfo::CutInfo(CutInfoKlass kl, int eid, int o)
-  : execOrd(eid)
-  , klass(kl)
-  , ord(o)
-  , cut_type_(kind::UNDEFINED_KIND)
-  , cut_rhs()
-  , cut_vec()
-  , M(-1)
-  , N(-1)
-  , row_id(-1)
-  , asLiteral(Node::null())
-  , explanation(Node::null())
-{}
-
-void CutInfo::print(ostream& out) const{
-  out << ord << " " << cut_type_ << " " << cut_rhs << endl;
-  cut_vec.print(out);
-}
-
-void CutInfo::init_cut(int l){
-  cut_vec.setup(l);
-}
-
-NodeLog::NodeLog()
-  : d_nid(-1)
-  , d_cuts()
-  , d_rowIdsSelected()
-  , stat(Open)
-  , br_var(-1)
-  , br_val(0.0)
-  , dn(-1)
-  , up(-1)
-{}
-
-NodeLog::NodeLog(int node)
-  : d_nid(node)
-  , d_cuts()
-  , d_rowIdsSelected()
-  , stat(Open)
-  , br_var(-1)
-  , br_val(0.0)
-  , dn(-1)
-  , up(-1)
-{}
-
-NodeLog::~NodeLog(){
-  CutSet::iterator i = d_cuts.begin(), iend = d_cuts.end();
-  for(; i != iend; ++i){
-    CutInfo* c = *i;
-    delete c;
-  }
-  d_cuts.clear();
-  Assert(d_cuts.empty());
-}
-
-int NodeLog::getNodeId() const {
-  return d_nid;
-}
-void NodeLog::addSelected(int ord, int sel){
-  d_rowIdsSelected[ord] = sel;
-  cout << "addSelected("<< ord << ", "<< sel << ")" << endl;
-}
-void NodeLog::applySelected() {
-  CutSet::iterator iter = d_cuts.begin(), iend = d_cuts.end(), todelete;
-  while(iter != iend){
-    CutInfo* curr = *iter;
-    if(curr->klass == BranchCutKlass){
-      // skip
-      ++iter;
-    }else if(d_rowIdsSelected.find(curr->ord) == d_rowIdsSelected.end()){
-      todelete = iter;
-      ++iter;
-      d_cuts.erase(todelete);
-      delete curr;
-    }else{
-      curr->row_id = d_rowIdsSelected[curr->ord];
-      ++iter;
-    }
-  }
-}
-
-
-void NodeLog::addCut(CutInfo* ci){
-  Assert(ci != NULL);
-  d_cuts.insert(ci);
-}
-
-void NodeLog::print(ostream& o) const{
-  o << "[n" << getNodeId();
-  for(const_iterator iter = begin(), iend = end(); iter != iend; ++iter ){
-    CutInfo* cut = *iter;
-    o << ", " << cut->ord;
-    if(cut->row_id >= 0){
-      o << " " << cut->row_id;
-    }
-  }
-  o << "]" << std::endl;
-}
-
-void NodeLog::closeNode(){
-  Assert(stat == Open);
-  stat = Closed;
-}
-
-void NodeLog::setBranchVal(int br, double val){
-  Assert(stat == Open);
-  br_var = br; br_val = val;
-}
-void NodeLog::setChildren(int d, int u){
-  Assert(stat == Open);
-  dn = d; up = u;
-  stat = Branched;
-}
-
-TreeLog::TreeLog()
-  : next_exec_ord(0)
-  , d_toNode()
+ApproximateStatistics::ApproximateStatistics()
+  :  d_relaxCalls("theory::arith::approx::relaxCalls",0)
+  ,  d_relaxUnknowns("theory::arith::approx::relaxUnknowns",0)
+  ,  d_relaxFeasible("theory::arith::approx::relaxFeasible",0)
+  ,  d_relaxInfeasible("theory::arith::approx::relaxInfeasible",0)
+  ,  d_relaxPivotsExhausted("theory::arith::approx::relaxPivotsExhausted",0)
+  ,  d_mipCalls("theory::arith::approx::mipCalls",0)
+  ,  d_mipUnknowns("theory::arith::approx::mipUnknowns",0)
+  ,  d_mipBingo("theory::arith::approx::mipBingo",0)
+  ,  d_mipClosed("theory::arith::approx::mipClosed",0)
+  ,  d_mipBranchesExhausted("theory::arith::approx::mipBranchesExhausted",0)
+  ,  d_mipPivotsExhausted("theory::arith::approx::mipPivotsExhausted",0)
+  ,  d_mipExecExhausted("theory::arith::approx::mipExecExhausted",0)
+  ,  d_gmiGen("theory::arith::approx::gmiGen",0)
+  ,  d_gmiReplay("theory::arith::approx::gmiReplay",0)
+  ,  d_mipGen("theory::arith::approx::mipGen",0)
+  ,  d_mipReplay("theory::arith::approx::mipReplay",0)
+  ,  d_branchMaxDepth("theory::arith::approx::branchMaxDepth",0)
+  ,  d_branchTotal("theory::arith::approx::branchTotal",0)
+  ,  d_branchCuts("theory::arith::approx::branchCuts",0)
+  ,  d_branchesMaxOnAVar("theory::arith::approx::branchesMaxOnAVar",0)
 {
-  // add root
-  int rid = 1;
-  d_toNode.insert(make_pair(rid, NodeLog(rid)));
+  StatisticsRegistry::registerStat(&d_relaxCalls);
 }
 
-void TreeLog::branch(int nid, int br, double val, int dn, int up){
-  NodeLog& nl = getNode(nid);
-  nl.setBranchVal(br, val);
-  nl.setChildren(dn, up);
-
-  d_toNode.insert(make_pair(dn, NodeLog(dn)));
-  d_toNode.insert(make_pair(up, NodeLog(up)));
+ApproximateStatistics::~ApproximateStatistics(){
+  StatisticsRegistry::unregisterStat(&d_relaxCalls);
 }
 
-void TreeLog::close(int nid){
-  NodeLog& nl = getNode(nid);
-  nl.closeNode();
-}
+Integer ApproximateSimplex::s_defaultMaxDenom(1<<26);
 
-void TreeLog::branchClose(int nid, int br, double val){
-  NodeLog& nl = getNode(nid);
-  nl.setBranchVal(br, val);
-  nl.closeNode();
-}
-
-
-void TreeLog::applySelected() {
-  std::map<int, NodeLog>::iterator iter, end;
-  for(iter = d_toNode.begin(), end = d_toNode.end(); iter != end; ++iter){
-    NodeLog& onNode = (*iter).second;
-    onNode.applySelected();
-  }
-}
-
-void TreeLog::print(ostream& o) const{
-  o << "TreeLog: " << d_toNode.size() << std::endl;
-  for(const_iterator iter = begin(), iend = end(); iter != iend; ++iter){
-    const NodeLog& onNode = (*iter).second;
-    onNode.print(o);
-  }
-}
-
-
-ApproximateSimplex::ApproximateSimplex() :
-  d_pivotLimit(std::numeric_limits<int>::max())
+ApproximateSimplex::ApproximateSimplex(const ArithVariables& v, TreeLog& l,
+                                       ApproximateStatistics& s)
+  : d_vars(v)
+  , d_log(l)
+  , d_stats(s)
+  , d_pivotLimit(std::numeric_limits<int>::max())
+  , d_branchLimit(std::numeric_limits<int>::max())
+  , d_maxDepth(std::numeric_limits<int>::max())
 {}
 
 void ApproximateSimplex::setPivotLimit(int pivotLimit){
   Assert(pivotLimit >= 0);
   d_pivotLimit = pivotLimit;
+}
+
+void ApproximateSimplex::setBranchingDepth(int bd){
+  Assert(pivotLimit >= 0);
+  d_maxDepth = bd;
+}
+
+void ApproximateSimplex::setBranchOnVariableLimit(int bl){
+  Assert(pivotLimit >= 0);
+  d_branchLimit = bl;
 }
 
 const double ApproximateSimplex::SMALL_FIXED_DELTA = .000000001;
@@ -440,17 +302,18 @@ Rational ApproximateSimplex::estimateWithCFE(const Rational& r, const Integer& K
 }
 
 Rational ApproximateSimplex::estimateWithCFE(double d){
-  Integer maxInt(1<<26);
-  return estimateWithCFE(Rational::fromDouble(d), maxInt);
+  return estimateWithCFE(Rational::fromDouble(d), s_defaultMaxDenom);
 }
 
 class ApproxNoOp : public ApproximateSimplex {
 public:
-  ApproxNoOp(const ArithVariables& vars){}
+  ApproxNoOp(const ArithVariables& v, TreeLog& l, ApproximateStatistics& s)
+  : ApproximateSimplex(v,l,s)
+  {}
   ~ApproxNoOp(){}
 
-  virtual ApproxResult solveRelaxation(){
-    return ApproxError;
+  virtual LinResult solveRelaxation(){
+    return LinUnknown;
   }
   virtual Solution extractRelaxation() const{
     return Solution();
@@ -460,14 +323,19 @@ public:
     return ArithRatPairVec();
   }
 
-  virtual ApproxResult solveMIP(){
-    return ApproxError;
+  virtual MipResult solveMIP(bool al){
+    return MipUnknown;
   }
   virtual Solution extractMIP() const{
     return Solution();
   }
 
   virtual void setOptCoeffs(const ArithRatPairVec& ref){}
+  virtual std::vector<Node> getValidCuts(){
+    std::vector<Node> res;
+    return res;
+  }
+
 };
 
 }/* CVC4::theory::arith namespace */
@@ -508,7 +376,6 @@ class BranchCutInfo;
 class ApproxGLPK : public ApproximateSimplex {
 private:
   glp_prob* d_prob;
-  const ArithVariables& d_vars;
 
   DenseMap<int> d_colIndices;
   DenseMap<int> d_rowIndices;
@@ -528,23 +395,29 @@ private:
   std::pair<Node, Node> d_failedAttempt;
 
 public:
-  ApproxGLPK(const ArithVariables& vars);
+  ApproxGLPK(const ArithVariables& v, TreeLog& l, ApproximateStatistics& s);
   ~ApproxGLPK();
 
-  virtual ApproxResult solveRelaxation();
+  virtual LinResult solveRelaxation();
   virtual Solution extractRelaxation() const{
     return extractSolution(false);
   }
 
   virtual ArithRatPairVec heuristicOptCoeffs() const;
 
-  virtual ApproxResult solveMIP();
+  virtual MipResult solveMIP(bool al);
   virtual Solution extractMIP() const{
     return extractSolution(true);
   }
   virtual void setOptCoeffs(const ArithRatPairVec& ref);
+  virtual std::vector<Node> getValidCuts();
+  virtual std::vector<Node> getBranches();
+
+  Node downBranchLiteral(const NodeLog& con) const;
 
   static void printGLPKStatus(int status, std::ostream& out);
+
+
 private:
   Solution extractSolution(bool mip) const;
   int guessDir(ArithVar v) const;
@@ -632,11 +505,11 @@ int ApproxGLPK::s_verbosity = 1;
 namespace CVC4 {
 namespace theory {
 namespace arith {
-ApproximateSimplex* ApproximateSimplex::mkApproximateSimplexSolver(const ArithVariables& vars){
+ApproximateSimplex* ApproximateSimplex::mkApproximateSimplexSolver(const ArithVariables& vars, TreeLog& l, ApproximateStatistics& s){
 #ifdef CVC4_USE_GLPK
-  return new ApproxGLPK(vars);
+  return new ApproxGLPK(vars, l, s);
 #else
-  return new ApproxNoOp(vars);
+  return new ApproxNoOp(vars, l, s);
 #endif
 }
 bool ApproximateSimplex::enabled() {
@@ -668,8 +541,8 @@ static CutInfoKlass fromGlpkClass(int klass){
   }
 }
 
-ApproxGLPK::ApproxGLPK(const ArithVariables& avars)
-  : d_vars(avars)
+ApproxGLPK::ApproxGLPK(const ArithVariables& v, TreeLog& l, ApproximateStatistics& s)
+  : ApproximateSimplex(v, l, s)
   , d_solvedRelaxation(false)
   , d_solvedMIP(false)
   , d_failedAttempt(make_pair(Node::null(), Node::null()))
@@ -693,12 +566,12 @@ ApproxGLPK::ApproxGLPK(const ArithVariables& avars)
       ++numRows;
       d_rowIndices.set(v, numRows);
       d_rowToArithVar.set(numRows, v);
-      cout << "Row vars: " << v << "<->" << numRows << endl;
+      //cout << "Row vars: " << v << "<->" << numRows << endl;
     }else{
       ++numCols;
       d_colIndices.set(v, numCols);
       d_colToArithVar.set(numCols, v);
-      cout << "Col vars: " << v << "<->" << numCols << endl;
+      //cout << "Col vars: " << v << "<->" << numCols << endl;
     }
   }
   glp_add_rows(d_prob, numRows);
@@ -1170,7 +1043,7 @@ ApproximateSimplex::Solution ApproxGLPK::extractSolution(bool mip) const{
   return sol;
 }
 
-ApproximateSimplex::ApproxResult ApproxGLPK::solveRelaxation(){
+LinResult ApproxGLPK::solveRelaxation(){
   Assert(!d_solvedRelaxation);
 
   glp_smcp parm;
@@ -1189,22 +1062,28 @@ ApproximateSimplex::ApproxResult ApproxGLPK::solveRelaxation(){
   case 0:
     {
       int status = glp_get_status(d_prob);
+      int iterationcount = glp_get_it_cnt(d_prob);
       switch(status){
       case GLP_OPT:
       case GLP_FEAS:
       case GLP_UNBND:
         d_solvedRelaxation = true;
-        return ApproxSat;
+        return LinFeasible;
       case GLP_INFEAS:
       case GLP_NOFEAS:
         d_solvedRelaxation = true;
-        return ApproxUnsat;
+        return LinInfeasible;
       default:
-        return ApproxError;
+        {
+          if(iterationcount >= d_pivotLimit){
+            return LinExhausted;
+          }
+          return LinUnknown;
+        }
       }
     }
   default:
-    return ApproxError;
+    return LinUnknown;
   }
 }
 
@@ -1462,71 +1341,68 @@ static BranchCutInfo* branchCut(glp_tree *tree, int exec_ord, int br_var, double
   return br_cut;
 }
 
-static void stopAtBingoOrPivotLimit(glp_tree *tree, void *info){
+static void glpkCallback(glp_tree *tree, void *info){
   AuxInfo* aux = (AuxInfo*)(info);
-  int pivotLimit = aux->pivotLimit;
   TreeLog& tl = *(aux->tl);
 
   int exec = tl.getExecutionOrd();
   int glpk_node_p = -1;
   int node_ord = -1;
 
-  switch(glp_ios_reason(tree)){
-  case GLP_IBINGO:
-    glp_ios_terminate(tree);
-    break;
-  case GLP_ICUTADDED:
-    {
-      int cut_ord = glp_ios_pool_size(tree);
-      glpk_node_p = glp_ios_curr_node(tree);
-      node_ord = glp_ios_node_ord(tree, glpk_node_p);
-      Assert(cut_ord > 0);
-      cout << "tree size " << cut_ord << endl;
-      cout << "curr node " << glpk_node_p << endl;
-      cout << "depth " << glp_ios_node_level(tree, glpk_node_p) << endl;
-      int klass;
-      glp_ios_get_cut(tree, cut_ord, NULL, NULL, &klass, NULL, NULL);
+  if(tl.isActivelyLogging()){
+    switch(glp_ios_reason(tree)){
+    case GLP_ICUTADDED:
+      {
+        int cut_ord = glp_ios_pool_size(tree);
+        glpk_node_p = glp_ios_curr_node(tree);
+        node_ord = glp_ios_node_ord(tree, glpk_node_p);
+        Assert(cut_ord > 0);
+        cout << "tree size " << cut_ord << endl;
+        cout << "curr node " << glpk_node_p << endl;
+        cout << "depth " << glp_ios_node_level(tree, glpk_node_p) << endl;
+        int klass;
+        glp_ios_get_cut(tree, cut_ord, NULL, NULL, &klass, NULL, NULL);
 
-      NodeLog& node = tl.getNode(node_ord);
-      switch(klass){
-      case GLP_RF_GMI:
-        {
-          GmiInfo* gmi = gmiCut(tree, exec, cut_ord);
-          node.addCut(gmi);
+        NodeLog& node = tl.getNode(node_ord);
+        switch(klass){
+        case GLP_RF_GMI:
+          {
+            GmiInfo* gmi = gmiCut(tree, exec, cut_ord);
+            node.addCut(gmi);
+          }
+          break;
+        case GLP_RF_MIR:
+          {
+            MirInfo* mir = mirCut(tree, exec, cut_ord);
+            node.addCut(mir);
+          }
+          break;
+        case GLP_RF_COV:
+          cout << "GLP_RF_COV" << endl;
+          break;
+        case GLP_RF_CLQ:
+          cout << "GLP_RF_CLQ" << endl;
+          break;
+        default:
+          break;
         }
-        break;
-      case GLP_RF_MIR:
-        {
-          MirInfo* mir = mirCut(tree, exec, cut_ord);
-          node.addCut(mir);
-        }
-        break;
-      case GLP_RF_COV:
-        cout << "GLP_RF_COV" << endl;
-        break;
-      case GLP_RF_CLQ:
-        cout << "GLP_RF_CLQ" << endl;
-        break;
-      default:
-        break;
       }
-    }
-    break;
-  case GLP_ICUTSELECT:
-    {
-      glpk_node_p = glp_ios_curr_node(tree);
-      node_ord = glp_ios_node_ord(tree, glpk_node_p);
-      int cuts = glp_ios_pool_size(tree);
-      int* ords = new int[1+cuts];
-      int* rows = new int[1+cuts];
-      int N = glp_ios_selected_cuts(tree, ords, rows);
+      break;
+    case GLP_ICUTSELECT:
+      {
+        glpk_node_p = glp_ios_curr_node(tree);
+        node_ord = glp_ios_node_ord(tree, glpk_node_p);
+        int cuts = glp_ios_pool_size(tree);
+        int* ords = new int[1+cuts];
+        int* rows = new int[1+cuts];
+        int N = glp_ios_selected_cuts(tree, ords, rows);
 
-      NodeLog& nl = tl.getNode(node_ord);
-      cout << glpk_node_p << " " << node_ord << " " << cuts << " " << N << std::endl;
-      for(int i = 1; i <= N; ++i){
-        nl.addSelected(ords[i], rows[i]);
-      }
-      delete[] ords;
+        NodeLog& nl = tl.getNode(node_ord);
+        cout << glpk_node_p << " " << node_ord << " " << cuts << " " << N << std::endl;
+        for(int i = 1; i <= N; ++i){
+          nl.addSelected(ords[i], rows[i]);
+        }
+        delete[] ords;
       delete[] rows;
     }
     break;
@@ -1539,8 +1415,9 @@ static void stopAtBingoOrPivotLimit(glp_tree *tree, void *info){
       double br_val;
       br_var = glp_ios_branch_log(tree, &br_val, &p, &dn, &up);
       p_ord = glp_ios_node_ord(tree, p);
-      if(dn >= 0){ dn_ord = glp_ios_node_ord(tree, dn); }
-      if(up >= 0){ up_ord = glp_ios_node_ord(tree, up); }
+
+      dn_ord = (dn >= 0) ? glp_ios_node_ord(tree, dn) : -1;
+      up_ord = (up >= 0) ? glp_ios_node_ord(tree, up) : -1;
 
       cout << "branch: "<< br_var << " "  << br_val << " tree " << p << " " << dn << " " << up << endl;
       cout << "\t " << p_ord << " " << dn_ord << " " << up_ord << endl;
@@ -1558,19 +1435,58 @@ static void stopAtBingoOrPivotLimit(glp_tree *tree, void *info){
       }
     }
     break;
-  case GLP_LI_CLOSE:
-    {
-      glpk_node_p = glp_ios_curr_node(tree);
-      node_ord = glp_ios_node_ord(tree, glpk_node_p);
-      cout << "close " << glpk_node_p << endl;
-      tl.close(node_ord);
+    case GLP_LI_CLOSE:
+      {
+        glpk_node_p = glp_ios_curr_node(tree);
+        node_ord = glp_ios_node_ord(tree, glpk_node_p);
+        cout << "close " << glpk_node_p << endl;
+        tl.close(node_ord);
+      }
+      break;
+    default:
+      break;
     }
+  }
+
+  switch(glp_ios_reason(tree)){
+  case GLP_IBINGO:
+    cout << "bingo" << endl;
+    aux->term = MipBingo;
+    glp_ios_terminate(tree);
+    break;
+  case GLP_ICUTADDED:
+    {
+      tl.addCut();
+    }
+    break;
+  case GLP_LI_BRANCH:
+    {
+      int p, dn, up;
+      int br_var = glp_ios_branch_log(tree, NULL, &p, &dn, &up);
+
+      if(br_var >= 0){
+        unsigned v = br_var;
+        tl.logBranch(v);
+        int depth = glp_ios_node_level(tree, p);
+        if(tl.numBranches(v) >= (aux->branchLimit)
+           || depth >= (aux->branchDepth)){
+          aux->term = BranchesExhausted;
+          glp_ios_terminate(tree);
+        }
+      }
+    }
+    break;
+  case GLP_LI_CLOSE:
     break;
   default:
     {
       glp_prob* prob = glp_ios_get_prob(tree);
       int iterationcount = glp_get_it_cnt(prob);
-      if(iterationcount > pivotLimit){
+      if(exec > (aux->pivotLimit)){
+        aux->term = ExecExhausted;
+        glp_ios_terminate(tree);
+      }else if(iterationcount > (aux->pivotLimit)){
+        aux->term = PivotsExhauasted;
         glp_ios_terminate(tree);
       }
     }
@@ -1578,7 +1494,61 @@ static void stopAtBingoOrPivotLimit(glp_tree *tree, void *info){
   }
 }
 
-ApproximateSimplex::ApproxResult ApproxGLPK::solveMIP(){
+std::vector<Node> ApproxGLPK::getValidCuts(){
+  std::vector<Node> imps;
+  d_log.applySelected();
+  for(TreeLog::const_iterator i = d_log.begin(), iend=d_log.end(); i!=iend;++i){
+    int nid = (*i).first;
+    const NodeLog& con = (*i).second;
+    for(NodeLog::const_iterator j = con.begin(),jend=con.end(); j!=jend;++j){
+      CutInfo* cut = *j;
+      tryCut(nid, *cut);
+
+      if(!cut->asLiteral.isNull()){
+        if(!cut->explanation.isNull()){
+          Node imp = (cut->explanation).impNode(cut->asLiteral);
+          imps.push_back(imp);
+        }
+      }
+    }
+  }
+
+  return imps;
+}
+
+Node ApproxGLPK::downBranchLiteral(const NodeLog& con) const{
+  int br_var = con.branchVariable();
+  ArithVar v = getArithVarFromStructural(br_var);
+  if(v != ARITHVAR_SENTINEL){
+    if(!d_vars.isSlack(v) && d_vars.isInteger(v) && d_vars.hasNode(v)){
+      Node var = d_vars.asNode(v);
+      double br_val = con.branchValue();
+      Rational val = estimateWithCFE(br_val);
+      if(!val.isIntegral()){
+        NodeManager* nm = NodeManager::currentNM();
+        Node ineq = nm->mkNode(kind::LEQ, var, mkRationalNode(val));
+        return Rewriter::rewrite(ineq);
+      }
+    }
+  }
+  return Node::null();
+}
+
+std::vector<Node> ApproxGLPK::getBranches(){
+  std::vector<Node> branches;
+  for(TreeLog::const_iterator i = d_log.begin(), iend=d_log.end(); i!=iend;++i){
+    const NodeLog& con = (*i).second;
+    if(con.isBranch()){
+      Node lit = downBranchLiteral(con);
+      if(!lit.isNull()){
+        branches.push_back(lit);
+      }
+    }
+  }
+  return branches;
+}
+
+MipResult ApproxGLPK::solveMIP(bool activelyLog){
   Assert(d_solvedRelaxation);
   // Explicitly disable presolving
   // We need the basis thus the presolver must be off!
@@ -1586,7 +1556,16 @@ ApproximateSimplex::ApproxResult ApproxGLPK::solveMIP(){
   AuxInfo aux;
   aux.pivotLimit = d_pivotLimit;
   aux.branchLimit = d_branchLimit;
+  aux.branchDepth = d_maxDepth;
   aux.tl = &d_log;
+  aux.term = MipUnknown;
+
+  d_log.clear();
+  if(activelyLog){
+    d_log.makeActive();
+  }else{
+    d_log.makeInactive();
+  }
 
   glp_iocp parm;
   glp_init_iocp(&parm);
@@ -1596,7 +1575,7 @@ ApproximateSimplex::ApproxResult ApproxGLPK::solveMIP(){
   parm.gmi_cuts = GLP_ON;
   parm.mir_cuts = GLP_ON;
   parm.cov_cuts = GLP_ON;
-  parm.cb_func = stopAtBingoOrPivotLimit;
+  parm.cb_func = glpkCallback;
   parm.cb_info = &aux;
   parm.msg_lev = GLP_MSG_OFF;
   if(s_verbosity >= 1){
@@ -1604,38 +1583,34 @@ ApproximateSimplex::ApproxResult ApproxGLPK::solveMIP(){
   }
   int res = glp_intopt(d_prob, &parm);
 
-  d_log.print(cout);
-  d_log.applySelected();
-  d_log.print(cout);
-
-  for(TreeLog::const_iterator i = d_log.begin(), iend=d_log.end(); i!=iend;++i){
-    int nid = (*i).first;
-    const NodeLog& con = (*i).second;
-    for(NodeLog::const_iterator j = con.begin(),jend=con.end(); j!=jend;++j){
-      CutInfo* cut = *j;
-      tryCut(nid, *cut);
-    }
-  }
+  cout << "res " << res
+       << " aux.term " << aux.term << " bingo: " << MipBingo << endl;
 
   switch(res){
   case 0:
   case GLP_ESTOP:
     {
       int status = glp_mip_status(d_prob);
+      cout << "status " << status << endl;
       switch(status){
       case GLP_OPT:
       case GLP_FEAS:
         d_solvedMIP = true;
-        return ApproxSat;
+        cout << "bingo here!" << endl;
+        return MipBingo;
       case GLP_NOFEAS:
         d_solvedMIP = true;
-        return ApproxUnsat;
+        return MipClosed;
       default:
-        return ApproxError;
+        if(aux.term == MipBingo){
+          d_solvedMIP = true;
+          cout << "bingo here?" << endl;
+        }
+        return aux.term;
       }
     }
   default:
-    return ApproxError;
+    return MipUnknown;
   }
 }
 
@@ -2116,7 +2091,7 @@ bool ApproxGLPK::loadVB(int nid, int M, int j, int ri, bool wantUb, VirtualBound
 
   static int instance = 0;
   ++instance;
-  cout << "loadVB() " << instance << endl;
+  Debug("glpk::loadVB") << "loadVB() " << instance << endl;
 
   ArithVar rowVar = _getArithVar(nid, M, ri);
   ArithVar contVar = _getArithVar(nid, M, j);
@@ -2154,22 +2129,24 @@ bool ApproxGLPK::loadVB(int nid, int M, int j, int ri, bool wantUb, VirtualBound
   Assert(!c1.isZero());
   Assert(!c2.isZero());
 
-  cout << " lb " << lb
-       << " ub " << ub
-       << " rcon " << rcon
-       << " x1 " << x1
-       << " x2 " << x2
-       << " c1 " << c1
-       << " c2 " << c2 << endl;
+  Debug("glpk::loadVB")
+    << " lb " << lb
+    << " ub " << ub
+    << " rcon " << rcon
+    << " x1 " << x1
+    << " x2 " << x2
+    << " c1 " << c1
+    << " c2 " << c2 << endl;
 
   ArithVar iv = (x1 == contVar) ? x2 : x1;
   Rational& cc = (x1 == contVar) ? c1 : c2;
   Rational& ic = (x1 == contVar) ? c2 : c1;
 
-  cout << " cv " << contVar
-       << " cc " << cc
-       << " iv " << iv
-       << " c2 " << ic << endl;
+  Debug("glpk::loadVB")
+    << " cv " << contVar
+    << " cc " << cc
+    << " iv " << iv
+    << " c2 " << ic << endl;
 
   if(!d_vars.isInteger(iv)){ return true; }
   // cc * cv + ic * iv <= 0 or
@@ -2178,10 +2155,10 @@ bool ApproxGLPK::loadVB(int nid, int M, int j, int ri, bool wantUb, VirtualBound
   if(rcon == ub){ // multiply by -1
     cc = -cc; ic = - ic;
   }
-  cout << " cv " << contVar
-       << " cc " << cc
-       << " iv " << iv
-       << " c2 " << ic << endl;
+  Debug("glpk::loadVB") << " cv " << contVar
+                        << " cc " << cc
+                        << " iv " << iv
+                        << " c2 " << ic << endl;
 
   // cc * cv + ic * iv >= 0
   // cc * cv >= -ic * iv
@@ -2191,7 +2168,7 @@ bool ApproxGLPK::loadVB(int nid, int M, int j, int ri, bool wantUb, VirtualBound
   //   cv >= -ic/cc * iv
   Assert(!cc.isZero());
   Rational d = -ic/cc;
-  cout << d << " " << cc.sgn() << endl;
+  Debug("glpk::loadVB") << d << " " << cc.sgn() << endl;
   bool nowUb = cc.sgn() < 0;
   if(wantUb != nowUb) { return true; }
 
