@@ -88,6 +88,7 @@ namespace quantifiers {
 }
 namespace arith {
 
+class BranchCutInfo;
 class TreeLog;
 class ApproximateStatistics;
 
@@ -517,6 +518,10 @@ private:
   bool attemptFull(RowIndex ridx, bool rowUp);
   bool tryToPropagate(RowIndex ridx, bool rowUp, ArithVar v, bool vUp, const DeltaRational& bound);
   bool rowImplicationCanBeApplied(RowIndex ridx, bool rowUp, Constraint bestImplied);
+  void enqueueConstraints(std::vector<Constraint>& out, Node n) const;
+  Node resolveOutPropagated(Node conf, const std::set<Constraint>& propagated) const;
+  void resolveOutPropagated(std::vector<Node>& confs, const std::set<Constraint>& propagated) const;
+
 
 
   void propagateCandidates();
@@ -617,6 +622,12 @@ private:
   /* Approximate simpplex solvers are given a copy of their stats */
   ApproximateStatistics* d_approxStats;
   ApproximateStatistics& getApproxStats();
+
+  void tryBranchCut(ApproximateSimplex* approx, int nid, BranchCutInfo& bl);
+  std::vector<Node> replayLogRec(ApproximateSimplex* approx, int nid, Node bl);
+  Constraint replayGetConstraint(Node lit);
+  void replayAssert(Constraint c);
+  std::vector<Constraint> toExplanation(Node n) const;
 
   /** These fields are designed to be accessible to TheoryArith methods. */
   class Statistics {

@@ -62,8 +62,10 @@ public:
 };
 
 
+class NodeLog;
 class TreeLog;
 class ArithVariables;
+class CutInfo;
 
 class ApproximateSimplex{
 protected:
@@ -126,6 +128,10 @@ public:
 
   virtual std::vector<Node> getValidCuts() = 0;
   virtual std::vector<Node> getBranches() = 0;
+
+  virtual Node downBranchLiteral(const NodeLog& con) const = 0;
+
+  virtual void tryCut(int nid, CutInfo& cut) = 0;
 
   /** UTILITIES FOR DEALING WITH ESTIMATES */
 

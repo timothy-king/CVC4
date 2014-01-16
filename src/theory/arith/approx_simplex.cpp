@@ -164,18 +164,18 @@ ApproximateSimplex::ApproximateSimplex(const ArithVariables& v, TreeLog& l,
   , d_maxDepth(std::numeric_limits<int>::max())
 {}
 
-void ApproximateSimplex::setPivotLimit(int pivotLimit){
-  Assert(pivotLimit >= 0);
-  d_pivotLimit = pivotLimit;
+void ApproximateSimplex::setPivotLimit(int pl){
+  Assert(pl >= 0);
+  d_pivotLimit = pl;
 }
 
 void ApproximateSimplex::setBranchingDepth(int bd){
-  Assert(pivotLimit >= 0);
+  Assert(bd >= 0);
   d_maxDepth = bd;
 }
 
 void ApproximateSimplex::setBranchOnVariableLimit(int bl){
-  Assert(pivotLimit >= 0);
+  Assert(bl >= 0);
   d_branchLimit = bl;
 }
 
@@ -336,6 +336,9 @@ public:
     return res;
   }
 
+  virtual void tryCut(int nid, CutInfo& cut){}
+
+
 };
 
 }/* CVC4::theory::arith namespace */
@@ -491,6 +494,7 @@ private:
   bool constructMixedKnapsack();
   bool replaceSlacksOnCuts();
   bool loadVB(int nid, int M, int j, int ri, bool wantUb, VirtualBound& tmp);
+
 };
 
 int ApproxGLPK::s_verbosity = 1;
@@ -1177,17 +1181,6 @@ struct GmiInfo : public CutInfo {
   }
 };
 
-struct BranchCutInfo : public CutInfo {
-  BranchCutInfo(int execOrd, int br,  Kind dir, double val)
-    : CutInfo(BranchCutKlass, execOrd, 0)
-  {
-    init_cut(1);
-    cut_vec.inds[1] = br;
-    cut_vec.coeffs[1] = +1.0;
-    cut_rhs = val;
-    cut_type_ = dir;
-  }
-};
 
 
 static void loadCut(glp_tree *tree, CutInfo* cut){
@@ -1423,7 +1416,10 @@ static void glpkCallback(glp_tree *tree, void *info){
       cout << "\t " << p_ord << " " << dn_ord << " " << up_ord << endl;
       if(dn < 0 && up < 0){
         cout << "branch close" << endl;
-        tl.branchClose(p_ord, br_var, br_val);
+        NodeLog& node = tl.getNode(p_ord);
+        BranchCutInfo* cut_br = branchCut(tree, exec, br_var, br_val, dn < 0);
+        node.addCut(cut_br);
+        tl.close(p_ord);
       }else if(dn < 0 || up < 0){
         cout << "branch cut" << endl;
         NodeLog& node = tl.getNode(p_ord);
@@ -1468,8 +1464,8 @@ static void glpkCallback(glp_tree *tree, void *info){
         unsigned v = br_var;
         tl.logBranch(v);
         int depth = glp_ios_node_level(tree, p);
-        if(tl.numBranches(v) >= (aux->branchLimit)
-           || depth >= (aux->branchDepth)){
+        unsigned ubl =  (aux->branchLimit) >= 0 ? ((unsigned)(aux->branchLimit)) : 0u;
+        if(tl.numBranches(v) >= ubl || depth >= (aux->branchDepth)){
           aux->term = BranchesExhausted;
           glp_ios_terminate(tree);
         }

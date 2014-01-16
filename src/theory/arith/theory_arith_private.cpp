@@ -134,6 +134,50 @@ TheoryArithPrivate::~TheoryArithPrivate(){
   if(d_approxStats != NULL) { delete d_approxStats; }
 }
 
+static TNode cancelNegations(TNode x){
+  TNode curr = x;
+  while(curr.getKind() == kind::NOT){
+    curr = curr[0];
+  }
+  return curr;
+}
+
+static bool equalUpToNegation(Node n, Node x){
+  TNode nn = cancelNegations(n);
+  TNode nx = cancelNegations(x);
+
+  return nn == nx;
+}
+static unsigned posInNodeUpToNegation(Node n, Node x){
+  for(unsigned i = 0; i < n.getNumChildren(); ++i){
+    if(equalUpToNegation(n[i], x)){
+      return i;
+    }
+  }
+  return n.getNumChildren();
+}
+
+
+void dropPosition(NodeBuilder<>& nb, Node n, unsigned pos){
+  for(unsigned i = 0, N = n.getNumChildren(); i < N; ++i){
+    if(i != pos){
+      nb << n[i];
+    }
+  }
+}
+
+Node resolve(Node dnconf, unsigned dnpos, Node upconf, unsigned uppos){
+  Assert(dnconf.getKind() == kind::AND);
+  Assert(upconf.getKind() == kind::AND);
+  Assert(dnpos < dnconf.getNumChildren());
+  Assert(uppos < upconf.getNumChildren());
+  Assert(equalUpToNegation(dnconf[dnpos], upconf[uppos]));
+
+  NodeBuilder<> nb(kind::AND);
+  dropPosition(nb, dnconf, dnpos);
+  dropPosition(nb, upconf, uppos);
+  return safeConstructNary(nb);
+}
 
 void TheoryArithPrivate::setMasterEqualityEngine(eq::EqualityEngine* eq) {
   d_congruenceManager.setMasterEqualityEngine(eq);
@@ -1720,6 +1764,15 @@ void TheoryArithPrivate::branchVector(const std::vector<ArithVar>& lemmas){
 }
 
 bool TheoryArithPrivate::attemptSolveInteger(Theory::Effort effortLevel, bool emmmittedLemmaOrSplit){
+  int level = getSatContext()->getLevel();
+  cout << "attemptSolveInteger " << d_qflraStatus
+       << " " << emmmittedLemmaOrSplit
+       << " " << effortLevel
+       << " " << d_lastContextIntegerAttempted
+       << " " << level
+       << " " << hasIntegerModel()
+       << endl;
+  if(d_qflraStatus == Result::UNSAT){ return false; }
   if(emmmittedLemmaOrSplit){ return false; }
   if(!(options::useApprox() && ApproximateSimplex::enabled())){ return false; }
 
@@ -1727,15 +1780,302 @@ bool TheoryArithPrivate::attemptSolveInteger(Theory::Effort effortLevel, bool em
     return true;
   }
 
-  if(d_lastContextIntegerAttempted <= 8){
+  if(d_lastContextIntegerAttempted <= 0){
     return true;
   }
-  int level = getSatContext()->getLevel();
   return (d_lastContextIntegerAttempted <= (level >> 2));
 }
 
 bool TheoryArithPrivate::replayLog(ApproximateSimplex* approx){
-  Unimplemented();
+#warning "garbage collect created arithvars"
+
+  Assert(!inConflict());
+  TreeLog& tl = getTreeLog();
+  std::vector<Node> res = replayLogRec(approx, tl.getRootId(), Node::null());
+
+  for(size_t i =0, N = res.size(); i < N; ++i){
+    raiseConflict(res[i]);
+  }
+  return inConflict();
+}
+
+Constraint TheoryArithPrivate::replayGetConstraint(Node branchLit){
+  Node brAtom = branchLit.getKind() == kind::NOT ? branchLit[0] : branchLit;
+  if(!isSetup(brAtom)){
+    setupAtom(brAtom);
+  }
+  Constraint constraint = d_constraintDatabase.lookup(branchLit);
+  Assert(constraint != NullConstraint);
+  return constraint;
+}
+
+void TheoryArithPrivate::tryBranchCut(ApproximateSimplex* approx, int nid, BranchCutInfo& bci){
+  Assert(d_conflicts.empty());
+  std::vector<Node> conflicts;
+
+  approx->tryCut(nid, bci);
+  Node bl = bci.asLiteral;
+  Assert(!bl.isNull());
+  Constraint bc = replayGetConstraint(bl);
+  {
+    context::Context::ScopedPush speculativePush(getSatContext());
+    replayAssert(bc);
+    if(!inConflict()){
+      //test for linear feasibility
+      d_partialModel.stopQueueingBoundCounts();
+      UpdateTrackingCallback utcb(&d_linEq);
+      d_partialModel.processBoundsQueue(utcb);
+      d_linEq.startTrackingBoundCounts();
+
+      SimplexDecisionProcedure& simplex = selectSimplex();
+      simplex.findModel(false);
+
+      d_linEq.stopTrackingBoundCounts();
+      d_partialModel.startQueueingBoundCounts();
+    }
+    for(size_t i = 0, N = d_conflicts.size(); i < N; ++i){
+      conflicts.push_back(d_conflicts[i]);
+    }
+  }
+
+  cout << "branch literal " << bl << endl;
+  for(size_t i = 0, N = conflicts.size(); i < N; ++i){
+    Node conf = conflicts[i];
+    size_t pos = posInNodeUpToNegation(conf, bl);
+    if(pos >= conf.getNumChildren()){
+      cout << "reraise " << conf  << endl;
+      raiseConflict(conf);
+    }else if(bci.explanation.isNull()){
+      NodeBuilder<> nb(kind::AND);
+      dropPosition(nb, conf, pos);
+      Node dropped = safeConstructNary(nb);
+      cout << "dropped " << dropped  << endl;
+      bci.explanation = dropped;
+    }
+  }
+}
+
+void TheoryArithPrivate::replayAssert(Constraint c) {
+  if(c->negationHasProof()){
+    Constraint negation = c->getNegation();
+
+    NodeBuilder<> nb(kind::AND);
+    negation->explainForConflict(nb);
+    if(c->hasProof()){
+      c->explainForConflict(nb);
+    }else{
+      nb << c->getLiteral();
+    }
+    Node conflict = nb;
+    Debug("arith::eq") << "conflict" << conflict << endl;
+    raiseConflict(conflict);
+  }else{
+    if(!c->hasProof()){
+      c->setAssertedToTheTheory(c->getLiteral());
+      c->selfExplaining();
+    }
+    assertionCases(c);
+  }
+}
+
+std::vector<Constraint> TheoryArithPrivate::toExplanation(Node n) const {
+  std::vector<Constraint> res;
+  cout << "toExplanation" << endl;
+  if(n.getKind() == kind::AND){
+    for(unsigned i = 0; i < n.getNumChildren(); ++i){
+      Constraint c = d_constraintDatabase.lookup(n[i]);
+      if(c == NullConstraint){ return std::vector<Constraint>(); }
+      res.push_back(c);
+      cout << "\t"<<c << endl;
+    }
+  }else{
+    Constraint c = d_constraintDatabase.lookup(n);
+    if(c == NullConstraint){ return std::vector<Constraint>(); }
+    res.push_back(c);
+  }
+  return res;
+}
+
+void TheoryArithPrivate::enqueueConstraints(std::vector<Constraint>& out, Node n) const{
+  if(n.getKind() == kind::AND){
+    for(unsigned i = 0, N = n.getNumChildren(); i < N; ++i){
+      enqueueConstraints(out, n[i]);
+    }
+  }else{
+    Constraint c = d_constraintDatabase.lookup(n);
+    if(c == NullConstraint){
+      cout << "failing on " << n << endl;
+    }
+    Assert(c != NullConstraint);
+    out.push_back(c);
+  }
+}
+
+Node TheoryArithPrivate::resolveOutPropagated(Node conf, const std::set<Constraint>& propagated) const {
+  cout << "resolveOutPropagated()" << conf << endl;
+  std::set<Constraint> final;
+  std::set<Constraint> processed;
+  std::vector<Constraint> to_process;
+  enqueueConstraints(to_process, conf);
+  while(!to_process.empty()){
+    Constraint c = to_process.back(); to_process.pop_back();
+    if(processed.find(c) != processed.end()){
+      continue;
+    }else{
+      if(propagated.find(c) == propagated.end()){
+        final.insert(c);
+      }else{
+        Node exp = c->explainForPropagation();
+        enqueueConstraints(to_process, exp);
+      }
+      processed.insert(c);
+    }
+  }
+  cout << "final size: " << final.size() << std::endl;
+  NodeBuilder<> nb(kind::AND);
+  std::set<Constraint>::const_iterator iter = final.begin(), end = final.end();
+  for(; iter != end; ++iter){
+    Constraint c = *iter;
+    c->explainForConflict(nb);
+  }
+  Node newConf = safeConstructNary(nb);
+  cout << "resolveOutPropagated("<<conf<<", ...) ->" << newConf << endl;
+  return newConf;
+}
+
+void TheoryArithPrivate::resolveOutPropagated(std::vector<Node>& confs, const std::set<Constraint>& propagated) const {
+  std::set<Node> output;
+  cout << "starting resolveOutPropagated() " << confs.size() << endl;
+  for(size_t i =0, N= confs.size(); i < N; ++i){
+    Node noprops = resolveOutPropagated(confs[i], propagated);
+    Node rewr = Rewriter::rewrite(noprops);
+    output.insert(rewr);
+  }
+  confs.clear();
+  confs.insert(confs.end(), output.begin(), output.end());
+  cout << "ending resolveOutPropagated() " << confs.size() << endl;
+}
+
+std::vector<Node> TheoryArithPrivate::replayLogRec(ApproximateSimplex* approx, int nid, Node bl){
+  static int replayLogRecCount = 0 ;
+  static int tryBranch = 0 ;
+  static int tryCut = 0 ;
+  ++replayLogRecCount;
+  cout << "replayLogRec()" << replayLogRecCount <<
+    " " << tryBranch << " " << tryCut << std::endl;
+
+  context::Context::ScopedPush speculativePush(getSatContext());
+  Assert(d_conflicts.empty());
+  std::vector<Node> res;
+  set<Constraint> propagated;
+
+  TreeLog& tl = getTreeLog();
+
+  if(!bl.isNull()){
+    Constraint bc = replayGetConstraint(bl);
+    replayAssert(bc);
+  }
+
+  const NodeLog& nl = tl.getNode(nid);
+  NodeLog::const_iterator iter = nl.begin(), end = nl.end();
+  for(; !inConflict() && iter != end; ++iter){
+    CutInfo* ci = *iter;
+    if(ci->klass == BranchCutKlass){
+      BranchCutInfo* bci = dynamic_cast<BranchCutInfo*>(ci);
+      Assert(bci != NULL);
+      tryBranchCut(approx, nid, *bci);
+      ++tryBranch;
+    }else{
+      ++tryCut;
+      approx->tryCut(nid, *ci);
+    }
+    if(!inConflict() && !ci->asLiteral.isNull()){
+      // success
+      ci->print(cout);
+      Constraint con = replayGetConstraint(ci->asLiteral);
+      cout << "implied" << con  << endl;
+      std::vector<Constraint> exp = toExplanation(ci->explanation);
+      if(!exp.empty()){
+        // success
+        Assert(!con->negationHasProof());
+        if(con->isTrue()){
+          cout << "not asserted?" << endl;
+        }else{
+          con->impliedBy(exp);
+          assertionCases(con);
+          propagated.insert(con);
+        }
+      }else{
+        cout << "failed to get explanation" << endl;
+      }
+    }
+  }
+  if(!inConflict()){
+    //test for linear feasibility
+    d_partialModel.stopQueueingBoundCounts();
+    UpdateTrackingCallback utcb(&d_linEq);
+    d_partialModel.processBoundsQueue(utcb);
+    d_linEq.startTrackingBoundCounts();
+
+    SimplexDecisionProcedure& simplex = selectSimplex();
+    simplex.findModel(false);
+
+    d_linEq.stopTrackingBoundCounts();
+    d_partialModel.startQueueingBoundCounts();
+  }
+
+  if(inConflict()){
+    for(size_t i = 0, N = d_conflicts.size(); i < N; ++i){
+      res.push_back(d_conflicts[i]);
+    }
+  }else if(nl.isBranch()){
+    Node dnlit = approx->downBranchLiteral(nl);
+    Node uplit = dnlit.negate();
+
+    int dnid = nl.getDownId();
+    int upid = nl.getUpId();
+
+    std::vector<Node> dnres = replayLogRec(approx, dnid, dnlit);
+    std::vector<Node> upres = replayLogRec(approx, upid, uplit);
+    std::vector<unsigned> dnposes, upposes;
+
+    for(size_t i = 0, N = dnres.size(); i < N; ++i){
+      Node conf = dnres[i];
+      unsigned pos = posInNodeUpToNegation(conf, dnlit);
+      dnposes.push_back(pos);
+      if(pos >= conf.getNumChildren()){
+        res.push_back(conf);
+      }
+    }
+    for(size_t i = 0, N = upres.size(); i < N; ++i){
+      Node conf = upres[i];
+      unsigned pos = posInNodeUpToNegation(conf, uplit);
+      upposes.push_back(pos);
+      if(pos >= conf.getNumChildren()){
+        res.push_back(conf);
+      }
+    }
+    for(size_t i = 0, N = dnres.size(); i < N; ++i){
+      Node dnconf = dnres[i];
+      unsigned dnpos = dnposes[i];
+      for(size_t j = 0, M = upres.size(); j < M; ++j){
+        Node upconf = upres[j];
+        unsigned uppos = upposes[j];
+        if(dnpos < dnconf.getNumChildren() && uppos < upconf.getNumChildren()){
+          Node resolved = resolve(dnconf, dnpos, upconf, uppos);
+          res.push_back(resolved);
+        }
+      }
+    }
+    cout << "found #"<<res.size()<<" conflicts on branch " << nid << endl;
+  }else{
+    cout << "failed on node " << nid << endl;
+    Assert(res.empty());
+  }
+  resolveOutPropagated(res, propagated);
+  cout << "replayLogRec()" << replayLogRecCount <<
+    " " << tryBranch << " " << tryCut << std::endl;
+  return res;
 }
 
 TreeLog& TheoryArithPrivate::getTreeLog(){
@@ -1760,7 +2100,7 @@ bool TheoryArithPrivate::replayLemmas(ApproximateSimplex* approx){
   vector<Node> cuts = approx->getValidCuts();
   for(size_t i =0, N =cuts.size(); i < N; ++i){
     Node implication = cuts[i];
-    Assert(implication.getKind() == kind::IMP);
+    Assert(implication.getKind() == kind::IMPLIES);
     Node implied = Rewriter::rewrite(implication[1]);
 
     anythingnew = anythingnew || isSatLiteral(implied);
@@ -1850,8 +2190,11 @@ bool TheoryArithPrivate::solveInteger(Theory::Effort effortLevel){
       }
       break;
     case BranchesExhausted:
+      tl.printBranchInfo(cout);
+      //intentionally fall through here
     case ExecExhausted:
     case PivotsExhauasted:
+
       approx->setPivotLimit(2*mipLimit);
       approx->setBranchingDepth(2);
       mipRes = approx->solveMIP(true);
@@ -2054,7 +2397,7 @@ bool TheoryArithPrivate::solveRealRelaxation(Theory::Effort effortLevel){
 //               }
 //               vector<Node> lemmas = approxSolver->getValidCuts();
 //               for(size_t i = 0; i < lemmas.size(); ++i){
-//                 d_approxCuts.push_back(lemmas[i]);
+//                 d_approxCuts.pushback(lemmas[i]);
 //               }
 //               d_qflraStatus = d_attemptSolSimplex.attempt(relaxSolution);
 //             }

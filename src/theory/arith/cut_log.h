@@ -30,6 +30,7 @@ struct PrimitiveVec {
 };
 
 enum CutInfoKlass{ MirCutKlass, GmiCutKlass, BranchCutKlass, UnknownKlass};
+std::ostream& operator<<(std::ostream& os, CutInfoKlass kl);
 
 class CutInfo {
 public:
@@ -62,7 +63,10 @@ public:
   }
 };
 
-class TreeLog;
+struct BranchCutInfo : public CutInfo {
+  BranchCutInfo(int execOrd, int br,  Kind dir, double val);
+};
+
 class NodeLog {
 private:
   int d_nid;
@@ -102,12 +106,11 @@ public:
   const_iterator begin() const;
   const_iterator end() const;
 
-private:
-
-  friend class TreeLog;
+  void setBranch(int br, double val, int dn, int up);
   void closeNode();
-  void setBranchVal(int br, double val);
-  void setChildren(int dn, int up);
+
+  int getDownId() const;
+  int getUpId() const;
 };
 
 class ApproximateSimplex;
@@ -129,7 +132,6 @@ public:
 
   NodeLog& getNode(int nid);
   void branch(int nid, int br, double val, int dn, int up);
-  void branchClose(int nid, int br, double val);
   void close(int nid);
 
   void applySelected();
@@ -152,6 +154,10 @@ public:
 
   void logBranch(uint32_t x);
   uint32_t numBranches(uint32_t x);
+
+  int getRootId() const;
+
+  void printBranchInfo(std::ostream& os) const;
 };
 
 struct DenseVector {

@@ -88,14 +88,28 @@ CutInfo::CutInfo(CutInfoKlass kl, int eid, int o)
 {}
 
 void CutInfo::print(ostream& out) const{
-  out << ord << " " << cut_type_ << " " << cut_rhs << endl;
+  out << ord << " " << klass << " " << cut_type_ << " " << cut_rhs << endl;
   cut_vec.print(out);
 }
 
 void CutInfo::init_cut(int l){
   cut_vec.setup(l);
 }
-
+std::ostream& operator<<(std::ostream& out, CutInfoKlass kl){
+  switch(kl){
+  case MirCutKlass:
+    out << "MirCutKlass"; break;
+  case GmiCutKlass:
+    out << "GmiCutKlass"; break;
+  case BranchCutKlass:
+    out << "BranchCutKlass"; break;
+  case UnknownKlass:
+    out << "UnknownKlass"; break;
+  default:
+    out << "unexpected CutInfoKlass"; break;
+  }
+  return out;
+}
 bool NodeLog::isBranch() const{
   return br_var >= 0;
 }
@@ -140,6 +154,12 @@ double NodeLog::branchValue() const{
 }
 int NodeLog::getNodeId() const {
   return d_nid;
+}
+int NodeLog::getDownId() const{
+  return dn;
+}
+int NodeLog::getUpId() const{
+  return up;
 }
 void NodeLog::addSelected(int ord, int sel){
   d_rowIdsSelected[ord] = sel;
@@ -187,13 +207,12 @@ void NodeLog::closeNode(){
   stat = Closed;
 }
 
-void NodeLog::setBranchVal(int br, double val){
+void NodeLog::setBranch(int br, double val, int d, int u){
   Assert(stat == Open);
-  br_var = br; br_val = val;
-}
-void NodeLog::setChildren(int d, int u){
-  Assert(stat == Open);
-  dn = d; up = u;
+  br_var = br;
+  br_val = val;
+  dn = d;
+  up = u;
   stat = Branched;
 }
 
@@ -207,6 +226,10 @@ TreeLog::TreeLog()
   clear();
 }
 
+int TreeLog::getRootId() const{
+  return 1;
+}
+
 void TreeLog::clear(){
   next_exec_ord = 0;
   d_toNode.clear();
@@ -215,8 +238,8 @@ void TreeLog::clear(){
   d_numCuts = 0;
 
   // add root
-  int rid = 1;
-  d_toNode.insert(make_pair(rid, NodeLog(rid)));
+
+  d_toNode.insert(make_pair(getRootId(), NodeLog(getRootId())));
 }
 
 void TreeLog::addCut(){ d_numCuts++; }
@@ -227,10 +250,10 @@ void TreeLog::logBranch(uint32_t x){
 uint32_t TreeLog::numBranches(uint32_t x){
   return d_branches.count(x);
 }
+
 void TreeLog::branch(int nid, int br, double val, int dn, int up){
   NodeLog& nl = getNode(nid);
-  nl.setBranchVal(br, val);
-  nl.setChildren(dn, up);
+  nl.setBranch(br, val, dn, up);
 
   d_toNode.insert(make_pair(dn, NodeLog(dn)));
   d_toNode.insert(make_pair(up, NodeLog(up)));
@@ -241,11 +264,6 @@ void TreeLog::close(int nid){
   nl.closeNode();
 }
 
-void TreeLog::branchClose(int nid, int br, double val){
-  NodeLog& nl = getNode(nid);
-  nl.setBranchVal(br, val);
-  nl.closeNode();
-}
 
 
 void TreeLog::applySelected() {
@@ -270,6 +288,32 @@ void DenseVector::purge() {
   rhs = Rational(0);
 }
 
+
+BranchCutInfo::BranchCutInfo(int execOrd, int br,  Kind dir, double val)
+  : CutInfo(BranchCutKlass, execOrd, 0)
+{
+  init_cut(1);
+  cut_vec.inds[1] = br;
+  cut_vec.coeffs[1] = +1.0;
+  cut_rhs = val;
+  cut_type_ = dir;
+}
+
+void TreeLog::printBranchInfo(ostream& os) const{
+  uint32_t total = 0;
+  DenseMultiset::const_iterator iter = d_branches.begin(),  iend = d_branches.end();
+  for(; iter != iend; ++iter){
+    uint32_t el = *iter;
+    total += el;
+  }
+  os << "printBranchInfo() : " << total << endl;
+  iter = d_branches.begin(),  iend = d_branches.end();
+  for(; iter != iend; ++iter){
+    uint32_t el = *iter;
+    os << "["<<el <<", " << d_branches.count(el) << "]";
+  }
+  os << endl;
+}
 
 
 }/* CVC4::theory::arith namespace */
