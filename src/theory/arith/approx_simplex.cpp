@@ -570,12 +570,12 @@ ApproxGLPK::ApproxGLPK(const ArithVariables& v, TreeLog& l, ApproximateStatistic
       ++numRows;
       d_rowIndices.set(v, numRows);
       d_rowToArithVar.set(numRows, v);
-      //cout << "Row vars: " << v << "<->" << numRows << endl;
+      cout << "Row vars: " << v << "<->" << numRows << endl;
     }else{
       ++numCols;
       d_colIndices.set(v, numCols);
       d_colToArithVar.set(numCols, v);
-      //cout << "Col vars: " << v << "<->" << numCols << endl;
+      cout << "Col vars: " << v << "<->" << numCols << endl;
     }
   }
   glp_add_rows(d_prob, numRows);
@@ -1758,23 +1758,17 @@ ArithVar ApproxGLPK::_getArithVar(int nid, int M, int ind) const{
   }
 }
 
-void printDV(ostream& out, const DenseMap<Rational>& v){
-  out << "[DenseVec len " <<  v.size();
-  DenseMap<Rational>::const_iterator iter, end;
-  for(iter = v.begin(), end = v.end(); iter != end; ++iter){
-    ArithVar x = *iter;
-    out << ", "<< x << " " << v[x];
-  }
-  out << "]";
-}
 
 bool ApproxGLPK::guessIsConstructable(const DenseMap<Rational>& guess) const {
   // basic variable
   // sum g[i] * x_i
   DenseMap<Rational> g = guess;
   removeAuxillaryVariables(d_vars, g);
-  //cout << "guessIsConstructable " << g.size() << endl;
-  printDV(cout, g);
+  if(!g.empty()){
+    cout << "guessIsConstructable failed " << g.size() << endl;
+    DenseVector::print(cout, g);
+    cout << endl;
+  }
   return g.empty();
 }
 
@@ -1815,7 +1809,7 @@ bool ApproxGLPK::checkCutOnPad(int nid, const CutInfo& cut) const{
 
   if(cut.klass == MirCutKlass){
     cout << "mir cut begin" << endl;
-    printDV(cout, d_pad.d_cut.lhs);
+    DenseVector::print(cout, d_pad.d_cut.lhs);
     cout << " "<< d_pad.d_cutKind << " " << d_pad.d_cut.rhs << endl;
     cut.print(cout);
     cout << "mir cut end" << endl;
@@ -1851,6 +1845,11 @@ bool ApproxGLPK::checkCutOnPad(int nid, const CutInfo& cut) const{
 
     if(!constructedLhs.isKey(x)){
       cout << " didn't find key for " << x << std::endl;
+      cut.print(cout);
+      cout << endl;
+      d_pad.d_cut.print(cout);
+      cout << endl;
+      Assert(false);
       return true;
     }
 
@@ -2365,12 +2364,12 @@ bool ApproxGLPK::loadRowSumIntoAgg(int nid, int M, const PrimitiveVec& row_sum){
     }
   }
   cout << "beg loadRowSumIntoAgg() 1" << endl;
-  printDV(cout, lhs);
+  DenseVector::print(cout, lhs);
   removeAuxillaryVariables(d_vars, lhs);
   cout << "end loadRowSumIntoAgg() 1" << endl;
 
   cout << "loadRowSumIntoAgg() 2" << endl;
-  printDV(cout, lhs);
+  DenseVector::print(cout, lhs);
   cout << "end loadRowSumIntoAgg() 2" << endl;
 
   for(int i = 1; i <= len; ++i){
@@ -2383,7 +2382,7 @@ bool ApproxGLPK::loadRowSumIntoAgg(int nid, int M, const PrimitiveVec& row_sum){
     lhs.set(x, c);
   }
   cout << "loadRowSumIntoAgg() 2" << endl;
-  printDV(cout, lhs);
+  DenseVector::print(cout, lhs);
   cout << "end loadRowSumIntoAgg() 3" << endl;
   return false;
 }
@@ -2567,8 +2566,8 @@ void ApproxGLPK::attemptConstructTableRow(int nid, int M, const PrimitiveVec& ve
   d_pad.d_tabRow.rhs = Rational(0);
   Assert(basic != ARITHVAR_SENTINEL);
 
-  //cout << "attemptConstructTableRow("<<nid <<", "<< basic<< ")"<<endl;
-  //vec.print(cout);
+  cout << "attemptConstructTableRow("<<nid <<", "<< basic<< ")"<<endl;
+  vec.print(cout);
   //cout << "match " << basic << "("<<d_vars.asNode(basic)<<")"<<endl;
 
   tab.set(basic, Rational(-1));
@@ -2577,7 +2576,7 @@ void ApproxGLPK::attemptConstructTableRow(int nid, int M, const PrimitiveVec& ve
     double coeff = vec.coeffs[i];
     ArithVar var = _getArithVar(nid, M, ind);
     if(var == ARITHVAR_SENTINEL){
-      //cout << "couldn't find" << var << endl;
+      cout << "couldn't find" << ind << " " << M << " " << nid << endl;
       d_pad.d_failure = true; return;
     }
     //cout << "match " << ind << "," << var << "("<<d_vars.asNode(var)<<")"<<endl;
@@ -2587,6 +2586,7 @@ void ApproxGLPK::attemptConstructTableRow(int nid, int M, const PrimitiveVec& ve
     //cout << var << " cfe " << cfe << endl;
   }
   if(!guessIsConstructable(tab)){
+    cout << "failed to construct " << endl;
     d_pad.d_failure = true; return;
   }
   tab.remove(basic);
@@ -2623,6 +2623,7 @@ void ApproxGLPK::constructGmiCut(){
     const Rational& psi = tabRow[x];
     Constraint c = toBound[x];
     const Rational& bound = c->getValue().getNoninfinitesimalPart();
+    bool treatAsInt = d_vars.isInteger(x) && !d_vars.isSlack(x);
     if(d_vars.boundsAreEqual(x)){
       // do not add a coefficient
       // implictly substitute the variable w/ its constraint
@@ -2633,16 +2634,17 @@ void ApproxGLPK::constructGmiCut(){
         explanation.insert(exp.second);
         //cout << exp.second << endl;
       }
-    }else if(d_vars.isInteger(x) && psi.isIntegral()){
+    }else if(treatAsInt && psi.isIntegral()){
       // do not add a coefficient
       // nothing to explain
+      cout << "skipping " << x << endl;
     }else{
       explanation.insert(c);
       Rational phi;
       Rational alpha = (c->isUpperBound() ? psi : -psi);
 
       // x - ub <= 0 and lb - x <= 0
-      if(d_vars.isInteger(x)){
+      if(treatAsInt){
         Assert(!psi.isIntegral());
         // alpha = slack_sgn * psi
         Rational falpha = alpha.floor_frac();
@@ -2664,16 +2666,14 @@ void ApproxGLPK::constructGmiCut(){
       }
     }
   }
-  // cout << "pre removeSlackVariables";
-  // printDV(cout, cut);
+  cout << "pre removeSlackVariables";
+  d_pad.d_cut.print(cout); cout << endl;
   removeAuxillaryVariables(d_vars, cut);
-  // cout << "post removeAuxillaryVariables";  printDV(cout, cut);
-  // cout << " rhs " << rhs << endl;
-  //Rational sumRemoved = removeFixed(d_vars, cut, explanation);
+  cout << "post removeAuxillaryVariables";
+  d_pad.d_cut.print(cout); cout << endl;
   removeFixed(d_vars, d_pad.d_cut, explanation);
-  // cout << "post removeFixed";
-  // printDV(cout, cut);
-  // cout << "rhs " << rhs << endl;
+  cout << "post removeFixed";
+  d_pad.d_cut.print(cout); cout << endl;
 }
 
 void ApproxGLPK::tryCut(int nid, CutInfo& cut){
@@ -2701,6 +2701,8 @@ void ApproxGLPK::tryCut(int nid, CutInfo& cut){
     cut.asLiteral = lit;
     cut.explanation = exp;
     success++;
+  }else{
+    cout << "failure " << cut.klass << endl;
   }
   cout << "success rate :" << success << "/"<<attempts<<endl;
 }

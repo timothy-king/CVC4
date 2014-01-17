@@ -67,6 +67,7 @@ void PrimitiveVec::setup(int l){
 void PrimitiveVec::print(std::ostream& out) const{
   Assert(initialized());
   out << len << " ";
+  out.precision(15);
   for(int i = 1; i <= len; ++i){
     out << "["<< inds[i] <<", " << coeffs[i]<<"]";
   }
@@ -315,6 +316,20 @@ void TreeLog::printBranchInfo(ostream& os) const{
   os << endl;
 }
 
+
+void DenseVector::print(std::ostream& os) const {
+  os << rhs << " + ";
+  print(os, lhs);
+}
+void DenseVector::print(ostream& out, const DenseMap<Rational>& v){
+  out << "[DenseVec len " <<  v.size();
+  DenseMap<Rational>::const_iterator iter, end;
+  for(iter = v.begin(), end = v.end(); iter != end; ++iter){
+    ArithVar x = *iter;
+    out << ", "<< x << " " << v[x];
+  }
+  out << "]";
+}
 
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */

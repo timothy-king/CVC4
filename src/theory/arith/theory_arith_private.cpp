@@ -1789,13 +1789,36 @@ bool TheoryArithPrivate::attemptSolveInteger(Theory::Effort effortLevel, bool em
 bool TheoryArithPrivate::replayLog(ApproximateSimplex* approx){
 #warning "garbage collect created arithvars"
 
+  size_t enteringPropN = d_currentPropagationList.size();
   Assert(!inConflict());
   TreeLog& tl = getTreeLog();
+
   std::vector<Node> res = replayLogRec(approx, tl.getRootId(), Node::null());
 
   for(size_t i =0, N = res.size(); i < N; ++i){
     raiseConflict(res[i]);
   }
+  if(d_currentPropagationList.size() > enteringPropN){
+    d_currentPropagationList.resize(enteringPropN);
+  }
+
+  ArithVariables::var_iterator vi, vend;
+  DenseSet reclaimed;
+  for(vi = d_partialModel.var_begin(), vend = d_partialModel.var_end(); vi != vend; ++vi){
+    ArithVar v = *vi;
+    if(d_partialModel.canBeReleased(v) && d_tableau.isBasic(v)  && d_partialModel.isSlack(v)){
+      reclaimed.add(v);
+    }
+  }
+  cout << "reclaiming " << reclaimed.size() << endl;
+  DenseSet::const_iterator ci, cend;
+  for(ci = reclaimed.begin(), cend = reclaimed.end(); ci!=cend; ++ci){
+    d_tableau.removeBasicRow(*ci);
+    releaseArithVar(*ci);
+    cout << "   reclaiming " << *ci << endl;
+  }
+  d_partialModel.attemptToReclaimReleased();
+
   return inConflict();
 }
 
@@ -2103,14 +2126,14 @@ bool TheoryArithPrivate::replayLemmas(ApproximateSimplex* approx){
     Assert(implication.getKind() == kind::IMPLIES);
     Node implied = Rewriter::rewrite(implication[1]);
 
-    anythingnew = anythingnew || isSatLiteral(implied);
+    anythingnew = anythingnew || !isSatLiteral(implied);
     outputLemma(implication);
     cout << "cut["<<i<<"] " << implication << endl;
   }
   vector<Node> branches = approx->getBranches();
   for(size_t i =0, N = branches.size(); i < N; ++i){
     Node lit = branches[i];
-    anythingnew = anythingnew || isSatLiteral(lit);
+    anythingnew = anythingnew || !isSatLiteral(lit);
     Node branch = lit.orNode(lit.notNode());
     outputLemma(branch);
     cout << "branch["<<i<<"] " << branch << endl;
@@ -2520,13 +2543,23 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
 
   bool useSimplex = d_qflraStatus != Result::SAT;
   if(useSimplex){
+    cout << "solver real relax " << endl;
     emmittedConflictOrSplit = solveRealRelaxation(effortLevel);
   }
   if(attemptSolveInteger(effortLevel, emmittedConflictOrSplit)){
-    emmittedConflictOrSplit = solveInteger(effortLevel);
+    bool foundSomething = solveInteger(effortLevel);
+    if(inConflict()){
+      ++d_statistics.d_commitsOnConflicts;
+      Debug("arith::bt") << "committing here " << " " << newFacts << " " << previous << " " << d_qflraStatus  << endl;
+      revertOutOfConflict();
+      d_errorSet.clear();
+      outputConflicts();
+      return;
+    }
+    emmittedConflictOrSplit = emmittedConflictOrSplit || foundSomething;
   }
 
-  cout << "solver real relax " << endl;
+
 
   switch(d_qflraStatus){
   case Result::SAT:

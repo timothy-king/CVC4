@@ -164,6 +164,9 @@ struct DenseVector {
   DenseMap<Rational> lhs;
   Rational rhs;
   void purge();
+  void print(std::ostream& os) const;
+
+  static void print(std::ostream& os, const DenseMap<Rational>& lhs);
 };
 
 

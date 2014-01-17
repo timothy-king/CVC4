@@ -177,6 +177,10 @@ bool ArithVariables::VarInfo::canBeReclaimed() const{
   return d_pushCount == 0;
 }
 
+bool ArithVariables::canBeReleased(ArithVar v) const{
+  return d_vars[v].canBeReclaimed();
+}
+
 void ArithVariables::attemptToReclaimReleased(){
   std::list<ArithVar>::iterator i_end = d_released.end();
   for(int iter = 0; iter < 20 && d_releasedIterator != i_end; ++d_releasedIterator){
