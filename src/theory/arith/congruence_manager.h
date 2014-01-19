@@ -144,21 +144,21 @@ public:
   }
 
   /** Assert an equality. */
-  void watchedVariableIsZero(ConstraintP eq);
+  void watchedVariableIsZero(ConstraintCP eq);
 
   /** Assert a conjunction from lb and ub. */
-  void watchedVariableIsZero(ConstraintP lb, ConstraintP ub);
+  void watchedVariableIsZero(ConstraintCP lb, ConstraintCP ub);
 
   /** Assert that the value cannot be zero. */
-  void watchedVariableCannotBeZero(ConstraintP c);
+  void watchedVariableCannotBeZero(ConstraintCP c);
 
   /** Assert that the value cannot be zero. */
-  void watchedVariableCannotBeZero(ConstraintP c, ConstraintP d);
+  void watchedVariableCannotBeZero(ConstraintCP c, ConstraintCP d);
 
 
   /** Assert that the value is congruent to a constant. */
-  void equalsConstant(ConstraintP eq);
-  void equalsConstant(ConstraintP lb, ConstraintP ub);
+  void equalsConstant(ConstraintCP eq);
+  void equalsConstant(ConstraintCP lb, ConstraintCP ub);
 
 
   void addSharedTerm(Node x);

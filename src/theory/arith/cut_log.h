@@ -79,7 +79,7 @@ public:
 
   virtual ~CutInfo();
 
-  int getId() const { return d_execOrd; }
+  int getId() const;
 
   int getRowId() const;
   void setRowId(int rid);

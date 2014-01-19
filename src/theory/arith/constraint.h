@@ -117,46 +117,21 @@ private:
   ConstraintP d_disequality;
 
 public:
-  ValueCollection()
-    : d_lowerBound(NullConstraint),
-      d_upperBound(NullConstraint),
-      d_equality(NullConstraint),
-      d_disequality(NullConstraint)
-  {}
+  ValueCollection();
 
   static ValueCollection mkFromConstraint(ConstraintP c);
 
-  bool hasLowerBound() const{
-    return d_lowerBound != NullConstraint;
-  }
-  bool hasUpperBound() const{
-    return d_upperBound != NullConstraint;
-  }
-  bool hasEquality() const{
-    return d_equality != NullConstraint;
-  }
-  bool hasDisequality() const {
-    return d_disequality != NullConstraint;
-  }
+  bool hasLowerBound() const;
+  bool hasUpperBound() const;
+  bool hasEquality() const;
+  bool hasDisequality() const;
 
   bool hasConstraintOfType(ConstraintType t) const;
 
-  ConstraintP getLowerBound() const {
-    Assert(hasLowerBound());
-    return d_lowerBound;
-  }
-  ConstraintP getUpperBound() const {
-    Assert(hasUpperBound());
-    return d_upperBound;
-  }
-  ConstraintP getEquality() const {
-    Assert(hasEquality());
-    return d_equality;
-  }
-  ConstraintP getDisequality() const {
-    Assert(hasDisequality());
-    return d_disequality;
-  }
+  ConstraintP getLowerBound() const;
+  ConstraintP getUpperBound() const;
+  ConstraintP getEquality() const;
+  ConstraintP getDisequality() const;
 
   ConstraintP getConstraintOfType(ConstraintType t) const;
 
@@ -269,10 +244,11 @@ private:
    * Sat Context Dependent.
    * This is initially AssertionOrderSentinel.
    */
-  AssertionOrder _d_assertionOrder;
+  AssertionOrder d_assertionOrder;
+
   /**
    * This is guaranteed to be on the fact queue.
-   * For example if x + y = x + 1 is on the fact queue, then use this 
+   * For example if x + y = x + 1 is on the fact queue, then use this
    */
   TNode d_witness;
 
@@ -348,7 +324,7 @@ private:
     inline void operator()(ConstraintP* p){
       ConstraintP constraint = *p;
       Assert(constraint->assertedToTheTheory());
-      constraint->_d_assertionOrder = AssertionOrderSentinel;
+      constraint->d_assertionOrder = AssertionOrderSentinel;
       constraint->d_witness = TNode::null();
       Assert(!constraint->assertedToTheTheory());
     }
@@ -421,7 +397,7 @@ public:
 
   /**
    * Splits the node in the user context.
-   * Returns a lemma that is assumed to be true fro the rest of the user context.
+   * Returns a lemma that is assumed to be true for the rest of the user context.
    * Constraint must be an equality or disequality.
    */
   Node split();
@@ -441,8 +417,8 @@ public:
   }
 
   bool assertedToTheTheory() const {
-    Assert((_d_assertionOrder < AssertionOrderSentinel) != d_witness.isNull());
-    return _d_assertionOrder < AssertionOrderSentinel;
+    Assert((d_assertionOrder < AssertionOrderSentinel) != d_witness.isNull());
+    return d_assertionOrder < AssertionOrderSentinel;
   }
   TNode getWitness() const {
     Assert(assertedToTheTheory());
@@ -450,7 +426,7 @@ public:
   }
 
   bool assertedBefore(AssertionOrder time) const {
-    return _d_assertionOrder < time;
+    return d_assertionOrder < time;
   }
 
   /** Sets the witness literal for a node being on the assertion stack.
@@ -490,12 +466,14 @@ public:
 
 
   /**
-   * A phantom constraint is an internal decision node.
+   * A sets the constraint to be an internal decision.
+   *
    * This does not need to have a witness or an associated literal.
    * This is always itself in the explanation fringe for both conflicts
    * and propagation.
    * This cannot be converted back into a Node conflict or explanation.
-   * This cannot have a proof.
+   *
+   * This cannot have a proof or be asserted to the theory!
    */
   void setInternalDecision();
   bool isInternalDecision() const;
@@ -508,8 +486,8 @@ public:
    * This is the minimum fringe of the implication tree s.t.
    * every constraint is assertedToTheTheory() or hasEqualityEngineProof().
    */
-  Node explainForConflict() const{
-    return explainBefore(AssertionOrderSentinel);
+  Node externalExplainByAssertions() const {
+    return externalExplain(AssertionOrderSentinel);
   }
 
   /**
@@ -523,20 +501,38 @@ public:
    * This is not appropriate for propagation!
    * Use explainForPropagation() instead.
    */
-  // void explainForConflict(NodeBuilder<>& nb) const{
-  //   explainBefore(nb, AssertionOrderSentinel);
-  // }
-  static void conflictFringe(ConstraintCPVec& out, const ConstraintCPVec& in);
-  static void propFringe(ConstraintCPVec& out, const ConstraintCPVec& in);
+  void externalExplainByAssertions(NodeBuilder<>& nb) const{
+    externalExplain(nb, AssertionOrderSentinel);
+  }
+
+  /* Equivalent to calling externalExplainByAssertions on all constraints in b */
+  static Node externalExplainByAssertions(const ConstraintCPVec& b);
+  /* utilities for calling externalExplainByAssertions on 2 constraints */
+  static Node externalExplainByAssertions(ConstraintCP a, ConstraintCP b);
+  static Node externalExplainByAssertions(ConstraintCP a, ConstraintCP b, ConstraintCP c);
+  //static Node externalExplainByAssertions(ConstraintCP a);
+
+  /**
+   * This is the minimum fringe of the implication tree s.t. every constraint is
+   * - assertedToTheTheory(),
+   * - isInternalDecision() or
+   * - hasEqualityEngineProof().
+   */
+  static void assertionFringe(ConstraintCPVec& v);
+  static void assertionFringe(ConstraintCPVec& out, const ConstraintCPVec& in);
 
   /** Utility function built from explainForConflict. */
   //static Node explainConflict(ConstraintP a, ConstraintP b);
   //static Node explainConflict(ConstraintP a, ConstraintP b, Constraint c);
 
-  static Node explainConflictForEE(ConstraintCP a, ConstraintCP b);
-  static Node explainConflictForEE(ConstraintCP a);
-  static Node explainConflictForDio(ConstraintCP a);
-  static Node explainConflictForDio(ConstraintCP a, ConstraintCP b);
+  //static Node explainConflictForEE(ConstraintCP a, ConstraintCP b);
+  //static Node explainConflictForEE(ConstraintCP a);
+  //static Node explainConflictForDio(ConstraintCP a);
+  //static Node explainConflictForDio(ConstraintCP a, ConstraintCP b);
+
+  bool onFringe() const {
+    return assertedToTheTheory() || isInternalDecision() || hasEqualityEngineProof();
+  }
 
   /**
    * Returns an explanation of a propagation by the ConstraintDatabase.
@@ -546,16 +542,20 @@ public:
    * This is the minimum fringe of the implication tree (excluding the constraint itself)
    * s.t. every constraint is assertedToTheTheory() or hasEqualityEngineProof().
    */
-  Node explainForPropagation() const {
+  Node externalExplainForPropagation() const {
     Assert(hasProof());
     Assert(!isSelfExplaining());
-    return explainBefore(_d_assertionOrder);
+    return externalExplain(d_assertionOrder);
   }
 
-  void explainForPropagation(ConstraintCPVec& out) const;
+  // void externalExplainForPropagation(NodeBuilder<>& nb) const{
+  //   Assert(hasProof());
+  //   Assert(!isSelfExplaining());
+  //   externalExplain(nb, d_assertionOrder);
+  // }
 
 private:
-  Node explainBefore(AssertionOrder order) const;
+  Node externalExplain(AssertionOrder order) const;
 
   /**
    * Returns an explanation of that was assertedBefore(order).
@@ -565,7 +565,9 @@ private:
    * This is the minimum fringe of the implication tree
    * s.t. every constraint is assertedBefore(order) or hasEqualityEngineProof().
    */
-  void explainBefore(NodeBuilder<>& nb, AssertionOrder order) const;
+  void externalExplain(NodeBuilder<>& nb, AssertionOrder order) const;
+
+  static Node externalExplain(const ConstraintCPVec& b, AssertionOrder order);
 
 public:
   bool hasProof() const {
@@ -575,16 +577,28 @@ public:
     return d_negation->hasProof();
   }
 
+  /* Neither the contraint has a proof nor the negation has a proof.*/
   bool truthIsUnknown() const {
     return !hasProof() && !negationHasProof();
   }
 
+  /* This is a synonym for hasProof(). */
   bool isTrue() const {
     return hasProof();
   }
 
+  /**
+   * Returns the constraint that corresponds to taking
+   *    x r ceiling(getValue()) where r is the node's getType().
+   * Esstentially this is an up branch.
+   */
   ConstraintP getCeiling();
 
+  /**
+   * Returns the constraint that corresponds to taking
+   *    x r floor(getValue()) where r is the node's getType().
+   * Esstentially this is a down branch.
+   */
   ConstraintP getFloor();
 
 
@@ -618,9 +632,9 @@ public:
   //void impliedBy(const std::vector<Constraint>& b);
   void impliedBy(const ConstraintCPVec& b);
 
-  Node makeImplication(const ConstraintCPVec& b) const;
-  static Node makeConjunction(const ConstraintCPVec& b);
-  static Node makeConflictNode(const ConstraintCPVec& b);
+  Node externalImplication(const ConstraintCPVec& b) const;
+  static Node externalConjunction(const ConstraintCPVec& b);
+  //static Node makeConflictNode(const ConstraintCPVec& b);
 
   /** The node must have a proof already and be eligible for propagation! */
   void propagate();
@@ -660,7 +674,7 @@ std::ostream& operator<<(std::ostream& o, const Constraint_& c);
 std::ostream& operator<<(std::ostream& o, const ConstraintP c);
 std::ostream& operator<<(std::ostream& o, const ConstraintType t);
 std::ostream& operator<<(std::ostream& o, const ValueCollection& c);
-
+std::ostream& operator<<(std::ostream& o, const ConstraintCPVec& v);
 
 
 class ConstraintDatabase {
@@ -672,18 +686,15 @@ private:
    */
   std::vector<PerVariableDatabase*> d_varDatabases;
 
-  SortedConstraintMap& getVariableSCM(ArithVar v) const{
-    Assert(variableDatabaseIsSetup(v));
-    return d_varDatabases[v]->d_constraints;
-  }
+  SortedConstraintMap& getVariableSCM(ArithVar v) const;
 
   /** Maps literals to constraints.*/
   NodetoConstraintMap d_nodetoConstraintMap;
 
   /**
    * A queue of propagated constraints.
-   *
-   * As Constraint are pointers, the elements of the queue do not require destruction.
+   * ConstraintCP are pointers.
+   * The elements of the queue do not require destruction.
    */
   context::CDQueue<ConstraintCP> d_toPropagate;
 
@@ -723,12 +734,11 @@ private:
   ProofId d_equalityEngineProof;
 
   /**
-   * Marks a node as being true always.
-   * This is only okay for purely internal things.
-   *
-   * This is a special proof that is always a member of the list.
+   * Marks a constraint as being proved by making an internal
+   * decision. Such nodes cannot be used in external explanations
+   * but can be used internally.
    */
-  //ProofId d_pseudoConstraintProof;
+  ProofId d_internalDecisionProof;
 
   typedef context::CDList<ConstraintP, Constraint_::ProofCleanup> ProofCleanupList;
   typedef context::CDList<ConstraintP, Constraint_::CanBePropagatedCleanup> CBPList;
@@ -766,30 +776,10 @@ private:
   };
   Watches* d_watches;
 
-  void pushSplitWatch(ConstraintP c){
-    Assert(!c->d_split);
-    c->d_split = true;
-    d_watches->d_splitWatches.push_back(c);
-  }
-
-  void pushCanBePropagatedWatch(ConstraintP c){
-    Assert(!c->d_canBePropagated);
-    c->d_canBePropagated = true;
-    d_watches->d_canBePropagatedWatches.push_back(c);
-  }
-
-  void pushAssertionOrderWatch(ConstraintP c, TNode witness){
-    Assert(!c->assertedToTheTheory());
-    c->_d_assertionOrder = d_watches->d_assertionOrderWatches.size();
-    c->d_witness = witness;
-    d_watches->d_assertionOrderWatches.push_back(c);
-  }
-
-  void pushProofWatch(ConstraintP c, ProofId pid){
-    Assert(c->d_proof == ProofIdSentinel);
-    c->d_proof = pid;
-    d_watches->d_proofWatches.push_back(c);
-  }
+  void pushSplitWatch(ConstraintP c);
+  void pushCanBePropagatedWatch(ConstraintP c);
+  void pushAssertionOrderWatch(ConstraintP c, TNode witness);
+  void pushProofWatch(ConstraintP c, ProofId pid);
 
   /** Returns true if all of the entries of the vector are empty. */
   static bool emptyDatabase(const std::vector<PerVariableDatabase>& vec);
@@ -865,8 +855,13 @@ public:
    * The returned value v is dominated:
    *  If t is UpperBound, r <= v
    *  If t is LowerBound, r >= v
+   *
+   * variableDatabaseIsSetup(v) must be true.
    */
   ConstraintP getBestImpliedBound(ArithVar v, ConstraintType t, const DeltaRational& r) const;
+
+  /** Returns the constraint, if it exists */
+  ConstraintP lookupConstraint(ArithVar v, ConstraintType t, const DeltaRational& r) const;
 
   /**
    * Returns a constraint with the variable v, the constraint type t and the value r.
@@ -881,14 +876,10 @@ public:
    * for the given ValueCollection, vc.
    * This is made if there is no such constraint.
    */
-  ConstraintP ensureConstraint(ValueCollection& vc, ConstraintType t){
-    if(vc.hasConstraintOfType(t)){
-      return vc.getConstraintOfType(t);
-    }else{
-      return getConstraint(vc.getVariable(), t, vc.getValue());
-    }
-  }
+  ConstraintP ensureConstraint(ValueCollection& vc, ConstraintType t);
 
+
+  void deleteConstraintAndNegation(ConstraintP c);
 
   /**
    * Outputs a minimal set of unate implications onto the vector for the variable.
@@ -929,7 +920,6 @@ private:
 
 }; /* ConstraintDatabase */
 
-std::ostream& operator<<(std::ostream& o,const ConstraintCPVec& v);
 
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */

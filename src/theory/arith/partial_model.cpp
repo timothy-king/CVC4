@@ -366,15 +366,15 @@ void ArithVariables::setAssignment(ArithVar x, const DeltaRational& safe, const 
   }
 }
 
-void ArithVariables::initialize(ArithVar x, Node n, bool slack){
+void ArithVariables::initialize(ArithVar x, Node n, bool aux){
   VarInfo& vi = d_vars.get(x);
-  vi.initialize(x, n, slack);
+  vi.initialize(x, n, aux);
   d_nodeToArithVarMap[n] = x;
 }
 
-ArithVar ArithVariables::allocate(Node n, bool slack){
+ArithVar ArithVariables::allocate(Node n, bool aux){
   ArithVar v = allocateVariable();
-  initialize(v, n, slack);
+  initialize(v, n, aux);
   return v;
 }
 

@@ -189,7 +189,7 @@ private:
   }
 
 
-  /** Returns true if the variable was initially introduced as a slack variable. */
+  /** Returns true if the variable was initially introduced as an auxiliary variable. */
   inline bool isAuxiliaryVariable(ArithVar x) const{
     return d_partialModel.isAuxiliary(x);
   }
@@ -468,7 +468,7 @@ private:
   ArithVar nextIntegerViolatation(bool assumeBounds) const;
 
   /**
-   * Issues branches for non-slack integer variables with non-integer assignments.
+   * Issues branches for non-auxiliary integer variables with non-integer assignments.
    * Returns a cut for a lemma.
    * If there is an integer model, this returns Node::null().
    */
@@ -479,8 +479,11 @@ public:
    * This requests a new unique ArithVar value for x.
    * This also does initial (not context dependent) set up for a variable,
    * except for setting up the initial.
+   *
+   * If aux is true, this is an auxiliary variable.
+   * If internal is true, x might not be unique up to a constant multiple.
    */
-  ArithVar requestArithVar(TNode x, bool slack);
+  ArithVar requestArithVar(TNode x, bool aux, bool internal);
 
 public:
   const BoundsInfo& boundsInfo(ArithVar basic) const;
@@ -490,8 +493,8 @@ private:
   /** Initial (not context dependent) sets up for a variable.*/
   void setupBasicValue(ArithVar x);
 
-  /** Initial (not context dependent) sets up for a new slack variable.*/
-  void setupSlack(TNode left);
+  /** Initial (not context dependent) sets up for a new auxiliary variable.*/
+  void setupAuxiliary(TNode left);
 
 
   /**
@@ -541,9 +544,8 @@ private:
   void resolveOutPropagated(std::vector<ConstraintCPVec>& confs, const std::set<ConstraintCP>& propagated) const;
   void subsumption(std::vector<ConstraintCPVec>& confs) const;
 
-  Node cutToNode(ApproximateSimplex*  approx, const CutInfo& cut) const;
+  Node cutToLiteral(ApproximateSimplex*  approx, const CutInfo& cut) const;
   Node branchToNode(ApproximateSimplex*  approx, const NodeLog& cut) const;
-  Node mkLemma(const ConstraintCPVec& exp);
 
 
   void propagateCandidates();
@@ -641,6 +643,10 @@ private:
   TreeLog* d_treeLog;
   TreeLog& getTreeLog();
 
+
+  ArithVarVec d_replayVariables;
+  std::vector<ConstraintP> d_replayConstraints;
+
   /* Approximate simpplex solvers are given a copy of their stats */
   ApproximateStatistics* d_approxStats;
   ApproximateStatistics& getApproxStats();
@@ -657,7 +663,7 @@ private:
   public:
     IntStat d_statAssertUpperConflicts, d_statAssertLowerConflicts;
 
-    IntStat d_statUserVariables, d_statSlackVariables;
+    IntStat d_statUserVariables, d_statAuxiliaryVariables;
     IntStat d_statDisequalitySplits;
     IntStat d_statDisequalityConflicts;
     TimerStat d_simplifyTimer;

@@ -72,7 +72,7 @@ Constraint_::Constraint_(ArithVar x,  ConstraintType t, const DeltaRational& v)
     d_literal(Node::null()),
     d_negation(NullConstraint),
     d_canBePropagated(false),
-    _d_assertionOrder(AssertionOrderSentinel),
+    d_assertionOrder(AssertionOrderSentinel),
     d_witness(TNode::null()),
     d_proof(ProofIdSentinel),
     d_split(false),
@@ -143,9 +143,63 @@ std::ostream& operator<<(std::ostream& o, const ValueCollection& vc){
   return o << "}";
 }
 
+std::ostream& operator<<(std::ostream& o, const ConstraintCPVec& v){
+  o << "[" << v.size() << "x";
+  ConstraintCPVec::const_iterator i, end;
+  for(i=v.begin(), end=v.end(); i != end; ++i){
+    o << (*i);
+  }
+  o << "]";
+}
+
 void Constraint_::debugPrint() const {
   Message() << *this << endl;
 }
+
+
+ValueCollection::ValueCollection()
+  : d_lowerBound(NullConstraint),
+    d_upperBound(NullConstraint),
+    d_equality(NullConstraint),
+    d_disequality(NullConstraint)
+{}
+
+bool ValueCollection::hasLowerBound() const{
+  return d_lowerBound != NullConstraint;
+}
+
+bool ValueCollection::hasUpperBound() const{
+  return d_upperBound != NullConstraint;
+}
+
+bool ValueCollection::hasEquality() const{
+  return d_equality != NullConstraint;
+}
+
+bool ValueCollection::hasDisequality() const {
+  return d_disequality != NullConstraint;
+}
+
+ConstraintP ValueCollection::getLowerBound() const {
+  Assert(hasLowerBound());
+  return d_lowerBound;
+}
+
+ConstraintP ValueCollection::getUpperBound() const {
+  Assert(hasUpperBound());
+  return d_upperBound;
+}
+
+ConstraintP ValueCollection::getEquality() const {
+  Assert(hasEquality());
+  return d_equality;
+}
+
+ConstraintP ValueCollection::getDisequality() const {
+  Assert(hasDisequality());
+  return d_disequality;
+}
+
 
 void ValueCollection::push_into(std::vector<ConstraintP>& vec) const {
   Debug("arith::constraint") << "push_into " << *this << endl;
@@ -392,9 +446,9 @@ bool Constraint_::satisfiedBy(const DeltaRational& dr) const {
   Unreachable();
 }
 
-// bool Constraint_::isPsuedoConstraint() const {
-//   return d_proof == d_database->d_psuedoConstraintProof;
-// }
+bool Constraint_::isInternalDecision() const {
+  return d_proof == d_database->d_internalDecisionProof;
+}
 
 bool Constraint_::isSelfExplaining() const {
   return d_proof == d_database->d_selfExplainingProof;
@@ -507,8 +561,39 @@ ConstraintDatabase::ConstraintDatabase(context::Context* satContext, context::Co
   d_equalityEngineProof = d_proofs.size();
   d_proofs.push_back(NullConstraint);
 
-  // d_pseudoConstraintProof = d_proofs.size();
-  // d_proofs.push_back(NullConstraint);
+  d_internalDecisionProof = d_proofs.size();
+  d_proofs.push_back(NullConstraint);
+}
+
+SortedConstraintMap& ConstraintDatabase::getVariableSCM(ArithVar v) const{
+  Assert(variableDatabaseIsSetup(v));
+  return d_varDatabases[v]->d_constraints;
+}
+
+void ConstraintDatabase::pushSplitWatch(ConstraintP c){
+  Assert(!c->d_split);
+  c->d_split = true;
+  d_watches->d_splitWatches.push_back(c);
+}
+
+
+void ConstraintDatabase::pushCanBePropagatedWatch(ConstraintP c){
+  Assert(!c->d_canBePropagated);
+  c->d_canBePropagated = true;
+  d_watches->d_canBePropagatedWatches.push_back(c);
+}
+
+void ConstraintDatabase::pushAssertionOrderWatch(ConstraintP c, TNode witness){
+  Assert(!c->assertedToTheTheory());
+  c->d_assertionOrder = d_watches->d_assertionOrderWatches.size();
+  c->d_witness = witness;
+  d_watches->d_assertionOrderWatches.push_back(c);
+}
+
+void ConstraintDatabase::pushProofWatch(ConstraintP c, ProofId pid){
+  Assert(c->d_proof == ProofIdSentinel);
+  c->d_proof = pid;
+  d_watches->d_proofWatches.push_back(c);
 }
 
 ConstraintP ConstraintDatabase::getConstraint(ArithVar v, ConstraintType t, const DeltaRational& r){
@@ -546,6 +631,15 @@ ConstraintP ConstraintDatabase::getConstraint(ArithVar v, ConstraintType t, cons
     return c;
   }
 }
+
+ConstraintP ConstraintDatabase::ensureConstraint(ValueCollection& vc, ConstraintType t){
+  if(vc.hasConstraintOfType(t)){
+    return vc.getConstraintOfType(t);
+  }else{
+    return getConstraint(vc.getVariable(), t, vc.getValue());
+  }
+}
+
 bool ConstraintDatabase::emptyDatabase(const std::vector<PerVariableDatabase>& vec){
   std::vector<PerVariableDatabase>::const_iterator first = vec.begin();
   std::vector<PerVariableDatabase>::const_iterator last = vec.end();
@@ -591,6 +685,14 @@ ConstraintDatabase::Statistics::Statistics():
 ConstraintDatabase::Statistics::~Statistics(){
   StatisticsRegistry::unregisterStat(&d_unatePropagateCalls);
   StatisticsRegistry::unregisterStat(&d_unatePropagateImplications);
+}
+
+void ConstraintDatabase::deleteConstraintAndNegation(ConstraintP c){
+  Assert(c->safeToGarbageCollect());
+  ConstraintP neg = c->getNegation();
+  Assert(neg->safeToGarbageCollect());
+  delete c;
+  delete neg;
 }
 
 void ConstraintDatabase::addVariable(ArithVar v){
@@ -825,8 +927,7 @@ void Constraint_::propagate(const ConstraintCPVec& b){
 }
 
 void Constraint_::impliedBy(ConstraintCP a){
-  Assert(!isTrue());
-  Assert(!getNegation()->isTrue());
+  Assert(truthIsUnknown());
 
   markAsTrue(a);
   if(canBePropagated()){
@@ -835,8 +936,7 @@ void Constraint_::impliedBy(ConstraintCP a){
 }
 
 void Constraint_::impliedBy(ConstraintCP a, ConstraintCP b){
-  Assert(!isTrue());
-  Assert(!getNegation()->isTrue());
+  Assert(truthIsUnknown());
 
   markAsTrue(a, b);
   if(canBePropagated()){
@@ -845,8 +945,7 @@ void Constraint_::impliedBy(ConstraintCP a, ConstraintCP b){
 }
 
 void Constraint_::impliedBy(const ConstraintCPVec& b){
-  Assert(!isTrue());
-  Assert(!getNegation()->isTrue());
+  Assert(truthIsUnknown());
 
   markAsTrue(b);
   if(canBePropagated()){
@@ -854,12 +953,12 @@ void Constraint_::impliedBy(const ConstraintCPVec& b){
   }
 }
 
-// void Constraint_::setPseudoConstraint(){
-//   Assert(truthIsUnknown());
-//   Assert(!hasLiteral());
+void Constraint_::setInternalDecision(){
+  Assert(truthIsUnknown());
+  Assert(!assertedToTheTheory());
 
-//   d_database->pushProofWatch(this, d_database->d_pseudoConstraintProof);
-// }
+  d_database->pushProofWatch(this, d_database->d_internalDecisionProof);
+}
 
 void Constraint_::setEqualityEngineProof(){
   Assert(truthIsUnknown());
@@ -877,7 +976,6 @@ void Constraint_::markAsTrue(){
 void Constraint_::markAsTrue(ConstraintCP imp){
   Assert(truthIsUnknown());
   Assert(imp->hasProof());
-  //Assert(!imp->isPseudoConstraint());
 
   d_database->d_proofs.push_back(NullConstraint);
   d_database->d_proofs.push_back(imp);
@@ -889,8 +987,6 @@ void Constraint_::markAsTrue(ConstraintCP impA, ConstraintCP impB){
   Assert(truthIsUnknown());
   Assert(impA->hasProof());
   Assert(impB->hasProof());
-  //Assert(!impA->isPseudoConstraint());
-  //Assert(!impB->isPseudoConstraint());
 
   d_database->d_proofs.push_back(NullConstraint);
   d_database->d_proofs.push_back(impA);
@@ -929,32 +1025,76 @@ bool Constraint_::proofIsEmpty() const{
   return result;
 }
 
-Node Constraint_::makeImplication(const ConstraintCPVec& b) const{
-  Node antecedent = makeConjunction(b);
+Node Constraint_::externalImplication(const ConstraintCPVec& b) const{
+  Assert(hasLiteral());
+  Node antecedent = externalExplainByAssertions(b);
   Node implied = getLiteral();
   return antecedent.impNode(implied);
 }
 
 
-Node Constraint_::makeConjunction(const ConstraintCPVec& b){
-  NodeBuilder<> nb(kind::AND);
-  for(ConstraintCPVec::const_iterator i = b.begin(), end = b.end(); i != end; ++i){
-    ConstraintCP b_i = *i;
-    b_i->explainBefore(nb, AssertionOrderSentinel);
+Node Constraint_::externalExplainByAssertions(const ConstraintCPVec& b){
+  return externalExplain(b, AssertionOrderSentinel);
+}
+
+struct ConstraintCPHash {
+  /* Todo replace with an id */
+  size_t operator()(ConstraintCP c) const{
+    Assert(sizeof(ConstraintCP) > 0);
+    return ((size_t)c)/sizeof(ConstraintCP);
   }
-  if(nb.getNumChildren() >= 2){
-    return nb;
-  }else if(nb.getNumChildren() == 1){
-    return nb[0];
-  }else{
-    return mkBoolNode(true);
+};
+
+void Constraint_::assertionFringe(ConstraintCPVec& v){
+  hash_set<ConstraintCP, ConstraintCPHash> visited;
+  size_t writePos = 0;
+
+  if(!v.empty()){
+    const ConstraintDatabase* db = v.back()->d_database;
+    const CDConstraintList& proofs = db->d_proofs;
+    for(size_t i = 0; i < v.size(); ++i){
+      ConstraintCP vi = v[i];
+      if(visited.find(vi) == visited.end()){
+        Assert(vi->hasProof());
+        visited.insert(vi);
+        if(vi->onFringe()){
+          v[writePos] = vi;
+          writePos++;
+        }else{
+          Assert(!vi->isSelfExplaining());
+          ProofId p = vi->d_proof;
+          ConstraintCP antecedent = proofs[p];
+          while(antecedent != NullConstraint){
+            v.push_back(antecedent);
+            --p;
+            antecedent = proofs[p];
+          }
+        }
+      }
+    }
+    v.resize(writePos);
   }
 }
 
-void Constraint_::explainBefore(NodeBuilder<>& nb, AssertionOrder order) const{
+void Constraint_::assertionFringe(ConstraintCPVec& o, const ConstraintCPVec& i){
+  o.insert(o.end(), i.begin(), i.end());
+  assertionFringe(o);
+}
+
+Node Constraint_::externalExplain(const ConstraintCPVec& v, AssertionOrder order){
+  NodeBuilder<> nb(kind::AND);
+  ConstraintCPVec::const_iterator i, end;
+  for(i = v.begin(), end = v.end(); i != end; ++i){
+    ConstraintCP v_i = *i;
+    v_i->externalExplain(nb, order);
+  }
+  return safeConstructNary(nb);
+}
+
+void Constraint_::externalExplain(NodeBuilder<>& nb, AssertionOrder order) const{
   Assert(hasProof());
   Assert(!isSelfExplaining() || assertedToTheTheory());
-
+  Assert(!isInternalDecision());
 
   if(assertedBefore(order)){
     nb << getWitness();
@@ -966,51 +1106,56 @@ void Constraint_::explainBefore(NodeBuilder<>& nb, AssertionOrder order) const{
     ConstraintCP antecedent = d_database->d_proofs[p];
 
     for(; antecedent != NullConstraint; antecedent = d_database->d_proofs[--p] ){
-      antecedent->explainBefore(nb, order);
+      antecedent->externalExplain(nb, order);
     }
   }
 }
-Node Constraint_::explainBefore(AssertionOrder order) const{
+
+Node Constraint_::externalExplain(AssertionOrder order) const{
   Assert(hasProof());
   Assert(!isSelfExplaining() || assertedBefore(order));
+  Assert(!isInternalDecision());
   if(assertedBefore(order)){
     return getWitness();
   }else if(hasEqualityEngineProof()){
     return d_database->eeExplain(this);
   }else{
     Assert(!proofIsEmpty());
-    //Force the selection of the layer above if the node is assertedToTheTheory()!
+    //Force the selection of the layer above if the node is
+    // assertedToTheTheory()!
     if(d_database->d_proofs[d_proof-1] == NullConstraint){
       ConstraintCP antecedent = d_database->d_proofs[d_proof];
-      return antecedent->explainBefore(order);
+      return antecedent->externalExplain(order);
     }else{
       NodeBuilder<> nb(kind::AND);
       Assert(!isSelfExplaining());
 
       ProofId p = d_proof;
       ConstraintCP antecedent = d_database->d_proofs[p];
-      for(; antecedent != NullConstraint; antecedent = d_database->d_proofs[--p] ){
-        antecedent->explainBefore(nb, order);
+      while(antecedent != NullConstraint){
+        antecedent->externalExplain(nb, order);
+        --p;
+        antecedent = d_database->d_proofs[p];
       }
       return nb;
     }
   }
 }
 
-// Node Constraint_::explainConflict(ConstraintP a, ConstraintP b){
-//   NodeBuilder<> nb(kind::AND);
-//   a->explainForConflict(nb);
-//   b->explainForConflict(nb);
-//   return nb;
-// }
+Node Constraint_::externalExplainByAssertions(ConstraintCP a, ConstraintCP b){
+  NodeBuilder<> nb(kind::AND);
+  a->externalExplainByAssertions(nb);
+  b->externalExplainByAssertions(nb);
+  return nb;
+}
 
-// Node Constraint_::explainConflict(ConstraintP a, ConstraintP b, ConstraintP c){
-//   NodeBuilder<> nb(kind::AND);
-//   a->explainForConflict(nb);
-//   b->explainForConflict(nb);
-//   c->explainForConflict(nb);
-//   return nb;
-// }
+Node Constraint_::externalExplainByAssertions(ConstraintCP a, ConstraintCP b, ConstraintCP c){
+  NodeBuilder<> nb(kind::AND);
+  a->externalExplainByAssertions(nb);
+  b->externalExplainByAssertions(nb);
+  c->externalExplainByAssertions(nb);
+  return nb;
+}
 
 ConstraintP Constraint_::getStrictlyWeakerLowerBound(bool hasLiteral, bool asserted) const {
   Assert(initialized());

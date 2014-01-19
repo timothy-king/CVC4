@@ -92,11 +92,31 @@ CutInfo::~CutInfo(){
   if(d_explanation == NULL){ delete d_explanation; }
 }
 
+int CutInfo::getId() const {
+  return d_execOrd;
+}
+
+int CutInfo::getRowId() const{
+  return d_rowId;
+}
+
+void CutInfo::setRowId(int rid){
+  d_rowId = rid;
+}
+
 void CutInfo::print(ostream& out) const{
   out << "[CutInfo " << d_execOrd << " " << d_poolOrd
       << " " << d_klass << " " << d_cutType << " " << d_cutRhs;
   d_cutVec.print(out);
   out << "]" << endl;
+}
+
+PrimitiveVec& CutInfo::getCutVector(){
+  return d_cutVec;
+}
+
+const PrimitiveVec& CutInfo::getCutVector() const{
+  return d_cutVec;
 }
 
 // void CutInfo::init_cut(int l){
@@ -112,11 +132,40 @@ void CutInfo::setKind(Kind k){
   d_cutType = k;
 }
 
+double CutInfo::getRhs() const{
+  return d_cutRhs;
+}
+
+void CutInfo::setRhs(double r){
+  d_cutRhs = r;
+}
+
 bool CutInfo::success() const{
   return d_exactPrecision != NULL;
 }
 
-  /* Returns true if the cut has an explanation. */
+CutInfoKlass CutInfo::getKlass() const{
+  return d_klass;
+}
+
+int CutInfo::poolOrdinal() const{
+  return d_poolOrd;
+}
+
+void CutInfo::setDimensions(int N, int M){
+  d_mAtCreation = M;
+  d_N = N;
+}
+
+int CutInfo::getN() const{
+  return d_N;
+}
+
+int CutInfo::getMAtCreation() const{
+  return d_mAtCreation;
+}
+
+/* Returns true if the cut has an explanation. */
 bool CutInfo::proven() const{
   return d_explanation != NULL;
 }
@@ -157,6 +206,11 @@ const DenseVector& CutInfo::getExactPrecision() const {
 const ConstraintCPVec& CutInfo::getExplanation() const {
   Assert(proven());
   return *d_explanation;
+}
+
+std::ostream& operator<<(std::ostream& os, const CutInfo& ci){
+  ci.print(os);
+  return os;
 }
 
 std::ostream& operator<<(std::ostream& out, CutInfoKlass kl){

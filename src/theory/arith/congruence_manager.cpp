@@ -163,7 +163,7 @@ void ArithCongruenceManager::pushBack(TNode n, TNode r, TNode w){
   ++(d_statistics.d_propagations);
 }
 
-void ArithCongruenceManager::watchedVariableIsZero(ConstraintP lb, ConstraintP ub){
+void ArithCongruenceManager::watchedVariableIsZero(ConstraintCP lb, ConstraintCP ub){
   Assert(lb->isLowerBound());
   Assert(ub->isUpperBound());
   Assert(lb->getVariable() == ub->getVariable());
@@ -173,13 +173,13 @@ void ArithCongruenceManager::watchedVariableIsZero(ConstraintP lb, ConstraintP u
   ++(d_statistics.d_watchedVariableIsZero);
 
   ArithVar s = lb->getVariable();
-  Node reason = Constraint_::explainConflictForEE(lb,ub);
+  Node reason = Constraint_::externalExplainByAssertions(lb,ub);
 
   d_keepAlive.push_back(reason);
   assertionToEqualityEngine(true, s, reason);
 }
 
-void ArithCongruenceManager::watchedVariableIsZero(ConstraintP eq){
+void ArithCongruenceManager::watchedVariableIsZero(ConstraintCP eq){
   Assert(eq->isEquality());
   Assert(eq->getValue().sgn() == 0);
 
@@ -190,20 +190,20 @@ void ArithCongruenceManager::watchedVariableIsZero(ConstraintP eq){
   //Explain for conflict is correct as these proofs are generated
   //and stored eagerly
   //These will be safe for propagation later as well
-  Node reason = eq->explainForConflict();
+  Node reason = eq->externalExplainByAssertions();
 
   d_keepAlive.push_back(reason);
   assertionToEqualityEngine(true, s, reason);
 }
 
-void ArithCongruenceManager::watchedVariableCannotBeZero(ConstraintP c){
+void ArithCongruenceManager::watchedVariableCannotBeZero(ConstraintCP c){
   ++(d_statistics.d_watchedVariableIsNotZero);
 
   ArithVar s = c->getVariable();
 
   //Explain for conflict is correct as these proofs are generated and stored eagerly
   //These will be safe for propagation later as well
-  Node reason = Constraint_::explainConflictForEE(c);
+  Node reason = c->externalExplainByAssertions();
 
   d_keepAlive.push_back(reason);
   assertionToEqualityEngine(false, s, reason);
@@ -252,7 +252,8 @@ bool ArithCongruenceManager::propagate(TNode x){
 
   if(c->negationHasProof()){
     Node expC = explainInternal(x);
-    Node neg = c->getNegation()->explainForConflict();
+    ConstraintCP negC = c->getNegation();
+    Node neg = negC->externalExplainByAssertions();
     Node conf = expC.andNode(neg);
     Node final = flattenAnd(conf);
 
@@ -382,7 +383,7 @@ void ArithCongruenceManager::assertionToEqualityEngine(bool isEquality, ArithVar
   }
 }
 
-void ArithCongruenceManager::equalsConstant(ConstraintP c){
+void ArithCongruenceManager::equalsConstant(ConstraintCP c){
   Assert(c->isEquality());
 
   ++(d_statistics.d_equalsConstantCalls);
@@ -397,13 +398,13 @@ void ArithCongruenceManager::equalsConstant(ConstraintP c){
   Node eq = xAsNode.eqNode(asRational);
   d_keepAlive.push_back(eq);
 
-  Node reason = Constraint_::explainConflictForEE(c);
+  Node reason = c->externalExplainByAssertions();
   d_keepAlive.push_back(reason);
 
   d_ee.assertEquality(eq, true, reason);
 }
 
-void ArithCongruenceManager::equalsConstant(ConstraintP lb, ConstraintP ub){
+void ArithCongruenceManager::equalsConstant(ConstraintCP lb, ConstraintCP ub){
   Assert(lb->isLowerBound());
   Assert(ub->isUpperBound());
   Assert(lb->getVariable() == ub->getVariable());
@@ -413,7 +414,7 @@ void ArithCongruenceManager::equalsConstant(ConstraintP lb, ConstraintP ub){
                           << ub << std::endl;
 
   ArithVar x = lb->getVariable();
-  Node reason = Constraint_::explainConflictForEE(lb,ub);
+  Node reason = Constraint_::externalExplainByAssertions(lb,ub);
 
   Node xAsNode = d_avariables.asNode(x);
   Node asRational = mkRationalNode(lb->getValue().getNoninfinitesimalPart());

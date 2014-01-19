@@ -251,9 +251,9 @@ public:
   }
 
   /* Initializes a variable to a safe value.*/
-  void initialize(ArithVar x, Node n, bool slack);
+  void initialize(ArithVar x, Node n, bool aux);
 
-  ArithVar allocate(Node n, bool slack = false);
+  ArithVar allocate(Node n, bool aux = false);
 
   /* Gets the last assignment to a variable that is known to be consistent. */
   const DeltaRational& getSafeAssignment(ArithVar x) const;

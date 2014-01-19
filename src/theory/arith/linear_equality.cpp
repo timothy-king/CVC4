@@ -616,11 +616,10 @@ void LinearEqualityModule::minimallyWeakConflict(bool aboveUpper, ArithVar basic
     Debug("weak") << "weak : " << weakening << " "
                   << c->assertedToTheTheory() << " "
                   << d_variables.getAssignment(v) << " "
-                  << c << endl
-                  << c->explainForConflict() << endl;
+                  << c << endl;
     anyWeakenings = anyWeakenings || weakening;
 
-    Debug("weak") << "weak : " << c->explainForConflict() << endl;
+    Debug("weak") << "weak : " << c->externalExplainByAssertions() << endl;
     rc.addConstraint(c);
   }
   ++d_statistics.d_weakeningAttempts;

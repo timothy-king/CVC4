@@ -2703,9 +2703,11 @@ void ApproxGLPK::tryCut(int nid, CutInfo& cut){
     // move the pad to the cut
     cut.setCut(d_pad.d_cut);
 
-    std::set<ConstraintP>& exp = d_pad.d_explanation;
-    ConstraintCPVec asvec(exp.begin(), exp.end());
-    cut.swapExplanation(asvec);
+    if(cut.getKlass() != BranchCutKlass){
+      std::set<ConstraintP>& exp = d_pad.d_explanation;
+      ConstraintCPVec asvec(exp.begin(), exp.end());
+      cut.swapExplanation(asvec);
+    }
   }else{
     cout << "failure " << cut.getKlass() << endl;
   }
