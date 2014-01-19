@@ -3,9 +3,10 @@
 
 #pragma once
 
-#include "expr/node.h"
+#include "expr/kind.h"
 #include "util/statistics_registry.h"
 #include "theory/arith/arithvar.h"
+#include "theory/arith/constraint_forward.h"
 #include "util/dense_map.h"
 #include <vector>
 #include <map>
@@ -16,7 +17,7 @@ namespace CVC4 {
 namespace theory {
 namespace arith {
 
-
+/** A low level vector of indexed doubles. */
 struct PrimitiveVec {
   int len;
   int* inds;
@@ -29,47 +30,108 @@ struct PrimitiveVec {
   void print(std::ostream& out) const;
 };
 
+struct DenseVector {
+  DenseMap<Rational> lhs;
+  Rational rhs;
+  void purge();
+  void print(std::ostream& os) const;
+
+  static void print(std::ostream& os, const DenseMap<Rational>& lhs);
+};
+
+/** The different kinds of cuts. */
 enum CutInfoKlass{ MirCutKlass, GmiCutKlass, BranchCutKlass, UnknownKlass};
 std::ostream& operator<<(std::ostream& os, CutInfoKlass kl);
 
+/** A general class for describing a cut. */
 class CutInfo {
+protected:
+  CutInfoKlass d_klass;
+  int d_execOrd;
+
+  int d_poolOrd;    /* cut's ordinal in the current node pool */
+  Kind d_cutType;   /* Lowerbound, upperbound or undefined. */
+  double d_cutRhs; /* right hand side of the cut */
+  PrimitiveVec d_cutVec; /* vector of the cut */
+
+  /**
+   * The number of rows at the time the cut was made.
+   * This is required to descramble indices after the fact!
+   */
+  int d_mAtCreation;
+
+  /** This is the number of structural variables. */
+  int d_N;
+
+  /** if selected, make this non-zero */
+  int d_rowId;
+
+  /* If the cut has been successfully created,
+   * the cut is stored in exact precision in d_exactPrecision.
+   * If the cut has not yet been proven, this is null.
+   */
+  DenseVector* d_exactPrecision;
+
+  ConstraintCPVec* d_explanation;
+
 public:
-  int execOrd;
-
-  CutInfoKlass klass;
-  int ord;    /* cut's ordinal in the current node pool */
-  Kind cut_type_;   /* Lowerbound, upperbound or undefined. */
-  double cut_rhs; /* right hand side of the cut */
-  PrimitiveVec cut_vec; /* vector of the cut */
-  int M;     /* the number of rows at the time the cut was made.
-             * this is required to descramble indices later*/
-  int N;
-
-  int row_id; /* if selected, make this non-zero */
-
-  /* if the cut is successfully reproduced this is non-null */
-  Node asLiteral;
-  Node explanation;
-
   CutInfo(CutInfoKlass kl, int cutid, int ordinal);
 
-  virtual ~CutInfo(){}
+  virtual ~CutInfo();
+
+  int getId() const { return d_execOrd; }
+
+  int getRowId() const;
+  void setRowId(int rid);
 
   void print(std::ostream& out) const;
-  void init_cut(int l);
+  //void init_cut(int l);
+  PrimitiveVec& getCutVector();
+  const PrimitiveVec& getCutVector() const;
 
-  int operator<(const CutInfo& o) const{
-    return execOrd < o.execOrd;
-  }
+  Kind getKind() const;
+  void setKind(Kind k);
+
+
+  void setRhs(double r);
+  double getRhs() const;
+
+  CutInfoKlass getKlass() const;
+  int poolOrdinal() const;
+
+  void setDimensions(int N, int M);
+  int getN() const;
+  int getMAtCreation() const;
+
+  bool operator<(const CutInfo& o) const;
+
+  /* Returns true if the cut was successfully made in exact precision.*/
+  bool success() const;
+
+  /* Returns true if the cut has an explanation. */
+  bool proven() const;
+
+  void setCut(const DenseVector& ep);
+  void setExplanation(const ConstraintCPVec& ex);
+  void swapExplanation(ConstraintCPVec& ex);
+
+  const DenseVector& getExactPrecision() const;
+  const ConstraintCPVec& getExplanation() const;
 };
+std::ostream& operator<<(std::ostream& os, const CutInfo& ci);
 
 struct BranchCutInfo : public CutInfo {
   BranchCutInfo(int execOrd, int br,  Kind dir, double val);
 };
 
+class TreeLog;
+
 class NodeLog {
 private:
   int d_nid;
+  NodeLog* d_parent; /* If null this is the root */
+  TreeLog* d_tl;     /* TreeLog containing the node. */
+
   struct CmpCutPointer{
     int operator()(const CutInfo* a, const CutInfo* b) const{
       return *a < *b;
@@ -88,8 +150,10 @@ private:
   int up;
 
 public:
-  NodeLog();
-  NodeLog(int node);
+  NodeLog(); /* default constructor. */
+  NodeLog(TreeLog* tl, int node); /* makes a root node. */
+  NodeLog(TreeLog* tl, NodeLog* parent, int node);/* makes a non-root node. */
+
   ~NodeLog();
 
   int getNodeId() const;
@@ -97,6 +161,9 @@ public:
   void applySelected();
   void addCut(CutInfo* ci);
   void print(std::ostream& o) const;
+
+  bool isRoot() const;
+  const NodeLog& getParent() const;
 
   bool isBranch() const;
   int branchVariable() const;
@@ -160,14 +227,6 @@ public:
   void printBranchInfo(std::ostream& os) const;
 };
 
-struct DenseVector {
-  DenseMap<Rational> lhs;
-  Rational rhs;
-  void purge();
-  void print(std::ostream& os) const;
-
-  static void print(std::ostream& os, const DenseMap<Rational>& lhs);
-};
 
 
 }/* CVC4::theory::arith namespace */

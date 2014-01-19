@@ -23,8 +23,8 @@
 #include "expr/node.h"
 #include "expr/node_self_iterator.h"
 #include "util/rational.h"
-#include "theory/theory.h"
-#include "theory/arith/arith_utilities.h"
+#include "theory/arith/delta_rational.h"
+//#include "theory/arith/arith_utilities.h"
 
 #include <list>
 #include <algorithm>
@@ -247,11 +247,11 @@ public:
       // by a variable.
       return true;
     default:
-      return (!isRelationOperator(k)) &&
-        (Theory::isLeafOf(n, theory::THEORY_ARITH));
+      return isLeafMember(n);
     }
   }
 
+  static bool isLeafMember(Node n);
   static bool isDivMember(Node n);
   bool isDivLike() const{
     return isDivMember(getNode());
@@ -306,9 +306,7 @@ public:
     return Constant(n);
   }
 
-  static Constant mkConstant(const Rational& rat) {
-    return Constant(mkRationalNode(rat));
-  }
+  static Constant mkConstant(const Rational& rat);
 
   static Constant mkZero() {
     return mkConstant(Rational(0));

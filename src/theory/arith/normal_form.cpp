@@ -18,12 +18,22 @@
 #include "theory/arith/normal_form.h"
 #include "theory/arith/arith_utilities.h"
 #include <list>
+#include "theory/theory.h"
 
 using namespace std;
 
 namespace CVC4 {
 namespace theory {
 namespace arith {
+
+Constant Constant::mkConstant(const Rational& rat) {
+  return Constant(mkRationalNode(rat));
+}
+
+bool Variable::isLeafMember(Node n){
+  return (!isRelationOperator(n.getKind())) &&
+    (Theory::isLeafOf(n, theory::THEORY_ARITH));
+}
 
 bool Variable::isDivMember(Node n){
   switch(n.getKind()){
@@ -38,6 +48,8 @@ bool Variable::isDivMember(Node n){
     return false;
   }
 }
+
+
 
 bool VarList::isSorted(iterator start, iterator end) {
   return __gnu_cxx::is_sorted(start, end);

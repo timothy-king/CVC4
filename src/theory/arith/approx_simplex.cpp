@@ -49,7 +49,7 @@ struct VirtualBound {
   Kind k; // either LEQ or GEQ
   Rational d; // the multiple on y
   ArithVar y; // the variable that is the upper bound
-  Constraint c; // the original constraint relating x and y
+  ConstraintP c; // the original constraint relating x and y
 
   VirtualBound()
     : x(ARITHVAR_SENTINEL)
@@ -58,7 +58,7 @@ struct VirtualBound {
     , y(ARITHVAR_SENTINEL)
     , c(NullConstraint)
   {}
-  VirtualBound(ArithVar toBound, Kind rel, const Rational& coeff, ArithVar bounding, Constraint orig)
+  VirtualBound(ArithVar toBound, Kind rel, const Rational& coeff, ArithVar bounding, ConstraintP orig)
     : x(toBound)
     , k(rel)
     , d(coeff)
@@ -73,7 +73,7 @@ struct CutScratchPad {
   /* GOMORY CUTS Datastructures */
   ArithVar d_basic; // a variable that is basic in the approximate solver
   DenseVector d_tabRow;           // a row in the tableau not including d_basic, equal to 0
-  DenseMap<Constraint> d_toBound; // each variable in toBound maps each variable in tabRow to either an upper/lower bound
+  DenseMap<ConstraintP> d_toBound; // each variable in toBound maps each variable in tabRow to either an upper/lower bound
 
   /* MIR CUTS Datastructures */
   DenseMap<SlackReplace> d_slacks;// The x'[i] selected for x[i]
@@ -99,7 +99,7 @@ struct CutScratchPad {
   Kind d_cutKind;
 
   /* The constraints used throughout construction. */
-  std::set<Constraint> d_explanation; // use pointer equality
+  std::set<ConstraintP> d_explanation; // use pointer equality
   CutScratchPad(){
     clear();
   }
@@ -331,9 +331,8 @@ public:
   }
 
   virtual void setOptCoeffs(const ArithRatPairVec& ref){}
-  virtual std::vector<Node> getValidCuts(){
-    std::vector<Node> res;
-    return res;
+  virtual std::vector<const CutInfo*> getValidCuts(){
+    return std::vector<const CutInfo*>();
   }
 
   virtual void tryCut(int nid, CutInfo& cut){}
@@ -395,8 +394,6 @@ private:
 
   CutScratchPad d_pad;
 
-  std::pair<Node, Node> d_failedAttempt;
-
 public:
   ApproxGLPK(const ArithVariables& v, TreeLog& l, ApproximateStatistics& s);
   ~ApproxGLPK();
@@ -413,10 +410,11 @@ public:
     return extractSolution(true);
   }
   virtual void setOptCoeffs(const ArithRatPairVec& ref);
-  virtual std::vector<Node> getValidCuts();
-  virtual std::vector<Node> getBranches();
+  virtual std::vector<const CutInfo*> getValidCuts();
+  virtual std::vector<const NodeLog*> getBranches();
 
-  Node downBranchLiteral(const NodeLog& con) const;
+  //Node downBranchLiteral(const NodeLog& con) const;
+  ArithVar getBranchVar(const NodeLog& con) const;
 
   static void printGLPKStatus(int status, std::ostream& out);
 
@@ -451,9 +449,9 @@ private:
   /**
    * Attempts to make the row vector vec on the pad.
    * If this is not in the row span of the original tableau this
-   * raises the failur flag.
+   * raises the failure flag.
    */
-  void attemptConstructTableRow(int node, int M, const PrimitiveVec& vec);
+  bool attemptConstructTableRow(int node, int M, const PrimitiveVec& vec);
 
   /* This is a guess of a vector in the row span of the tableau.
    * Attempt to cancel out all of the variables.
@@ -466,25 +464,26 @@ private:
    * returns true on failure.
    */
   bool loadToBound(int node, int M, int len, int* inds, int* statuses,
-                   DenseMap<Constraint>& toBound) const;
+                   DenseMap<ConstraintP>& toBound) const;
 
   /** checks the cut on the pad for whether it is sufficiently similar to cut. */
   bool checkCutOnPad(int nid, const CutInfo& cut) const;
 
 
   /** turns the pad into a node and creates an explanation. */
-  std::pair<Node, Node> makeCutNodes(int nid, const CutInfo& cut) const;
+  //std::pair<Node, Node> makeCutNodes(int nid, const CutInfo& cut) const;
 
+  // true means failure!
   // BRANCH CUTS
-  std::pair<Node, Node> attemptBranchCut(int nid, const BranchCutInfo& br);
+  bool attemptBranchCut(int nid, const BranchCutInfo& br);
 
   // GOMORY CUTS
-  std::pair<Node, Node> attemptGmi(int nid, const GmiInfo& gmi);
+  bool attemptGmi(int nid, const GmiInfo& gmi);
   /** tries to turn the information on the pad into a cut. */
-  void constructGmiCut();
+  bool constructGmiCut();
 
   // MIR CUTS
-  std::pair<Node, Node> attemptMir(int nid, const MirInfo& mir);
+  bool attemptMir(int nid, const MirInfo& mir);
   bool applyCMIRRule(int nid, const MirInfo& mir);
   bool makeRangeForComplemented(int nid, const MirInfo& mir);
   bool loadSlacksIntoPad(int nid, const MirInfo& mir);
@@ -549,7 +548,6 @@ ApproxGLPK::ApproxGLPK(const ArithVariables& v, TreeLog& l, ApproximateStatistic
   : ApproximateSimplex(v, l, s)
   , d_solvedRelaxation(false)
   , d_solvedMIP(false)
-  , d_failedAttempt(make_pair(Node::null(), Node::null()))
 {
   static int instance = 0;
   ++instance;
@@ -566,7 +564,7 @@ ApproxGLPK::ApproxGLPK(const ArithVariables& v, TreeLog& l, ApproximateStatistic
   for(ArithVariables::var_iterator vi = d_vars.var_begin(), vi_end = d_vars.var_end(); vi != vi_end; ++vi){
     ArithVar v = *vi;
 
-    if(d_vars.isSlack(v)){
+    if(d_vars.isAuxiliary(v)){
       ++numRows;
       d_rowIndices.set(v, numRows);
       d_rowToArithVar.set(numRows, v);
@@ -611,11 +609,12 @@ ApproxGLPK::ApproxGLPK(const ArithVariables& v, TreeLog& l, ApproximateStatistic
       type = GLP_FR;
     }
 
-    if(d_vars.isSlack(v)){
+    if(d_vars.isAuxiliary(v)){
       int rowIndex = d_rowIndices[v];
       glp_set_row_bnds(d_prob, rowIndex, type, lb, ub);
     }else{
       int colIndex = d_colIndices[v];
+      // is input is correct here
       int kind = d_vars.isInteger(v) ? GLP_IV : GLP_CV;
       glp_set_col_kind(d_prob, colIndex, kind);
       glp_set_col_bnds(d_prob, colIndex, type, lb, ub);
@@ -739,12 +738,12 @@ ArithRatPairVec ApproxGLPK::heuristicOptCoeffs() const{
 
     if(type != GLP_FX && type != GLP_FR){
 
-      if(d_vars.isSlack(v)){
+      if(d_vars.isAuxiliary(v)){
         Polynomial p = Polynomial::parsePolynomial(d_vars.asNode(v));
         uint32_t len = p.size();
         d_rowCandidates.set(v, len);
         sumRowLength += len;
-        maxRowLength =std::max(maxRowLength, len);
+        maxRowLength = std::max(maxRowLength, len);
       }else if(!d_vars.isInteger(v)){
         d_colCandidates.set(v, BoundCounts());
       }
@@ -759,7 +758,7 @@ ArithRatPairVec ApproxGLPK::heuristicOptCoeffs() const{
     bool ubCap = !d_vars.hasLowerBound(v) && d_vars.hasUpperBound(v);
 
     if(lbCap || ubCap){
-      Constraint b = lbCap ? d_vars.getLowerBoundConstraint(v)
+      ConstraintP b = lbCap ? d_vars.getLowerBoundConstraint(v)
         : d_vars.getUpperBoundConstraint(v);
 
       if(!(b->getValue()).noninfinitesimalIsZero()){ continue; }
@@ -859,7 +858,7 @@ void ApproxGLPK::setOptCoeffs(const ArithRatPairVec& ref){
     ArithVar v = (*i).first;
     const Rational& q = (*i).second;
 
-    if(d_vars.isSlack(v)){
+    if(d_vars.isAuxiliary(v)){
       // replace the variable by its definition and multiply by q
       Polynomial p = Polynomial::parsePolynomial(d_vars.asNode(v));
       Polynomial pq = p * q;
@@ -953,10 +952,10 @@ ApproximateSimplex::Solution ApproxGLPK::extractSolution(bool mip) const{
 
   for(ArithVariables::var_iterator i = d_vars.var_begin(), i_end = d_vars.var_end(); i != i_end; ++i){
     ArithVar vi = *i;
-    bool isSlack = d_vars.isSlack(vi);
-    int glpk_index = isSlack ? d_rowIndices[vi] : d_colIndices[vi];
+    bool isAux = d_vars.isAuxiliary(vi);
+    int glpk_index = isAux ? d_rowIndices[vi] : d_colIndices[vi];
 
-    int status = isSlack ? glp_get_row_stat(d_prob, glpk_index) : glp_get_col_stat(d_prob, glpk_index);
+    int status = isAux ? glp_get_row_stat(d_prob, glpk_index) : glp_get_col_stat(d_prob, glpk_index);
     if(s_verbosity >= 2){
       Message() << "assignment " << vi << endl;
     }
@@ -998,8 +997,8 @@ ApproximateSimplex::Solution ApproxGLPK::extractSolution(bool mip) const{
 
       double newAssign =
         mip ?
-        (isSlack ? glp_mip_row_val(d_prob, glpk_index) :  glp_mip_col_val(d_prob, glpk_index))
-        : (isSlack ? glp_get_row_prim(d_prob, glpk_index) :  glp_get_col_prim(d_prob, glpk_index));
+        (isAux ? glp_mip_row_val(d_prob, glpk_index) :  glp_mip_col_val(d_prob, glpk_index))
+        : (isAux ? glp_get_row_prim(d_prob, glpk_index) :  glp_get_col_prim(d_prob, glpk_index));
       const DeltaRational& oldAssign = d_vars.getAssignment(vi);
 
 
@@ -1129,14 +1128,16 @@ struct MirInfo : public CutInfo {
     }
   }
   void initSet(){
-    Assert(N >= 0);
-    Assert(M >= 0);
+    Assert(d_N >= 0);
+    Assert(d_mAtCreation >= 0);
     clearSets();
 
-    cset = new char[1+N+M];
-    subst = new char[1+N+M];
-    vlbRows = new int[1+N+M];
-    vubRows = new int[1+N+M];
+    int vars = 1 + d_N + d_mAtCreation;
+
+    cset = new char[1+vars];
+    subst = new char[1+vars];
+    vlbRows = new int[1+vars];
+    vubRows = new int[1+vars];
   }
 };
 
@@ -1185,34 +1186,39 @@ struct GmiInfo : public CutInfo {
 
 static void loadCut(glp_tree *tree, CutInfo* cut){
   int ord, cut_len, cut_klass;
+  int N, M;
   int* cut_inds;
   double* cut_coeffs;
   int glpk_cut_type;
-  double* cut_rhs;
+  double cut_rhs;
   glp_prob* lp;
 
   lp = glp_ios_get_prob(tree);
-  ord = cut->ord;
+  ord = cut->poolOrdinal();
 
-  cut->M = glp_get_num_rows(lp);
-  cut->N = glp_get_num_cols(lp);
+  N = glp_get_num_cols(lp);
+  M = glp_get_num_rows(lp);
+
+  cut->setDimensions(N, M);
+
+
 
   // Get the cut
   cut_len = glp_ios_get_cut(tree, ord, NULL, NULL, &cut_klass, NULL, NULL);
-  cut->init_cut(cut_len);
-  Assert(fromGlpkClass(cut_klass) == cut->klass);
+  Assert(fromGlpkClass(cut_klass) == cut->getKlass());
 
-  PrimitiveVec& cut_vec = cut->cut_vec;
+  PrimitiveVec& cut_vec = cut->getCutVector();
+  cut_vec.setup(cut_len);
   cut_inds = cut_vec.inds;
   cut_coeffs = cut_vec.coeffs;
-  cut_rhs = &(cut->cut_rhs);
 
-  cut_vec.len = glp_ios_get_cut(tree, ord, cut_inds, cut_coeffs, &cut_klass, &glpk_cut_type, cut_rhs);
-  Assert(fromGlpkClass(cut_klass) == cut->klass);
+  cut_vec.len = glp_ios_get_cut(tree, ord, cut_inds, cut_coeffs, &cut_klass, &glpk_cut_type, &cut_rhs);
+  Assert(fromGlpkClass(cut_klass) == cut->getKlass());
   Assert(cut_vec.len == cut_len);
 
-  cut->cut_type_ = glpk_type_to_kind(glpk_cut_type);
-  Assert(cut->cut_type_ == kind::LEQ || cut->cut_type_ == kind::GEQ);
+  cut->setRhs(cut_rhs);
+
+  cut->setKind( glpk_type_to_kind(glpk_cut_type) );
 }
 
 
@@ -1260,16 +1266,18 @@ static GmiInfo* gmiCut(glp_tree *tree, int exec_ord, int cut_ord){
 
   lp = glp_ios_get_prob(tree);
 
+  int N = gmi->getN();
+  int M = gmi->getMAtCreation();
 
   // Get the tableau row
-  int nrows CVC4_UNUSED = glp_ios_cut_get_aux_nrows(tree, gmi->ord);
+  int nrows CVC4_UNUSED = glp_ios_cut_get_aux_nrows(tree, gmi->poolOrdinal());
   Assert(nrows == 1);
   int rows[1+1];
-  glp_ios_cut_get_aux_rows(tree, gmi->ord, rows, NULL);
+  glp_ios_cut_get_aux_rows(tree, gmi->poolOrdinal(), rows, NULL);
   gmi_var = rows[1];
 
-  gmi->init_tab(gmi->N);
-  gmi->basic = gmi->M+gmi_var;
+  gmi->init_tab(N);
+  gmi->basic = M+gmi_var;
   // cout << gmi <<" " << gmi->basic << " "
   //      << cut_ord<<" "  << gmi->M <<" " << gmi_var << endl;
 
@@ -1296,8 +1304,8 @@ static GmiInfo* gmiCut(glp_tree *tree, int exec_ord, int cut_ord){
   for(i = 1; i <= tab_row.len; ++i){
     ind = tab_row.inds[i];
     //cout << "ind " << i << " " << ind << endl;
-    stat = (ind <= gmi->M) ?
-      glp_get_row_stat(lp, ind) : glp_get_col_stat(lp, ind - gmi->M);
+    stat = (ind <= M) ?
+      glp_get_row_stat(lp, ind) : glp_get_col_stat(lp, ind - M);
 
     //cout << "ind " << i << " " << ind << " stat " << stat << endl;
     switch (stat){
@@ -1490,8 +1498,12 @@ static void glpkCallback(glp_tree *tree, void *info){
   }
 }
 
-std::vector<Node> ApproxGLPK::getValidCuts(){
-  std::vector<Node> imps;
+std::vector<const CutInfo*> ApproxGLPK::getValidCuts(){
+#warning "rewrite to include set of nodes to look at"
+  const std::set<int>* nodes = NULL;
+  Assert(false);
+
+  std::vector<const CutInfo*> proven;
   d_log.applySelected();
   for(TreeLog::const_iterator i = d_log.begin(), iend=d_log.end(); i!=iend;++i){
     int nid = (*i).first;
@@ -1500,45 +1512,44 @@ std::vector<Node> ApproxGLPK::getValidCuts(){
       CutInfo* cut = *j;
       tryCut(nid, *cut);
 
-      if(!cut->asLiteral.isNull()){
-        if(!cut->explanation.isNull()){
-          Node imp = (cut->explanation).impNode(cut->asLiteral);
-          imps.push_back(imp);
-        }
+      if(cut->proven()){
+        proven.push_back(cut);
       }
     }
   }
 
-  return imps;
+  return proven;
 }
 
-Node ApproxGLPK::downBranchLiteral(const NodeLog& con) const{
+ArithVar ApproxGLPK::getBranchVar(const NodeLog& con) const{
   int br_var = con.branchVariable();
-  ArithVar v = getArithVarFromStructural(br_var);
-  if(v != ARITHVAR_SENTINEL){
-    if(!d_vars.isSlack(v) && d_vars.isInteger(v) && d_vars.hasNode(v)){
-      Node var = d_vars.asNode(v);
-      double br_val = con.branchValue();
-      Rational val = estimateWithCFE(br_val);
-      if(!val.isIntegral()){
-        NodeManager* nm = NodeManager::currentNM();
-        Node ineq = nm->mkNode(kind::LEQ, var, mkRationalNode(val));
-        return Rewriter::rewrite(ineq);
-      }
-    }
-  }
-  return Node::null();
+  return getArithVarFromStructural(br_var);
 }
 
-std::vector<Node> ApproxGLPK::getBranches(){
-  std::vector<Node> branches;
+// Node ApproxGLPK::downBranchLiteral(const NodeLog& con) const{
+//   int br_var = con.branchVariable();
+//   ArithVar v = getArithVarFromStructural(br_var);
+//   if(v != ARITHVAR_SENTINEL){
+//     if(d_vars.isIntegerInput(v) && d_vars.hasNode(v)){
+//       Node var = d_vars.asNode(v);
+//       double br_val = con.branchValue();
+//       Rational val = estimateWithCFE(br_val);
+//       if(!val.isIntegral()){
+//         NodeManager* nm = NodeManager::currentNM();
+//         Node ineq = nm->mkNode(kind::LEQ, var, mkRationalNode(val));
+//         return Rewriter::rewrite(ineq);
+//       }
+//     }
+//   }
+//   return Node::null();
+// }
+
+std::vector<const NodeLog*> ApproxGLPK::getBranches(){
+  std::vector<const NodeLog*> branches;
   for(TreeLog::const_iterator i = d_log.begin(), iend=d_log.end(); i!=iend;++i){
     const NodeLog& con = (*i).second;
     if(con.isBranch()){
-      Node lit = downBranchLiteral(con);
-      if(!lit.isNull()){
-        branches.push_back(lit);
-      }
+      branches.push_back(&con);
     }
   }
   return branches;
@@ -1612,24 +1623,24 @@ MipResult ApproxGLPK::solveMIP(bool activelyLog){
 
 
 
-Node explainSet(const set<Constraint>& inp){
-  Assert(!inp.empty());
-  NodeBuilder<> nb(kind::AND);
-  set<Constraint>::const_iterator iter, end;
-  for(iter = inp.begin(), end = inp.end(); iter != end; ++iter){
-    const Constraint c = *iter;
-    Assert(c != NullConstraint);
-    c->explainForConflict(nb);
-  }
-  Node ret = safeConstructNary(nb);
-  Node rew = Rewriter::rewrite(ret);
-  if(rew.getNumChildren() < ret.getNumChildren()){
-    //cout << "explainSet " << ret << " " << rew << endl;
-  }
-  return rew;
-}
+// Node explainSet(const set<ConstraintP>& inp){
+//   Assert(!inp.empty());
+//   NodeBuilder<> nb(kind::AND);
+//   set<ConstraintP>::const_iterator iter, end;
+//   for(iter = inp.begin(), end = inp.end(); iter != end; ++iter){
+//     const ConstraintP c = *iter;
+//     Assert(c != NullConstraint);
+//     c->explainForConflict(nb);
+//   }
+//   Node ret = safeConstructNary(nb);
+//   Node rew = Rewriter::rewrite(ret);
+//   if(rew.getNumChildren() < ret.getNumChildren()){
+//     //cout << "explainSet " << ret << " " << rew << endl;
+//   }
+//   return rew;
+// }
 
-DeltaRational sumConstraints(const DenseMap<Rational>& xs, const DenseMap<Constraint>& cs, bool* anyinf){
+DeltaRational sumConstraints(const DenseMap<Rational>& xs, const DenseMap<ConstraintP>& cs, bool* anyinf){
   if(anyinf != NULL){
     *anyinf = false;
   }
@@ -1642,7 +1653,7 @@ DeltaRational sumConstraints(const DenseMap<Rational>& xs, const DenseMap<Constr
   for(; iter != end; ++iter){
     ArithVar x = *iter;
     const Rational& psi = xs[x];
-    Constraint c = cs[x];
+    ConstraintP c = cs[x];
     Assert(c != NullConstraint);
 
     const DeltaRational& bound = c->getValue();
@@ -1657,7 +1668,7 @@ DeltaRational sumConstraints(const DenseMap<Rational>& xs, const DenseMap<Constr
 }
 
 // remove fixed variables from the vector
-void removeFixed(const ArithVariables& vars, DenseVector& dv, set<Constraint>& exp){
+void removeFixed(const ArithVariables& vars, DenseVector& dv, set<ConstraintP>& exp){
   DenseMap<Rational>& vec = dv.lhs;
   Rational& removed = dv.rhs;
   vector<ArithVar> equal;
@@ -1680,7 +1691,7 @@ void removeFixed(const ArithVariables& vars, DenseVector& dv, set<Constraint>& e
 
     vec.remove(x);
 
-    std::pair<Constraint, Constraint> p = vars.explainEqualBounds(x);
+    std::pair<ConstraintP, ConstraintP> p = vars.explainEqualBounds(x);
     exp.insert(p.first);
     //cout << "remove fixed " << p.first << endl;
     if(p.second != NullConstraint){
@@ -1717,7 +1728,7 @@ void removeAuxillaryVariables(const ArithVariables& vars, DenseMap<Rational>& ve
   vec_iter = vec.begin(), vec_end = vec.end();
   for(; vec_iter != vec_end; ++vec_iter){
     ArithVar x = *vec_iter;
-    if(vars.isSlack(x)){
+    if(vars.isAuxiliary(x)){
       aux.push_back(x);
     }
   }
@@ -1727,7 +1738,7 @@ void removeAuxillaryVariables(const ArithVariables& vars, DenseMap<Rational>& ve
   for(; aux_iter != aux_end; ++aux_iter){
     ArithVar s = *aux_iter;
     Rational& s_coeff = vec.get(s);
-    Assert(vars.isSlack(s));
+    Assert(vars.isAuxiliary(s));
     Assert(vars.hasNode(s));
     Node sAsNode = vars.asNode(s);
     Polynomial p = Polynomial::parsePolynomial(sAsNode);
@@ -1772,12 +1783,12 @@ bool ApproxGLPK::guessIsConstructable(const DenseMap<Rational>& guess) const {
   return g.empty();
 }
 
-bool ApproxGLPK::loadToBound(int nid, int M, int len, int* inds, int* statuses, DenseMap<Constraint>& toBound) const{
+bool ApproxGLPK::loadToBound(int nid, int M, int len, int* inds, int* statuses, DenseMap<ConstraintP>& toBound) const{
   for(int i = 1; i <= len; ++i){
     int status = statuses[i];
     int ind = inds[i];
     ArithVar v = _getArithVar(nid, M, ind);
-    Constraint c = NullConstraint;
+    ConstraintP c = NullConstraint;
     if(v == ARITHVAR_SENTINEL){ return true; }
 
     switch(status){
@@ -1805,9 +1816,9 @@ bool ApproxGLPK::loadToBound(int nid, int M, int len, int* inds, int* statuses, 
 bool ApproxGLPK::checkCutOnPad(int nid, const CutInfo& cut) const{
   static int instance = 0;
   ++instance;
-  cout << "checkCutOnPad(" << nid <<", " << cut.execOrd <<")"<<endl;
+  cout << "checkCutOnPad(" << nid <<", " << cut.getId() <<")"<<endl;
 
-  if(cut.klass == MirCutKlass){
+  if(cut.getKlass() == MirCutKlass){
     cout << "mir cut begin" << endl;
     DenseVector::print(cout, d_pad.d_cut.lhs);
     cout << " "<< d_pad.d_cutKind << " " << d_pad.d_cut.rhs << endl;
@@ -1825,12 +1836,12 @@ bool ApproxGLPK::checkCutOnPad(int nid, const CutInfo& cut) const{
     cout << "its empty?" <<endl;
     return true;
   }
-  if(cut.cut_type_ != d_pad.d_cutKind) {
+  if(cut.getKind() != d_pad.d_cutKind) {
     cout << "rel doesn't match" << endl;
     return true;
   }
 
-  const PrimitiveVec& cv = cut.cut_vec;
+  const PrimitiveVec& cv = cut.getCutVector();
   for(int i = 1; i <= cv.len; ++i){
     int ind = cv.inds[i]; // this is always a structural variable
     double coeff = cv.coeffs[i];
@@ -1864,107 +1875,97 @@ bool ApproxGLPK::checkCutOnPad(int nid, const CutInfo& cut) const{
   }
   if(visited.size() != constructedLhs.size()){ return true; }
 
-  if(!roughlyEqual(cut.cut_rhs, constructedRhs.getDouble())){
-    cout << "norm rhs is off " << cut.cut_rhs << " "  << constructedRhs << endl;
+  if(!roughlyEqual(cut.getRhs(), constructedRhs.getDouble())){
+    cout << "norm rhs is off " << cut.getRhs() << " " << constructedRhs << endl;
     return true;
   }
   return false;
 }
 
-Node toSumNode(const ArithVariables& vars, const DenseMap<Rational>& sum){
-  NodeBuilder<> nb(kind::PLUS);
-  NodeManager* nm = NodeManager::currentNM();
-  DenseMap<Rational>::const_iterator iter, end;
-  iter = sum.begin(), end = sum.end();
-  for(; iter != end; ++iter){
-    ArithVar x = *iter;
-    if(!vars.hasNode(x)){ return Node::null(); }
-    Node xNode = vars.asNode(x);
-    const Rational& q = sum[x];
-    nb << nm->mkNode(kind::MULT, mkRationalNode(q), xNode);
-  }
-  return safeConstructNary(nb);
-}
 
-std::pair<Node, Node> ApproxGLPK::makeCutNodes(int nid, const CutInfo& cut) const{
-  Assert(!d_pad.d_failure);
-  Assert(!d_pad.d_cut.lhs.empty());
 
-  Kind k = d_pad.d_cutKind;
+// std::pair<Node, Node> ApproxGLPK::makeCutNodes(int nid, const CutInfo& cut) const{
+//   Assert(!d_pad.d_failure);
+//   Assert(!d_pad.d_cut.lhs.empty());
 
-  NodeManager* nm = NodeManager::currentNM();
-  Node sumLhs = toSumNode(d_vars, d_pad.d_cut.lhs);
-  Node ineq = nm->mkNode(k, sumLhs, mkRationalNode(d_pad.d_cut.rhs) );
+//   Kind k = d_pad.d_cutKind;
 
-  Node lit = Rewriter::rewrite(ineq);
+//   NodeManager* nm = NodeManager::currentNM();
+//   Node sumLhs = toSumNode(d_vars, d_pad.d_cut.lhs);
+//   Node ineq = nm->mkNode(k, sumLhs, mkRationalNode(d_pad.d_cut.rhs) );
 
-  Node exp = (d_pad.d_explanation.empty()) ?
-    Node::null() : explainSet(d_pad.d_explanation);
+//   Node lit = Rewriter::rewrite(ineq);
 
-  cout << "commit the cut: " << lit <<  " with explanation " << exp  << endl;
-  return make_pair(lit, exp);
-}
+//   Node exp = (d_pad.d_explanation.empty()) ?
+//     Node::null() : explainSet(d_pad.d_explanation);
 
-std::pair<Node, Node> ApproxGLPK::attemptBranchCut(int nid, const BranchCutInfo& br_cut){
+//   cout << "commit the cut: " << lit <<  " with explanation " << exp  << endl;
+//   return make_pair(lit, exp);
+// }
+
+bool ApproxGLPK::attemptBranchCut(int nid, const BranchCutInfo& br_cut){
   d_pad.clear();
 
-  const PrimitiveVec& cut_vec = br_cut.cut_vec;
+  const PrimitiveVec& cut_vec = br_cut.getCutVector();
   int structural = cut_vec.inds[1];
   Assert(roughlyEqual(cut_vec.coeffs[1], +1.0));
 
   ArithVar x = getArithVarFromStructural(structural);
-  if(x == ARITHVAR_SENTINEL){
-    d_pad.d_failure = true; return d_failedAttempt;
-  }
-  if(br_cut.cut_type_ != kind::LEQ && br_cut.cut_type_ != kind::GEQ){
-    d_pad.d_failure = true; return d_failedAttempt;
-  }
-  d_pad.d_cutKind = br_cut.cut_type_;
+  d_pad.d_failure = (x == ARITHVAR_SENTINEL);
+  if(d_pad.d_failure){ return true; }
 
+  Kind brKind = br_cut.getKind();
+
+  d_pad.d_failure = (brKind != kind::LEQ && brKind != kind::GEQ);
+  if(d_pad.d_failure){ return true; }
+
+  d_pad.d_cutKind = brKind;
   d_pad.d_cut.lhs.set(x, Rational(1));
 
   Rational& rhs = d_pad.d_cut.rhs;
-  rhs = estimateWithCFE(Rational::fromDouble(br_cut.cut_rhs), Integer(1));
-  if(!rhs.isIntegral()){
-    d_pad.d_failure = true; return d_failedAttempt;
-  }
+  rhs = estimateWithCFE(Rational::fromDouble(br_cut.getRhs()), Integer(1));
+  d_pad.d_failure = !rhs.isIntegral();
+  if(d_pad.d_failure) { return true; }
 
   d_pad.d_failure = checkCutOnPad(nid, br_cut);
-  if(d_pad.d_failure){ return d_failedAttempt; }
+  if(d_pad.d_failure){ return true; }
 
-
-  return makeCutNodes(nid, br_cut);
+  return false;
 }
 
-std::pair<Node, Node> ApproxGLPK::attemptGmi(int nid, const GmiInfo& gmi){
+bool ApproxGLPK::attemptGmi(int nid, const GmiInfo& gmi){
   d_pad.clear();
 
   d_pad.d_cutKind = kind::GEQ;
 
-  ArithVar b = _getArithVar(nid, gmi.M, gmi.basic);
-  if(b == ARITHVAR_SENTINEL){
-    d_pad.d_failure = true; return d_failedAttempt;
-  }
-  if(!d_vars.isInteger(b)){
-    d_pad.d_failure = true; return d_failedAttempt;
-  }
+  int M = gmi.getMAtCreation();
+  ArithVar b = _getArithVar(nid, M, gmi.basic);
+  d_pad.d_failure = (b == ARITHVAR_SENTINEL);
+  if(d_pad.d_failure){ return true; }
+
+  d_pad.d_failure = !d_vars.isIntegerInput(b);
+  if(d_pad.d_failure){ return true; }
+
   d_pad.d_basic = b;
 
 
   const PrimitiveVec& tab = gmi.tab_row;
-  attemptConstructTableRow(nid, gmi.M, tab);
-  if(d_pad.d_failure){ return d_failedAttempt; }
+  d_pad.d_failure = attemptConstructTableRow(nid, M, tab);
+  if(d_pad.d_failure){ return true; }
 
-  d_pad.d_failure = loadToBound(nid, gmi.M, tab.len, tab.inds, gmi.tab_statuses, d_pad.d_toBound);
-  if(d_pad.d_failure){ return d_failedAttempt; }
+  int* statuses = gmi.tab_statuses;
+  DenseMap<ConstraintP>& toBound = d_pad.d_toBound;
+  d_pad.d_failure = loadToBound(nid, M, tab.len, tab.inds, statuses, toBound);
+  if(d_pad.d_failure){ return true; }
 
-  constructGmiCut();
-  if(d_pad.d_failure){ return d_failedAttempt; }
+  d_pad.d_failure = constructGmiCut();
+  if(d_pad.d_failure){ return true; }
 
   d_pad.d_failure = checkCutOnPad(nid, gmi);
-  if(d_pad.d_failure){ return d_failedAttempt; }
+  if(d_pad.d_failure){ return true; }
 
-  return makeCutNodes(nid, gmi);
+  return false;
+  //return makeCutNodes(nid, gmi);
 }
 
 bool ApproxGLPK::applyCMIRRule(int nid, const MirInfo& mir){
@@ -2012,7 +2013,7 @@ bool ApproxGLPK::applyCMIRRule(int nid, const MirInfo& mir){
   for(; iter != iend; ++iter){
     ArithVar v = *iter;
     const Rational& a_j = alpha[v];
-    if(d_vars.isInteger(v)){
+    if(d_vars.isIntegerInput(v)){
       Rational floor_aj = a_j.floor();
       Rational frac_aj = a_j.floor_frac();
       if(frac_aj <= fb){
@@ -2040,45 +2041,46 @@ bool ApproxGLPK::applyCMIRRule(int nid, const MirInfo& mir){
   return false;
 }
 
-std::pair<Node, Node> ApproxGLPK::attemptMir(int nid, const MirInfo& mir){
+bool ApproxGLPK::attemptMir(int nid, const MirInfo& mir){
   d_pad.clear();
 
   d_pad.d_cutKind = kind::LEQ;
 
   // virtual bounds must be done before slacks
   d_pad.d_failure = loadVirtualBoundsIntoPad(nid, mir);
-  if(d_pad.d_failure){ return d_failedAttempt; }
+  if(d_pad.d_failure){ return true; }
 
   d_pad.d_failure = loadSlacksIntoPad(nid, mir);
-  if(d_pad.d_failure){ return d_failedAttempt; }
+  if(d_pad.d_failure){ return true; }
 
 
-  d_pad.d_failure = loadRowSumIntoAgg(nid, mir.M, mir.row_sum);
-  if(d_pad.d_failure){ return d_failedAttempt; }
+  d_pad.d_failure = loadRowSumIntoAgg(nid, mir.getMAtCreation(), mir.row_sum);
+  if(d_pad.d_failure){ return true; }
 
   removeFixed(d_vars, d_pad.d_agg, d_pad.d_explanation);
 
   d_pad.d_failure = buildModifiedRow(nid, mir);
-  if(d_pad.d_failure){ return d_failedAttempt; }
+  if(d_pad.d_failure){ return true; }
 
   d_pad.d_failure =  constructMixedKnapsack();
-  if(d_pad.d_failure){ return d_failedAttempt; }
+  if(d_pad.d_failure){ return true; }
 
   d_pad.d_failure = makeRangeForComplemented(nid, mir);
-  if(d_pad.d_failure){ return d_failedAttempt; }
+  if(d_pad.d_failure){ return true; }
 
   d_pad.d_failure = applyCMIRRule(nid, mir);
-  if(d_pad.d_failure){ return d_failedAttempt; }
+  if(d_pad.d_failure){ return true; }
 
   d_pad.d_failure = replaceSlacksOnCuts();
-  if(d_pad.d_failure){ return d_failedAttempt; }
+  if(d_pad.d_failure){ return true; }
 
   removeAuxillaryVariables(d_vars, d_pad.d_cut.lhs);
 
   d_pad.d_failure = checkCutOnPad(nid, mir);
-  if(d_pad.d_failure){ return d_failedAttempt; }
+  if(d_pad.d_failure){ return true; }
 
-  return makeCutNodes(nid, mir);
+  return false;
+  //return makeCutNodes(nid, mir);
 }
 
 bool ApproxGLPK::loadVB(int nid, int M, int j, int ri, bool wantUb, VirtualBound& tmp){
@@ -2093,15 +2095,16 @@ bool ApproxGLPK::loadVB(int nid, int M, int j, int ri, bool wantUb, VirtualBound
   if(rowVar == ARITHVAR_SENTINEL){ return true; }
   if(contVar == ARITHVAR_SENTINEL){ return true; }
 
-  if(!d_vars.isSlack(rowVar)){ return true; }
+  if(!d_vars.isAuxiliary(rowVar)){ return true; }
+  // is integer is correct here
   if(d_vars.isInteger(contVar)){ return true; }
 
-  Constraint lb = d_vars.getLowerBoundConstraint(rowVar);
-  Constraint ub = d_vars.getUpperBoundConstraint(rowVar);
+  ConstraintP lb = d_vars.getLowerBoundConstraint(rowVar);
+  ConstraintP ub = d_vars.getUpperBoundConstraint(rowVar);
 
   if(lb != NullConstraint && ub != NullConstraint){ return true; }
 
-  Constraint rcon = lb == NullConstraint ? ub : lb;
+  ConstraintP rcon = lb == NullConstraint ? ub : lb;
   if(rcon == NullConstraint) { return true; }
 
   if(!rcon->getValue().isZero()){ return true; }
@@ -2143,7 +2146,7 @@ bool ApproxGLPK::loadVB(int nid, int M, int j, int ri, bool wantUb, VirtualBound
     << " iv " << iv
     << " c2 " << ic << endl;
 
-  if(!d_vars.isInteger(iv)){ return true; }
+  if(!d_vars.isIntegerInput(iv)){ return true; }
   // cc * cv + ic * iv <= 0 or
   // cc * cv + ic * iv <= 0
 
@@ -2177,8 +2180,8 @@ bool ApproxGLPK::loadVirtualBoundsIntoPad(int nid, const MirInfo& mir){
   Assert(mir.vlbRows != NULL);
   Assert(mir.vubRows != NULL);
 
-  int N = mir.N;
-  int M = mir.M;
+  int N = mir.getN();
+  int M = mir.getMAtCreation();
 
   // Load the virtual bounds first
   VirtualBound tmp;
@@ -2203,14 +2206,14 @@ bool ApproxGLPK::loadSlacksIntoPad(int nid, const MirInfo& mir){
   Assert(mir.vlbRows != NULL);
   Assert(mir.vubRows != NULL);
 
-  int N = mir.N;
-  int M = mir.M;
+  int N = mir.getN();
+  int M = mir.getMAtCreation();
 
   bool useVB;
   // Load the virtual bounds first
   SlackReplace rep;
   bool lb;
-  Constraint b;
+  ConstraintP b;
   cout << "loadSlacksIntoPad(): N="<<N<<", M=" << M << std::endl;
   for(int j=1; j <= N+M; ++j){
     ArithVar v = _getArithVar(nid, M, j);
@@ -2269,7 +2272,7 @@ bool ApproxGLPK::replaceSlacksOnCuts(){
   for(; iter != iend; ++iter){
     ArithVar x = *iter;
     SlackReplace rep = d_pad.d_slacks[x];
-    if(d_vars.isInteger(x)){
+    if(d_vars.isIntegerInput(x)){
       Assert(rep == SlackLB  || rep == SlackUB);
       Rational& a = cut.get(x);
 
@@ -2300,7 +2303,7 @@ bool ApproxGLPK::replaceSlacksOnCuts(){
   iter = cut.begin(), iend = cut.end();
   for(; iter != iend; ++iter){
     ArithVar x = *iter;
-    if(!d_vars.isInteger(x)){
+    if(!d_vars.isIntegerInput(x)){
       SlackReplace rep = d_pad.d_slacks[x];
       Rational& a = cut.get(x);
       switch(rep){
@@ -2419,7 +2422,7 @@ bool ApproxGLPK::buildModifiedRow(int nid, const MirInfo& mir){
     case SlackVLB: /* x[k] = lb[k] * x[kk] + x'[k] */
     case SlackVUB: /* x[k] = ub[k] * x[kk] - x'[k] */
       {
-        Assert(!d_vars.isInteger(x));
+        Assert(!d_vars.isIntegerInput(x));
         bool ub = (rep == SlackVUB);
         const VirtualBound& vb =
           ub ? d_pad.d_vub[x] : d_pad.d_vlb[x];
@@ -2453,7 +2456,7 @@ bool ApproxGLPK::buildModifiedRow(int nid, const MirInfo& mir){
     case SlackUB: /* x = ub - x' */
       {
         bool ub = (rep == SlackUB);
-        Constraint b = ub ?  d_vars.getUpperBoundConstraint(x):
+        ConstraintP b = ub ?  d_vars.getUpperBoundConstraint(x):
           d_vars.getLowerBoundConstraint(x);
 
         Assert(b != NullConstraint);
@@ -2479,8 +2482,8 @@ bool ApproxGLPK::buildModifiedRow(int nid, const MirInfo& mir){
 
 bool ApproxGLPK::makeRangeForComplemented(int nid, const MirInfo& mir){
   DenseMap<Rational>& alpha = d_pad.d_alpha.lhs;
-  int M = mir.M;
-  int N = mir.N;
+  int M = mir.getMAtCreation();
+  int N = mir.getN();
   DenseMap<Rational>& compRanges = d_pad.d_compRanges;
 
   int complemented = 0;
@@ -2488,15 +2491,15 @@ bool ApproxGLPK::makeRangeForComplemented(int nid, const MirInfo& mir){
   for(int j = 1; j <= M + N; ++j){
     if(mir.cset[j] != 0){
       complemented++;
-      ArithVar x = _getArithVar(nid, mir.M, j);
+      ArithVar x = _getArithVar(nid, M, j);
       if(!alpha.isKey(x)){ return true; }
-      if(!d_vars.isInteger(x)){ return true; }
+      if(!d_vars.isIntegerInput(x)){ return true; }
       Assert(d_pad.d_slacks.isKey(x));
       SlackReplace rep = d_pad.d_slacks[x];
       Assert(rep == SlackLB || rep == SlackUB);
 
-      Constraint lb = d_vars.getLowerBoundConstraint(x);
-      Constraint ub = d_vars.getUpperBoundConstraint(x);
+      ConstraintP lb = d_vars.getLowerBoundConstraint(x);
+      ConstraintP ub = d_vars.getUpperBoundConstraint(x);
 
       if(lb == NullConstraint) { return true; }
       if(ub == NullConstraint) { return true; }
@@ -2542,7 +2545,7 @@ bool ApproxGLPK::constructMixedKnapsack(){
     ArithVar v = *iter;
     const Rational& c = mod[v];
     Assert(!c.isZero());
-    if(d_vars.isInteger(v)){
+    if(d_vars.isIntegerInput(v)){
       intVars++;
       alpha.set(v, c);
     }else if(c.sgn() < 0){
@@ -2560,7 +2563,7 @@ bool ApproxGLPK::constructMixedKnapsack(){
   return intVars == 0; // if this is 0 we have failed
 }
 
-void ApproxGLPK::attemptConstructTableRow(int nid, int M, const PrimitiveVec& vec){
+bool ApproxGLPK::attemptConstructTableRow(int nid, int M, const PrimitiveVec& vec){
   ArithVar basic = d_pad.d_basic;
   DenseMap<Rational>& tab = d_pad.d_tabRow.lhs;
   d_pad.d_tabRow.rhs = Rational(0);
@@ -2577,7 +2580,7 @@ void ApproxGLPK::attemptConstructTableRow(int nid, int M, const PrimitiveVec& ve
     ArithVar var = _getArithVar(nid, M, ind);
     if(var == ARITHVAR_SENTINEL){
       cout << "couldn't find" << ind << " " << M << " " << nid << endl;
-      d_pad.d_failure = true; return;
+      return true;
     }
     //cout << "match " << ind << "," << var << "("<<d_vars.asNode(var)<<")"<<endl;
 
@@ -2587,17 +2590,18 @@ void ApproxGLPK::attemptConstructTableRow(int nid, int M, const PrimitiveVec& ve
   }
   if(!guessIsConstructable(tab)){
     cout << "failed to construct " << endl;
-    d_pad.d_failure = true; return;
+    return true;
   }
   tab.remove(basic);
+  return false;
 }
 
 /* Maps an ArithVar to either an upper/lower bound */
-void ApproxGLPK::constructGmiCut(){
+bool ApproxGLPK::constructGmiCut(){
   const DenseMap<Rational>& tabRow = d_pad.d_tabRow.lhs;
-  const DenseMap<Constraint>& toBound = d_pad.d_toBound;
+  const DenseMap<ConstraintP>& toBound = d_pad.d_toBound;
   DenseMap<Rational>& cut = d_pad.d_cut.lhs;
-  std::set<Constraint>& explanation = d_pad.d_explanation;
+  std::set<ConstraintP>& explanation = d_pad.d_explanation;
   Rational& rhs = d_pad.d_cut.rhs;
 
   DenseMap<Rational>::const_iterator iter, end;
@@ -2608,9 +2612,7 @@ void ApproxGLPK::constructGmiCut(){
   DeltaRational dbeta = sumConstraints(tabRow, toBound, &anyInf);
   const Rational& beta = dbeta.getNoninfinitesimalPart();
   cout << dbeta << endl;
-  if(anyInf || beta.isIntegral()){
-    d_pad.d_failure = true; return; // this is going to fail
-  }
+  if(anyInf || beta.isIntegral()){ return true; }
 
   Rational one = Rational(1);
   Rational fbeta = beta.floor_frac();
@@ -2621,20 +2623,19 @@ void ApproxGLPK::constructGmiCut(){
   for(iter = tabRow.begin(), end = tabRow.end(); iter != end; ++iter){
     ArithVar x = *iter;
     const Rational& psi = tabRow[x];
-    Constraint c = toBound[x];
+    ConstraintP c = toBound[x];
     const Rational& bound = c->getValue().getNoninfinitesimalPart();
-    bool treatAsInt = d_vars.isInteger(x) && !d_vars.isSlack(x);
     if(d_vars.boundsAreEqual(x)){
       // do not add a coefficient
       // implictly substitute the variable w/ its constraint
-      std::pair<Constraint, Constraint> exp = d_vars.explainEqualBounds(x);
+      std::pair<ConstraintP, ConstraintP> exp = d_vars.explainEqualBounds(x);
       explanation.insert(exp.first);
       //cout << exp.first << endl;
       if(exp.second != NullConstraint){
         explanation.insert(exp.second);
         //cout << exp.second << endl;
       }
-    }else if(treatAsInt && psi.isIntegral()){
+    }else if(d_vars.isIntegerInput(x) && psi.isIntegral()){
       // do not add a coefficient
       // nothing to explain
       cout << "skipping " << x << endl;
@@ -2644,7 +2645,7 @@ void ApproxGLPK::constructGmiCut(){
       Rational alpha = (c->isUpperBound() ? psi : -psi);
 
       // x - ub <= 0 and lb - x <= 0
-      if(treatAsInt){
+      if(d_vars.isIntegerInput(x)){
         Assert(!psi.isIntegral());
         // alpha = slack_sgn * psi
         Rational falpha = alpha.floor_frac();
@@ -2674,35 +2675,39 @@ void ApproxGLPK::constructGmiCut(){
   removeFixed(d_vars, d_pad.d_cut, explanation);
   cout << "post removeFixed";
   d_pad.d_cut.print(cout); cout << endl;
+  return false;
 }
 
 void ApproxGLPK::tryCut(int nid, CutInfo& cut){
   static int success = 0;
   static int attempts = 0;
   attempts++;
-  std::pair<Node, Node> res;
-  switch(cut.klass){
+  bool failure;
+  switch(cut.getKlass()){
   case GmiCutKlass:
-    res = attemptGmi(nid, static_cast<const GmiInfo&>(cut));
+    failure = attemptGmi(nid, static_cast<const GmiInfo&>(cut));
     break;
   case MirCutKlass:
-    res = attemptMir(nid, static_cast<const MirInfo&>(cut));
+    failure = attemptMir(nid, static_cast<const MirInfo&>(cut));
     break;
   case BranchCutKlass:
-    res = attemptBranchCut(nid, dynamic_cast<const BranchCutInfo&>(cut));
+    failure = attemptBranchCut(nid, dynamic_cast<const BranchCutInfo&>(cut));
     break;
   default:
     break;
   }
-  Node lit = res.first;
-  Node exp = res.second;
-  if(!lit.isNull()){
-    Assert(!exp.isNull() || cut.klass == BranchCutKlass);
-    cut.asLiteral = lit;
-    cut.explanation = exp;
+  Assert(failure == d_pad.d_failure);
+
+  if(!failure){
     success++;
+    // move the pad to the cut
+    cut.setCut(d_pad.d_cut);
+
+    std::set<ConstraintP>& exp = d_pad.d_explanation;
+    ConstraintCPVec asvec(exp.begin(), exp.end());
+    cut.swapExplanation(asvec);
   }else{
-    cout << "failure " << cut.klass << endl;
+    cout << "failure " << cut.getKlass() << endl;
   }
   cout << "success rate :" << success << "/"<<attempts<<endl;
 }

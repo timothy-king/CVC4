@@ -94,9 +94,9 @@ namespace arith {
 enum ConstraintType {LowerBound, Equality, UpperBound, Disequality};
 
 
-typedef context::CDList<Constraint> CDConstraintList;
+typedef context::CDList<ConstraintCP> CDConstraintList;
 
-typedef __gnu_cxx::hash_map<Node, Constraint, NodeHashFunction> NodetoConstraintMap;
+typedef __gnu_cxx::hash_map<Node, ConstraintP, NodeHashFunction> NodetoConstraintMap;
 
 typedef size_t ProofId;
 static ProofId ProofIdSentinel = std::numeric_limits<ProofId>::max();
@@ -111,10 +111,10 @@ static AssertionOrder AssertionOrderSentinel = std::numeric_limits<AssertionOrde
 class ValueCollection {
 private:
 
-  Constraint d_lowerBound;
-  Constraint d_upperBound;
-  Constraint d_equality;
-  Constraint d_disequality;
+  ConstraintP d_lowerBound;
+  ConstraintP d_upperBound;
+  ConstraintP d_equality;
+  ConstraintP d_disequality;
 
 public:
   ValueCollection()
@@ -124,7 +124,7 @@ public:
       d_disequality(NullConstraint)
   {}
 
-  static ValueCollection mkFromConstraint(Constraint c);
+  static ValueCollection mkFromConstraint(ConstraintP c);
 
   bool hasLowerBound() const{
     return d_lowerBound != NullConstraint;
@@ -141,24 +141,24 @@ public:
 
   bool hasConstraintOfType(ConstraintType t) const;
 
-  Constraint getLowerBound() const {
+  ConstraintP getLowerBound() const {
     Assert(hasLowerBound());
     return d_lowerBound;
   }
-  Constraint getUpperBound() const {
+  ConstraintP getUpperBound() const {
     Assert(hasUpperBound());
     return d_upperBound;
   }
-  Constraint getEquality() const {
+  ConstraintP getEquality() const {
     Assert(hasEquality());
     return d_equality;
   }
-  Constraint getDisequality() const {
+  ConstraintP getDisequality() const {
     Assert(hasDisequality());
     return d_disequality;
   }
 
-  Constraint getConstraintOfType(ConstraintType t) const;
+  ConstraintP getConstraintOfType(ConstraintType t) const;
 
   /** Returns true if any of the constraints are non-null. */
   bool empty() const;
@@ -174,11 +174,11 @@ public:
    * Adds a constraint to the set.
    * The collection must not have a constraint of that type already.
    */
-  void add(Constraint c);
+  void add(ConstraintP c);
 
-  void push_into(std::vector<Constraint>& vec) const;
+  void push_into(std::vector<ConstraintP>& vec) const;
 
-  Constraint nonNull() const;
+  ConstraintP nonNull() const;
 
   ArithVar getVariable() const;
   const DeltaRational& getValue() const;
@@ -220,7 +220,7 @@ struct PerVariableDatabase{
   }
 };
 
-class ConstraintValue {
+class Constraint_ {
 private:
   /** The ArithVar associated with the constraint. */
   const ArithVar d_variable;
@@ -246,7 +246,7 @@ private:
   Node d_literal;
 
   /** Pointer to the negation of the Constraint. */
-  Constraint d_negation;
+  ConstraintP d_negation;
 
   /**
    * This is true if the associated node can be propagated.
@@ -309,13 +309,13 @@ private:
    * Because of circular dependencies a Constraint is not fully valid until
    * initialize has been called on it.
    */
-  ConstraintValue(ArithVar x,  ConstraintType t, const DeltaRational& v);
+  Constraint_(ArithVar x,  ConstraintType t, const DeltaRational& v);
 
   /**
    * Destructor for a constraint.
    * This should only be called if safeToGarbageCollect() is true.
    */
-  ~ConstraintValue();
+  ~Constraint_();
 
   bool initialized() const;
 
@@ -323,12 +323,12 @@ private:
    * This initializes the fields that cannot be set in the constructor due to
    * circular dependencies.
    */
-  void initialize(ConstraintDatabase* db, SortedConstraintMapIterator v, Constraint negation);
+  void initialize(ConstraintDatabase* db, SortedConstraintMapIterator v, ConstraintP negation);
 
   class ProofCleanup {
   public:
-    inline void operator()(Constraint* p){
-      Constraint constraint = *p;
+    inline void operator()(ConstraintP* p){
+      ConstraintP constraint = *p;
       Assert(constraint->d_proof != ProofIdSentinel);
       constraint->d_proof = ProofIdSentinel;
     }
@@ -336,8 +336,8 @@ private:
 
   class CanBePropagatedCleanup {
   public:
-    inline void operator()(Constraint* p){
-      Constraint constraint = *p;
+    inline void operator()(ConstraintP* p){
+      ConstraintP constraint = *p;
       Assert(constraint->d_canBePropagated);
       constraint->d_canBePropagated = false;
     }
@@ -345,8 +345,8 @@ private:
 
   class AssertionOrderCleanup {
   public:
-    inline void operator()(Constraint* p){
-      Constraint constraint = *p;
+    inline void operator()(ConstraintP* p){
+      ConstraintP constraint = *p;
       Assert(constraint->assertedToTheTheory());
       constraint->_d_assertionOrder = AssertionOrderSentinel;
       constraint->d_witness = TNode::null();
@@ -356,8 +356,8 @@ private:
 
   class SplitCleanup {
   public:
-    inline void operator()(Constraint* p){
-      Constraint constraint = *p;
+    inline void operator()(ConstraintP* p){
+      ConstraintP constraint = *p;
       Assert(constraint->d_split);
       constraint->d_split = false;
     }
@@ -389,7 +389,7 @@ public:
     return d_value;
   }
 
-  Constraint getNegation() const {
+  ConstraintP getNegation() const {
     return d_negation;
   }
 
@@ -453,9 +453,14 @@ public:
     return _d_assertionOrder < time;
   }
 
-
+  /** Sets the witness literal for a node being on the assertion stack.
+   * The negation of the node cannot be true. */
   void setAssertedToTheTheory(TNode witness);
 
+  /** Sets the witness literal for a node being on the assertion stack.
+   * The negation of the node must be true!
+   * This is for conflict generation specificially! */
+  void setAssertedToTheTheoryWithNegationTrue(TNode witness);
 
   bool hasLiteral() const {
     return !d_literal.isNull();
@@ -485,12 +490,15 @@ public:
 
 
   /**
-   * There cannot be a literal associated with this constraint.
-   * The explanation is the constant true.
-   * explainInto() does nothing.
+   * A phantom constraint is an internal decision node.
+   * This does not need to have a witness or an associated literal.
+   * This is always itself in the explanation fringe for both conflicts
+   * and propagation.
+   * This cannot be converted back into a Node conflict or explanation.
+   * This cannot have a proof.
    */
-  //void setPseudoConstraint();
-  //bool isPseudoConstraint() const;
+  void setInternalDecision();
+  bool isInternalDecision() const;
 
   /**
    * Returns a explanation of the constraint that is appropriate for conflicts.
@@ -515,13 +523,20 @@ public:
    * This is not appropriate for propagation!
    * Use explainForPropagation() instead.
    */
-  void explainForConflict(NodeBuilder<>& nb) const{
-    explainBefore(nb, AssertionOrderSentinel);
-  }
+  // void explainForConflict(NodeBuilder<>& nb) const{
+  //   explainBefore(nb, AssertionOrderSentinel);
+  // }
+  static void conflictFringe(ConstraintCPVec& out, const ConstraintCPVec& in);
+  static void propFringe(ConstraintCPVec& out, const ConstraintCPVec& in);
 
   /** Utility function built from explainForConflict. */
-  static Node explainConflict(Constraint a, Constraint b);
-  static Node explainConflict(Constraint a, Constraint b, Constraint c);
+  //static Node explainConflict(ConstraintP a, ConstraintP b);
+  //static Node explainConflict(ConstraintP a, ConstraintP b, Constraint c);
+
+  static Node explainConflictForEE(ConstraintCP a, ConstraintCP b);
+  static Node explainConflictForEE(ConstraintCP a);
+  static Node explainConflictForDio(ConstraintCP a);
+  static Node explainConflictForDio(ConstraintCP a, ConstraintCP b);
 
   /**
    * Returns an explanation of a propagation by the ConstraintDatabase.
@@ -536,6 +551,8 @@ public:
     Assert(!isSelfExplaining());
     return explainBefore(_d_assertionOrder);
   }
+
+  void explainForPropagation(ConstraintCPVec& out) const;
 
 private:
   Node explainBefore(AssertionOrder order) const;
@@ -566,18 +583,18 @@ public:
     return hasProof();
   }
 
-  Constraint getCeiling();
+  ConstraintP getCeiling();
 
-  Constraint getFloor();
+  ConstraintP getFloor();
 
 
-  static Constraint makeNegation(ArithVar v, ConstraintType t, const DeltaRational& r);
+  static ConstraintP makeNegation(ArithVar v, ConstraintType t, const DeltaRational& r);
 
   const ValueCollection& getValueCollection() const;
 
 
-  Constraint getStrictlyWeakerUpperBound(bool hasLiteral, bool mustBeAsserted) const;
-  Constraint getStrictlyWeakerLowerBound(bool hasLiteral, bool mustBeAsserted) const;
+  ConstraintP getStrictlyWeakerUpperBound(bool hasLiteral, bool mustBeAsserted) const;
+  ConstraintP getStrictlyWeakerLowerBound(bool hasLiteral, bool mustBeAsserted) const;
 
   /**
    * Marks the node as having a proof a.
@@ -587,19 +604,23 @@ public:
    * canBePropagated()
    * !assertedToTheTheory()
    */
-  void propagate(Constraint a);
-  void propagate(Constraint a, Constraint b);
-  void propagate(const std::vector<Constraint>& b);
+  void propagate(ConstraintCP a);
+  void propagate(ConstraintCP a, ConstraintCP b);
+  //void propagate(const std::vector<Constraint>& b);
+  void propagate(const ConstraintCPVec& b);
+
   /**
    * The only restriction is that this is not known be true.
    * This propagates if there is a node.
    */
-  void impliedBy(Constraint a);
-  void impliedBy(Constraint a, Constraint b);
-  void impliedBy(const std::vector<Constraint>& b);
+  void impliedBy(ConstraintCP a);
+  void impliedBy(ConstraintCP a, ConstraintCP b);
+  //void impliedBy(const std::vector<Constraint>& b);
+  void impliedBy(const ConstraintCPVec& b);
 
-  Node makeImplication(const std::vector<Constraint>& b) const;
-  static Node makeConjunction(const std::vector<Constraint>& b);
+  Node makeImplication(const ConstraintCPVec& b) const;
+  static Node makeConjunction(const ConstraintCPVec& b);
+  static Node makeConflictNode(const ConstraintCPVec& b);
 
   /** The node must have a proof already and be eligible for propagation! */
   void propagate();
@@ -617,10 +638,11 @@ private:
    * Marks the node as having a proof a.
    * This is safe if the node does not have
    */
-  void markAsTrue(Constraint a);
+  void markAsTrue(ConstraintCP a);
 
-  void markAsTrue(Constraint a, Constraint b);
-  void markAsTrue(const std::vector<Constraint>& b);
+  void markAsTrue(ConstraintCP a, ConstraintCP b);
+  //void markAsTrue(const std::vector<Constraint>& b);
+  void markAsTrue(const ConstraintCPVec& b);
 
   void debugPrint() const;
 
@@ -634,8 +656,8 @@ private:
 
 }; /* class ConstraintValue */
 
-std::ostream& operator<<(std::ostream& o, const ConstraintValue& c);
-std::ostream& operator<<(std::ostream& o, const Constraint c);
+std::ostream& operator<<(std::ostream& o, const Constraint_& c);
+std::ostream& operator<<(std::ostream& o, const ConstraintP c);
 std::ostream& operator<<(std::ostream& o, const ConstraintType t);
 std::ostream& operator<<(std::ostream& o, const ValueCollection& c);
 
@@ -663,7 +685,7 @@ private:
    *
    * As Constraint are pointers, the elements of the queue do not require destruction.
    */
-  context::CDQueue<Constraint> d_toPropagate;
+  context::CDQueue<ConstraintCP> d_toPropagate;
 
   /**
    * Proof Lists.
@@ -708,10 +730,10 @@ private:
    */
   //ProofId d_pseudoConstraintProof;
 
-  typedef context::CDList<Constraint, ConstraintValue::ProofCleanup> ProofCleanupList;
-  typedef context::CDList<Constraint, ConstraintValue::CanBePropagatedCleanup> CBPList;
-  typedef context::CDList<Constraint, ConstraintValue::AssertionOrderCleanup> AOList;
-  typedef context::CDList<Constraint, ConstraintValue::SplitCleanup> SplitList;
+  typedef context::CDList<ConstraintP, Constraint_::ProofCleanup> ProofCleanupList;
+  typedef context::CDList<ConstraintP, Constraint_::CanBePropagatedCleanup> CBPList;
+  typedef context::CDList<ConstraintP, Constraint_::AssertionOrderCleanup> AOList;
+  typedef context::CDList<ConstraintP, Constraint_::SplitCleanup> SplitList;
 
   /**
    * The watch lists are collected together as they need to be garbage collected
@@ -744,26 +766,26 @@ private:
   };
   Watches* d_watches;
 
-  void pushSplitWatch(Constraint c){
+  void pushSplitWatch(ConstraintP c){
     Assert(!c->d_split);
     c->d_split = true;
     d_watches->d_splitWatches.push_back(c);
   }
 
-  void pushCanBePropagatedWatch(Constraint c){
+  void pushCanBePropagatedWatch(ConstraintP c){
     Assert(!c->d_canBePropagated);
     c->d_canBePropagated = true;
     d_watches->d_canBePropagatedWatches.push_back(c);
   }
 
-  void pushAssertionOrderWatch(Constraint c, TNode witness){
+  void pushAssertionOrderWatch(ConstraintP c, TNode witness){
     Assert(!c->assertedToTheTheory());
     c->_d_assertionOrder = d_watches->d_assertionOrderWatches.size();
     c->d_witness = witness;
     d_watches->d_assertionOrderWatches.push_back(c);
   }
 
-  void pushProofWatch(Constraint c, ProofId pid){
+  void pushProofWatch(ConstraintP c, ProofId pid){
     Assert(c->d_proof == ProofIdSentinel);
     c->d_proof = pid;
     d_watches->d_proofWatches.push_back(c);
@@ -786,7 +808,7 @@ private:
 
   RaiseConflict d_raiseConflict;
 
-  friend class ConstraintValue;
+  friend class Constraint_;
 
 public:
 
@@ -799,13 +821,13 @@ public:
   ~ConstraintDatabase();
 
   /** Adds a literal to the database. */
-  Constraint addLiteral(TNode lit);
+  ConstraintP addLiteral(TNode lit);
 
   /**
    * If hasLiteral() is true, returns the constraint.
    * Otherwise, returns NullConstraint.
    */
-  Constraint lookup(TNode literal) const;
+  ConstraintP lookup(TNode literal) const;
 
   /**
    * Returns true if the literal has been added to the database.
@@ -818,10 +840,10 @@ public:
     return !d_toPropagate.empty();
   }
 
-  Constraint nextPropagation(){
+  ConstraintCP nextPropagation(){
     Assert(hasMorePropagations());
 
-    Constraint p = d_toPropagate.front();
+    ConstraintCP p = d_toPropagate.front();
     d_toPropagate.pop();
 
     return p;
@@ -831,8 +853,8 @@ public:
   bool variableDatabaseIsSetup(ArithVar v) const;
   void removeVariable(ArithVar v);
 
-  Node eeExplain(ConstConstraint c) const;
-  void eeExplain(ConstConstraint c, NodeBuilder<>& nb) const;
+  Node eeExplain(ConstraintCP c) const;
+  void eeExplain(ConstraintCP c, NodeBuilder<>& nb) const;
 
   /**
    * Returns a constraint with the variable v, the constraint type t, and a value
@@ -844,7 +866,7 @@ public:
    *  If t is UpperBound, r <= v
    *  If t is LowerBound, r >= v
    */
-  Constraint getBestImpliedBound(ArithVar v, ConstraintType t, const DeltaRational& r) const;
+  ConstraintP getBestImpliedBound(ArithVar v, ConstraintType t, const DeltaRational& r) const;
 
   /**
    * Returns a constraint with the variable v, the constraint type t and the value r.
@@ -852,14 +874,14 @@ public:
    * If there is no such constraint, this constraint is added to the database.
    *
    */
-  Constraint getConstraint(ArithVar v, ConstraintType t, const DeltaRational& r);
+  ConstraintP getConstraint(ArithVar v, ConstraintType t, const DeltaRational& r);
 
   /**
    * Returns a constraint of the given type for the value and variable
    * for the given ValueCollection, vc.
    * This is made if there is no such constraint.
    */
-  Constraint ensureConstraint(ValueCollection& vc, ConstraintType t){
+  ConstraintP ensureConstraint(ValueCollection& vc, ConstraintType t){
     if(vc.hasConstraintOfType(t)){
       return vc.getConstraintOfType(t);
     }else{
@@ -887,12 +909,12 @@ public:
   void outputUnateInequalityLemmas(std::vector<Node>& lemmas, ArithVar v) const;
 
 
-  void unatePropLowerBound(Constraint curr, Constraint prev);
-  void unatePropUpperBound(Constraint curr, Constraint prev);
-  void unatePropEquality(Constraint curr, Constraint prevLB, Constraint prevUB);
+  void unatePropLowerBound(ConstraintP curr, ConstraintP prev);
+  void unatePropUpperBound(ConstraintP curr, ConstraintP prev);
+  void unatePropEquality(ConstraintP curr, ConstraintP prevLB, ConstraintP prevUB);
 
 private:
-  void raiseUnateConflict(Constraint ant, Constraint cons);
+  void raiseUnateConflict(ConstraintP ant, ConstraintP cons);
 
   DenseSet d_reclaimable;
 
@@ -906,6 +928,8 @@ private:
   } d_statistics;
 
 }; /* ConstraintDatabase */
+
+std::ostream& operator<<(std::ostream& o,const ConstraintCPVec& v);
 
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */

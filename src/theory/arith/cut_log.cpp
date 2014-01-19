@@ -75,27 +75,90 @@ void PrimitiveVec::print(std::ostream& out) const{
 }
 
 CutInfo::CutInfo(CutInfoKlass kl, int eid, int o)
-  : execOrd(eid)
-  , klass(kl)
-  , ord(o)
-  , cut_type_(kind::UNDEFINED_KIND)
-  , cut_rhs()
-  , cut_vec()
-  , M(-1)
-  , N(-1)
-  , row_id(-1)
-  , asLiteral(Node::null())
-  , explanation(Node::null())
+  : d_klass(kl)
+  , d_execOrd(eid)
+  , d_poolOrd(o)
+  , d_cutType(kind::UNDEFINED_KIND)
+  , d_cutRhs()
+  , d_cutVec()
+  , d_mAtCreation(-1)
+  , d_rowId(-1)
+  , d_exactPrecision(NULL)
+  , d_explanation(NULL)
 {}
 
-void CutInfo::print(ostream& out) const{
-  out << ord << " " << klass << " " << cut_type_ << " " << cut_rhs << endl;
-  cut_vec.print(out);
+CutInfo::~CutInfo(){
+  if(d_exactPrecision == NULL){ delete d_exactPrecision; }
+  if(d_explanation == NULL){ delete d_explanation; }
 }
 
-void CutInfo::init_cut(int l){
-  cut_vec.setup(l);
+void CutInfo::print(ostream& out) const{
+  out << "[CutInfo " << d_execOrd << " " << d_poolOrd
+      << " " << d_klass << " " << d_cutType << " " << d_cutRhs;
+  d_cutVec.print(out);
+  out << "]" << endl;
 }
+
+// void CutInfo::init_cut(int l){
+//   cut_vec.setup(l);
+// }
+
+Kind CutInfo::getKind() const{
+  return d_cutType;
+}
+
+void CutInfo::setKind(Kind k){
+  Assert(k == kind::LEQ || k == kind::GEQ);
+  d_cutType = k;
+}
+
+bool CutInfo::success() const{
+  return d_exactPrecision != NULL;
+}
+
+  /* Returns true if the cut has an explanation. */
+bool CutInfo::proven() const{
+  return d_explanation != NULL;
+}
+
+bool CutInfo::operator<(const CutInfo& o) const{
+  return d_execOrd < o.d_execOrd;
+}
+
+
+void CutInfo::setCut(const DenseVector& ep){
+  Assert(!success());
+  d_exactPrecision = new DenseVector(ep);
+}
+
+void CutInfo::setExplanation(const ConstraintCPVec& ex){
+  Assert(success());
+  Assert(!proven());
+  if(d_explanation == NULL){
+    d_explanation = new ConstraintCPVec(ex);
+  }else{
+    *d_explanation = ex;
+  }
+}
+
+void CutInfo::swapExplanation(ConstraintCPVec& ex){
+  Assert(success());
+  Assert(!proven());
+  if(d_explanation == NULL){
+    d_explanation = new ConstraintCPVec();
+  }
+  d_explanation->swap(ex);
+}
+
+const DenseVector& CutInfo::getExactPrecision() const {
+  Assert(success());
+  return *d_exactPrecision;
+}
+const ConstraintCPVec& CutInfo::getExplanation() const {
+  Assert(proven());
+  return *d_explanation;
+}
+
 std::ostream& operator<<(std::ostream& out, CutInfoKlass kl){
   switch(kl){
   case MirCutKlass:
@@ -117,6 +180,8 @@ bool NodeLog::isBranch() const{
 
 NodeLog::NodeLog()
   : d_nid(-1)
+  , d_parent(NULL)
+  , d_tl(NULL)
   , d_cuts()
   , d_rowIdsSelected()
   , stat(Open)
@@ -126,8 +191,23 @@ NodeLog::NodeLog()
   , up(-1)
 {}
 
-NodeLog::NodeLog(int node)
+NodeLog::NodeLog(TreeLog* tl, int node)
   : d_nid(node)
+  , d_parent(NULL)
+  , d_tl(tl)
+  , d_cuts()
+  , d_rowIdsSelected()
+  , stat(Open)
+  , br_var(-1)
+  , br_val(0.0)
+  , dn(-1)
+  , up(-1)
+{}
+
+NodeLog::NodeLog(TreeLog* tl, NodeLog* parent, int node)
+  : d_nid(node)
+  , d_parent(parent)
+  , d_tl(tl)
   , d_cuts()
   , d_rowIdsSelected()
   , stat(Open)
@@ -170,16 +250,17 @@ void NodeLog::applySelected() {
   CutSet::iterator iter = d_cuts.begin(), iend = d_cuts.end(), todelete;
   while(iter != iend){
     CutInfo* curr = *iter;
-    if(curr->klass == BranchCutKlass){
+    int poolOrd = curr->poolOrdinal();
+    if(curr->getKlass() == BranchCutKlass){
       // skip
       ++iter;
-    }else if(d_rowIdsSelected.find(curr->ord) == d_rowIdsSelected.end()){
+    }else if(d_rowIdsSelected.find(poolOrd) == d_rowIdsSelected.end()){
       todelete = iter;
       ++iter;
       d_cuts.erase(todelete);
       delete curr;
     }else{
-      curr->row_id = d_rowIdsSelected[curr->ord];
+      curr->setRowId( d_rowIdsSelected[poolOrd] );
       ++iter;
     }
   }
@@ -195,9 +276,9 @@ void NodeLog::print(ostream& o) const{
   o << "[n" << getNodeId();
   for(const_iterator iter = begin(), iend = end(); iter != iend; ++iter ){
     CutInfo* cut = *iter;
-    o << ", " << cut->ord;
-    if(cut->row_id >= 0){
-      o << " " << cut->row_id;
+    o << ", " << cut->poolOrdinal();
+    if(cut->getRowId() >= 0){
+      o << " " << cut->getRowId();
     }
   }
   o << "]" << std::endl;
@@ -240,7 +321,7 @@ void TreeLog::clear(){
 
   // add root
 
-  d_toNode.insert(make_pair(getRootId(), NodeLog(getRootId())));
+  d_toNode.insert(make_pair(getRootId(), NodeLog(this, getRootId())));
 }
 
 void TreeLog::addCut(){ d_numCuts++; }
@@ -256,8 +337,8 @@ void TreeLog::branch(int nid, int br, double val, int dn, int up){
   NodeLog& nl = getNode(nid);
   nl.setBranch(br, val, dn, up);
 
-  d_toNode.insert(make_pair(dn, NodeLog(dn)));
-  d_toNode.insert(make_pair(up, NodeLog(up)));
+  d_toNode.insert(make_pair(dn, NodeLog(this, &nl, dn)));
+  d_toNode.insert(make_pair(up, NodeLog(this, &nl, up)));
 }
 
 void TreeLog::close(int nid){
@@ -290,14 +371,14 @@ void DenseVector::purge() {
 }
 
 
-BranchCutInfo::BranchCutInfo(int execOrd, int br,  Kind dir, double val)
+BranchCutInfo::BranchCutInfo(int execOrd, int br, Kind dir, double val)
   : CutInfo(BranchCutKlass, execOrd, 0)
 {
-  init_cut(1);
-  cut_vec.inds[1] = br;
-  cut_vec.coeffs[1] = +1.0;
-  cut_rhs = val;
-  cut_type_ = dir;
+  d_cutVec.setup(1);
+  d_cutVec.inds[1] = br;
+  d_cutVec.coeffs[1] = +1.0;
+  d_cutRhs = val;
+  d_cutType = dir;
 }
 
 void TreeLog::printBranchInfo(ostream& os) const{

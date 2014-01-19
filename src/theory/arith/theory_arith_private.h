@@ -111,6 +111,8 @@ private:
 
   BoundInfoMap d_rowTracking;
 
+  ConstraintCPVec d_conflictBuffer;
+
   /**
    * The constraint database associated with the theory.
    * This must be declared before ArithPartialModel.
@@ -178,22 +180,22 @@ private:
    * A superset of all of the assertions that currently are not the literal for
    * their constraint do not match constraint literals. Not just the witnesses.
    */
-  context::CDInsertHashMap<Node, Constraint, NodeHashFunction> d_assertionsThatDoNotMatchTheirLiterals;
+  context::CDInsertHashMap<Node, ConstraintP, NodeHashFunction> d_assertionsThatDoNotMatchTheirLiterals;
 
 
   /** Returns true if x is of type Integer. */
   inline bool isInteger(ArithVar x) const {
     return d_partialModel.isInteger(x);
-    //return d_variableTypes[x] >= ATInteger;
   }
 
-  /** This is the set of variables initially introduced as slack variables. */
-  //std::vector<bool> d_slackVars;
 
   /** Returns true if the variable was initially introduced as a slack variable. */
-  inline bool isSlackVariable(ArithVar x) const{
-    return d_partialModel.isSlack(x);
-    //return d_slackVars[x];
+  inline bool isAuxiliaryVariable(ArithVar x) const{
+    return d_partialModel.isAuxiliary(x);
+  }
+
+  inline bool isIntegerInput(ArithVar x) const {
+    return d_partialModel.isIntegerInput(x);
   }
 
   /**
@@ -219,7 +221,7 @@ private:
    * List of all of the disequalities asserted in the current context that are not known
    * to be satisfied.
    */
-  context::CDQueue<Constraint> d_diseqQueue;
+  context::CDQueue<ConstraintP> d_diseqQueue;
 
   /**
    * Constraints that have yet to be processed by proagation work list.
@@ -235,9 +237,9 @@ private:
    * then d_cPL[1] is the previous lowerBound in d_partialModel,
    * and d_cPL[2] is the previous upperBound in d_partialModel.
    */
-  std::deque<Constraint> d_currentPropagationList;
+  std::deque<ConstraintP> d_currentPropagationList;
 
-  context::CDQueue<Constraint> d_learnedBounds;
+  context::CDQueue<ConstraintP> d_learnedBounds;
 
 
   /**
@@ -281,15 +283,31 @@ private:
 
 
   /** This is only used by simplex at the moment. */
-  context::CDList<Node> d_conflicts;
+  context::CDList<ConstraintCPVec> d_conflicts;
+  context::CDO<Node> d_blackBoxConflict;
 public:
-  inline void raiseConflict(Node n){  d_conflicts.push_back(n); }
+  inline void raiseConflict(const ConstraintCPVec& cv){
+    d_conflicts.push_back(cv);
+  }
+
+  void raiseConflict(ConstraintCP a, ConstraintCP b);
+  void raiseConflict(ConstraintCP a, ConstraintCP b, ConstraintCP c);
+
+  inline void blackBoxConflict(Node bb){
+    if(d_blackBoxConflict.get().isNull()){
+      d_blackBoxConflict = bb;
+    }
+  }
 
 private:
 
+  inline bool conflictQueueEmpty() const {
+    return d_conflicts.empty();
+  }
+
   /** Returns true iff a conflict has been raised. */
-  inline bool inConflict() const {
-    return !d_conflicts.empty();
+  inline bool anyConflict() const {
+    return !conflictQueueEmpty() || !d_blackBoxConflict.get().isNull();
   }
 
   /**
@@ -491,10 +509,10 @@ private:
    * a node describing this conflict is returned.
    * If this new bound is not in conflict, Node::null() is returned.
    */
-  bool AssertLower(Constraint constraint);
-  bool AssertUpper(Constraint constraint);
-  bool AssertEquality(Constraint constraint);
-  bool AssertDisequality(Constraint constraint);
+  bool AssertLower(ConstraintP constraint);
+  bool AssertUpper(ConstraintP constraint);
+  bool AssertEquality(ConstraintP constraint);
+  bool AssertDisequality(ConstraintP constraint);
 
   /** Tracks the bounds that were updated in the current round. */
   DenseSet d_updatedBounds;
@@ -517,11 +535,15 @@ private:
   /** Attempt to perform a row propagation where every variable is a potential candidate.*/
   bool attemptFull(RowIndex ridx, bool rowUp);
   bool tryToPropagate(RowIndex ridx, bool rowUp, ArithVar v, bool vUp, const DeltaRational& bound);
-  bool rowImplicationCanBeApplied(RowIndex ridx, bool rowUp, Constraint bestImplied);
-  void enqueueConstraints(std::vector<Constraint>& out, Node n) const;
-  Node resolveOutPropagated(Node conf, const std::set<Constraint>& propagated) const;
-  void resolveOutPropagated(std::vector<Node>& confs, const std::set<Constraint>& propagated) const;
+  bool rowImplicationCanBeApplied(RowIndex ridx, bool rowUp, ConstraintP bestImplied);
+  //void enqueueConstraints(std::vector<ConstraintCP>& out, Node n) const;
+  //ConstraintCPVec resolveOutPropagated(const ConstraintCPVec& v, const std::set<ConstraintCP>& propagated) const;
+  void resolveOutPropagated(std::vector<ConstraintCPVec>& confs, const std::set<ConstraintCP>& propagated) const;
+  void subsumption(std::vector<ConstraintCPVec>& confs) const;
 
+  Node cutToNode(ApproximateSimplex*  approx, const CutInfo& cut) const;
+  Node branchToNode(ApproximateSimplex*  approx, const NodeLog& cut) const;
+  Node mkLemma(const ConstraintCPVec& exp);
 
 
   void propagateCandidates();
@@ -545,8 +567,8 @@ private:
    * Returns a conflict if one was found.
    * Returns Node::null if no conflict was found.
    */
-  Constraint constraintFromFactQueue();
-  bool assertionCases(Constraint c);
+  ConstraintP constraintFromFactQueue();
+  bool assertionCases(ConstraintP c);
 
   /**
    * Returns the basic variable with the shorted row containing a non-basic variable.
@@ -624,10 +646,11 @@ private:
   ApproximateStatistics& getApproxStats();
 
   void tryBranchCut(ApproximateSimplex* approx, int nid, BranchCutInfo& bl);
-  std::vector<Node> replayLogRec(ApproximateSimplex* approx, int nid, Node bl);
-  Constraint replayGetConstraint(Node lit);
-  void replayAssert(Constraint c);
-  std::vector<Constraint> toExplanation(Node n) const;
+  std::vector<ConstraintCPVec> replayLogRec(ApproximateSimplex* approx, int nid, ConstraintP bc);
+  ConstraintP replayGetConstraint(const CutInfo& info);
+
+  void replayAssert(ConstraintP c);
+  //ConstConstraintVec toExplanation(Node n) const;
 
   /** These fields are designed to be accessible to TheoryArith methods. */
   class Statistics {

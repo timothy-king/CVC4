@@ -5,7 +5,9 @@
 
 #include "util/statistics_registry.h"
 #include "theory/arith/arithvar.h"
-#include "theory/arith/linear_equality.h"
+#include "util/rational.h"
+#include "theory/arith/delta_rational.h"
+//#include "theory/arith/linear_equality.h"
 #include "util/dense_map.h"
 #include <vector>
 
@@ -115,6 +117,8 @@ public:
     Solution() : newBasis(), newValues(){}
   };
 
+  virtual ArithVar getBranchVar(const NodeLog& nl) const = 0;
+
   /** Sets a maximization criteria for the approximate solver.*/
   virtual void setOptCoeffs(const ArithRatPairVec& ref) = 0;
 
@@ -126,10 +130,10 @@ public:
   virtual MipResult solveMIP(bool activelyLog) = 0;
   virtual Solution extractMIP() const = 0;
 
-  virtual std::vector<Node> getValidCuts() = 0;
-  virtual std::vector<Node> getBranches() = 0;
+  virtual std::vector<const CutInfo*> getValidCuts() = 0;
+  virtual std::vector<const NodeLog*> getBranches() = 0;
 
-  virtual Node downBranchLiteral(const NodeLog& con) const = 0;
+  //virtual Node downBranchLiteral(const NodeLog& con) const = 0;
 
   virtual void tryCut(int nid, CutInfo& cut) = 0;
 
