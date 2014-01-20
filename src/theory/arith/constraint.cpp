@@ -147,7 +147,8 @@ std::ostream& operator<<(std::ostream& o, const ConstraintCPVec& v){
   o << "[" << v.size() << "x";
   ConstraintCPVec::const_iterator i, end;
   for(i=v.begin(), end=v.end(); i != end; ++i){
-    o << (*i);
+    ConstraintCP c = *i;
+    o << ", " << (*c);
   }
   o << "]";
 }
