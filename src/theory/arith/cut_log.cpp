@@ -233,7 +233,7 @@ std::ostream& operator<<(std::ostream& out, CutInfoKlass kl){
   return out;
 }
 bool NodeLog::isBranch() const{
-  return br_var >= 0;
+  return d_brVar >= 0;
 }
 
 NodeLog::NodeLog()
@@ -242,24 +242,26 @@ NodeLog::NodeLog()
   , d_tl(NULL)
   , d_cuts()
   , d_rowIdsSelected()
-  , stat(Open)
-  , br_var(-1)
-  , br_val(0.0)
-  , dn(-1)
-  , up(-1)
+  , d_stat(Open)
+  , d_brVar(-1)
+  , d_brVal(0.0)
+  , d_downId(-1)
+  , d_upId(-1)
+  , d_rowId2ArithVar()
 {}
 
-NodeLog::NodeLog(TreeLog* tl, int node)
+NodeLog::NodeLog(TreeLog* tl, int node, const RowIdMap& m)
   : d_nid(node)
   , d_parent(NULL)
   , d_tl(tl)
   , d_cuts()
   , d_rowIdsSelected()
-  , stat(Open)
-  , br_var(-1)
-  , br_val(0.0)
-  , dn(-1)
-  , up(-1)
+  , d_stat(Open)
+  , d_brVar(-1)
+  , d_brVal(0.0)
+  , d_downId(-1)
+  , d_upId(-1)
+  , d_rowId2ArithVar(m)
 {}
 
 NodeLog::NodeLog(TreeLog* tl, NodeLog* parent, int node)
@@ -268,11 +270,12 @@ NodeLog::NodeLog(TreeLog* tl, NodeLog* parent, int node)
   , d_tl(tl)
   , d_cuts()
   , d_rowIdsSelected()
-  , stat(Open)
-  , br_var(-1)
-  , br_val(0.0)
-  , dn(-1)
-  , up(-1)
+  , d_stat(Open)
+  , d_brVar(-1)
+  , d_brVal(0.0)
+  , d_downId(-1)
+  , d_upId(-1)
+  , d_rowId2ArithVar(parent->d_rowId2ArithVar)
 {}
 
 NodeLog::~NodeLog(){
@@ -286,19 +289,19 @@ NodeLog::~NodeLog(){
 }
 
 int NodeLog::branchVariable() const {
-  return br_var;
+  return d_brVar;
 }
 double NodeLog::branchValue() const{
-  return br_val;
+  return d_brVal;
 }
 int NodeLog::getNodeId() const {
   return d_nid;
 }
 int NodeLog::getDownId() const{
-  return dn;
+  return d_downId;
 }
 int NodeLog::getUpId() const{
-  return up;
+  return d_upId;
 }
 void NodeLog::addSelected(int ord, int sel){
   d_rowIdsSelected[ord] = sel;
@@ -324,6 +327,21 @@ void NodeLog::applySelected() {
   }
 }
 
+ArithVar NodeLog::lookupRowId(int rowId) const{
+  RowIdMap::const_iterator i = d_rowId2ArithVar.find(rowId);
+  if(i == d_rowId2ArithVar.end()){
+    return ARITHVAR_SENTINEL;
+  }else{
+    return (*i).second;
+  }
+}
+
+void NodeLog::mapRowId(int rowId, ArithVar v){
+  Assert(lookupRowId(rowId) == ARITHVAR_SENTINEL);
+  d_rowId2ArithVar[rowId] = v;
+}
+
+
 
 void NodeLog::addCut(CutInfo* ci){
   Assert(ci != NULL);
@@ -343,17 +361,17 @@ void NodeLog::print(ostream& o) const{
 }
 
 void NodeLog::closeNode(){
-  Assert(stat == Open);
-  stat = Closed;
+  Assert(d_stat == Open);
+  d_stat = Closed;
 }
 
 void NodeLog::setBranch(int br, double val, int d, int u){
-  Assert(stat == Open);
-  br_var = br;
-  br_val = val;
-  dn = d;
-  up = u;
-  stat = Branched;
+  Assert(d_stat == Open);
+  d_brVar = br;
+  d_brVal = val;
+  d_downId = d;
+  d_upId = u;
+  d_stat = Branched;
 }
 
 TreeLog::TreeLog()
@@ -363,7 +381,8 @@ TreeLog::TreeLog()
   , d_numCuts(0)
   , d_active(false)
 {
-  clear();
+  NodeLog::RowIdMap empty;
+  reset(empty);
 }
 
 int TreeLog::getRootId() const{
@@ -378,8 +397,11 @@ void TreeLog::clear(){
   d_numCuts = 0;
 
   // add root
+}
 
-  d_toNode.insert(make_pair(getRootId(), NodeLog(this, getRootId())));
+void TreeLog::reset(const NodeLog::RowIdMap& m){
+  clear();
+  d_toNode.insert(make_pair(getRootId(), NodeLog(this, getRootId(), m)));
 }
 
 void TreeLog::addCut(){ d_numCuts++; }

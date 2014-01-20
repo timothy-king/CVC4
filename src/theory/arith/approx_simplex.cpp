@@ -382,7 +382,8 @@ private:
   DenseMap<int> d_colIndices;
   DenseMap<int> d_rowIndices;
 
-  DenseMap<ArithVar> d_rowToArithVar;
+  NodeLog::RowIdMap d_rootRowIds;
+  //DenseMap<ArithVar> d_rowToArithVar;
   DenseMap<ArithVar> d_colToArithVar;
 
   int d_instanceID;
@@ -429,13 +430,17 @@ private:
   ArithVar _getArithVar(int nid, int M, int ind) const;
   ArithVar getArithVarFromRow(int nid, int ind) const {
     if(ind >= 0){
-      unsigned u = (unsigned)ind;
-      if(d_rowToArithVar.isKey(u)){
-        return d_rowToArithVar[ind];
-      }
+      const NodeLog& nl = d_log.getNode(nid);
+      return nl.lookupRowId(ind);
     }
     return ARITHVAR_SENTINEL;
   }
+
+  virtual void mapRowId(int nid, int ind, ArithVar v){
+    NodeLog& nl = d_log.getNode(nid);
+    nl.mapRowId(ind, v);
+  }
+
   ArithVar getArithVarFromStructural(int ind) const{
     if(ind >= 0){
       unsigned u = (unsigned) ind;
@@ -567,7 +572,9 @@ ApproxGLPK::ApproxGLPK(const ArithVariables& v, TreeLog& l, ApproximateStatistic
     if(d_vars.isAuxiliary(v)){
       ++numRows;
       d_rowIndices.set(v, numRows);
-      d_rowToArithVar.set(numRows, v);
+      //mapRowId(d_log.getRootId(), numRows, v);
+      d_rootRowIds.insert(make_pair(numRows, v));
+      //d_rowToArithVar.set(numRows, v);
       cout << "Row vars: " << v << "<->" << numRows << endl;
     }else{
       ++numCols;
@@ -1569,7 +1576,7 @@ MipResult ApproxGLPK::solveMIP(bool activelyLog){
   aux.tl = &d_log;
   aux.term = MipUnknown;
 
-  d_log.clear();
+  d_log.reset(d_rootRowIds);
   if(activelyLog){
     d_log.makeActive();
   }else{

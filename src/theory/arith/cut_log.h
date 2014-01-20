@@ -11,7 +11,7 @@
 #include <vector>
 #include <map>
 #include <set>
-
+#include <ext/hash_map>
 
 namespace CVC4 {
 namespace theory {
@@ -143,16 +143,20 @@ private:
   std::map<int, int> d_rowIdsSelected;
 
   enum Status {Open, Closed, Branched};
-  Status stat;
+  Status d_stat;
 
-  int br_var; // branching variable
-  double br_val;
-  int dn;
-  int up;
+  int d_brVar; // branching variable
+  double d_brVal;
+  int d_downId;
+  int d_upId;
+public:
+  typedef __gnu_cxx::hash_map<int, ArithVar> RowIdMap;
+private:
+  RowIdMap d_rowId2ArithVar;
 
 public:
   NodeLog(); /* default constructor. */
-  NodeLog(TreeLog* tl, int node); /* makes a root node. */
+  NodeLog(TreeLog* tl, int node, const RowIdMap& m); /* makes a root node. */
   NodeLog(TreeLog* tl, NodeLog* parent, int node);/* makes a non-root node. */
 
   ~NodeLog();
@@ -179,6 +183,18 @@ public:
 
   int getDownId() const;
   int getUpId() const;
+
+  /**
+   * Looks up a row id to the appropraite arith variable.
+   * Be careful these are deleted in context during replay!
+   * failure returns ARITHVAR_SENTINEL */
+  ArithVar lookupRowId(int rowId) const;
+
+  /**
+   * Maps a row id to an arithvar.
+   * Be careful these are deleted in context during replay!
+   */
+  void mapRowId(int rowid, ArithVar v);
 };
 
 class ApproximateSimplex;
@@ -210,8 +226,12 @@ public:
   const_iterator end() const;
 
   int getExecutionOrd();
+
+  void reset(const NodeLog::RowIdMap& m);
+private:
   void clear();
 
+public:
   void makeInactive();
   void makeActive();
 
