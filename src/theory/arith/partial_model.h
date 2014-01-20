@@ -111,8 +111,8 @@ private:
   // Everything in the pool is fair game.
   // There must be NO outstanding assertions
   std::vector<ArithVar> d_pool;
-  std::list<ArithVar> d_released;
-  std::list<ArithVar>::iterator d_releasedIterator;
+  std::vector<ArithVar> d_released;
+  //std::list<ArithVar>::iterator d_releasedIterator;
 
   // Reverse Map from Node to ArithVar
   // Inverse of d_vars[x].d_node

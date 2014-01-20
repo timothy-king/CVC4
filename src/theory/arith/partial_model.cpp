@@ -33,7 +33,6 @@ ArithVariables::ArithVariables(context::Context* c, DeltaComputeCallback deltaCo
    d_numberOfVariables(0),
    d_pool(),
    d_released(),
-   d_releasedIterator(d_released.begin()),
    d_nodeToArithVarMap(),
    d_boundsQueue(),
    d_enqueueingBoundCounts(true),
@@ -193,6 +192,10 @@ bool ArithVariables::VarInfo::setAssignment(const DeltaRational& a, BoundsInfo& 
 
 void ArithVariables::releaseArithVar(ArithVar v){
   VarInfo& vi = d_vars.get(v);
+
+  size_t removed CVC4_UNUSED = d_nodeToArithVarMap.erase(vi.d_node);
+  Assert(removed == 1);
+
   vi.uninitialize();
 
   if(d_safeAssignment.isKey(v)){
@@ -263,22 +266,17 @@ bool ArithVariables::canBeReleased(ArithVar v) const{
 }
 
 void ArithVariables::attemptToReclaimReleased(){
-  std::list<ArithVar>::iterator i_end = d_released.end();
-  for(int iter = 0; iter < 20 && d_releasedIterator != i_end; ++d_releasedIterator){
-    ArithVar v = *d_releasedIterator;
-    VarInfo& vi = d_vars.get(v);
-    if(vi.canBeReclaimed()){
+  size_t readPos = 0, writePos = 0, N = d_released.size();
+  for(; readPos < N; ++readPos){
+    ArithVar v = d_released[readPos];
+    if(canBeReleased(v)){
       d_pool.push_back(v);
-      std::list<ArithVar>::iterator curr = d_releasedIterator;
-      ++d_releasedIterator;
-      d_released.erase(curr);
     }else{
-      ++d_releasedIterator;
+      d_released[writePos] = v;
+      writePos++;
     }
   }
-  if(d_releasedIterator == i_end){
-    d_releasedIterator = d_released.begin();
-  }
+  d_released.resize(writePos);
 }
 
 ArithVar ArithVariables::allocateVariable(){

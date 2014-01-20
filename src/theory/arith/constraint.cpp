@@ -151,6 +151,7 @@ std::ostream& operator<<(std::ostream& o, const ConstraintCPVec& v){
     o << ", " << (*c);
   }
   o << "]";
+  return o;
 }
 
 void Constraint_::debugPrint() const {
@@ -715,6 +716,7 @@ void ConstraintDatabase::addVariable(ArithVar v){
 
     d_reclaimable.remove(v);
   }else{
+    Debug("arith::constraint") << "about to fail" << v << " " << d_varDatabases.size() << endl;
     Assert(v == d_varDatabases.size());
     d_varDatabases.push_back(new PerVariableDatabase(v));
   }

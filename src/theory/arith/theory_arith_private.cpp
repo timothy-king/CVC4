@@ -1426,7 +1426,7 @@ void TheoryArithPrivate::preRegisterTerm(TNode n) {
 }
 
 void TheoryArithPrivate::releaseArithVar(ArithVar v){
-  Assert(d_partialModel.hasNode(v));
+  //Assert(d_partialModel.hasNode(v));
 
   d_constraintDatabase.removeVariable(v);
   d_partialModel.releaseArithVar(v);
@@ -1457,6 +1457,8 @@ ArithVar TheoryArithPrivate::requestArithVar(TNode x, bool aux, bool internal){
   }
   d_constraintDatabase.addVariable(varX);
 
+  cout << "@" << getSatContext()->getLevel()
+       << " " << x << " |-> " << varX << " " << reclaim << endl;
   Debug("arith::arithvar") << x << " |-> " << varX << endl;
 
   Assert(!d_partialModel.hasUpperBound(varX));
@@ -1878,23 +1880,6 @@ bool TheoryArithPrivate::replayLog(ApproximateSimplex* approx){
     d_currentPropagationList.resize(enteringPropN);
   }
 
-  ArithVariables::var_iterator vi, vend;
-  DenseSet reclaimed;
-  for(vi = d_partialModel.var_begin(), vend = d_partialModel.var_end(); vi != vend; ++vi){
-    ArithVar v = *vi;
-    if(d_partialModel.canBeReleased(v) && d_tableau.isBasic(v)  && isAuxiliaryVariable(v)){
-      reclaimed.add(v);
-    }
-  }
-  cout << "reclaiming " << reclaimed.size() << endl;
-  DenseSet::const_iterator ci, cend;
-  for(ci = reclaimed.begin(), cend = reclaimed.end(); ci!=cend; ++ci){
-    d_tableau.removeBasicRow(*ci);
-    releaseArithVar(*ci);
-    cout << "   reclaiming " << *ci << endl;
-  }
-  d_partialModel.attemptToReclaimReleased();
-
   Assert(d_replayVariables.empty());
   Assert(d_replayConstraints.empty());
 
@@ -1914,11 +1899,15 @@ ConstraintP TheoryArithPrivate::replayGetConstraint(const DenseMap<Rational>& lh
   Assert(!branch || d_partialModel.hasArithVar(norm));
   ArithVar v = ARITHVAR_SENTINEL;
   if(d_partialModel.hasArithVar(norm)){
+
     v = d_partialModel.asArithVar(norm);
+    cout << "replayGetConstraint found " << norm << " |-> " << v << " @ " << getSatContext()->getLevel() << endl;
     Assert(!branch || d_partialModel.isIntegerInput(v));
   }else{
     v = requestArithVar(norm, true, true);
     d_replayVariables.push_back(v);
+
+    cout << "replayGetConstraint adding " << norm << " |-> " << v << " @ " << getSatContext()->getLevel() << endl;
 
     Polynomial poly = Polynomial::parsePolynomial(norm);
     vector<ArithVar> variables;
@@ -2180,7 +2169,8 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
   static int tryBranch = 0 ;
   static int tryCut = 0 ;
   ++replayLogRecCount;
-  cout << "replayLogRec()" << replayLogRecCount <<
+  int myReplayLogRecCount = replayLogRecCount;
+  cout << "replayLogRec()" << myReplayLogRecCount <<
     " " << tryBranch << " " << tryCut << " " << bc << std::endl;
 
   size_t rpvars_size = d_replayVariables.size();
@@ -2302,7 +2292,7 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
       Assert(res.empty());
     }
     resolveOutPropagated(res, propagated);
-    cout << "replayLogRec()" << replayLogRecCount <<
+    cout << "replayLogRec()" << myReplayLogRecCount <<
       " " << tryBranch << " " << tryCut << std::endl;
   }
   while(d_replayConstraints.size() > rpcons_size){
@@ -2311,12 +2301,41 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
     d_constraintDatabase.deleteConstraintAndNegation(c);
   }
   if(d_replayVariables.size() > rpvars_size){
+    d_partialModel.stopQueueingBoundCounts();
+    UpdateTrackingCallback utcb(&d_linEq);
+    d_partialModel.processBoundsQueue(utcb);
+    d_linEq.startTrackingBoundCounts();
     while(d_replayVariables.size() > rpvars_size){
       ArithVar v = d_replayVariables.back();
       d_replayVariables.pop_back();
       Assert(d_partialModel.canBeReleased(v));
-      d_partialModel.releaseArithVar(v);
+      if(!d_tableau.isBasic(v)){
+        ArithVar b = ARITHVAR_SENTINEL;
+        for(Tableau::ColIterator ci = d_tableau.colIterator(v); !ci.atEnd(); ++ci){
+          const Tableau::Entry& e = *ci;
+          b = d_tableau.rowIndexToBasic(e.getRowIndex());
+#warning "todo add a preference for which row?"
+          break;
+        }
+        Assert(b != ARITHVAR_SENTINEL);
+        if(d_partialModel.cmpAssignmentLowerBound(b) < 0){
+          d_linEq.pivotAndUpdate(b, v, d_partialModel.getLowerBound(b));
+        }else if(d_partialModel.cmpAssignmentUpperBound(b) > 0){
+          d_linEq.pivotAndUpdate(b, v, d_partialModel.getUpperBound(b));
+        }else{
+          DeltaRational cp = d_partialModel.getAssignment(b);
+          d_linEq.pivotAndUpdate(b, v, cp);
+        }
+      }
+      Assert(d_tableau.isBasic(v));
+      d_linEq.stopTrackingRowIndex(d_tableau.basicToRowIndex(v));
+      d_tableau.removeBasicRow(v);
+      
+      releaseArithVar(v);
+      cout << "releasing " << v << endl;
     }
+    d_linEq.stopTrackingBoundCounts();
+    d_partialModel.startQueueingBoundCounts();
     d_partialModel.attemptToReclaimReleased();
   }
   return res;
