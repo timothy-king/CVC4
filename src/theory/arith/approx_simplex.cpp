@@ -1329,12 +1329,14 @@ static BranchCutInfo* branchCut(glp_tree *tree, int exec_ord, int br_var, double
   Kind k;
   if(down_bad){
     // down branch is infeasible
-    // new lower bound
+    // x <= floor(v) is infeasible
+    // - so x >= ceiling(v) is implied
     k = kind::GEQ;
     rhs = std::ceil(br_val);
   }else{
-    // down branch is infeasible
-    // new upper bound
+    // up branch is infeasible
+    // x >= ceiling(v) is infeasible
+    // - so x <= floor(v) is implied
     k = kind::LEQ;
     rhs = std::floor(br_val);
   }
@@ -1423,13 +1425,13 @@ static void glpkCallback(glp_tree *tree, void *info){
       cout << "branch: "<< br_var << " "  << br_val << " tree " << p << " " << dn << " " << up << endl;
       cout << "\t " << p_ord << " " << dn_ord << " " << up_ord << endl;
       if(dn < 0 && up < 0){
-        cout << "branch close" << endl;
+        cout << "branch close " << exec << endl;
         NodeLog& node = tl.getNode(p_ord);
         BranchCutInfo* cut_br = branchCut(tree, exec, br_var, br_val, dn < 0);
         node.addCut(cut_br);
         tl.close(p_ord);
       }else if(dn < 0 || up < 0){
-        cout << "branch cut" << endl;
+        cout << "branch cut" << exec << endl;
         NodeLog& node = tl.getNode(p_ord);
         BranchCutInfo* cut_br = branchCut(tree, exec, br_var, br_val, dn < 0);
         node.addCut(cut_br);

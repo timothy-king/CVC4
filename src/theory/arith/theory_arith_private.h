@@ -336,6 +336,7 @@ private:
 
   /** This keeps track of difference equalities. Mostly for sharing. */
   ArithCongruenceManager d_congruenceManager;
+  context::CDO<bool> d_cmEnabled;
 
   /** This implements the Simplex decision procedure. */
   DualSimplexDecisionProcedure d_dualSimplex;
@@ -646,6 +647,7 @@ private:
 
   ArithVarVec d_replayVariables;
   std::vector<ConstraintP> d_replayConstraints;
+  DenseMap<Rational> d_lhsTmp;
 
   /* Approximate simpplex solvers are given a copy of their stats */
   ApproximateStatistics* d_approxStats;
@@ -654,6 +656,8 @@ private:
   void tryBranchCut(ApproximateSimplex* approx, int nid, BranchCutInfo& bl);
   std::vector<ConstraintCPVec> replayLogRec(ApproximateSimplex* approx, int nid, ConstraintP bc);
   ConstraintP replayGetConstraint(const CutInfo& info);
+  ConstraintP replayGetConstraint(ApproximateSimplex* approx, const NodeLog& nl);
+  ConstraintP replayGetConstraint(const DenseMap<Rational>& lhs, Kind k, const Rational& rhs, bool branch);
 
   void replayAssert(ConstraintP c);
   //ConstConstraintVec toExplanation(Node n) const;

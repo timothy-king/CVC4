@@ -619,7 +619,6 @@ void LinearEqualityModule::minimallyWeakConflict(bool aboveUpper, ArithVar basic
                   << c << endl;
     anyWeakenings = anyWeakenings || weakening;
 
-    Debug("weak") << "weak : " << c->externalExplainByAssertions() << endl;
     rc.addConstraint(c);
   }
   ++d_statistics.d_weakeningAttempts;

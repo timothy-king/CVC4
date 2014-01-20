@@ -113,6 +113,7 @@ TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context
   d_conflicts(c),
   d_blackBoxConflict(c, Node::null()),
   d_congruenceManager(c, d_constraintDatabase, SetupLiteralCallBack(*this), d_partialModel, RaiseConflict(*this, d_conflictBuffer)),
+  d_cmEnabled(c, true),
   d_dualSimplex(d_linEq, d_errorSet, RaiseConflict(*this, d_conflictBuffer), TempVarMalloc(*this)),
   d_fcSimplex(d_linEq, d_errorSet, RaiseConflict(*this, d_conflictBuffer), TempVarMalloc(*this)),
   d_soiSimplex(d_linEq, d_errorSet, RaiseConflict(*this, d_conflictBuffer), TempVarMalloc(*this)),
@@ -170,10 +171,11 @@ void resolve(ConstraintCPVec& buf, ConstraintP c, const ConstraintCPVec& pos, co
     }
   }
   Assert(posPos < pos.size());
+  ConstraintP negc = c->getNegation();
   unsigned negPos = neg.size();
   for(unsigned i = 0, N = neg.size(); i < N; ++i){
-    if(neg[i] == c){
-      posPos = i;
+    if(neg[i] == negc){
+      negPos = i;
     }else{
       buf.push_back(neg[i]);
     }
@@ -366,19 +368,21 @@ void TheoryArithPrivate::raiseConflict(ConstraintCP a, ConstraintCP b, Constrain
 }
 
 void TheoryArithPrivate::zeroDifferenceDetected(ArithVar x){
-  Assert(d_congruenceManager.isWatchedVariable(x));
-  Assert(d_partialModel.upperBoundIsZero(x));
-  Assert(d_partialModel.lowerBoundIsZero(x));
+  if(d_cmEnabled){
+    Assert(d_congruenceManager.isWatchedVariable(x));
+    Assert(d_partialModel.upperBoundIsZero(x));
+    Assert(d_partialModel.lowerBoundIsZero(x));
 
-  ConstraintP lb = d_partialModel.getLowerBoundConstraint(x);
-  ConstraintP ub = d_partialModel.getUpperBoundConstraint(x);
+    ConstraintP lb = d_partialModel.getLowerBoundConstraint(x);
+    ConstraintP ub = d_partialModel.getUpperBoundConstraint(x);
 
-  if(lb->isEquality()){
-    d_congruenceManager.watchedVariableIsZero(lb);
-  }else if(ub->isEquality()){
-    d_congruenceManager.watchedVariableIsZero(ub);
-  }else{
-    d_congruenceManager.watchedVariableIsZero(lb, ub);
+    if(lb->isEquality()){
+      d_congruenceManager.watchedVariableIsZero(lb);
+    }else if(ub->isEquality()){
+      d_congruenceManager.watchedVariableIsZero(ub);
+    }else{
+      d_congruenceManager.watchedVariableIsZero(lb, ub);
+    }
   }
 }
 
@@ -416,11 +420,13 @@ bool TheoryArithPrivate::AssertLower(ConstraintP constraint){
     }
     ConstraintP ub = d_partialModel.getUpperBoundConstraint(x_i);
 
-    if(!d_congruenceManager.isWatchedVariable(x_i) || c_i.sgn() != 0){
-      // if it is not a watched variable report it
-      // if it is is a watched variable and c_i == 0,
-      // let zeroDifferenceDetected(x_i) catch this
-      d_congruenceManager.equalsConstant(constraint, ub);
+    if(d_cmEnabled){
+      if(!d_congruenceManager.isWatchedVariable(x_i) || c_i.sgn() != 0){
+        // if it is not a watched variable report it
+        // if it is is a watched variable and c_i == 0,
+        // let zeroDifferenceDetected(x_i) catch this
+        d_congruenceManager.equalsConstant(constraint, ub);
+      }
     }
 
     const ValueCollection& vc = constraint->getValueCollection();
@@ -473,12 +479,14 @@ bool TheoryArithPrivate::AssertLower(ConstraintP constraint){
 
   d_partialModel.setLowerBoundConstraint(constraint);
 
-  if(d_congruenceManager.isWatchedVariable(x_i)){
-    int sgn = c_i.sgn();
-    if(sgn > 0){
-      d_congruenceManager.watchedVariableCannotBeZero(constraint);
-    }else if(sgn == 0 && d_partialModel.upperBoundIsZero(x_i)){
-      zeroDifferenceDetected(x_i);
+  if(d_cmEnabled){
+    if(d_congruenceManager.isWatchedVariable(x_i)){
+      int sgn = c_i.sgn();
+      if(sgn > 0){
+        d_congruenceManager.watchedVariableCannotBeZero(constraint);
+      }else if(sgn == 0 && d_partialModel.upperBoundIsZero(x_i)){
+        zeroDifferenceDetected(x_i);
+      }
     }
   }
 
@@ -543,11 +551,13 @@ bool TheoryArithPrivate::AssertUpper(ConstraintP constraint){
       Debug("dio::push") << x_i << endl;
     }
     ConstraintP lb = d_partialModel.getLowerBoundConstraint(x_i);
-    if(!d_congruenceManager.isWatchedVariable(x_i) || c_i.sgn() != 0){
-      // if it is not a watched variable report it
-      // if it is is a watched variable and c_i == 0,
-      // let zeroDifferenceDetected(x_i) catch this
-      d_congruenceManager.equalsConstant(lb, constraint);
+    if(d_cmEnabled){
+      if(!d_congruenceManager.isWatchedVariable(x_i) || c_i.sgn() != 0){
+        // if it is not a watched variable report it
+        // if it is is a watched variable and c_i == 0,
+        // let zeroDifferenceDetected(x_i) catch this
+        d_congruenceManager.equalsConstant(lb, constraint);
+      }
     }
 
     const ValueCollection& vc = constraint->getValueCollection();
@@ -595,13 +605,15 @@ bool TheoryArithPrivate::AssertUpper(ConstraintP constraint){
 
   d_partialModel.setUpperBoundConstraint(constraint);
 
-  if(d_congruenceManager.isWatchedVariable(x_i)){
-    int sgn = c_i.sgn();
-     if(sgn < 0){
-       d_congruenceManager.watchedVariableCannotBeZero(constraint);
-     }else if(sgn == 0 && d_partialModel.lowerBoundIsZero(x_i)){
-       zeroDifferenceDetected(x_i);
-     }
+  if(d_cmEnabled){
+    if(d_congruenceManager.isWatchedVariable(x_i)){
+      int sgn = c_i.sgn();
+      if(sgn < 0){
+        d_congruenceManager.watchedVariableCannotBeZero(constraint);
+      }else if(sgn == 0 && d_partialModel.lowerBoundIsZero(x_i)){
+        zeroDifferenceDetected(x_i);
+      }
+    }
   }
 
   d_updatedBounds.softAdd(x_i);
@@ -690,16 +702,18 @@ bool TheoryArithPrivate::AssertEquality(ConstraintP constraint){
   d_partialModel.setUpperBoundConstraint(constraint);
   d_partialModel.setLowerBoundConstraint(constraint);
 
-  if(d_congruenceManager.isWatchedVariable(x_i)){
-    int sgn = c_i.sgn();
-    if(sgn == 0){
-      zeroDifferenceDetected(x_i);
+  if(d_cmEnabled){
+    if(d_congruenceManager.isWatchedVariable(x_i)){
+      int sgn = c_i.sgn();
+      if(sgn == 0){
+        zeroDifferenceDetected(x_i);
+      }else{
+        d_congruenceManager.watchedVariableCannotBeZero(constraint);
+        d_congruenceManager.equalsConstant(constraint);
+      }
     }else{
-      d_congruenceManager.watchedVariableCannotBeZero(constraint);
       d_congruenceManager.equalsConstant(constraint);
     }
-  }else{
-    d_congruenceManager.equalsConstant(constraint);
   }
 
   d_updatedBounds.softAdd(x_i);
@@ -741,10 +755,12 @@ bool TheoryArithPrivate::AssertDisequality(ConstraintP constraint){
   //Should be fine in integers
   Assert(!isInteger(x_i) || c_i.isIntegral());
 
-  if(d_congruenceManager.isWatchedVariable(x_i)){
-    int sgn = c_i.sgn();
-    if(sgn == 0){
-      d_congruenceManager.watchedVariableCannotBeZero(constraint);
+  if(d_cmEnabled){
+    if(d_congruenceManager.isWatchedVariable(x_i)){
+      int sgn = c_i.sgn();
+      if(sgn == 0){
+        d_congruenceManager.watchedVariableCannotBeZero(constraint);
+      }
     }
   }
 
@@ -1848,7 +1864,12 @@ bool TheoryArithPrivate::replayLog(ApproximateSimplex* approx){
   Assert(conflictQueueEmpty());
   TreeLog& tl = getTreeLog();
 
-  std::vector<ConstraintCPVec> res = replayLogRec(approx, tl.getRootId(), NullConstraint);
+  std::vector<ConstraintCPVec> res;
+  { /* create a block for the purpose of pushing the sat context */
+    context::Context::ScopedPush speculativePush(getSatContext());
+    d_cmEnabled = false;
+    res = replayLogRec(approx, tl.getRootId(), NullConstraint);
+  }
 
   for(size_t i =0, N = res.size(); i < N; ++i){
     raiseConflict(res[i]);
@@ -1880,23 +1901,21 @@ bool TheoryArithPrivate::replayLog(ApproximateSimplex* approx){
   return !conflictQueueEmpty();
 }
 
-ConstraintP TheoryArithPrivate::replayGetConstraint(const CutInfo& ci){
-  Assert(ci.success());
-  const DenseMap<Rational>& lhs = ci.getExactPrecision().lhs;
+ConstraintP TheoryArithPrivate::replayGetConstraint(const DenseMap<Rational>& lhs, Kind k, const Rational& rhs, bool branch)
+{
   Node sum = toSumNode(d_partialModel, lhs);
   if(sum.isNull()){ return NullConstraint; }
 
   Node norm = Rewriter::rewrite(sum);
-  const Rational& rhs = ci.getExactPrecision().rhs;
   DeltaRational dr(rhs);
 
-  ConstraintType t = ci.getKind() == kind::LEQ ? UpperBound : LowerBound;
+  ConstraintType t = (k == kind::LEQ) ? UpperBound : LowerBound;
 
-  Assert(ci.getKlass() != BranchCutKlass || d_partialModel.hasArithVar(norm));
+  Assert(!branch || d_partialModel.hasArithVar(norm));
   ArithVar v = ARITHVAR_SENTINEL;
   if(d_partialModel.hasArithVar(norm)){
     v = d_partialModel.asArithVar(norm);
-    Assert(ci.getKlass() != BranchCutKlass || d_partialModel.isIntegerInput(v));
+    Assert(!branch || d_partialModel.isIntegerInput(v));
   }else{
     v = requestArithVar(norm, true, true);
     d_replayVariables.push_back(v);
@@ -1922,6 +1941,32 @@ ConstraintP TheoryArithPrivate::replayGetConstraint(const CutInfo& ci){
   ConstraintP newc = d_constraintDatabase.getConstraint(v, t, dr);
   d_replayConstraints.push_back(newc);
   return newc;
+}
+
+ConstraintP TheoryArithPrivate::replayGetConstraint(ApproximateSimplex* approx, const NodeLog& nl){
+  Assert(nl.isBranch());
+  Assert(d_lhsTmp.empty());
+  ArithVar v = approx->getBranchVar(nl);
+  if(v != ARITHVAR_SENTINEL && d_partialModel.isIntegerInput(v)){
+    if(d_partialModel.hasNode(v)){
+      d_lhsTmp.set(v, Rational(1));
+      double dval = nl.branchValue();
+      Rational val = ApproximateSimplex::estimateWithCFE(dval);
+      Rational fl(val.floor());
+      ConstraintP c = replayGetConstraint(d_lhsTmp, kind::LEQ, fl, true);
+      d_lhsTmp.purge();
+      return c;
+    }
+  }
+  return NullConstraint;
+}
+
+ConstraintP TheoryArithPrivate::replayGetConstraint(const CutInfo& ci){
+  Assert(ci.success());
+  const DenseMap<Rational>& lhs = ci.getExactPrecision().lhs;
+  const Rational& rhs = ci.getExactPrecision().rhs;
+  Kind k = ci.getKind();
+  return replayGetConstraint(lhs, k, rhs, ci.getKlass() == BranchCutKlass);
 }
 
 // Node denseVectorToLiteral(const ArithVariables& vars, const DenseVector& dv, Kind k){
@@ -1953,18 +1998,16 @@ void TheoryArithPrivate::tryBranchCut(ApproximateSimplex* approx, int nid, Branc
   std::vector< ConstraintCPVec > conflicts;
 
   approx->tryCut(nid, bci);
+  cout << "tryBranchCut" << bci << endl;
   Assert(bci.success());
   Assert(!bci.proven());
   ConstraintP bc = replayGetConstraint(bci);
   Assert(bc !=  NullConstraint);
-  // Kind bk = bci.getKind();
-  // Node bl = denseVectorToLiteral(d_partialModel, bep, bci.getKind());
-  // Assert(!bl.isNull());
-  // ConstraintP bc = replayGetConstraint(bl);
+  ConstraintP bcneg = bc->getNegation();
   {
     context::Context::ScopedPush speculativePush(getSatContext());
-    replayAssert(bc);
-    if(!conflictQueueEmpty()){
+    replayAssert(bcneg);
+    if(conflictQueueEmpty()){
       //test for linear feasibility
       d_partialModel.stopQueueingBoundCounts();
       UpdateTrackingCallback utcb(&d_linEq);
@@ -1979,17 +2022,22 @@ void TheoryArithPrivate::tryBranchCut(ApproximateSimplex* approx, int nid, Branc
     }
     for(size_t i = 0, N = d_conflicts.size(); i < N; ++i){
       conflicts.push_back(d_conflicts[i]);
+      // remove the floor/ceiling contraint implied by bcneg
+      Constraint_::assertionFringe(conflicts.back());
+    }
+    if(d_conflicts.empty()){
+      entireStateIsConsistent("branchfailure");
     }
   }
 
   cout << "branch constraint " << bc << endl;
   for(size_t i = 0, N = conflicts.size(); i < N; ++i){
     ConstraintCPVec& conf = conflicts[i];
-    if(contains(conf, bc)){
+    if(!contains(conf, bcneg)){
       cout << "reraise " << conf  << endl;
       raiseConflict(conf);
     }else if(!bci.proven()){
-      drop(conf, bc);
+      drop(conf, bcneg);
       bci.setExplanation(conf);
       //NodeBuilder<> nb(kind::AND);
       //Node dropped = safeConstructNary(nb);
@@ -2000,17 +2048,20 @@ void TheoryArithPrivate::tryBranchCut(ApproximateSimplex* approx, int nid, Branc
 
 void TheoryArithPrivate::replayAssert(ConstraintP c) {
   if(!c->assertedToTheTheory()){
-    if(!c->hasProof()){
-      c->setInternalDecision();
-    }
-
     if(c->negationHasProof()){
       ConstraintP neg = c->getNegation();
       raiseConflict(c, neg);
-      Debug("arith::eq") << "replayAssertion conflict" << neg << ":" << c << endl;
+      Debug("arith::eq") << "replayAssertion conflict " << neg << " : " << c << endl;
+    }else if(!c->hasProof()){
+      c->setInternalDecision();
+      assertionCases(c);
+      cout << "replayAssert " << c << " set internal" << endl;
     }else{
       assertionCases(c);
+      cout << "replayAssert " << c << " has explanation" << endl;
     }
+  }else{
+    cout << "replayAssert " << c << " already asserted" << endl;
   }
 }
 
@@ -2130,7 +2181,7 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
   static int tryCut = 0 ;
   ++replayLogRecCount;
   cout << "replayLogRec()" << replayLogRecCount <<
-    " " << tryBranch << " " << tryCut << std::endl;
+    " " << tryBranch << " " << tryCut << " " << bc << std::endl;
 
   size_t rpvars_size = d_replayVariables.size();
   size_t rpcons_size = d_replayConstraints.size();
@@ -2163,11 +2214,13 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
         ++tryCut;
         approx->tryCut(nid, *ci);
       }
-      if(!conflictQueueEmpty() && ci->success()){
+      if(conflictQueueEmpty() && ci->success()){
         // success
-        ci->print(cout);
+
         ConstraintP con = replayGetConstraint(*ci);
-        cout << "implied" << con  << endl;
+        ci->print(cout);
+        cout << "cut was remade " << con  << endl;
+
         if(ci->proven()){
           const ConstraintCPVec& exp = ci->getExplanation();
           // success
@@ -2176,8 +2229,8 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
             cout << "not asserted?" << endl;
           }else{
             con->impliedBy(exp);
-            assertionCases(con);
-            propagated.insert(con);
+            replayAssert(con);
+            cout << "cut prop" << endl;
           }
         }else{
           cout << "failed to get explanation" << endl;
@@ -2203,12 +2256,8 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
         res.push_back(d_conflicts[i]);
       }
     }else if(nl.isBranch()){
-      ArithVar v = approx->getBranchVar(nl);
-      if(v != ARITHVAR_SENTINEL && d_partialModel.isIntegerInput(v)){
-        Rational val = ApproximateSimplex::estimateWithCFE(nl.branchValue());
-        Integer fl = val.floor();
-        DeltaRational drfl(fl);
-        ConstraintP dnc = d_constraintDatabase.getConstraint(v, UpperBound, drfl);
+      ConstraintP dnc = replayGetConstraint(approx, nl);
+      if(dnc != NullConstraint){
         ConstraintP upc = dnc->getNegation();
 
         int dnid = nl.getDownId();
