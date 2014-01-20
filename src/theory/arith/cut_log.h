@@ -29,6 +29,7 @@ struct PrimitiveVec {
   void setup(int l);
   void print(std::ostream& out) const;
 };
+std::ostream& operator<<(std::ostream& os, const PrimitiveVec& pv);
 
 struct DenseVector {
   DenseMap<Rational> lhs;

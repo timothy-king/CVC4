@@ -71,7 +71,10 @@ void PrimitiveVec::print(std::ostream& out) const{
   for(int i = 1; i <= len; ++i){
     out << "["<< inds[i] <<", " << coeffs[i]<<"]";
   }
-  out << endl;
+}
+std::ostream& operator<<(std::ostream& os, const PrimitiveVec& pv){
+  pv.print(os);
+  return os;
 }
 
 CutInfo::CutInfo(CutInfoKlass kl, int eid, int o)
@@ -106,7 +109,8 @@ void CutInfo::setRowId(int rid){
 
 void CutInfo::print(ostream& out) const{
   out << "[CutInfo " << d_execOrd << " " << d_poolOrd
-      << " " << d_klass << " " << d_cutType << " " << d_cutRhs;
+      << " " << d_klass << " " << d_cutType << " " << d_cutRhs
+      << " ";
   d_cutVec.print(out);
   out << "]" << endl;
 }
