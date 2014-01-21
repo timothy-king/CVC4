@@ -8,6 +8,7 @@
 #include <math.h>
 #include <cmath>
 #include <map>
+#include <limits.h>
 
 using namespace std;
 
@@ -225,6 +226,8 @@ std::ostream& operator<<(std::ostream& out, CutInfoKlass kl){
     out << "GmiCutKlass"; break;
   case BranchCutKlass:
     out << "BranchCutKlass"; break;
+  case RowsDeletedKlass:
+    out << "RowDeletedKlass"; break;
   case UnknownKlass:
     out << "UnknownKlass"; break;
   default:
@@ -275,7 +278,7 @@ NodeLog::NodeLog(TreeLog* tl, NodeLog* parent, int node)
   , d_brVal(0.0)
   , d_downId(-1)
   , d_upId(-1)
-  , d_rowId2ArithVar(parent->d_rowId2ArithVar)
+  , d_rowId2ArithVar()
 {}
 
 NodeLog::~NodeLog(){
@@ -286,6 +289,11 @@ NodeLog::~NodeLog(){
   }
   d_cuts.clear();
   Assert(d_cuts.empty());
+}
+
+void NodeLog::copyParentRowIds() {
+  Assert(d_parent != NULL);
+  d_rowId2ArithVar = d_parent->d_rowId2ArithVar;
 }
 
 int NodeLog::branchVariable() const {
@@ -304,6 +312,7 @@ int NodeLog::getUpId() const{
   return d_upId;
 }
 void NodeLog::addSelected(int ord, int sel){
+  Assert(d_rowIdsSelected.find(ord) == d_rowIdsSelected.end());
   d_rowIdsSelected[ord] = sel;
   cout << "addSelected("<< ord << ", "<< sel << ")" << endl;
 }
@@ -312,7 +321,13 @@ void NodeLog::applySelected() {
   while(iter != iend){
     CutInfo* curr = *iter;
     int poolOrd = curr->poolOrdinal();
-    if(curr->getKlass() == BranchCutKlass){
+    if(curr->getRowId() >= 0 ){
+      // selected previously, kip
+      ++iter;
+    }else if(curr->getKlass() == RowsDeletedKlass){
+      // skip
+      ++iter;
+    }else if(curr->getKlass() == BranchCutKlass){
       // skip
       ++iter;
     }else if(d_rowIdsSelected.find(poolOrd) == d_rowIdsSelected.end()){
@@ -321,11 +336,143 @@ void NodeLog::applySelected() {
       d_cuts.erase(todelete);
       delete curr;
     }else{
+      cout << "applySelected " << curr->getId() << " " << poolOrd << "->" << d_rowIdsSelected[poolOrd] << endl;
       curr->setRowId( d_rowIdsSelected[poolOrd] );
       ++iter;
     }
   }
+  d_rowIdsSelected.clear();
 }
+
+void NodeLog::applyRowsDeleted(const RowsDeleted& rd) {
+  std::map<int, CutInfo*> currInOrd; //sorted
+
+  const PrimitiveVec& cv = rd.getCutVector();
+  std::vector<int> sortedRemoved (cv.inds+1, cv.inds+cv.len+1);
+  sortedRemoved.push_back(INT_MAX);
+  std::sort(sortedRemoved.begin(), sortedRemoved.end());
+
+  cout << "Removing #" << sortedRemoved.size()<< "...";
+  for(unsigned k = 0; k<sortedRemoved.size(); k++){
+    cout << ", " << sortedRemoved[k];
+  }
+  cout << endl;
+  cout << "cv.len" << cv.len  << endl;
+
+  int min = sortedRemoved.front();
+
+  CutSet::iterator iter = d_cuts.begin(), iend = d_cuts.end();
+  while(iter != iend){
+    CutInfo* curr= *iter;
+    if(curr->getId() < rd.getId()){
+      if(d_rowId2ArithVar.find(curr->getRowId()) != d_rowId2ArithVar.end()){
+        if(curr->getRowId() >= min){
+          currInOrd.insert(make_pair(curr->getRowId(), curr));
+        }
+      }
+    }
+    ++iter;
+  }
+
+  RowIdMap::const_iterator i, end;
+  i=d_rowId2ArithVar.begin(), end = d_rowId2ArithVar.end();
+  for(; i != end; ++i){
+    int key = (*i).first;
+    if(key >= min){
+      if(currInOrd.find(key) == currInOrd.end()){
+        CutInfo* null = NULL;
+        currInOrd.insert(make_pair(key, null));
+      }
+    }
+  }
+
+
+
+  std::map<int, CutInfo*>::iterator j, jend;
+
+  int posInSorted = 0;
+  for(j = currInOrd.begin(), jend=currInOrd.end(); j!=jend; ++j){
+    int origOrd = (*j).first;
+    ArithVar v = d_rowId2ArithVar[origOrd];
+    int headRemovedOrd = sortedRemoved[posInSorted];
+    while(headRemovedOrd < origOrd){
+      ++posInSorted;
+      headRemovedOrd  = sortedRemoved[posInSorted];
+    }
+    // headRemoveOrd >= origOrd
+    Assert(headRemovedOrd >= origOrd);
+
+    CutInfo* ci = (*j).second;
+    if(headRemovedOrd == origOrd){
+
+      if(ci == NULL){
+        cout << "deleting from above because of " << rd << endl;
+        cout << "had " << origOrd << " <-> " << v << endl;
+        d_rowId2ArithVar.erase(origOrd);
+      }else{
+        cout << "deleting " << ci << " because of " << rd << endl;
+        cout << "had " << origOrd << " <-> " << v << endl;
+        d_rowId2ArithVar.erase(origOrd);
+        ci->setRowId(-1);
+      }
+    }else{
+      Assert(headRemovedOrd > origOrd);
+      // headRemoveOrd > origOrd
+      int newOrd = origOrd - posInSorted;
+      Assert(newOrd > 0);
+      if(ci == NULL){
+        cout << "shifting above down due to " << rd << endl;
+        cout << "had " << origOrd << " <-> " << v << endl;
+        cout << "now have " << newOrd << " <-> " << v << endl;
+        d_rowId2ArithVar.erase(origOrd);
+        mapRowId(newOrd, v);
+      }else{
+        cout << "shifting " << ci << " down due to " << rd << endl;
+        cout << "had " << origOrd << " <-> " << v << endl;
+        cout << "now have " << newOrd << " <-> " << v << endl;
+        ci->setRowId(newOrd);
+        d_rowId2ArithVar.erase(origOrd);
+        mapRowId(newOrd, v);
+      }
+    }
+  }
+
+}
+
+// void NodeLog::adjustRowId(CutInfo& ci, const RowsDeleted& rd) {
+//   int origRowId = ci.getRowId();
+//   int newRowId = ci.getRowId();
+//   ArithVar v = d_rowId2ArithVar[origRowId];
+
+//   const PrimitiveVec& cv = rd.getCutVector();
+
+//   for(int j = 1, N = cv.len; j <= N; j++){
+//     int ind = cv.inds[j];
+//     if(ind == origRowId){
+//       newRowId = -1;
+//       break;
+//     }else if(ind < origRowId){
+//       newRowId--;
+//     }
+//   }
+
+//   if(newRowId < 0){
+//     cout << "deleting " << ci << " because of " << rd << endl;
+//     cout << "had " << origRowId << " <-> " << v << endl;
+//     d_rowId2ArithVar.erase(origRowId);
+//     ci.setRowId(-1);
+//   }else if(newRowId != origRowId){
+//     cout << "adjusting " << ci << " because of " << rd << endl;
+//     cout << "had " << origRowId << " <-> " << v << endl;
+//     cout << "now have " << newRowId << " <-> " << v << endl;
+//     d_rowId2ArithVar.erase(origRowId);
+//     ci.setRowId(newRowId);
+//     mapRowId(newRowId, v);
+//   }else{
+//     cout << "row id unchanged " << ci << " because of " << rd << endl;
+//   }
+// }
+
 
 ArithVar NodeLog::lookupRowId(int rowId) const{
   RowIdMap::const_iterator i = d_rowId2ArithVar.find(rowId);
@@ -338,6 +485,8 @@ ArithVar NodeLog::lookupRowId(int rowId) const{
 
 void NodeLog::mapRowId(int rowId, ArithVar v){
   Assert(lookupRowId(rowId) == ARITHVAR_SENTINEL);
+  cout << "On " << getNodeId()
+       << " adding row id " << rowId << " <-> " << v << endl;
   d_rowId2ArithVar[rowId] = v;
 }
 
@@ -428,13 +577,13 @@ void TreeLog::close(int nid){
 
 
 
-void TreeLog::applySelected() {
-  std::map<int, NodeLog>::iterator iter, end;
-  for(iter = d_toNode.begin(), end = d_toNode.end(); iter != end; ++iter){
-    NodeLog& onNode = (*iter).second;
-    onNode.applySelected();
-  }
-}
+// void TreeLog::applySelected() {
+//   std::map<int, NodeLog>::iterator iter, end;
+//   for(iter = d_toNode.begin(), end = d_toNode.end(); iter != end; ++iter){
+//     NodeLog& onNode = (*iter).second;
+//     //onNode.applySelected();
+//   }
+// }
 
 void TreeLog::print(ostream& o) const{
   o << "TreeLog: " << d_toNode.size() << std::endl;
@@ -450,6 +599,15 @@ void DenseVector::purge() {
   rhs = Rational(0);
 }
 
+RowsDeleted::RowsDeleted(int execOrd, int nrows, const int num[])
+  : CutInfo(RowsDeletedKlass, execOrd, 0)
+{
+  d_cutVec.setup(nrows);
+  for(int j=1; j <= nrows; j++){
+    d_cutVec.coeffs[j] = 0;
+    d_cutVec.inds[j] = num[j];
+  }
+}
 
 BranchCutInfo::BranchCutInfo(int execOrd, int br, Kind dir, double val)
   : CutInfo(BranchCutKlass, execOrd, 0)

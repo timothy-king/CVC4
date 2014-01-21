@@ -377,7 +377,9 @@ class BranchCutInfo;
 
 class ApproxGLPK : public ApproximateSimplex {
 private:
-  glp_prob* d_prob;
+  glp_prob* d_inputProb; /* a copy of the input prob */
+  glp_prob* d_realProb;  /* a copy of the real relaxation output */
+  glp_prob* d_mipProb;   /* a copy of the integer prob */
 
   DenseMap<int> d_colIndices;
   DenseMap<int> d_rowIndices;
@@ -439,6 +441,10 @@ private:
   virtual void mapRowId(int nid, int ind, ArithVar v){
     NodeLog& nl = d_log.getNode(nid);
     nl.mapRowId(ind, v);
+  }
+  virtual void applyRowsDeleted(int nid, const RowsDeleted& rd){
+    NodeLog& nl = d_log.getNode(nid);
+    nl.applyRowsDeleted(rd);
   }
 
   ArithVar getArithVarFromStructural(int ind) const{
@@ -551,6 +557,9 @@ static CutInfoKlass fromGlpkClass(int klass){
 
 ApproxGLPK::ApproxGLPK(const ArithVariables& v, TreeLog& l, ApproximateStatistics& s)
   : ApproximateSimplex(v, l, s)
+  , d_inputProb(NULL)
+  , d_realProb(NULL)
+  , d_mipProb(NULL)
   , d_solvedRelaxation(false)
   , d_solvedMIP(false)
 {
@@ -558,9 +567,11 @@ ApproxGLPK::ApproxGLPK(const ArithVariables& v, TreeLog& l, ApproximateStatistic
   ++instance;
   d_instanceID = instance;
 
-  d_prob = glp_create_prob();
-  glp_set_obj_dir(d_prob, GLP_MAX);
-  glp_set_prob_name(d_prob, "ApproximateSimplex::approximateFindModel");
+  d_inputProb = glp_create_prob();
+  d_realProb = glp_create_prob();
+  d_mipProb = glp_create_prob();
+  glp_set_obj_dir(d_inputProb, GLP_MAX);
+  glp_set_prob_name(d_inputProb, "ApproximateSimplex::approximateFindModel");
 
   int numRows = 0;
   int numCols = 0;
@@ -583,8 +594,8 @@ ApproxGLPK::ApproxGLPK(const ArithVariables& v, TreeLog& l, ApproximateStatistic
       cout << "Col vars: " << v << "<->" << numCols << endl;
     }
   }
-  glp_add_rows(d_prob, numRows);
-  glp_add_cols(d_prob, numCols);
+  glp_add_rows(d_inputProb, numRows);
+  glp_add_cols(d_inputProb, numCols);
 
   // Assign the upper/lower bounds and types to each variable
   for(ArithVariables::var_iterator vi = d_vars.var_begin(), vi_end = d_vars.var_end(); vi != vi_end; ++vi){
@@ -618,13 +629,13 @@ ApproxGLPK::ApproxGLPK(const ArithVariables& v, TreeLog& l, ApproximateStatistic
 
     if(d_vars.isAuxiliary(v)){
       int rowIndex = d_rowIndices[v];
-      glp_set_row_bnds(d_prob, rowIndex, type, lb, ub);
+      glp_set_row_bnds(d_inputProb, rowIndex, type, lb, ub);
     }else{
       int colIndex = d_colIndices[v];
       // is input is correct here
       int kind = d_vars.isInteger(v) ? GLP_IV : GLP_CV;
-      glp_set_col_kind(d_prob, colIndex, kind);
-      glp_set_col_bnds(d_prob, colIndex, type, lb, ub);
+      glp_set_col_kind(d_inputProb, colIndex, kind);
+      glp_set_col_bnds(d_inputProb, colIndex, type, lb, ub);
     }
   }
 
@@ -668,7 +679,7 @@ ApproxGLPK::ApproxGLPK(const ArithVariables& v, TreeLog& l, ApproximateStatistic
       ar[entryCounter] = coeff;
     }
   }
-  glp_load_matrix(d_prob, numEntries, ia, ja, ar);
+  glp_load_matrix(d_inputProb, numEntries, ia, ja, ar);
 
   delete[] ia;
   delete[] ja;
@@ -898,7 +909,7 @@ void ApproxGLPK::setOptCoeffs(const ArithRatPairVec& ref){
   for(DenseMap<double>::const_iterator ci =nbCoeffs.begin(), ciend = nbCoeffs.end(); ci != ciend; ++ci){
     Index colIndex = *ci;
     double coeff = nbCoeffs[colIndex];
-    glp_set_obj_coef(d_prob, colIndex, coeff);
+    glp_set_obj_coef(d_inputProb, colIndex, coeff);
   }
 }
 
@@ -945,7 +956,10 @@ void ApproxGLPK::printGLPKStatus(int status, std::ostream& out){
 }
 
 ApproxGLPK::~ApproxGLPK(){
-  glp_delete_prob(d_prob);
+  glp_delete_prob(d_inputProb);
+  glp_delete_prob(d_realProb);
+  glp_delete_prob(d_mipProb);
+
 }
 
 
@@ -957,12 +971,15 @@ ApproximateSimplex::Solution ApproxGLPK::extractSolution(bool mip) const{
   DenseSet& newBasis = sol.newBasis;
   DenseMap<DeltaRational>& newValues = sol.newValues;
 
+  glp_prob* prob = mip ? d_mipProb : d_realProb;
+
   for(ArithVariables::var_iterator i = d_vars.var_begin(), i_end = d_vars.var_end(); i != i_end; ++i){
     ArithVar vi = *i;
     bool isAux = d_vars.isAuxiliary(vi);
     int glpk_index = isAux ? d_rowIndices[vi] : d_colIndices[vi];
 
-    int status = isAux ? glp_get_row_stat(d_prob, glpk_index) : glp_get_col_stat(d_prob, glpk_index);
+    int status = isAux ? glp_get_row_stat(prob, glpk_index)
+      : glp_get_col_stat(prob, glpk_index);
     if(s_verbosity >= 2){
       Message() << "assignment " << vi << endl;
     }
@@ -1002,10 +1019,14 @@ ApproximateSimplex::Solution ApproxGLPK::extractSolution(bool mip) const{
     if(useDefaultAssignment){
       if(s_verbosity >= 2){ Message() << "non-basic other" << endl; }
 
-      double newAssign =
-        mip ?
-        (isAux ? glp_mip_row_val(d_prob, glpk_index) :  glp_mip_col_val(d_prob, glpk_index))
-        : (isAux ? glp_get_row_prim(d_prob, glpk_index) :  glp_get_col_prim(d_prob, glpk_index));
+      double newAssign;
+      if(mip){
+        newAssign = (isAux ? glp_mip_row_val(prob, glpk_index)
+                     :  glp_mip_col_val(prob, glpk_index));
+      }else{
+        newAssign = (isAux ? glp_get_row_prim(prob, glpk_index)
+                     :  glp_get_col_prim(prob, glpk_index));
+      }
       const DeltaRational& oldAssign = d_vars.getAssignment(vi);
 
 
@@ -1067,12 +1088,15 @@ LinResult ApproxGLPK::solveRelaxation(){
     parm.msg_lev = GLP_MSG_ALL;
   }
 
-  int res = glp_simplex(d_prob, &parm);
+  glp_erase_prob(d_realProb);
+  glp_copy_prob(d_realProb, d_inputProb, GLP_OFF);
+
+  int res = glp_simplex(d_realProb, &parm);
   switch(res){
   case 0:
     {
-      int status = glp_get_status(d_prob);
-      int iterationcount = glp_get_it_cnt(d_prob);
+      int status = glp_get_status(d_realProb);
+      int iterationcount = glp_get_it_cnt(d_realProb);
       switch(status){
       case GLP_OPT:
       case GLP_FEAS:
@@ -1361,6 +1385,23 @@ static void glpkCallback(glp_tree *tree, void *info){
 
   if(tl.isActivelyLogging()){
     switch(glp_ios_reason(tree)){
+    case GLP_LI_DELROW:
+      {
+        glpk_node_p = glp_ios_curr_node(tree);
+        node_ord = glp_ios_node_ord(tree, glpk_node_p);
+
+        int nrows = glp_ios_rows_deleted(tree, NULL);
+        int* num = new int[1+nrows];
+        glp_ios_rows_deleted(tree, num);
+
+        NodeLog& node = tl.getNode(node_ord);
+
+        RowsDeleted* rd = new RowsDeleted(exec, nrows, num);
+
+        node.addCut(rd);
+        delete num;
+      }
+      break;
     case GLP_ICUTADDED:
       {
         int cut_ord = glp_ios_pool_size(tree);
@@ -1410,11 +1451,15 @@ static void glpkCallback(glp_tree *tree, void *info){
         NodeLog& nl = tl.getNode(node_ord);
         cout << glpk_node_p << " " << node_ord << " " << cuts << " " << N << std::endl;
         for(int i = 1; i <= N; ++i){
+          cout << "adding to " << node_ord <<" @ i= " << i
+               << " ords[i] = " << ords[i]
+               << " rows[i] = " << rows[i] << endl;
           nl.addSelected(ords[i], rows[i]);
         }
         delete[] ords;
-      delete[] rows;
-    }
+        delete[] rows;
+        nl.applySelected();
+      }
     break;
   case GLP_LI_BRANCH:
     {
@@ -1513,7 +1558,7 @@ std::vector<const CutInfo*> ApproxGLPK::getValidCuts(){
   Assert(false);
 
   std::vector<const CutInfo*> proven;
-  d_log.applySelected();
+  //d_log.applySelected();
   for(TreeLog::const_iterator i = d_log.begin(), iend=d_log.end(); i!=iend;++i){
     int nid = (*i).first;
     const NodeLog& con = (*i).second;
@@ -1597,7 +1642,11 @@ MipResult ApproxGLPK::solveMIP(bool activelyLog){
   if(s_verbosity >= 1){
     parm.msg_lev = GLP_MSG_ALL;
   }
-  int res = glp_intopt(d_prob, &parm);
+
+  glp_erase_prob(d_mipProb);
+  glp_copy_prob(d_mipProb, d_realProb, GLP_OFF);
+
+  int res = glp_intopt(d_mipProb, &parm);
 
   cout << "res " << res
        << " aux.term " << aux.term << " bingo: " << MipBingo << endl;
@@ -1606,7 +1655,7 @@ MipResult ApproxGLPK::solveMIP(bool activelyLog){
   case 0:
   case GLP_ESTOP:
     {
-      int status = glp_mip_status(d_prob);
+      int status = glp_mip_status(d_mipProb);
       cout << "status " << status << endl;
       switch(status){
       case GLP_OPT:
@@ -2688,6 +2737,7 @@ bool ApproxGLPK::constructGmiCut(){
 }
 
 void ApproxGLPK::tryCut(int nid, CutInfo& cut){
+  Assert(cut.getKlass() != RowsDeletedKlass);
   static int success = 0;
   static int attempts = 0;
   attempts++;

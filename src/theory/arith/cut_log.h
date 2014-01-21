@@ -41,7 +41,9 @@ struct DenseVector {
 };
 
 /** The different kinds of cuts. */
-enum CutInfoKlass{ MirCutKlass, GmiCutKlass, BranchCutKlass, UnknownKlass};
+enum CutInfoKlass{ MirCutKlass, GmiCutKlass, BranchCutKlass,
+                   RowsDeletedKlass,
+                   UnknownKlass};
 std::ostream& operator<<(std::ostream& os, CutInfoKlass kl);
 
 /** A general class for describing a cut. */
@@ -125,6 +127,10 @@ struct BranchCutInfo : public CutInfo {
   BranchCutInfo(int execOrd, int br,  Kind dir, double val);
 };
 
+struct RowsDeleted : public CutInfo {
+  RowsDeleted(int execOrd, int nrows, const int num[]);
+};
+
 class TreeLog;
 
 class NodeLog {
@@ -149,6 +155,7 @@ private:
   double d_brVal;
   int d_downId;
   int d_upId;
+
 public:
   typedef __gnu_cxx::hash_map<int, ArithVar> RowIdMap;
 private:
@@ -169,6 +176,8 @@ public:
 
   bool isRoot() const;
   const NodeLog& getParent() const;
+
+  void copyParentRowIds();
 
   bool isBranch() const;
   int branchVariable() const;
@@ -195,6 +204,8 @@ public:
    * Be careful these are deleted in context during replay!
    */
   void mapRowId(int rowid, ArithVar v);
+  void applyRowsDeleted(const RowsDeleted& rd);
+
 };
 
 class ApproximateSimplex;
@@ -218,7 +229,7 @@ public:
   void branch(int nid, int br, double val, int dn, int up);
   void close(int nid);
 
-  void applySelected();
+  //void applySelected();
   void print(std::ostream& o) const;
 
   typedef ToNodeMap::const_iterator const_iterator;

@@ -655,9 +655,11 @@ private:
 
   void tryBranchCut(ApproximateSimplex* approx, int nid, BranchCutInfo& bl);
   std::vector<ConstraintCPVec> replayLogRec(ApproximateSimplex* approx, int nid, ConstraintP bc);
-  ConstraintP replayGetConstraint(const CutInfo& info);
-  ConstraintP replayGetConstraint(ApproximateSimplex* approx, const NodeLog& nl);
-  ConstraintP replayGetConstraint(const DenseMap<Rational>& lhs, Kind k, const Rational& rhs, bool branch);
+
+
+  std::pair<ConstraintP, ArithVar> replayGetConstraint(const CutInfo& info);
+  std::pair<ConstraintP, ArithVar> replayGetConstraint(ApproximateSimplex* approx, const NodeLog& nl);
+  std::pair<ConstraintP, ArithVar> replayGetConstraint(const DenseMap<Rational>& lhs, Kind k, const Rational& rhs, bool branch);
 
   void replayAssert(ConstraintP c);
   //ConstConstraintVec toExplanation(Node n) const;

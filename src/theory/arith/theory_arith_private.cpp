@@ -161,7 +161,7 @@ static void drop( ConstraintCPVec& v, ConstraintP con){
 }
 
 
-void resolve(ConstraintCPVec& buf, ConstraintP c, const ConstraintCPVec& pos, const ConstraintCPVec& neg){
+static void resolve(ConstraintCPVec& buf, ConstraintP c, const ConstraintCPVec& pos, const ConstraintCPVec& neg){
   unsigned posPos = pos.size();
   for(unsigned i = 0, N = pos.size(); i < N; ++i){
     if(pos[i] == c){
@@ -1865,6 +1865,7 @@ bool TheoryArithPrivate::replayLog(ApproximateSimplex* approx){
   size_t enteringPropN = d_currentPropagationList.size();
   Assert(conflictQueueEmpty());
   TreeLog& tl = getTreeLog();
+  //tl.applySelected(); /* set row ids */
 
   std::vector<ConstraintCPVec> res;
   { /* create a block for the purpose of pushing the sat context */
@@ -1886,10 +1887,11 @@ bool TheoryArithPrivate::replayLog(ApproximateSimplex* approx){
   return !conflictQueueEmpty();
 }
 
-ConstraintP TheoryArithPrivate::replayGetConstraint(const DenseMap<Rational>& lhs, Kind k, const Rational& rhs, bool branch)
+std::pair<ConstraintP, ArithVar> TheoryArithPrivate::replayGetConstraint(const DenseMap<Rational>& lhs, Kind k, const Rational& rhs, bool branch)
 {
+  ArithVar added = ARITHVAR_SENTINEL;
   Node sum = toSumNode(d_partialModel, lhs);
-  if(sum.isNull()){ return NullConstraint; }
+  if(sum.isNull()){ return make_pair(NullConstraint, added); }
 
   Node norm = Rewriter::rewrite(sum);
   DeltaRational dr(rhs);
@@ -1906,6 +1908,8 @@ ConstraintP TheoryArithPrivate::replayGetConstraint(const DenseMap<Rational>& lh
   }else{
     v = requestArithVar(norm, true, true);
     d_replayVariables.push_back(v);
+
+    added = v;
 
     cout << "replayGetConstraint adding " << norm << " |-> " << v << " @ " << getSatContext()->getLevel() << endl;
 
@@ -1924,15 +1928,16 @@ ConstraintP TheoryArithPrivate::replayGetConstraint(const DenseMap<Rational>& lh
   ConstraintP imp = d_constraintDatabase.getBestImpliedBound(v, t, dr);
   if(imp != NullConstraint){
     if(imp->getValue() == dr){
-      return imp;
+      Assert(added == ARITHVAR_SENTINEL);
+      return make_pair(imp, added);
     }
   }
   ConstraintP newc = d_constraintDatabase.getConstraint(v, t, dr);
   d_replayConstraints.push_back(newc);
-  return newc;
+  return make_pair(newc, added);
 }
 
-ConstraintP TheoryArithPrivate::replayGetConstraint(ApproximateSimplex* approx, const NodeLog& nl){
+std::pair<ConstraintP, ArithVar> TheoryArithPrivate::replayGetConstraint(ApproximateSimplex* approx, const NodeLog& nl){
   Assert(nl.isBranch());
   Assert(d_lhsTmp.empty());
   ArithVar v = approx->getBranchVar(nl);
@@ -1942,19 +1947,21 @@ ConstraintP TheoryArithPrivate::replayGetConstraint(ApproximateSimplex* approx, 
       double dval = nl.branchValue();
       Rational val = ApproximateSimplex::estimateWithCFE(dval);
       Rational fl(val.floor());
-      ConstraintP c = replayGetConstraint(d_lhsTmp, kind::LEQ, fl, true);
+      pair<ConstraintP, ArithVar> p;
+      p = replayGetConstraint(d_lhsTmp, kind::LEQ, fl, true);
       d_lhsTmp.purge();
-      return c;
+      return p;
     }
   }
-  return NullConstraint;
+  return make_pair(NullConstraint, ARITHVAR_SENTINEL);
 }
 
-ConstraintP TheoryArithPrivate::replayGetConstraint(const CutInfo& ci){
+std::pair<ConstraintP, ArithVar> TheoryArithPrivate::replayGetConstraint(const CutInfo& ci){
   Assert(ci.success());
   const DenseMap<Rational>& lhs = ci.getExactPrecision().lhs;
   const Rational& rhs = ci.getExactPrecision().rhs;
   Kind k = ci.getKind();
+
   return replayGetConstraint(lhs, k, rhs, ci.getKlass() == BranchCutKlass);
 }
 
@@ -1990,7 +1997,9 @@ void TheoryArithPrivate::tryBranchCut(ApproximateSimplex* approx, int nid, Branc
   cout << "tryBranchCut" << bci << endl;
   Assert(bci.success());
   Assert(!bci.proven());
-  ConstraintP bc = replayGetConstraint(bci);
+  pair<ConstraintP, ArithVar> p = replayGetConstraint(bci);
+  Assert(p.second == ARITHVAR_SENTINEL);
+  ConstraintP bc = p.first;
   Assert(bc !=  NullConstraint);
   ConstraintP bcneg = bc->getNegation();
   {
@@ -2195,7 +2204,10 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
     NodeLog::const_iterator iter = nl.begin(), end = nl.end();
     for(; conflictQueueEmpty() && iter != end; ++iter){
       CutInfo* ci = *iter;
-      if(ci->getKlass() == BranchCutKlass){
+      if(ci->getKlass() == RowsDeletedKlass){
+        RowsDeleted* rd = dynamic_cast<RowsDeleted*>(ci);
+        approx->applyRowsDeleted(nid, *rd);
+      }else if(ci->getKlass() == BranchCutKlass){
         BranchCutInfo* bci = dynamic_cast<BranchCutInfo*>(ci);
         Assert(bci != NULL);
         tryBranchCut(approx, nid, *bci);
@@ -2207,7 +2219,12 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
       if(conflictQueueEmpty() && ci->success()){
         // success
 
-        ConstraintP con = replayGetConstraint(*ci);
+        pair<ConstraintP, ArithVar> p = replayGetConstraint(*ci);
+        if(p.second != ARITHVAR_SENTINEL){
+          Assert(ci->getRowId() >= 1);
+          approx->mapRowId(nl.getNodeId(), ci->getRowId(), p.second);
+        }
+        ConstraintP con = p.first;
         ci->print(cout);
         cout << "cut was remade " << con  << endl;
 
@@ -2246,12 +2263,19 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
         res.push_back(d_conflicts[i]);
       }
     }else if(nl.isBranch()){
-      ConstraintP dnc = replayGetConstraint(approx, nl);
+      pair<ConstraintP, ArithVar> p = replayGetConstraint(approx, nl);
+      Assert(p.second == ARITHVAR_SENTINEL);
+      ConstraintP dnc = p.first;
       if(dnc != NullConstraint){
         ConstraintP upc = dnc->getNegation();
 
         int dnid = nl.getDownId();
         int upid = nl.getUpId();
+
+        NodeLog& dnlog = tl.getNode(dnid);
+        NodeLog& uplog = tl.getNode(upid);
+        dnlog.copyParentRowIds();
+        uplog.copyParentRowIds();
 
         std::vector<ConstraintCPVec> dnres = replayLogRec(approx, dnid, dnc);
         std::vector<ConstraintCPVec> upres = replayLogRec(approx, upid, upc);

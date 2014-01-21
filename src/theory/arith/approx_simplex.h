@@ -68,6 +68,7 @@ class NodeLog;
 class TreeLog;
 class ArithVariables;
 class CutInfo;
+class RowsDeleted;
 
 class ApproximateSimplex{
 protected:
@@ -119,6 +120,7 @@ public:
 
   virtual ArithVar getBranchVar(const NodeLog& nl) const = 0;
   virtual void mapRowId(int nid, int ind, ArithVar v) = 0;
+  virtual void applyRowsDeleted(int nid, const RowsDeleted& rd) = 0;
 
   /** Sets a maximization criteria for the approximate solver.*/
   virtual void setOptCoeffs(const ArithRatPairVec& ref) = 0;
