@@ -4,6 +4,7 @@
 #include "theory/arith/normal_form.h"
 #include "theory/arith/constraint.h"
 #include "theory/arith/cut_log.h"
+#include "theory/arith/matrix.h"
 #include <math.h>
 #include <cmath>
 #include <map>
@@ -463,6 +464,8 @@ private:
    * raises the failure flag.
    */
   bool attemptConstructTableRow(int node, int M, const PrimitiveVec& vec);
+  bool guessCoefficientsConstructTableRow(int node, int M, const PrimitiveVec& vec);
+  bool guassianElimConstructTableRow(int node, int M, const PrimitiveVec& vec);
 
   /* This is a guess of a vector in the row span of the tableau.
    * Attempt to cancel out all of the variables.
@@ -2622,10 +2625,211 @@ bool ApproxGLPK::constructMixedKnapsack(){
 }
 
 bool ApproxGLPK::attemptConstructTableRow(int nid, int M, const PrimitiveVec& vec){
+  bool failed = guessCoefficientsConstructTableRow(nid, M, vec);
+  if(failed){
+    failed = guassianElimConstructTableRow(nid, M, vec);
+  }
+
+  return failed;
+}
+
+bool ApproxGLPK::guassianElimConstructTableRow(int nid, int M, const PrimitiveVec& vec){
   ArithVar basic = d_pad.d_basic;
   DenseMap<Rational>& tab = d_pad.d_tabRow.lhs;
+  tab.purge();
   d_pad.d_tabRow.rhs = Rational(0);
   Assert(basic != ARITHVAR_SENTINEL);
+  Assert(tab.empty());
+  Assert(d_pad.d_tabRow.rhs.isZero());
+
+  if(d_vars.isAuxiliary(basic)) { return true; }
+
+  cout << "1 guassianElimConstructTableRow("<<nid <<", "<< basic<< ")"<<endl;
+  vec.print(cout);
+  //cout << "match " << basic << "("<<d_vars.asNode(basic)<<")"<<endl;
+  set<ArithVar> onrow;
+  for(int i = 1; i <= vec.len; ++i){
+    int ind = vec.inds[i];
+    ArithVar var = _getArithVar(nid, M, ind);
+    if(var == ARITHVAR_SENTINEL){
+      cout << "couldn't find" << ind << " " << M << " " << nid << endl;
+      return true;
+    }
+    onrow.insert(var);
+  }
+
+  cout << "2 guassianElimConstructTableRow("<<nid <<", "<< basic<< ")"<<endl;
+
+  Matrix<Rational> A;
+  A.increaseSizeTo(d_vars.getNumberOfVariables());
+  std::vector< std::pair<RowIndex, ArithVar> > rows;
+  set<ArithVar>::const_iterator i, iend;
+  // load the rows for auxiliary variables into A
+  for(i=onrow.begin(), iend=onrow.end(); i!=iend; ++i){
+    ArithVar v = *i;
+    if(d_vars.isAuxiliary(v)){
+      Assert(d_vars.hasNode(v));
+
+      vector<Rational> coeffs;
+      vector<ArithVar> vars;
+
+      coeffs.push_back(Rational(-1));
+      vars.push_back(v);
+      
+      Node n = d_vars.asNode(v);
+      Polynomial p = Polynomial::parsePolynomial(n);
+      Polynomial::iterator j = p.begin(), jend=p.end();
+      for(j=p.begin(), jend=p.end(); j!=jend; ++j){
+        Monomial m = *j;
+        if(m.isConstant()) { return true; }
+        VarList vl = m.getVarList();
+        if(!d_vars.hasArithVar(vl.getNode())){ return true; }
+        ArithVar x = d_vars.asArithVar(vl.getNode());
+        const Rational& q = m.getConstant().getValue();
+        coeffs.push_back(q); vars.push_back(x);
+      }
+      RowIndex rid = A.addRow(coeffs, vars);
+      rows.push_back(make_pair(rid, ARITHVAR_SENTINEL));
+    }
+  }
+  cout << "3 guassianElimConstructTableRow("<<nid <<", "<< basic<< ")"<<endl;
+
+  for(size_t i=0; i < rows.size(); ++i){
+    RowIndex rid = rows[i].first;
+    Assert(rows[i].second == ARITHVAR_SENTINEL);
+
+    // substitute previous rows
+    for(size_t j=0; j < i; j++){
+      RowIndex prevRow = rows[j].first;
+      ArithVar other = rows[j].second;
+      Assert(other != ARITHVAR_SENTINEL);
+      const Matrix<Rational>::Entry& e = A.findEntry(rid, other);
+      if(!e.blank()){
+        // r_p : 0 = -1 * other + sum a_i x_i
+        // rid : 0 =  e * other + sum b_i x_i
+        // rid += e * r_p
+        //     : 0 = 0 * other + ... 
+        Assert(!e.getCoefficient().isZero());
+
+        Rational cp = e.getCoefficient();
+        cout << "on " << rid << " subst " << cp << "*" << prevRow << " "
+             << other
+             << endl;
+        A.rowPlusRowTimesConstant(rid, prevRow, cp);
+      }
+    }
+    
+    //A.printMatrix(cout);
+
+    // solve the row for anything other than non-basics
+    bool solveForBasic = (i + 1 == rows.size());
+    Rational q;
+    ArithVar s = ARITHVAR_SENTINEL;
+    Matrix<Rational>::RowIterator k = A.getRow(rid).begin();
+    Matrix<Rational>::RowIterator k_end = A.getRow(rid).end();
+    for(; k != k_end; ++k){
+      const Matrix<Rational>::Entry& e = *k;
+      ArithVar colVar = e.getColVar();
+      bool selectColVar = false;
+      if(colVar == basic){
+        selectColVar = solveForBasic;
+      }else if(onrow.find(colVar) == onrow.end()) {
+        selectColVar = true;
+      }
+      if(selectColVar){
+        s = colVar;
+        q = e.getCoefficient();
+      }
+    }
+    if(s == ARITHVAR_SENTINEL || q.isZero()){
+      cout << "3 fail guassianElimConstructTableRow("<<nid <<", "<< basic<< ")"<<endl;
+      return true;
+    }else{
+      // 0 = q * s + sum c_i * x_i
+      Rational mult = -(q.inverse());
+      cout << "selecting " << s << " : " << mult << endl;
+      cout << "selecting " << rid << " " << s << endl;
+      A.multiplyRowByConstant(rid, mult);
+      rows[i].second = s;
+    }
+  }
+  cout << "4 guassianElimConstructTableRow("<<nid <<", "<< basic<< ")"<<endl;
+
+  if(rows.empty()) {
+    cout << "4 fail 1 guassianElimConstructTableRow("<<nid <<", "<< basic<< ")"<<endl;
+    return true; }
+  RowIndex rid_last = rows.back().first;
+  ArithVar rid_var = rows.back().second;
+  if(rid_var != basic){
+    cout << "4 fail 2 guassianElimConstructTableRow("<<nid <<", "<< basic<< ")"<<endl;
+    return true; }
+
+  Assert(tab.empty());
+
+  Matrix<Rational>::RowIterator k = A.getRow(rid_last).begin();
+  Matrix<Rational>::RowIterator k_end = A.getRow(rid_last).end();
+  for(; k != k_end; ++k){
+    const Matrix<Rational>::Entry& e = *k;
+    tab.set(e.getColVar(), e.getCoefficient());    
+  }
+  cout << "5 guassianElimConstructTableRow("<<nid <<", "<< basic<< ")"<<endl;
+  if(!tab.isKey(basic)){
+    cout << "5 fail 1 guassianElimConstructTableRow("<<nid <<", "<< basic<< ")"<<endl;
+    return true;
+  }
+  if(tab[basic] != Rational(-1)){
+    cout << "5 fail 2 guassianElimConstructTableRow("<<nid <<", "<< basic<< ")"<<endl;
+    return true;
+  }
+  
+  tab.remove(basic);
+  cout << "6 guassianElimConstructTableRow("<<nid <<", "<< basic<< ")"<<endl;
+
+  if(vec.len < 0 ){
+    cout << "6 fail 1 guassianElimConstructTableRow("<<nid <<", "<< basic<< ")"<<endl;
+    return true;
+  }
+  if(tab.size() != ((unsigned)vec.len) ) {
+    cout << "6 fail 2 guassianElimConstructTableRow("<<nid <<", "<< basic<< ")"<< tab.size() <<  " " << vec.len << endl;
+    return true;
+  }
+
+  cout << "7 guassianElimConstructTableRow("<<nid <<", "<< basic<< ")"<<endl;
+
+  for(int i = 1; i <= vec.len; ++i){
+    int ind = vec.inds[i];
+    double coeff = vec.coeffs[i];
+    ArithVar var = _getArithVar(nid, M, ind);
+    Assert(var != ARITHVAR_SENTINEL);
+    if(!tab.isKey(var)){
+      cout << "7 fail 1 guassianElimConstructTableRow("<<nid <<", "<< basic<< ")"<<endl;
+      return true;
+    }
+
+    double est = tab[var].getDouble();
+
+    if(!ApproximateSimplex::roughlyEqual(coeff, est)){
+      cout << "7 fail 2 guassianElimConstructTableRow("<<nid <<", "<< basic<< ")"
+           << " boink on " << ind << " " << var << " " << est <<endl;
+      return true;
+    }
+    //cout << var << " cfe " << cfe << endl;
+  }
+
+  cout << "guassianElimConstructTableRow("<<nid <<", "<< basic<< ")"
+       << " superduper" <<endl;
+
+  return false;
+}
+
+bool ApproxGLPK::guessCoefficientsConstructTableRow(int nid, int M, const PrimitiveVec& vec){
+  ArithVar basic = d_pad.d_basic;
+  DenseMap<Rational>& tab = d_pad.d_tabRow.lhs;
+  tab.purge();
+  d_pad.d_tabRow.rhs = Rational(0);
+  Assert(basic != ARITHVAR_SENTINEL);
+  Assert(tab.empty());
+  Assert(d_pad.d_tabRow.rhs.isZero());
 
   cout << "attemptConstructTableRow("<<nid <<", "<< basic<< ")"<<endl;
   vec.print(cout);
