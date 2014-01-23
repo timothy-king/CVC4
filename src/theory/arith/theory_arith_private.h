@@ -697,6 +697,38 @@ private:
     IntStat d_commitsOnConflicts;
     IntStat d_nontrivialSatChecks;
 
+    IntStat d_replayLogRecCount,
+      d_replayLogRecConflictEscalation,
+      d_replayLogRecEarlyExit,
+      d_replayBranchCloseFailures,
+      d_replayLeafCloseFailures,
+      d_replayBranchSkips,
+      d_mirCutsAttempted,
+      d_gmiCutsAttempted,
+      d_branchCutsAttempted,
+      d_cutsReconstructed,
+      d_cutsReconstructionFailed,
+      d_cutsProven,
+      d_cutsProofFailed,
+      d_mipReplayLemmaCalls,
+      d_mipExternalCuts,
+      d_mipExternalBranch;
+
+    IntStat d_inSolveInteger,
+      d_branchesExhausted,
+      d_execExhausted,
+      d_pivotsExhausted,
+      d_panicBranches,
+      d_relaxCalls,
+      d_relaxLinFeas,
+      d_relaxLinFeasFailures,
+      d_relaxLinInfeas,
+      d_relaxLinInfeasFailures,
+      d_relaxLinExhausted,
+      d_relaxOthers;
+
+    IntStat d_applyRowsDeleted;
+    TimerStat d_replaySimplexTimer;
 
     HistogramStat<uint32_t> d_satPivots;
     HistogramStat<uint32_t> d_unsatPivots;

@@ -455,6 +455,8 @@ public:
    */
   void selfExplaining();
 
+  void selfExplainingWithNegationTrue();
+
   /** Returns true if the node is selfExplaining.*/
   bool isSelfExplaining() const;
 

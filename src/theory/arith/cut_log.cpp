@@ -145,7 +145,7 @@ void CutInfo::setRhs(double r){
   d_cutRhs = r;
 }
 
-bool CutInfo::success() const{
+bool CutInfo::reconstructed() const{
   return d_exactPrecision != NULL;
 }
 
@@ -180,14 +180,13 @@ bool CutInfo::operator<(const CutInfo& o) const{
 }
 
 
-void CutInfo::setCut(const DenseVector& ep){
-  Assert(!success());
+void CutInfo::setReconstruction(const DenseVector& ep){
+  Assert(!reconstructed());
   d_exactPrecision = new DenseVector(ep);
 }
 
 void CutInfo::setExplanation(const ConstraintCPVec& ex){
-  Assert(success());
-  Assert(!proven());
+  Assert(reconstructed());
   if(d_explanation == NULL){
     d_explanation = new ConstraintCPVec(ex);
   }else{
@@ -196,7 +195,7 @@ void CutInfo::setExplanation(const ConstraintCPVec& ex){
 }
 
 void CutInfo::swapExplanation(ConstraintCPVec& ex){
-  Assert(success());
+  Assert(reconstructed());
   Assert(!proven());
   if(d_explanation == NULL){
     d_explanation = new ConstraintCPVec();
@@ -204,10 +203,26 @@ void CutInfo::swapExplanation(ConstraintCPVec& ex){
   d_explanation->swap(ex);
 }
 
-const DenseVector& CutInfo::getExactPrecision() const {
-  Assert(success());
+const DenseVector& CutInfo::getReconstruction() const {
+  Assert(reconstructed());
   return *d_exactPrecision;
 }
+
+void CutInfo::clearReconstruction(){
+  if(proven()){
+    delete d_explanation;
+    d_explanation = NULL;
+  }
+
+  if(reconstructed()){
+    delete d_exactPrecision;
+    d_exactPrecision = NULL;
+  }
+
+  Assert(!reconstructed());
+  Assert(!proven());
+}
+
 const ConstraintCPVec& CutInfo::getExplanation() const {
   Assert(proven());
   return *d_explanation;
@@ -291,6 +306,11 @@ NodeLog::~NodeLog(){
   Assert(d_cuts.empty());
 }
 
+std::ostream& operator<<(std::ostream& os, const NodeLog& nl){
+  nl.print(os);
+  return os;
+}
+
 void NodeLog::copyParentRowIds() {
   Assert(d_parent != NULL);
   d_rowId2ArithVar = d_parent->d_rowId2ArithVar;
@@ -314,7 +334,7 @@ int NodeLog::getUpId() const{
 void NodeLog::addSelected(int ord, int sel){
   Assert(d_rowIdsSelected.find(ord) == d_rowIdsSelected.end());
   d_rowIdsSelected[ord] = sel;
-  cout << "addSelected("<< ord << ", "<< sel << ")" << endl;
+  Debug("approx::nodelog") << "addSelected("<< ord << ", "<< sel << ")" << endl;
 }
 void NodeLog::applySelected() {
   CutSet::iterator iter = d_cuts.begin(), iend = d_cuts.end(), todelete;
@@ -336,7 +356,7 @@ void NodeLog::applySelected() {
       d_cuts.erase(todelete);
       delete curr;
     }else{
-      cout << "applySelected " << curr->getId() << " " << poolOrd << "->" << d_rowIdsSelected[poolOrd] << endl;
+      Debug("approx::nodelog") << "applySelected " << curr->getId() << " " << poolOrd << "->" << d_rowIdsSelected[poolOrd] << endl;
       curr->setRowId( d_rowIdsSelected[poolOrd] );
       ++iter;
     }
@@ -352,12 +372,14 @@ void NodeLog::applyRowsDeleted(const RowsDeleted& rd) {
   sortedRemoved.push_back(INT_MAX);
   std::sort(sortedRemoved.begin(), sortedRemoved.end());
 
-  cout << "Removing #" << sortedRemoved.size()<< "...";
-  for(unsigned k = 0; k<sortedRemoved.size(); k++){
-    cout << ", " << sortedRemoved[k];
+  if(Debug.isOn("approx::nodelog")){
+    Debug("approx::nodelog") << "Removing #" << sortedRemoved.size()<< "...";
+    for(unsigned k = 0; k<sortedRemoved.size(); k++){
+      Debug("approx::nodelog") << ", " << sortedRemoved[k];
+    }
+    Debug("approx::nodelog") << endl;
+    Debug("approx::nodelog") << "cv.len" << cv.len  << endl;
   }
-  cout << endl;
-  cout << "cv.len" << cv.len  << endl;
 
   int min = sortedRemoved.front();
 
@@ -406,12 +428,12 @@ void NodeLog::applyRowsDeleted(const RowsDeleted& rd) {
     if(headRemovedOrd == origOrd){
 
       if(ci == NULL){
-        cout << "deleting from above because of " << rd << endl;
-        cout << "had " << origOrd << " <-> " << v << endl;
+        Debug("approx::nodelog") << "deleting from above because of " << rd << endl;
+        Debug("approx::nodelog") << "had " << origOrd << " <-> " << v << endl;
         d_rowId2ArithVar.erase(origOrd);
       }else{
-        cout << "deleting " << ci << " because of " << rd << endl;
-        cout << "had " << origOrd << " <-> " << v << endl;
+        Debug("approx::nodelog") << "deleting " << ci << " because of " << rd << endl;
+        Debug("approx::nodelog") << "had " << origOrd << " <-> " << v << endl;
         d_rowId2ArithVar.erase(origOrd);
         ci->setRowId(-1);
       }
@@ -421,15 +443,15 @@ void NodeLog::applyRowsDeleted(const RowsDeleted& rd) {
       int newOrd = origOrd - posInSorted;
       Assert(newOrd > 0);
       if(ci == NULL){
-        cout << "shifting above down due to " << rd << endl;
-        cout << "had " << origOrd << " <-> " << v << endl;
-        cout << "now have " << newOrd << " <-> " << v << endl;
+        Debug("approx::nodelog") << "shifting above down due to " << rd << endl;
+        Debug("approx::nodelog") << "had " << origOrd << " <-> " << v << endl;
+        Debug("approx::nodelog") << "now have " << newOrd << " <-> " << v << endl;
         d_rowId2ArithVar.erase(origOrd);
         mapRowId(newOrd, v);
       }else{
-        cout << "shifting " << ci << " down due to " << rd << endl;
-        cout << "had " << origOrd << " <-> " << v << endl;
-        cout << "now have " << newOrd << " <-> " << v << endl;
+        Debug("approx::nodelog") << "shifting " << ci << " down due to " << rd << endl;
+        Debug("approx::nodelog") << "had " << origOrd << " <-> " << v << endl;
+        Debug("approx::nodelog") << "now have " << newOrd << " <-> " << v << endl;
         ci->setRowId(newOrd);
         d_rowId2ArithVar.erase(origOrd);
         mapRowId(newOrd, v);
@@ -485,8 +507,9 @@ ArithVar NodeLog::lookupRowId(int rowId) const{
 
 void NodeLog::mapRowId(int rowId, ArithVar v){
   Assert(lookupRowId(rowId) == ARITHVAR_SENTINEL);
-  cout << "On " << getNodeId()
-       << " adding row id " << rowId << " <-> " << v << endl;
+  Debug("approx::nodelog")
+    << "On " << getNodeId()
+    << " adding row id " << rowId << " <-> " << v << endl;
   d_rowId2ArithVar[rowId] = v;
 }
 
@@ -536,6 +559,10 @@ TreeLog::TreeLog()
 
 int TreeLog::getRootId() const{
   return 1;
+}
+
+NodeLog& TreeLog::getRootNode(){
+  return getNode(getRootId());
 }
 
 void TreeLog::clear(){

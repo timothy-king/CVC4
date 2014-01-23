@@ -109,17 +109,19 @@ public:
   bool operator<(const CutInfo& o) const;
 
   /* Returns true if the cut was successfully made in exact precision.*/
-  bool success() const;
+  bool reconstructed() const;
 
   /* Returns true if the cut has an explanation. */
   bool proven() const;
 
-  void setCut(const DenseVector& ep);
+  void setReconstruction(const DenseVector& ep);
   void setExplanation(const ConstraintCPVec& ex);
   void swapExplanation(ConstraintCPVec& ex);
 
-  const DenseVector& getExactPrecision() const;
+  const DenseVector& getReconstruction() const;
   const ConstraintCPVec& getExplanation() const;
+
+  void clearReconstruction();
 };
 std::ostream& operator<<(std::ostream& os, const CutInfo& ci);
 
@@ -207,6 +209,7 @@ public:
   void applyRowsDeleted(const RowsDeleted& rd);
 
 };
+std::ostream& operator<<(std::ostream& os, const NodeLog& nl);
 
 class ApproximateSimplex;
 class TreeLog {
@@ -256,6 +259,7 @@ public:
 
   int getRootId() const;
 
+  NodeLog& getRootNode();
   void printBranchInfo(std::ostream& os) const;
 };
 

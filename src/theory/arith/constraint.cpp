@@ -423,7 +423,7 @@ void Constraint_::setCanBePropagated() {
 void Constraint_::setAssertedToTheTheoryWithNegationTrue(TNode witness) {
   Assert(hasLiteral());
   Assert(!assertedToTheTheory());
-  Assert(d_negation->assertedToTheTheory());
+  Assert(d_negation->hasProof());
   d_database->pushAssertionOrderWatch(this, witness);
 }
 
@@ -890,6 +890,14 @@ ConstraintP ConstraintDatabase::lookup(TNode literal) const{
   }else{
     return iter->second;
   }
+}
+
+void Constraint_::selfExplainingWithNegationTrue(){
+  Assert(!hasProof());
+  Assert(getNegation()->hasProof());
+  Assert(hasLiteral());
+  Assert(assertedToTheTheory());
+  d_database->pushProofWatch(this, d_database->d_selfExplainingProof);
 }
 
 void Constraint_::selfExplaining(){

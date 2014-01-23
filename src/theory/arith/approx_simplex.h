@@ -34,30 +34,32 @@ std::ostream& operator<<(std::ostream& out, MipResult res);
 
 class ApproximateStatistics {
 public:
-  IntStat d_relaxCalls;
-  IntStat d_relaxUnknowns;
-  IntStat d_relaxFeasible;
-  IntStat d_relaxInfeasible;
-  IntStat d_relaxPivotsExhausted;
+  // IntStat d_relaxCalls;
+  // IntStat d_relaxUnknowns;
+  // IntStat d_relaxFeasible;
+  // IntStat d_relaxInfeasible;
+  // IntStat d_relaxPivotsExhausted;
 
-  IntStat d_mipCalls;
-  IntStat d_mipUnknowns;
-  IntStat d_mipBingo;
-  IntStat d_mipClosed;
-  IntStat d_mipBranchesExhausted;
-  IntStat d_mipPivotsExhausted;
-  IntStat d_mipExecExhausted;
+  // IntStat d_mipCalls;
+  // IntStat d_mipUnknowns;
+  // IntStat d_mipBingo;
+  // IntStat d_mipClosed;
+  // IntStat d_mipBranchesExhausted;
+  // IntStat d_mipPivotsExhausted;
+  // IntStat d_mipExecExhausted;
 
 
-  IntStat d_gmiGen;
-  IntStat d_gmiReplay;
-  IntStat d_mipGen;
-  IntStat d_mipReplay;
+  // IntStat d_gmiGen;
+  // IntStat d_gmiReplay;
+  // IntStat d_mipGen;
+  // IntStat d_mipReplay;
 
   IntStat d_branchMaxDepth;
-  IntStat d_branchTotal;
-  IntStat d_branchCuts;
   IntStat d_branchesMaxOnAVar;
+
+  TimerStat d_gaussianElimConstructTime;
+  IntStat d_gaussianElimConstruct;
+  AverageStat d_averageGuesses;
 
   ApproximateStatistics();
   ~ApproximateStatistics();
@@ -133,8 +135,8 @@ public:
   virtual MipResult solveMIP(bool activelyLog) = 0;
   virtual Solution extractMIP() const = 0;
 
-  virtual std::vector<const CutInfo*> getValidCuts() = 0;
-  virtual std::vector<const NodeLog*> getBranches() = 0;
+  virtual std::vector<const CutInfo*> getValidCuts(const NodeLog& node) = 0;
+  //virtual std::vector<const NodeLog*> getBranches() = 0;
 
   //virtual Node downBranchLiteral(const NodeLog& con) const = 0;
 
@@ -154,6 +156,7 @@ public:
    * This is designed for removing rounding artifacts.
    */
   static Rational estimateWithCFE(double d);
+  static Rational estimateWithCFE(double d, const Integer& D);
 
   /**
    * Converts a rational to a continued fraction expansion representation

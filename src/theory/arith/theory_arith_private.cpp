@@ -239,34 +239,64 @@ TheoryArithPrivate::ModelException::ModelException(TNode n, const char* msg) thr
 TheoryArithPrivate::ModelException::~ModelException() throw (){ }
 
 
-TheoryArithPrivate::Statistics::Statistics():
-  d_statAssertUpperConflicts("theory::arith::AssertUpperConflicts", 0),
-  d_statAssertLowerConflicts("theory::arith::AssertLowerConflicts", 0),
-  d_statUserVariables("theory::arith::UserVariables", 0),
-  d_statAuxiliaryVariables("theory::arith::AuxiliaryVariables", 0),
-  d_statDisequalitySplits("theory::arith::DisequalitySplits", 0),
-  d_statDisequalityConflicts("theory::arith::DisequalityConflicts", 0),
-  d_simplifyTimer("theory::arith::simplifyTimer"),
-  d_staticLearningTimer("theory::arith::staticLearningTimer"),
-  d_presolveTime("theory::arith::presolveTime"),
-  d_newPropTime("theory::arith::newPropTimer"),
-  d_externalBranchAndBounds("theory::arith::externalBranchAndBounds",0),
-  d_initialTableauSize("theory::arith::initialTableauSize", 0),
-  d_currSetToSmaller("theory::arith::currSetToSmaller", 0),
-  d_smallerSetToCurr("theory::arith::smallerSetToCurr", 0),
-  d_restartTimer("theory::arith::restartTimer"),
-  d_boundComputationTime("theory::arith::bound::time"),
-  d_boundComputations("theory::arith::bound::boundComputations",0),
-  d_boundPropagations("theory::arith::bound::boundPropagations",0),
-  d_unknownChecks("theory::arith::status::unknowns", 0),
-  d_maxUnknownsInARow("theory::arith::status::maxUnknownsInARow", 0),
-  d_avgUnknownsInARow("theory::arith::status::avgUnknownsInARow"),
-  d_revertsOnConflicts("theory::arith::status::revertsOnConflicts",0),
-  d_commitsOnConflicts("theory::arith::status::commitsOnConflicts",0),
-  d_nontrivialSatChecks("theory::arith::status::nontrivialSatChecks",0),
-  d_satPivots("pivots::sat"),
-  d_unsatPivots("pivots::unsat"),
-  d_unknownPivots("pivots::unkown")
+TheoryArithPrivate::Statistics::Statistics()
+  : d_statAssertUpperConflicts("theory::arith::AssertUpperConflicts", 0)
+  , d_statAssertLowerConflicts("theory::arith::AssertLowerConflicts", 0)
+  , d_statUserVariables("theory::arith::UserVariables", 0)
+  , d_statAuxiliaryVariables("theory::arith::AuxiliaryVariables", 0)
+  , d_statDisequalitySplits("theory::arith::DisequalitySplits", 0)
+  , d_statDisequalityConflicts("theory::arith::DisequalityConflicts", 0)
+  , d_simplifyTimer("theory::arith::simplifyTimer")
+  , d_staticLearningTimer("theory::arith::staticLearningTimer")
+  , d_presolveTime("theory::arith::presolveTime")
+  , d_newPropTime("theory::arith::newPropTimer")
+  , d_externalBranchAndBounds("theory::arith::externalBranchAndBounds",0)
+  , d_initialTableauSize("theory::arith::initialTableauSize", 0)
+  , d_currSetToSmaller("theory::arith::currSetToSmaller", 0)
+  , d_smallerSetToCurr("theory::arith::smallerSetToCurr", 0)
+  , d_restartTimer("theory::arith::restartTimer")
+  , d_boundComputationTime("theory::arith::bound::time")
+  , d_boundComputations("theory::arith::bound::boundComputations",0)
+  , d_boundPropagations("theory::arith::bound::boundPropagations",0)
+  , d_unknownChecks("theory::arith::status::unknowns", 0)
+  , d_maxUnknownsInARow("theory::arith::status::maxUnknownsInARow", 0)
+  , d_avgUnknownsInARow("theory::arith::status::avgUnknownsInARow")
+  , d_revertsOnConflicts("theory::arith::status::revertsOnConflicts",0)
+  , d_commitsOnConflicts("theory::arith::status::commitsOnConflicts",0)
+  , d_nontrivialSatChecks("theory::arith::status::nontrivialSatChecks",0)
+  , d_replayLogRecCount("z::approx::replay::rec",0)
+  , d_replayLogRecConflictEscalation("z::approx::replay::rec::escalation",0)
+  , d_replayLogRecEarlyExit("z::approx::replay::rec::earlyexit",0)
+  , d_replayBranchCloseFailures("z::approx::replay::rec::branch::closefailures",0)
+  , d_replayLeafCloseFailures("z::approx::replay::rec::leaf::closefailures",0)
+  , d_replayBranchSkips("z::approx::replay::rec::branch::skips",0)
+  , d_mirCutsAttempted("z::approx::cuts::mir::attempted",0)
+  , d_gmiCutsAttempted("z::approx::cuts::gmi::attempted",0)
+  , d_branchCutsAttempted("z::approx::cuts::branch::attempted",0)
+  , d_cutsReconstructed("z::approx::cuts::reconstructed",0)
+  , d_cutsReconstructionFailed("z::approx::cuts::reconstructed::failed",0)
+  , d_cutsProven("z::approx::cuts::proofs",0)
+  , d_cutsProofFailed("z::approx::cuts::proofs::failed",0)
+  , d_mipReplayLemmaCalls("z::approx::external::calls",0)
+  , d_mipExternalCuts("z::approx::external::cuts",0)
+  , d_mipExternalBranch("z::approx::external::branches",0)
+  , d_inSolveInteger("z::approx::inSolverInteger",0)
+  , d_branchesExhausted("z::approx::exhausted::branches",0)
+  , d_execExhausted("z::approx::exhausted::exec",0)
+  , d_pivotsExhausted("z::approx::exhausted::pivots",0)
+  , d_panicBranches("z::arith::paniclemmas",0)
+  , d_relaxCalls("z::arith::relax::calls",0)
+  , d_relaxLinFeas("z::arith::relax::feasible::res",0)
+  , d_relaxLinFeasFailures("z::arith::relax::feasible::failures",0)
+  , d_relaxLinInfeas("z::arith::relax::infeasible",0)
+  , d_relaxLinInfeasFailures("z::arith::relax::infeasible::failures",0)
+  , d_relaxLinExhausted("z::arith::relax::exhausted",0)
+  , d_relaxOthers("z::arith::relax::other",0)
+  , d_applyRowsDeleted("z::arith::cuts::applyRowsDeleted",0)
+  , d_replaySimplexTimer("z::approx::replay::simplex::timer")
+  , d_satPivots("pivots::sat")
+  , d_unsatPivots("pivots::unsat")
+  , d_unknownPivots("pivots::unkown")
 {
   StatisticsRegistry::registerStat(&d_statAssertUpperConflicts);
   StatisticsRegistry::registerStat(&d_statAssertLowerConflicts);
@@ -303,6 +333,40 @@ TheoryArithPrivate::Statistics::Statistics():
   StatisticsRegistry::registerStat(&d_satPivots);
   StatisticsRegistry::registerStat(&d_unsatPivots);
   StatisticsRegistry::registerStat(&d_unknownPivots);
+
+  StatisticsRegistry::registerStat(&d_replayLogRecCount);
+  StatisticsRegistry::registerStat(&d_replayLogRecConflictEscalation);
+  StatisticsRegistry::registerStat(&d_replayLogRecEarlyExit);
+  StatisticsRegistry::registerStat(&d_replayBranchCloseFailures);
+  StatisticsRegistry::registerStat(&d_replayLeafCloseFailures);
+  StatisticsRegistry::registerStat(&d_replayBranchSkips);
+  StatisticsRegistry::registerStat(&d_mirCutsAttempted);
+  StatisticsRegistry::registerStat(&d_gmiCutsAttempted);
+  StatisticsRegistry::registerStat(&d_branchCutsAttempted);
+  StatisticsRegistry::registerStat(&d_cutsReconstructed);
+  StatisticsRegistry::registerStat(&d_cutsProven);
+  StatisticsRegistry::registerStat(&d_cutsProofFailed);
+  StatisticsRegistry::registerStat(&d_cutsReconstructionFailed);
+  StatisticsRegistry::registerStat(&d_mipReplayLemmaCalls);
+  StatisticsRegistry::registerStat(&d_mipExternalCuts);
+  StatisticsRegistry::registerStat(&d_mipExternalBranch);
+
+  StatisticsRegistry::registerStat(&d_inSolveInteger);
+  StatisticsRegistry::registerStat(&d_branchesExhausted);
+  StatisticsRegistry::registerStat(&d_execExhausted);
+  StatisticsRegistry::registerStat(&d_pivotsExhausted);
+  StatisticsRegistry::registerStat(&d_panicBranches);
+  StatisticsRegistry::registerStat(&d_relaxCalls);
+  StatisticsRegistry::registerStat(&d_relaxLinFeas);
+  StatisticsRegistry::registerStat(&d_relaxLinFeasFailures);
+  StatisticsRegistry::registerStat(&d_relaxLinInfeas);
+  StatisticsRegistry::registerStat(&d_relaxLinInfeasFailures);
+  StatisticsRegistry::registerStat(&d_relaxLinExhausted);
+  StatisticsRegistry::registerStat(&d_relaxOthers);
+
+  StatisticsRegistry::registerStat(&d_applyRowsDeleted);
+
+  StatisticsRegistry::registerStat(&d_replaySimplexTimer);
 }
 
 TheoryArithPrivate::Statistics::~Statistics(){
@@ -340,6 +404,41 @@ TheoryArithPrivate::Statistics::~Statistics(){
   StatisticsRegistry::unregisterStat(&d_satPivots);
   StatisticsRegistry::unregisterStat(&d_unsatPivots);
   StatisticsRegistry::unregisterStat(&d_unknownPivots);
+
+  StatisticsRegistry::unregisterStat(&d_replayLogRecCount);
+  StatisticsRegistry::unregisterStat(&d_replayLogRecConflictEscalation);
+  StatisticsRegistry::unregisterStat(&d_replayLogRecEarlyExit);
+  StatisticsRegistry::unregisterStat(&d_replayBranchCloseFailures);
+  StatisticsRegistry::unregisterStat(&d_replayLeafCloseFailures);
+  StatisticsRegistry::unregisterStat(&d_replayBranchSkips);
+  StatisticsRegistry::unregisterStat(&d_mirCutsAttempted);
+  StatisticsRegistry::unregisterStat(&d_gmiCutsAttempted);
+  StatisticsRegistry::unregisterStat(&d_branchCutsAttempted);
+  StatisticsRegistry::unregisterStat(&d_cutsReconstructed);
+  StatisticsRegistry::unregisterStat(&d_cutsProven);
+  StatisticsRegistry::unregisterStat(&d_cutsProofFailed);
+  StatisticsRegistry::unregisterStat(&d_cutsReconstructionFailed);
+  StatisticsRegistry::unregisterStat(&d_mipReplayLemmaCalls);
+  StatisticsRegistry::unregisterStat(&d_mipExternalCuts);
+  StatisticsRegistry::unregisterStat(&d_mipExternalBranch);
+
+
+  StatisticsRegistry::unregisterStat(&d_inSolveInteger);
+  StatisticsRegistry::unregisterStat(&d_branchesExhausted);
+  StatisticsRegistry::unregisterStat(&d_execExhausted);
+  StatisticsRegistry::unregisterStat(&d_pivotsExhausted);
+  StatisticsRegistry::unregisterStat(&d_panicBranches);
+  StatisticsRegistry::unregisterStat(&d_relaxCalls);
+  StatisticsRegistry::unregisterStat(&d_relaxLinFeas);
+  StatisticsRegistry::unregisterStat(&d_relaxLinFeasFailures);
+  StatisticsRegistry::unregisterStat(&d_relaxLinInfeas);
+  StatisticsRegistry::unregisterStat(&d_relaxLinInfeasFailures);
+  StatisticsRegistry::unregisterStat(&d_relaxLinExhausted);
+  StatisticsRegistry::unregisterStat(&d_relaxOthers);
+
+  StatisticsRegistry::unregisterStat(&d_applyRowsDeleted);
+
+  StatisticsRegistry::unregisterStat(&d_replaySimplexTimer);
 }
 
 void TheoryArithPrivate::revertOutOfConflict(){
@@ -1037,24 +1136,19 @@ Theory::PPAssertStatus TheoryArithPrivate::ppAssert(TNode in, SubstitutionMap& o
       if(right.size() > MAX_SUB_SIZE){
         Debug("simplify") << "TheoryArithPrivate::solve(): did not substitute due to the right hand side containing too many terms: " << minVar << ":" << elim << endl;
         Debug("simplify") << right.size() << endl;
-        // cout << "TheoryArithPrivate::solve(): did not substitute due to the right hand side containing too many terms: " << minVar << ":" << elim << endl;
-        // cout << right.size() << endl;
       }else if(elim.hasSubterm(minVar)){
         Debug("simplify") << "TheoryArithPrivate::solve(): can't substitute due to recursive pattern with sharing: " << minVar << ":" << elim << endl;
-        // cout << "TheoryArithPrivate::solve(): can't substitute due to recursive pattern with sharing: " << minVar << ":" << elim << endl;
 
       }else if (!minVar.getType().isInteger() || right.isIntegral()) {
         Assert(!elim.hasSubterm(minVar));
         // cannot eliminate integers here unless we know the resulting
         // substitution is integral
         Debug("simplify") << "TheoryArithPrivate::solve(): substitution " << minVar << " |-> " << elim << endl;
-        //cout << "TheoryArithPrivate::solve(): substitution " << minVar << " |-> " << elim << endl;
 
         outSubstitutions.addSubstitution(minVar, elim);
         return Theory::PP_ASSERT_STATUS_SOLVED;
       } else {
         Debug("simplify") << "TheoryArithPrivate::solve(): can't substitute b/c it's integer: " << minVar << ":" << minVar.getType() << " |-> " << elim << ":" << elim.getType() << endl;
-        //cout << "TheoryArithPrivate::solve(): can't substitute b/c it's integer: " << minVar << ":" << minVar.getType() << " |-> " << elim << ":" << elim.getType() << endl;
 
       }
     }
@@ -1457,9 +1551,9 @@ ArithVar TheoryArithPrivate::requestArithVar(TNode x, bool aux, bool internal){
   }
   d_constraintDatabase.addVariable(varX);
 
-  cout << "@" << getSatContext()->getLevel()
-       << " " << x << " |-> " << varX << " " << reclaim << endl;
-  Debug("arith::arithvar") << x << " |-> " << varX << endl;
+  Debug("arith::arithvar") << "@" << getSatContext()->getLevel()
+                           << " " << x << " |-> " << varX
+                           << "(relaiming " << reclaim << ")" << endl;
 
   Assert(!d_partialModel.hasUpperBound(varX));
   Assert(!d_partialModel.hasLowerBound(varX));
@@ -1680,7 +1774,7 @@ ConstraintP TheoryArithPrivate::constraintFromFactQueue(){
     constraint->setAssertedToTheTheoryWithNegationTrue(assertion);
     if(!constraint->hasProof()){
       Debug("arith::constraint") << "marking as constraint as self explaining " << endl;
-      constraint->selfExplaining();
+      constraint->selfExplainingWithNegationTrue();
     }else{
       Debug("arith::constraint") << "already has proof: " << constraint->externalExplainByAssertions() << endl;
     }
@@ -1801,8 +1895,10 @@ bool TheoryArithPrivate::hasIntegerModel(){
   ArithVar next = nextIntegerViolatation(true);
   if(next != ARITHVAR_SENTINEL){
     d_nextIntegerCheckVar = next;
-    cout << "has int model? " << next << endl;
-    d_partialModel.printModel(next, cout);
+    if(Debug.isOn("arith::hasIntegerModel")){
+      Debug("arith::hasIntegerModel") << "has int model? " << next << endl;
+      d_partialModel.printModel(next, Debug("arith::hasIntegerModel"));
+    }
     return false;
   }else{
     return true;
@@ -1811,12 +1907,20 @@ bool TheoryArithPrivate::hasIntegerModel(){
 
 /** Outputs conflicts to the output channel. */
 void TheoryArithPrivate::outputConflicts(){
-  Assert(!d_conflicts.empty());
-  for(size_t i = 0, i_end = d_conflicts.size(); i < i_end; ++i){
-    const ConstraintCPVec& vec = d_conflicts[i];
-    Node conflict = Constraint_::externalExplainByAssertions(vec);
-    Debug("arith::conflict") << "d_conflicts[" << i << "] " << conflict << endl;
-    (d_containing.d_out)->conflict(conflict);
+  Assert(anyConflict());
+  if(!conflictQueueEmpty()){
+    Assert(!d_conflicts.empty());
+    for(size_t i = 0, i_end = d_conflicts.size(); i < i_end; ++i){
+      const ConstraintCPVec& vec = d_conflicts[i];
+      Node conflict = Constraint_::externalExplainByAssertions(vec);
+      Debug("arith::conflict") << "d_conflicts[" << i << "] " << conflict << endl;
+      (d_containing.d_out)->conflict(conflict);
+    }
+  }
+  if(!d_blackBoxConflict.get().isNull()){
+    Node bb = d_blackBoxConflict.get();
+    Debug("arith::conflict") << "black box conflict" << bb << endl;
+    (d_containing.d_out)->conflict(bb);
   }
 }
 
@@ -1835,13 +1939,14 @@ void TheoryArithPrivate::branchVector(const std::vector<ArithVar>& lemmas){
 
 bool TheoryArithPrivate::attemptSolveInteger(Theory::Effort effortLevel, bool emmmittedLemmaOrSplit){
   int level = getSatContext()->getLevel();
-  cout << "attemptSolveInteger " << d_qflraStatus
-       << " " << emmmittedLemmaOrSplit
-       << " " << effortLevel
-       << " " << d_lastContextIntegerAttempted
-       << " " << level
-       << " " << hasIntegerModel()
-       << endl;
+  Debug("approx")
+    << "attemptSolveInteger " << d_qflraStatus
+    << " " << emmmittedLemmaOrSplit
+    << " " << effortLevel
+    << " " << d_lastContextIntegerAttempted
+    << " " << level
+    << " " << hasIntegerModel()
+    << endl;
   if(d_qflraStatus == Result::UNSAT){ return false; }
   if(emmmittedLemmaOrSplit){ return false; }
   if(!(options::useApprox() && ApproximateSimplex::enabled())){ return false; }
@@ -1857,8 +1962,6 @@ bool TheoryArithPrivate::attemptSolveInteger(Theory::Effort effortLevel, bool em
 }
 
 bool TheoryArithPrivate::replayLog(ApproximateSimplex* approx){
-#warning "garbage collect created arithvars"
-
   Assert(d_replayVariables.empty());
   Assert(d_replayConstraints.empty());
 
@@ -1903,7 +2006,8 @@ std::pair<ConstraintP, ArithVar> TheoryArithPrivate::replayGetConstraint(const D
   if(d_partialModel.hasArithVar(norm)){
 
     v = d_partialModel.asArithVar(norm);
-    cout << "replayGetConstraint found " << norm << " |-> " << v << " @ " << getSatContext()->getLevel() << endl;
+    Debug("approx::constraint") << "replayGetConstraint found "
+                                << norm << " |-> " << v << " @ " << getSatContext()->getLevel() << endl;
     Assert(!branch || d_partialModel.isIntegerInput(v));
   }else{
     v = requestArithVar(norm, true, true);
@@ -1911,7 +2015,8 @@ std::pair<ConstraintP, ArithVar> TheoryArithPrivate::replayGetConstraint(const D
 
     added = v;
 
-    cout << "replayGetConstraint adding " << norm << " |-> " << v << " @ " << getSatContext()->getLevel() << endl;
+    Debug("approx::constraint") << "replayGetConstraint adding "
+                                << norm << " |-> " << v << " @ " << getSatContext()->getLevel() << endl;
 
     Polynomial poly = Polynomial::parsePolynomial(norm);
     vector<ArithVar> variables;
@@ -1957,9 +2062,9 @@ std::pair<ConstraintP, ArithVar> TheoryArithPrivate::replayGetConstraint(Approxi
 }
 
 std::pair<ConstraintP, ArithVar> TheoryArithPrivate::replayGetConstraint(const CutInfo& ci){
-  Assert(ci.success());
-  const DenseMap<Rational>& lhs = ci.getExactPrecision().lhs;
-  const Rational& rhs = ci.getExactPrecision().rhs;
+  Assert(ci.reconstructed());
+  const DenseMap<Rational>& lhs = ci.getReconstruction().lhs;
+  const Rational& rhs = ci.getReconstruction().rhs;
   Kind k = ci.getKind();
 
   return replayGetConstraint(lhs, k, rhs, ci.getKlass() == BranchCutKlass);
@@ -1994,8 +2099,8 @@ void TheoryArithPrivate::tryBranchCut(ApproximateSimplex* approx, int nid, Branc
   std::vector< ConstraintCPVec > conflicts;
 
   approx->tryCut(nid, bci);
-  cout << "tryBranchCut" << bci << endl;
-  Assert(bci.success());
+  Debug("approx::branch") << "tryBranchCut" << bci << endl;
+  Assert(bci.reconstructed());
   Assert(!bci.proven());
   pair<ConstraintP, ArithVar> p = replayGetConstraint(bci);
   Assert(p.second == ARITHVAR_SENTINEL);
@@ -2006,6 +2111,8 @@ void TheoryArithPrivate::tryBranchCut(ApproximateSimplex* approx, int nid, Branc
     context::Context::ScopedPush speculativePush(getSatContext());
     replayAssert(bcneg);
     if(conflictQueueEmpty()){
+      TimerStat::CodeTimer codeTimer(d_statistics.d_replaySimplexTimer);
+
       //test for linear feasibility
       d_partialModel.stopQueueingBoundCounts();
       UpdateTrackingCallback utcb(&d_linEq);
@@ -2023,23 +2130,26 @@ void TheoryArithPrivate::tryBranchCut(ApproximateSimplex* approx, int nid, Branc
       // remove the floor/ceiling contraint implied by bcneg
       Constraint_::assertionFringe(conflicts.back());
     }
-    if(d_conflicts.empty()){
-      entireStateIsConsistent("branchfailure");
+
+    if(Debug.isOn("approx::branch")){
+      if(d_conflicts.empty()){
+        entireStateIsConsistent("branchfailure");
+      }
     }
   }
 
-  cout << "branch constraint " << bc << endl;
+  Debug("approx::branch") << "branch constraint " << bc << endl;
   for(size_t i = 0, N = conflicts.size(); i < N; ++i){
     ConstraintCPVec& conf = conflicts[i];
+
+    // make sure to be working on the assertion fringe!
     if(!contains(conf, bcneg)){
-      cout << "reraise " << conf  << endl;
+      Debug("approx::branch") << "reraise " << conf  << endl;
       raiseConflict(conf);
     }else if(!bci.proven()){
       drop(conf, bcneg);
       bci.setExplanation(conf);
-      //NodeBuilder<> nb(kind::AND);
-      //Node dropped = safeConstructNary(nb);
-      cout << "dropped " << bci  << endl;
+      Debug("approx::branch") << "dropped " << bci  << endl;
     }
   }
 }
@@ -2049,17 +2159,17 @@ void TheoryArithPrivate::replayAssert(ConstraintP c) {
     if(c->negationHasProof()){
       ConstraintP neg = c->getNegation();
       raiseConflict(c, neg);
-      Debug("arith::eq") << "replayAssertion conflict " << neg << " : " << c << endl;
+      Debug("approx::replayAssert") << "replayAssertion conflict " << neg << " : " << c << endl;
     }else if(!c->hasProof()){
       c->setInternalDecision();
       assertionCases(c);
-      cout << "replayAssert " << c << " set internal" << endl;
+      Debug("approx::replayAssert") << "replayAssert " << c << " set internal" << endl;
     }else{
       assertionCases(c);
-      cout << "replayAssert " << c << " has explanation" << endl;
+      Debug("approx::replayAssert") << "replayAssert " << c << " has explanation" << endl;
     }
   }else{
-    cout << "replayAssert " << c << " already asserted" << endl;
+    Debug("approx::replayAssert") << "replayAssert " << c << " already asserted" << endl;
   }
 }
 
@@ -2129,14 +2239,17 @@ void TheoryArithPrivate::replayAssert(ConstraintP c) {
 // }
 
 void TheoryArithPrivate::resolveOutPropagated(std::vector<ConstraintCPVec>& confs, const std::set<ConstraintCP>& propagated) const {
-  cout << "starting resolveOutPropagated() " << confs.size() << endl;
+  Debug("arith::resolveOutPropagated")
+    << "starting resolveOutPropagated() " << confs.size() << endl;
   for(size_t i =0, N = confs.size(); i < N; ++i){
     ConstraintCPVec& conf = confs[i];
     size_t orig = conf.size();
     Constraint_::assertionFringe(conf);
-    cout << "  conf["<<i<<"] " << orig << " to " << conf.size() << endl;
+    Debug("arith::resolveOutPropagated")
+      << "  conf["<<i<<"] " << orig << " to " << conf.size() << endl;
   }
-  cout << "ending resolveOutPropagated() " << confs.size() << endl;
+  Debug("arith::resolveOutPropagated")
+    << "ending resolveOutPropagated() " << confs.size() << endl;
 }
 
 struct SizeOrd {
@@ -2145,14 +2258,15 @@ struct SizeOrd {
   }
 };
 void TheoryArithPrivate::subsumption(std::vector<ConstraintCPVec>& confs) const {
+  int checks CVC4_UNUSED = 0;
+  int subsumed CVC4_UNUSED = 0;
+
   for(size_t i =0, N= confs.size(); i < N; ++i){
     ConstraintCPVec& conf = confs[i];
     std::sort(conf.begin(), conf.end());
   }
 
-  int checks = 0;
   std::sort(confs.begin(), confs.end(), SizeOrd());
-  int subsumed = 0;
   for(size_t i = 0; i < confs.size(); i++){
     ConstraintCPVec& a = confs[i];
     // i is not subsumed
@@ -2170,17 +2284,13 @@ void TheoryArithPrivate::subsumption(std::vector<ConstraintCPVec>& confs) const 
       }
     }
   }
-  cout << "subsumed " << subsumed << "/" << checks << endl;
+  Debug("arith::subsumption") << "subsumed " << subsumed << "/" << checks << endl;
 }
 
 std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex* approx, int nid, ConstraintP bc){
-  static int replayLogRecCount = 0 ;
-  static int tryBranch = 0 ;
-  static int tryCut = 0 ;
-  ++replayLogRecCount;
-  int myReplayLogRecCount = replayLogRecCount;
-  cout << "replayLogRec()" << myReplayLogRecCount <<
-    " " << tryBranch << " " << tryCut << " " << bc << std::endl;
+  ++(d_statistics.d_replayLogRecCount);
+  Debug("approx::replayLogRec") << "replayLogRec()"
+                                << d_statistics.d_replayLogRecCount.getData() << std::endl;
 
   size_t rpvars_size = d_replayVariables.size();
   size_t rpcons_size = d_replayConstraints.size();
@@ -2199,52 +2309,98 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
     }
 
     const NodeLog& nl = tl.getNode(nid);
-    nl.print(cout);
-
     NodeLog::const_iterator iter = nl.begin(), end = nl.end();
     for(; conflictQueueEmpty() && iter != end; ++iter){
       CutInfo* ci = *iter;
+
+      //cout << "  trying " << *ci << endl;
       if(ci->getKlass() == RowsDeletedKlass){
         RowsDeleted* rd = dynamic_cast<RowsDeleted*>(ci);
         approx->applyRowsDeleted(nid, *rd);
+
+        ++d_statistics.d_applyRowsDeleted;
       }else if(ci->getKlass() == BranchCutKlass){
         BranchCutInfo* bci = dynamic_cast<BranchCutInfo*>(ci);
         Assert(bci != NULL);
         tryBranchCut(approx, nid, *bci);
-        ++tryBranch;
+
+        ++d_statistics.d_branchCutsAttempted;
       }else{
-        ++tryCut;
         approx->tryCut(nid, *ci);
-      }
-      if(conflictQueueEmpty() && ci->success()){
-        // success
-
-        pair<ConstraintP, ArithVar> p = replayGetConstraint(*ci);
-        if(p.second != ARITHVAR_SENTINEL){
-          Assert(ci->getRowId() >= 1);
-          approx->mapRowId(nl.getNodeId(), ci->getRowId(), p.second);
+        if(ci->getKlass() == GmiCutKlass){
+          ++d_statistics.d_gmiCutsAttempted;
+        }else if(ci->getKlass() == MirCutKlass){
+          ++d_statistics.d_mirCutsAttempted;
         }
-        ConstraintP con = p.first;
-        ci->print(cout);
-        cout << "cut was remade " << con  << endl;
 
-        if(ci->proven()){
-          const ConstraintCPVec& exp = ci->getExplanation();
+#warning "todo get this right"
+        // if(false && ci->reconstructed()){
+        //   const DenseVector& rec = ci->getReconstruction();
+        //   bool reject = false;
+        //   uint32_t threshold = 512;
+
+        //   const DenseMap<Rational>& row = rec.lhs;
+        //   DenseMap<Rational>::const_iterator riter, rend;
+        //   for(riter=row.begin(), rend=row.end(); riter != rend; ++riter){
+        //     ArithVar v = *riter;
+        //     const Rational& q = row[v];
+        //     cout << "complexity " << q.complexity();
+        //     if(q.complexity() > threshold){
+        //       cout << " (huge)";
+        //       reject = true;
+        //     }
+        //     cout<< endl;
+        //   }
+
+        //   if(reject){
+        //     ci->clearReconstruction();
+        //     //++d_statistics.d_cutsRejected;
+        //   }
+        // }else{
+        //   //cout << "wasn't reconstructed?" << endl;
+        // }
+      }
+      if(conflictQueueEmpty()){
+        if(ci->reconstructed()){
           // success
-          Assert(!con->negationHasProof());
-          if(con->isTrue()){
-            cout << "not asserted?" << endl;
-          }else{
-            con->impliedBy(exp);
-            replayAssert(con);
-            cout << "cut prop" << endl;
+          ++d_statistics.d_cutsReconstructed;
+
+          pair<ConstraintP, ArithVar> p = replayGetConstraint(*ci);
+          if(p.second != ARITHVAR_SENTINEL){
+            Assert(ci->getRowId() >= 1);
+            approx->mapRowId(nl.getNodeId(), ci->getRowId(), p.second);
           }
-        }else{
-          cout << "failed to get explanation" << endl;
+          ConstraintP con = p.first;
+          if(Debug.isOn("approx::replayLogRec")){
+            Debug("approx::replayLogRec") << "cut was remade " << con << " " << *ci << endl;
+          }
+
+          if(ci->proven()){
+            ++d_statistics.d_cutsProven;
+
+            const ConstraintCPVec& exp = ci->getExplanation();
+            // success
+            Assert(!con->negationHasProof());
+            if(con->isTrue()){
+              Debug("approx::replayLogRec") << "not asserted?" << endl;
+            }else{
+              con->impliedBy(exp);
+              replayAssert(con);
+              Debug("approx::replayLogRec") << "cut prop" << endl;
+            }
+          }else{
+            ++d_statistics.d_cutsProofFailed;
+            Debug("approx::replayLogRec") << "failed to get proof " << *ci << endl;
+          }
+        }else if(ci->getKlass() != RowsDeletedKlass){
+          ++d_statistics.d_cutsReconstructionFailed;
         }
       }
     }
+
+    /* check if the system is feasible under with the cuts */
     if(conflictQueueEmpty()){
+      TimerStat::CodeTimer codeTimer(d_statistics.d_replaySimplexTimer);
       //test for linear feasibility
       d_partialModel.stopQueueingBoundCounts();
       UpdateTrackingCallback utcb(&d_linEq);
@@ -2256,13 +2412,18 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
 
       d_linEq.stopTrackingBoundCounts();
       d_partialModel.startQueueingBoundCounts();
+    }else{
+      ++d_statistics.d_replayLogRecConflictEscalation;
     }
 
     if(!conflictQueueEmpty()){
+      /* if a conflict has been found stop */
       for(size_t i = 0, N = d_conflicts.size(); i < N; ++i){
         res.push_back(d_conflicts[i]);
       }
+      ++d_statistics.d_replayLogRecEarlyExit;
     }else if(nl.isBranch()){
+      /* if it is a branch try the branch */
       pair<ConstraintP, ArithVar> p = replayGetConstraint(approx, nl);
       Assert(p.second == ARITHVAR_SENTINEL);
       ConstraintP dnc = p.first;
@@ -2277,53 +2438,80 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
         dnlog.copyParentRowIds();
         uplog.copyParentRowIds();
 
-        std::vector<ConstraintCPVec> dnres = replayLogRec(approx, dnid, dnc);
-        std::vector<ConstraintCPVec> upres = replayLogRec(approx, upid, upc);
+        std::vector<ConstraintCPVec> dnres;
+        std::vector<ConstraintCPVec> upres;
         std::vector<size_t> containsdn;
         std::vector<size_t> containsup;
-        for(size_t i = 0, N = dnres.size(); i < N; ++i){
-          ConstraintCPVec& conf = dnres[i];
-          if(contains(conf, dnc)){
-            containsdn.push_back(i);
-          }else{
-            res.push_back(conf);
+        if(res.empty()){
+          dnres = replayLogRec(approx, dnid, dnc);
+          for(size_t i = 0, N = dnres.size(); i < N; ++i){
+            ConstraintCPVec& conf = dnres[i];
+            if(contains(conf, dnc)){
+              containsdn.push_back(i);
+            }else{
+              res.push_back(conf);
+            }
           }
+        }else{
+          Debug("approx::replayLogRec") << "replayLogRec() skipping" << dnlog << std::endl;
+          ++d_statistics.d_replayBranchSkips;
         }
-        for(size_t i = 0, N = upres.size(); i < N; ++i){
-          ConstraintCPVec& conf = upres[i];
-          if(contains(conf, upc)){
-            containsup.push_back(i);
-          }else{
-            res.push_back(conf);
-          }
-        }
-        for(size_t i = 0, N = containsdn.size(); i < N; ++i){
-          ConstraintCPVec& dnconf = dnres[containsdn[i]];
-          for(size_t j = 0, M = containsup.size(); j < M; ++j){
-            ConstraintCPVec& upconf = upres[containsup[j]];
 
-            res.push_back(ConstraintCPVec());
-            ConstraintCPVec& back = res.back();
-            resolve(back, dnc, dnconf, upconf);
+        if(res.empty()){
+          upres = replayLogRec(approx, upid, upc);
+
+          for(size_t i = 0, N = upres.size(); i < N; ++i){
+            ConstraintCPVec& conf = upres[i];
+            if(contains(conf, upc)){
+              containsup.push_back(i);
+            }else{
+              res.push_back(conf);
+            }
           }
+        }else{
+          Debug("approx::replayLogRec") << "replayLogRec() skipping" << uplog << std::endl;
+          ++d_statistics.d_replayBranchSkips;
         }
-        cout << "found #"<<res.size()<<" conflicts on branch " << nid << endl;
+
+        if(res.empty()){
+          for(size_t i = 0, N = containsdn.size(); i < N; ++i){
+            ConstraintCPVec& dnconf = dnres[containsdn[i]];
+            for(size_t j = 0, M = containsup.size(); j < M; ++j){
+              ConstraintCPVec& upconf = upres[containsup[j]];
+
+              res.push_back(ConstraintCPVec());
+              ConstraintCPVec& back = res.back();
+              resolve(back, dnc, dnconf, upconf);
+            }
+          }
+        }else{
+          Debug("approx::replayLogRec") << "replayLogRec() skipping resolving" << nl << std::endl;
+        }
+        Debug("approx::replayLogRec") << "found #"<<res.size()<<" conflicts on branch " << nid << endl;
+        if(res.empty()){
+          ++d_statistics.d_replayBranchCloseFailures;
+        }
+
       }else{
-        cout << "cannot make a branch" << endl;
+        Debug("approx::replayLogRec") << "failed to make a branch " << nid << endl;
       }
     }else{
-      cout << "failed on node " << nid << endl;
+      ++d_statistics.d_replayLeafCloseFailures;
+      Debug("approx::replayLogRec") << "failed on node " << nid << endl;
       Assert(res.empty());
     }
     resolveOutPropagated(res, propagated);
-    cout << "replayLogRec()" << myReplayLogRecCount <<
-      " " << tryBranch << " " << tryCut << std::endl;
-  }
+    Debug("approx::replayLogRec") << "replayLogRec() ending" << std::endl;
+  } /* pop the sat context */
+
+  /* Garbage collect the constraints from this call */
   while(d_replayConstraints.size() > rpcons_size){
     ConstraintP c = d_replayConstraints.back();
     d_replayConstraints.pop_back();
     d_constraintDatabase.deleteConstraintAndNegation(c);
   }
+
+  /* Garbage collect the ArithVars made by this call */
   if(d_replayVariables.size() > rpvars_size){
     d_partialModel.stopQueueingBoundCounts();
     UpdateTrackingCallback utcb(&d_linEq);
@@ -2334,29 +2522,28 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
       d_replayVariables.pop_back();
       Assert(d_partialModel.canBeReleased(v));
       if(!d_tableau.isBasic(v)){
+        /* if it is not basic make it basic. */
         ArithVar b = ARITHVAR_SENTINEL;
         for(Tableau::ColIterator ci = d_tableau.colIterator(v); !ci.atEnd(); ++ci){
           const Tableau::Entry& e = *ci;
           b = d_tableau.rowIndexToBasic(e.getRowIndex());
-#warning "todo add a preference for which row?"
           break;
         }
         Assert(b != ARITHVAR_SENTINEL);
+        DeltaRational cp = d_partialModel.getAssignment(b);
         if(d_partialModel.cmpAssignmentLowerBound(b) < 0){
-          d_linEq.pivotAndUpdate(b, v, d_partialModel.getLowerBound(b));
+          cp = d_partialModel.getLowerBound(b);
         }else if(d_partialModel.cmpAssignmentUpperBound(b) > 0){
-          d_linEq.pivotAndUpdate(b, v, d_partialModel.getUpperBound(b));
-        }else{
-          DeltaRational cp = d_partialModel.getAssignment(b);
-          d_linEq.pivotAndUpdate(b, v, cp);
+          cp = d_partialModel.getUpperBound(b);
         }
+        d_linEq.pivotAndUpdate(b, v, cp);
       }
       Assert(d_tableau.isBasic(v));
       d_linEq.stopTrackingRowIndex(d_tableau.basicToRowIndex(v));
       d_tableau.removeBasicRow(v);
-      
+
       releaseArithVar(v);
-      cout << "releasing " << v << endl;
+      Debug("approx::vars") << "releasing " << v << endl;
     }
     d_linEq.stopTrackingBoundCounts();
     d_partialModel.startQueueingBoundCounts();
@@ -2398,14 +2585,14 @@ Node TheoryArithPrivate::branchToNode(ApproximateSimplex*  approx, const NodeLog
 }
 
 Node TheoryArithPrivate::cutToLiteral(ApproximateSimplex* approx, const CutInfo& ci) const{
-  Assert(ci.success());
+  Assert(ci.reconstructed());
 
-  const DenseMap<Rational>& lhs = ci.getExactPrecision().lhs;
+  const DenseMap<Rational>& lhs = ci.getReconstruction().lhs;
   Node sum = toSumNode(d_partialModel, lhs);
   if(!sum.isNull()){
     Kind k = ci.getKind();
     Assert(k == kind::LEQ || k == kind::GEQ);
-    Node rhs = mkRationalNode(ci.getExactPrecision().rhs);
+    Node rhs = mkRationalNode(ci.getReconstruction().rhs);
 
     NodeManager* nm = NodeManager::currentNM();
     Node ineq = nm->mkNode(k, sum, rhs);
@@ -2415,12 +2602,17 @@ Node TheoryArithPrivate::cutToLiteral(ApproximateSimplex* approx, const CutInfo&
 }
 
 bool TheoryArithPrivate::replayLemmas(ApproximateSimplex* approx){
+  ++(d_statistics.d_mipReplayLemmaCalls);
   bool anythingnew = false;
 
-  vector<const CutInfo*> cuts = approx->getValidCuts();
+  TreeLog& tl = getTreeLog();
+  NodeLog& root = tl.getRootNode();
+  root.applySelected(); /* set row ids */
+
+  vector<const CutInfo*> cuts = approx->getValidCuts(root);
   for(size_t i =0, N =cuts.size(); i < N; ++i){
     const CutInfo* cut = cuts[i];
-    Assert(cut->success());
+    Assert(cut->reconstructed());
     Assert(cut->proven());
 
     Node cutConstraint = cutToLiteral(approx, *cut);
@@ -2434,19 +2626,18 @@ bool TheoryArithPrivate::replayLemmas(ApproximateSimplex* approx){
       Node implication = asLemma.impNode(implied);
 
       outputLemma(implication);
-      cout << "cut["<<i<<"] " << implication << endl;
+      Debug("approx::lemmas") << "cut["<<i<<"] " << implication << endl;
+      ++(d_statistics.d_mipExternalCuts);
     }
   }
-  vector<const NodeLog*> branches = approx->getBranches();
-  for(size_t i =0, N = branches.size(); i < N; ++i){
-    const NodeLog* nl = branches[i];
-    Assert(nl->isBranch());
-    Node lit = branchToNode(approx, *nl);
+  if(root.isBranch()){
+    Node lit = branchToNode(approx, root);
     if(!lit.isNull()){
       anythingnew = anythingnew || !isSatLiteral(lit);
       Node branch = lit.orNode(lit.notNode());
       outputLemma(branch);
-      cout << "branch["<<i<<"] " << branch << endl;
+      ++(d_statistics.d_mipExternalBranch);
+      Debug("approx::lemmas") << "branching "<< root <<" as " << branch << endl;
     }
   }
   return anythingnew;
@@ -2462,6 +2653,8 @@ bool TheoryArithPrivate::replayLemmas(ApproximateSimplex* approx){
 //   case Error
 //     if()
 bool TheoryArithPrivate::solveInteger(Theory::Effort effortLevel){
+  d_statistics.d_inSolveInteger.setData(1);
+
   // if integers are attempted,
   Assert(options::useApprox());
   Assert(ApproximateSimplex::enabled());
@@ -2494,7 +2687,7 @@ bool TheoryArithPrivate::solveInteger(Theory::Effort effortLevel){
   LinResult relaxRes = approx->solveRelaxation();
   if( relaxRes == LinFeasible ){
     MipResult mipRes = approx->solveMIP(false);
-    cout << "mipRes " << mipRes << endl;
+    Debug("arith::solveInteger") << "mipRes " << mipRes << endl;
     switch(mipRes) {
     case MipBingo:
       // attempt the solution
@@ -2524,10 +2717,15 @@ bool TheoryArithPrivate::solveInteger(Theory::Effort effortLevel){
       }
       break;
     case BranchesExhausted:
-      tl.printBranchInfo(cout);
-      //intentionally fall through here
     case ExecExhausted:
     case PivotsExhauasted:
+      if(mipRes == BranchesExhausted){
+        ++d_statistics.d_branchesExhausted;
+      }else if(mipRes == ExecExhausted){
+        ++d_statistics.d_execExhausted;
+      }else if(mipRes == PivotsExhauasted){
+        ++d_statistics.d_pivotsExhausted;
+      }
 
       approx->setPivotLimit(2*mipLimit);
       approx->setBranchingDepth(2);
@@ -2540,6 +2738,7 @@ bool TheoryArithPrivate::solveInteger(Theory::Effort effortLevel){
   }
   delete approx;
 
+  d_statistics.d_inSolveInteger.setData(0);
   return emittedConflictOrLemma;
 }
 
@@ -2558,11 +2757,18 @@ SimplexDecisionProcedure& TheoryArithPrivate::selectSimplex(){
 }
 
 void TheoryArithPrivate::importSolution(const ApproximateSimplex::Solution& solution){
-  //cout << "importSolution before " << d_qflraStatus << endl;
-  //d_partialModel.printEntireModel(std::cout);
+  if(Debug.isOn("arith::importSolution")){
+    Debug("arith::importSolution") << "importSolution before " << d_qflraStatus << endl;
+    d_partialModel.printEntireModel(Debug("arith::importSolution"));
+  }
+
   d_qflraStatus = d_attemptSolSimplex.attempt(solution);
-  //cout << "intermediate " << endl;
-  //d_partialModel.printEntireModel(std::cout);
+
+  if(Debug.isOn("arith::importSolution")){
+    Debug("arith::importSolution") << "importSolution intermediate " << d_qflraStatus << endl;
+    d_partialModel.printEntireModel(Debug("arith::importSolution"));
+  }
+
   if(d_qflraStatus != Result::UNSAT){
     static const int32_t pass2Limit = 20;
     int16_t oldCap = options::arithStandardCheckVarOrderPivots();
@@ -2571,8 +2777,11 @@ void TheoryArithPrivate::importSolution(const ApproximateSimplex::Solution& solu
     d_qflraStatus = simplex.findModel(false);
     options::arithStandardCheckVarOrderPivots.set(oldCap);
   }
-  //cout << "importSolution after " << d_qflraStatus << endl;
-  //d_partialModel.printEntireModel(std::cout);
+
+  if(Debug.isOn("arith::importSolution")){
+    Debug("arith::importSolution") << "importSolution after " << d_qflraStatus << endl;
+    d_partialModel.printEntireModel(Debug("arith::importSolution"));
+  }
 }
 
 bool TheoryArithPrivate::solveRelaxationOrPanic(Theory::Effort effortLevel){
@@ -2581,7 +2790,7 @@ bool TheoryArithPrivate::solveRelaxationOrPanic(Theory::Effort effortLevel){
   if(Theory::fullEffort(effortLevel)  && d_qflraStatus == Result::SAT_UNKNOWN){
     ArithVar canBranch = nextIntegerViolatation(false);
     if(canBranch != ARITHVAR_SENTINEL){
-      cout << "panicing? " << endl;
+      ++d_statistics.d_panicBranches;
       Node branch = branchIntegerVariable(canBranch);
       outputLemma(branch);
       return true;
@@ -2630,26 +2839,38 @@ bool TheoryArithPrivate::solveRealRelaxation(Theory::Effort effortLevel){
       approxSolver->setOptCoeffs(d_guessedCoeffs);
     }
 
+    ++d_statistics.d_relaxCalls;
+
     ApproximateSimplex::Solution relaxSolution;
     LinResult relaxRes = approxSolver->solveRelaxation();
-    cout << "solve relaxation? " << endl;
+    Debug("solveRealRelaxation") << "solve relaxation? " << endl;
     switch(relaxRes){
     case LinFeasible:
+      Debug("solveRealRelaxation") << "lin feasible? " << endl;
+      ++d_statistics.d_relaxLinFeas;
       relaxSolution = approxSolver->extractRelaxation();
       importSolution(relaxSolution);
-      cout << "exhausted? " << endl;
+      if(d_qflraStatus != Result::SAT){
+        ++d_statistics.d_relaxLinFeasFailures;
+      }
       break;
     case LinInfeasible:
       // todo attempt to recreate approximate conflict
+      ++d_statistics.d_relaxLinInfeas;
+      Debug("solveRealRelaxation") << "lin infeasible " << endl;
       relaxSolution = approxSolver->extractRelaxation();
       importSolution(relaxSolution);
-      cout << "exhausted? " << endl;
+      if(d_qflraStatus != Result::UNSAT){
+        ++d_statistics.d_relaxLinInfeasFailures;
+      }
       break;
     case LinExhausted:
-      cout << "exhausted? " << endl;
+      ++d_statistics.d_relaxLinExhausted;
+      Debug("solveRealRelaxation") << "exhuasted " << endl;
       break;
     case LinUnknown:
     default:
+      ++d_statistics.d_relaxOthers;
       break;
     }
     delete approxSolver;
@@ -2847,14 +3068,11 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
     debugPrintAssertions(Debug("arith::print_assertions"));
   }
 
-  cout << "here " << endl;
-
   bool emmittedConflictOrSplit = false;
   Assert(d_conflicts.empty());
 
   bool useSimplex = d_qflraStatus != Result::SAT;
   if(useSimplex){
-    cout << "solver real relax " << endl;
     emmittedConflictOrSplit = solveRealRelaxation(effortLevel);
   }
   if(attemptSolveInteger(effortLevel, emmittedConflictOrSplit)){
@@ -3018,7 +3236,7 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
     emmittedConflictOrSplit = splitDisequalities();
   }
 
-  cout << "integer? "
+  Debug("arith") << "integer? "
        << " conf/split " << emmittedConflictOrSplit
        << " fulleffort " << Theory::fullEffort(effortLevel)
        << " hasintmodel " << hasIntegerModel() << endl;
@@ -3948,10 +4166,6 @@ bool TheoryArithPrivate::tryToPropagate(RowIndex ridx, bool rowUp, ArithVar v, b
   if(weaker){
     ConstraintType t = vUb ? UpperBound : LowerBound;
 
-    if(isInteger(v)){
-      //cout << "maybe" << endl;
-      //cout << bound << endl;
-    }
     ConstraintP implied = d_constraintDatabase.getBestImpliedBound(v, t, bound);
     if(implied != NullConstraint){
       return rowImplicationCanBeApplied(ridx, rowUp, implied);
