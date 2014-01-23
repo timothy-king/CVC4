@@ -82,7 +82,10 @@ using namespace CVC4::kind;
 namespace CVC4 {
 namespace theory {
 namespace arith {
-Node toSumNode(const ArithVariables& vars, const DenseMap<Rational>& sum);
+
+static Node toSumNode(const ArithVariables& vars, const DenseMap<Rational>& sum);
+static double fRand(double fMin, double fMax);
+
 
 TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context* c, context::UserContext* u, OutputChannel& out, Valuation valuation, const LogicInfo& logicInfo, QuantifiersEngine* qe) :
   d_containing(containing),
@@ -118,7 +121,8 @@ TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context
   d_fcSimplex(d_linEq, d_errorSet, RaiseConflict(*this, d_conflictBuffer), TempVarMalloc(*this)),
   d_soiSimplex(d_linEq, d_errorSet, RaiseConflict(*this, d_conflictBuffer), TempVarMalloc(*this)),
   d_attemptSolSimplex(d_linEq, d_errorSet, RaiseConflict(*this, d_conflictBuffer), TempVarMalloc(*this)),
-  d_selectedSDP(NULL),
+  d_pass1SDP(NULL),
+  d_otherSDP(NULL),
   d_lastContextIntegerAttempted(c,-1),
   d_DELTA_ZERO(0),
   d_approxCuts(c),
@@ -130,6 +134,8 @@ TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context
   d_guessedCoeffs(),
   d_replayVariables(),
   d_replayConstraints(),
+  d_solveIntMaybeHelp(0u),
+  d_solveIntAttempts(0u),
   d_statistics()
 {
   srand(79);
@@ -162,7 +168,7 @@ static void drop( ConstraintCPVec& v, ConstraintP con){
 
 
 static void resolve(ConstraintCPVec& buf, ConstraintP c, const ConstraintCPVec& pos, const ConstraintCPVec& neg){
-  unsigned posPos = pos.size();
+  unsigned posPos CVC4_UNUSED = pos.size();
   for(unsigned i = 0, N = pos.size(); i < N; ++i){
     if(pos[i] == c){
       posPos = i;
@@ -172,7 +178,7 @@ static void resolve(ConstraintCPVec& buf, ConstraintP c, const ConstraintCPVec& 
   }
   Assert(posPos < pos.size());
   ConstraintP negc = c->getNegation();
-  unsigned negPos = neg.size();
+  unsigned negPos CVC4_UNUSED = neg.size();
   for(unsigned i = 0, N = neg.size(); i < N; ++i){
     if(neg[i] == negc){
       negPos = i;
@@ -294,6 +300,11 @@ TheoryArithPrivate::Statistics::Statistics()
   , d_relaxOthers("z::arith::relax::other",0)
   , d_applyRowsDeleted("z::arith::cuts::applyRowsDeleted",0)
   , d_replaySimplexTimer("z::approx::replay::simplex::timer")
+  , d_replayLogTimer("z::approx::replay::log::timer")
+  , d_solveIntTimer("z::solveInt::timer")
+  , d_solveRealRelaxTimer("z::solveRealRelax::timer")
+  , d_solveIntCalls("z::solveInt::calls", 0)
+  , d_solveStandardEffort("z::solveInt::calls::standardEffort", 0)
   , d_satPivots("pivots::sat")
   , d_unsatPivots("pivots::unsat")
   , d_unknownPivots("pivots::unkown")
@@ -367,6 +378,13 @@ TheoryArithPrivate::Statistics::Statistics()
   StatisticsRegistry::registerStat(&d_applyRowsDeleted);
 
   StatisticsRegistry::registerStat(&d_replaySimplexTimer);
+  StatisticsRegistry::registerStat(&d_replayLogTimer);
+  StatisticsRegistry::registerStat(&d_solveIntTimer);
+  StatisticsRegistry::registerStat(&d_solveRealRelaxTimer);
+
+  StatisticsRegistry::registerStat(&d_solveIntCalls);
+  StatisticsRegistry::registerStat(&d_solveStandardEffort);
+
 }
 
 TheoryArithPrivate::Statistics::~Statistics(){
@@ -439,6 +457,12 @@ TheoryArithPrivate::Statistics::~Statistics(){
   StatisticsRegistry::unregisterStat(&d_applyRowsDeleted);
 
   StatisticsRegistry::unregisterStat(&d_replaySimplexTimer);
+  StatisticsRegistry::unregisterStat(&d_replayLogTimer);
+  StatisticsRegistry::unregisterStat(&d_solveIntTimer);
+  StatisticsRegistry::unregisterStat(&d_solveRealRelaxTimer);
+
+  StatisticsRegistry::unregisterStat(&d_solveIntCalls);
+  StatisticsRegistry::unregisterStat(&d_solveStandardEffort);
 }
 
 void TheoryArithPrivate::revertOutOfConflict(){
@@ -1947,21 +1971,67 @@ bool TheoryArithPrivate::attemptSolveInteger(Theory::Effort effortLevel, bool em
     << " " << level
     << " " << hasIntegerModel()
     << endl;
+
   if(d_qflraStatus == Result::UNSAT){ return false; }
   if(emmmittedLemmaOrSplit){ return false; }
   if(!(options::useApprox() && ApproximateSimplex::enabled())){ return false; }
 
   if(Theory::fullEffort(effortLevel) && !hasIntegerModel()){
+    static int instances = 0 ;
+    instances++;
+    // cout
+    //   << "attemptSolveInteger 1:" << instances
+    //   << d_qflraStatus
+    //   << " " << emmmittedLemmaOrSplit
+    //   << " " << effortLevel
+    //   << " " << d_lastContextIntegerAttempted
+    //   << " " << level
+    //   << " " << hasIntegerModel()
+    //   << endl;
     return true;
   }
 
   if(d_lastContextIntegerAttempted <= 0){
+    static int instances = 0 ;
+    instances++;
+    // cout
+    //   << "attemptSolveInteger 2: "  << instances
+    //   << d_qflraStatus
+    //   << " " << emmmittedLemmaOrSplit
+    //   << " " << effortLevel
+    //   << " " << d_lastContextIntegerAttempted
+    //   << " " << level
+    //   << " " << hasIntegerModel()
+    //   << endl;
     return true;
   }
-  return (d_lastContextIntegerAttempted <= (level >> 2));
+
+  if (d_lastContextIntegerAttempted <= (level >> 2)){
+
+    double d = (double)(d_solveIntMaybeHelp + 1) / (d_solveIntAttempts + 1 + level*level);
+    double t = fRand(0.0, 1.0);
+    //cout << "d " << d << " t " << t << endl;
+    if(t < d){
+      static int instances = 0 ;
+      instances++;
+      // cout
+      //   << "attemptSolveInteger 3: "  << instances
+      //   << " " << d_qflraStatus
+      //   << " " << emmmittedLemmaOrSplit
+      //   << " " << effortLevel
+      //   << " " << d_lastContextIntegerAttempted
+      //   << " " << level
+      //   << " " << hasIntegerModel()
+      //   << endl;
+      return true;
+    }
+  }
+  return false;
 }
 
 bool TheoryArithPrivate::replayLog(ApproximateSimplex* approx){
+  TimerStat::CodeTimer codeTimer(d_statistics.d_replayLogTimer);
+
   Assert(d_replayVariables.empty());
   Assert(d_replayConstraints.empty());
 
@@ -2119,7 +2189,7 @@ void TheoryArithPrivate::tryBranchCut(ApproximateSimplex* approx, int nid, Branc
       d_partialModel.processBoundsQueue(utcb);
       d_linEq.startTrackingBoundCounts();
 
-      SimplexDecisionProcedure& simplex = selectSimplex();
+      SimplexDecisionProcedure& simplex = selectSimplex(true);
       simplex.findModel(false);
 
       d_linEq.stopTrackingBoundCounts();
@@ -2407,7 +2477,7 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
       d_partialModel.processBoundsQueue(utcb);
       d_linEq.startTrackingBoundCounts();
 
-      SimplexDecisionProcedure& simplex = selectSimplex();
+      SimplexDecisionProcedure& simplex = selectSimplex(true);
       simplex.findModel(false);
 
       d_linEq.stopTrackingBoundCounts();
@@ -2653,7 +2723,14 @@ bool TheoryArithPrivate::replayLemmas(ApproximateSimplex* approx){
 //   case Error
 //     if()
 bool TheoryArithPrivate::solveInteger(Theory::Effort effortLevel){
+  TimerStat::CodeTimer codeTimer(d_statistics.d_solveIntTimer);
+  ++(d_statistics.d_solveIntCalls);
   d_statistics.d_inSolveInteger.setData(1);
+
+  if(!Theory::fullEffort(effortLevel)){
+    d_solveIntAttempts++;
+    ++(d_statistics.d_solveStandardEffort);
+  }
 
   // if integers are attempted,
   Assert(options::useApprox());
@@ -2738,22 +2815,42 @@ bool TheoryArithPrivate::solveInteger(Theory::Effort effortLevel){
   }
   delete approx;
 
+  if(!Theory::fullEffort(effortLevel)){
+    if(emittedConflictOrLemma){
+      d_solveIntMaybeHelp++;
+    }
+  }
+
   d_statistics.d_inSolveInteger.setData(0);
   return emittedConflictOrLemma;
 }
 
-SimplexDecisionProcedure& TheoryArithPrivate::selectSimplex(){
-  if(d_selectedSDP == NULL){
-    if(options::useFC()){
-      d_selectedSDP = (SimplexDecisionProcedure*)(&d_fcSimplex);
-    }else if(options::useSOI()){
-      d_selectedSDP = (SimplexDecisionProcedure*)(&d_soiSimplex);
-    }else{
-      d_selectedSDP = (SimplexDecisionProcedure*)(&d_dualSimplex);
+SimplexDecisionProcedure& TheoryArithPrivate::selectSimplex(bool pass1){
+  if(pass1){
+    if(d_pass1SDP == NULL){
+      if(options::useFC()){
+        d_pass1SDP = (SimplexDecisionProcedure*)(&d_fcSimplex);
+      }else if(options::useSOI()){
+        d_pass1SDP = (SimplexDecisionProcedure*)(&d_soiSimplex);
+      }else{
+        d_pass1SDP = (SimplexDecisionProcedure*)(&d_dualSimplex);
+      }
     }
+    Assert(d_pass1SDP != NULL);
+    return *d_pass1SDP;
+  }else{
+     if(d_otherSDP == NULL){
+      if(options::useFC()){
+        d_otherSDP  = (SimplexDecisionProcedure*)(&d_fcSimplex);
+      }else if(options::useSOI()){
+        d_otherSDP = (SimplexDecisionProcedure*)(&d_soiSimplex);
+      }else{
+        d_otherSDP = (SimplexDecisionProcedure*)(&d_soiSimplex);
+      }
+    }
+    Assert(d_otherSDP != NULL);
+    return *d_otherSDP;
   }
-  Assert(d_selectedSDP != NULL);
-  return *d_selectedSDP;
 }
 
 void TheoryArithPrivate::importSolution(const ApproximateSimplex::Solution& solution){
@@ -2773,7 +2870,7 @@ void TheoryArithPrivate::importSolution(const ApproximateSimplex::Solution& solu
     static const int32_t pass2Limit = 20;
     int16_t oldCap = options::arithStandardCheckVarOrderPivots();
     options::arithStandardCheckVarOrderPivots.set(pass2Limit);
-    SimplexDecisionProcedure& simplex = selectSimplex();
+    SimplexDecisionProcedure& simplex = selectSimplex(false);
     d_qflraStatus = simplex.findModel(false);
     options::arithStandardCheckVarOrderPivots.set(oldCap);
   }
@@ -2795,13 +2892,14 @@ bool TheoryArithPrivate::solveRelaxationOrPanic(Theory::Effort effortLevel){
       outputLemma(branch);
       return true;
     }else{
-      d_qflraStatus = selectSimplex().findModel(false);
+      d_qflraStatus = selectSimplex(false).findModel(false);
     }
   }
   return false;
 }
 
 bool TheoryArithPrivate::solveRealRelaxation(Theory::Effort effortLevel){
+  TimerStat::CodeTimer codeTimer(d_statistics.d_solveRealRelaxTimer);
   Assert(d_qflraStatus != Result::SAT);
   Assert(ApproximateSimplex::enabled());
 
@@ -2813,7 +2911,7 @@ bool TheoryArithPrivate::solveRealRelaxation(Theory::Effort effortLevel){
   bool noPivotLimit = Theory::fullEffort(effortLevel) ||
     !options::restrictedPivots();
 
-  SimplexDecisionProcedure& simplex = selectSimplex();
+  SimplexDecisionProcedure& simplex = selectSimplex(true);
 
   bool useApprox = options::useApprox() && ApproximateSimplex::enabled();
 
@@ -3085,6 +3183,9 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
       outputConflicts();
       return;
     }
+    if( Theory::fullEffort(effortLevel) && foundSomething ){
+      cout << "foundSomething on final" << endl;
+    }
     emmittedConflictOrSplit = emmittedConflictOrSplit || foundSomething;
   }
 
@@ -3292,6 +3393,12 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
   if(Theory::fullEffort(effortLevel) && d_nlIncomplete){
     // TODO this is total paranoia
     setIncomplete();
+  }
+
+  if(Theory::fullEffort(effortLevel)){
+    if(Debug.isOn("arith::consistency::final")){
+      entireStateIsConsistent("arith::consistency::final");
+    }
   }
 
   if(Debug.isOn("paranoid:check_tableau")){ d_linEq.debugCheckTableau(); }
@@ -3768,6 +3875,8 @@ void TheoryArithPrivate::notifyRestart(){
   if(Debug.isOn("paranoid:check_tableau")){ d_linEq.debugCheckTableau(); }
 
   ++d_restartsCounter;
+  d_solveIntMaybeHelp = 0;
+  d_solveIntAttempts = 0;
 }
 
 bool TheoryArithPrivate::entireStateIsConsistent(const string& s){

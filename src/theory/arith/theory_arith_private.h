@@ -352,8 +352,9 @@ private:
   bool attemptSolveInteger(Theory::Effort effortLevel, bool emmmittedLemmaOrSplit);
   bool replayLemmas(ApproximateSimplex* approx);
   bool solveInteger(Theory::Effort effortLevel);
-  SimplexDecisionProcedure& selectSimplex();
-  SimplexDecisionProcedure* d_selectedSDP;
+  SimplexDecisionProcedure& selectSimplex(bool pass1);
+  SimplexDecisionProcedure* d_pass1SDP;
+  SimplexDecisionProcedure* d_otherSDP;
   /* Sets d_qflraStatus */
   void importSolution(const ApproximateSimplex::Solution& solution);
   bool solveRelaxationOrPanic(Theory::Effort effortLevel);
@@ -664,6 +665,8 @@ private:
   void replayAssert(ConstraintP c);
   //ConstConstraintVec toExplanation(Node n) const;
 
+  uint32_t d_solveIntMaybeHelp, d_solveIntAttempts;
+
   /** These fields are designed to be accessible to TheoryArith methods. */
   class Statistics {
   public:
@@ -729,6 +732,13 @@ private:
 
     IntStat d_applyRowsDeleted;
     TimerStat d_replaySimplexTimer;
+
+    TimerStat d_replayLogTimer,
+      d_solveIntTimer,
+      d_solveRealRelaxTimer;
+
+    IntStat d_solveIntCalls,
+      d_solveStandardEffort;
 
     HistogramStat<uint32_t> d_satPivots;
     HistogramStat<uint32_t> d_unsatPivots;
