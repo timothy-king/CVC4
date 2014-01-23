@@ -3183,9 +3183,9 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
       outputConflicts();
       return;
     }
-    if( Theory::fullEffort(effortLevel) && foundSomething ){
-      cout << "foundSomething on final" << endl;
-    }
+    //if( Theory::fullEffort(effortLevel) && foundSomething ){
+      //cout << "foundSomething on final" << endl;
+    //}
     emmittedConflictOrSplit = emmittedConflictOrSplit || foundSomething;
   }
 
