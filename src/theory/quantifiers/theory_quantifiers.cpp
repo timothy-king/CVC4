@@ -2,8 +2,8 @@
 /*! \file theory_quantifiers.cpp
  ** \verbatim
  ** Original author: Morgan Deters
- ** Major contributors: none
- ** Minor contributors (to current version): Dejan Jovanovic, Andrew Reynolds
+ ** Major contributors: Andrew Reynolds
+ ** Minor contributors (to current version): Dejan Jovanovic
  ** This file is part of the CVC4 project.
  ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
@@ -33,8 +33,8 @@ using namespace CVC4::context;
 using namespace CVC4::theory;
 using namespace CVC4::theory::quantifiers;
 
-TheoryQuantifiers::TheoryQuantifiers(Context* c, context::UserContext* u, OutputChannel& out, Valuation valuation, const LogicInfo& logicInfo, QuantifiersEngine* qe) :
-  Theory(THEORY_QUANTIFIERS, c, u, out, valuation, logicInfo, qe),
+TheoryQuantifiers::TheoryQuantifiers(Context* c, context::UserContext* u, OutputChannel& out, Valuation valuation, const LogicInfo& logicInfo) :
+  Theory(THEORY_QUANTIFIERS, c, u, out, valuation, logicInfo),
   d_numRestarts(0),
   d_masterEqualityEngine(0)
 {

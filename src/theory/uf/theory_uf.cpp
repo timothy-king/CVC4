@@ -28,12 +28,12 @@ using namespace CVC4::theory;
 using namespace CVC4::theory::uf;
 
 /** Constructs a new instance of TheoryUF w.r.t. the provided context.*/
-TheoryUF::TheoryUF(context::Context* c, context::UserContext* u, OutputChannel& out, Valuation valuation, const LogicInfo& logicInfo, QuantifiersEngine* qe) :
-  Theory(THEORY_UF, c, u, out, valuation, logicInfo, qe),
+TheoryUF::TheoryUF(context::Context* c, context::UserContext* u, OutputChannel& out, Valuation valuation, const LogicInfo& logicInfo) :
+  Theory(THEORY_UF, c, u, out, valuation, logicInfo),
   d_notify(*this),
   /* The strong theory solver can be notified by EqualityEngine::init(),
    * so make sure it's initialized first. */
-  d_thss(options::finiteModelFind() ? new StrongSolverTheoryUF(c, u, out, this) : NULL),
+  d_thss(NULL),
   d_equalityEngine(d_notify, c, "theory::uf::TheoryUF"),
   d_conflict(c, false),
   d_literalsToPropagate(c),
@@ -47,6 +47,13 @@ TheoryUF::TheoryUF(context::Context* c, context::UserContext* u, OutputChannel& 
 
 void TheoryUF::setMasterEqualityEngine(eq::EqualityEngine* eq) {
   d_equalityEngine.setMasterEqualityEngine(eq);
+}
+
+void TheoryUF::finishInit() {
+  // initialize the strong solver
+  if (options::finiteModelFind()) {
+    d_thss = new StrongSolverTheoryUF(getSatContext(), getUserContext(), *d_out, this);
+  }
 }
 
 static Node mkAnd(const std::vector<TNode>& conjunctions) {
@@ -178,10 +185,16 @@ void TheoryUF::explain(TNode literal, std::vector<TNode>& assumptions) {
   // Do the work
   bool polarity = literal.getKind() != kind::NOT;
   TNode atom = polarity ? literal : literal[0];
+  eq::EqProof * eqp = d_proofEnabled ? new eq::EqProof : NULL;
   if (atom.getKind() == kind::EQUAL || atom.getKind() == kind::IFF) {
-    d_equalityEngine.explainEquality(atom[0], atom[1], polarity, assumptions);
+    d_equalityEngine.explainEquality(atom[0], atom[1], polarity, assumptions, eqp);
   } else {
-    d_equalityEngine.explainPredicate(atom, polarity, assumptions);
+    d_equalityEngine.explainPredicate(atom, polarity, assumptions, eqp);
+  }
+  //for now, just print debug
+  //TODO : send the proof outwards : d_out->conflict( lem, eqp );
+  if( eqp ){
+    eqp->debug_print("uf-pf");
   }
 }
 
@@ -462,6 +475,7 @@ void TheoryUF::computeCareGraph() {
 }/* TheoryUF::computeCareGraph() */
 
 void TheoryUF::conflict(TNode a, TNode b) {
+  //TODO: create EqProof at this level if d_proofEnabled = true
   if (a.getKind() == kind::CONST_BOOLEAN) {
     d_conflictNode = explain(a.iffNode(b));
   } else {

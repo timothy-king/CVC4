@@ -29,6 +29,7 @@
 #include "theory/rewriterules/rr_trigger.h"
 #include "theory/quantifiers/bounded_integers.h"
 #include "theory/quantifiers/rewrite_engine.h"
+#include "theory/quantifiers/quant_conflict_find.h"
 #include "theory/uf/options.h"
 
 using namespace std;
@@ -49,14 +50,24 @@ d_lemmas_produced_c(u){
   d_eem = new EfficientEMatcher( this );
   d_hasAddedLemma = false;
 
+  Trace("quant-engine-debug") << "Initialize model, mbqi : " << options::mbqiMode() << std::endl;
   //the model object
-  if( options::fmfFullModelCheck() || options::fmfBoundInt() ){
+  if( options::mbqiMode()==quantifiers::MBQI_FMC ||
+      options::mbqiMode()==quantifiers::MBQI_FMC_INTERVAL || options::fmfBoundInt() ){
     d_model = new quantifiers::fmcheck::FirstOrderModelFmc( this, c, "FirstOrderModelFmc" );
+  }else if( options::mbqiMode()==quantifiers::MBQI_INTERVAL ){
+    d_model = new quantifiers::FirstOrderModelQInt( this, c, "FirstOrderModelQInt" );
   }else{
-    d_model = new quantifiers::FirstOrderModelIG( c, "FirstOrderModelIG" );
+    d_model = new quantifiers::FirstOrderModelIG( this, c, "FirstOrderModelIG" );
   }
 
   //add quantifiers modules
+  if( options::quantConflictFind() ){
+    d_qcf = new quantifiers::QuantConflictFind( this, c);
+    d_modules.push_back( d_qcf );
+  }else{
+    d_qcf = NULL;
+  }
   if( !options::finiteModelFind() || options::fmfInstEngine() ){
     //the instantiation must set incomplete flag unless finite model finding is turned on
     d_inst_engine = new quantifiers::InstantiationEngine( this, !options::finiteModelFind() );
@@ -335,19 +346,28 @@ Node QuantifiersEngine::doSubstitute( Node n, std::vector< Node >& terms ){
   if( n.getKind()==INST_CONSTANT ){
     Debug("check-inst") << "Substitute inst constant : " << n << std::endl;
     return terms[n.getAttribute(InstVarNumAttribute())];
-  }else if( !quantifiers::TermDb::hasInstConstAttr( n ) ){
-    Debug("check-inst") << "No inst const attr : " << n << std::endl;
-    return n;
   }else{
-    Debug("check-inst") << "Recurse on : " << n << std::endl;
+    //if( !quantifiers::TermDb::hasInstConstAttr( n ) ){
+      //Debug("check-inst") << "No inst const attr : " << n << std::endl;
+      //return n;
+    //}else{
+      //Debug("check-inst") << "Recurse on : " << n << std::endl;
     std::vector< Node > cc;
     if( n.getMetaKind() == kind::metakind::PARAMETERIZED ){
       cc.push_back( n.getOperator() );
     }
+    bool changed = false;
     for( unsigned i=0; i<n.getNumChildren(); i++ ){
-      cc.push_back( doSubstitute( n[i], terms ) );
+      Node c = doSubstitute( n[i], terms );
+      cc.push_back( c );
+      changed = changed || c!=n[i];
     }
-    return NodeManager::currentNM()->mkNode( n.getKind(), cc );
+    if( changed ){
+      Node ret = NodeManager::currentNM()->mkNode( n.getKind(), cc );
+      return ret;
+    }else{
+      return n;
+    }
   }
 }
 
@@ -387,6 +407,10 @@ Node QuantifiersEngine::getInstantiation( Node f, InstMatch& m ){
   std::vector< Node > terms;
   computeTermVector( f, m, vars, terms );
   return getInstantiation( f, vars, terms );
+}
+
+Node QuantifiersEngine::getInstantiation( Node f, std::vector< Node >& terms ) {
+  return getInstantiation( f, d_term_db->d_inst_constants[f], terms );
 }
 
 bool QuantifiersEngine::existsInstantiation( Node f, InstMatch& m, bool modEq, bool modInst ){
@@ -493,12 +517,13 @@ bool QuantifiersEngine::addSplitEquality( Node n1, Node n2, bool reqPhase, bool 
 
 void QuantifiersEngine::flushLemmas( OutputChannel* out ){
   if( !d_lemmas_waiting.empty() ){
+    if( !out ){
+      out = &getOutputChannel();
+    }
     //take default output channel if none is provided
     d_hasAddedLemma = true;
     for( int i=0; i<(int)d_lemmas_waiting.size(); i++ ){
-      if( out ){
-        out->lemma( d_lemmas_waiting[i] );
-      }
+      out->lemma( d_lemmas_waiting[i] );
     }
     d_lemmas_waiting.clear();
   }

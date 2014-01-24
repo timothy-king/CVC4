@@ -3,7 +3,7 @@
  ** \verbatim
  ** Original author: Dejan Jovanovic
  ** Major contributors: Morgan Deters
- ** Minor contributors (to current version): Clark Barrett
+ ** Minor contributors (to current version): Liana Hadarean, Clark Barrett
  ** This file is part of the CVC4 project.
  ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
@@ -139,7 +139,8 @@ Node Rewriter::rewriteTo(theory::TheoryId theoryId, Node node) {
         rewriteStackTop.theoryId = theoryOf(cached);
       }
     }
-
+    
+    rewriteStackTop.original =rewriteStackTop.node;
     // Now it's time to rewrite the children, check if this has already been done
     Node cached = Rewriter::getPostRewriteCache((TheoryId) rewriteStackTop.theoryId, rewriteStackTop.node);
     // If not, go through the children

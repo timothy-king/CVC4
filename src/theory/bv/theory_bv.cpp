@@ -2,8 +2,8 @@
 /*! \file theory_bv.cpp
  ** \verbatim
  ** Original author: Dejan Jovanovic
- ** Major contributors: Morgan Deters, Liana Hadarean, lianah
- ** Minor contributors (to current version): Tim King, Andrew Reynolds, Clark Barrett
+ ** Major contributors: Morgan Deters, Liana Hadarean
+ ** Minor contributors (to current version): Tim King, Kshitij Bansal, Clark Barrett, Andrew Reynolds
  ** This file is part of the CVC4 project.
  ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
@@ -35,8 +35,8 @@ using namespace CVC4::context;
 using namespace std;
 using namespace CVC4::theory::bv::utils;
 
-TheoryBV::TheoryBV(context::Context* c, context::UserContext* u, OutputChannel& out, Valuation valuation, const LogicInfo& logicInfo, QuantifiersEngine* qe)
-  : Theory(THEORY_BV, c, u, out, valuation, logicInfo, qe),
+TheoryBV::TheoryBV(context::Context* c, context::UserContext* u, OutputChannel& out, Valuation valuation, const LogicInfo& logicInfo)
+  : Theory(THEORY_BV, c, u, out, valuation, logicInfo),
     d_context(c),
     d_alreadyPropagatedSet(c),
     d_sharedTermsSet(c),

@@ -2,8 +2,8 @@
 /*! \file theory_arith.h
  ** \verbatim
  ** Original author: Morgan Deters
- ** Major contributors: Tim King
- ** Minor contributors (to current version): Andrew Reynolds, Dejan Jovanovic
+ ** Major contributors: Dejan Jovanovic, Tim King
+ ** Minor contributors (to current version): Tianyi Liang, Andrew Reynolds
  ** This file is part of the CVC4 project.
  ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
@@ -45,7 +45,7 @@ private:
   KEEP_STATISTIC(TimerStat, d_ppRewriteTimer, "theory::arith::ppRewriteTimer");
 
 public:
-  TheoryArith(context::Context* c, context::UserContext* u, OutputChannel& out, Valuation valuation, const LogicInfo& logicInfo, QuantifiersEngine* qe);
+  TheoryArith(context::Context* c, context::UserContext* u, OutputChannel& out, Valuation valuation, const LogicInfo& logicInfo);
   virtual ~TheoryArith();
 
   /**
@@ -54,6 +54,7 @@ public:
   void preRegisterTerm(TNode n);
 
   void setMasterEqualityEngine(eq::EqualityEngine* eq);
+  void setQuantifiersEngine(QuantifiersEngine* qe);
 
   void check(Effort e);
   void propagate(Effort e);

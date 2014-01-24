@@ -55,6 +55,38 @@ typedef enum {
   AXIOM_INST_MODE_PRIORITY,
 } AxiomInstMode;
 
+typedef enum {
+  /** default, mbqi from CADE 24 paper */
+  MBQI_DEFAULT,
+  /** no mbqi */
+  MBQI_NONE,
+  /** implementation that mimics inst-gen */
+  MBQI_INST_GEN,
+  /** mbqi from Section 5.4.2 of AJR thesis */
+  MBQI_FMC,
+  /** mbqi with integer intervals */
+  MBQI_FMC_INTERVAL,
+  /** mbqi with interval abstraction of uninterpreted sorts */
+  MBQI_INTERVAL,
+} MbqiMode;
+
+typedef enum {
+  /** default, apply at full effort */
+  QCF_WHEN_MODE_DEFAULT,
+  /** apply at standard effort */
+  QCF_WHEN_MODE_STD,
+  /** apply based on heuristics */
+  QCF_WHEN_MODE_STD_H,
+} QcfWhenMode;
+
+typedef enum {
+  /** default, use but do not trust */
+  USER_PAT_MODE_DEFAULT,
+  /** if patterns are supplied for a quantifier, use only those */
+  USER_PAT_MODE_TRUST,
+  /** ignore user patterns */
+  USER_PAT_MODE_IGNORE,
+} UserPatMode;
 
 }/* CVC4::theory::quantifiers namespace */
 }/* CVC4::theory namespace */

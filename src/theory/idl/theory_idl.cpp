@@ -2,7 +2,7 @@
 /*! \file theory_idl.cpp
  ** \verbatim
  ** Original author: Dejan Jovanovic
- ** Major contributors: none
+ ** Major contributors: Morgan Deters
  ** Minor contributors (to current version): none
  ** This file is part of the CVC4 project.
  ** Copyright (c) 2009-2013  New York University and The University of Iowa
@@ -29,8 +29,8 @@ using namespace theory;
 using namespace idl;
 
 TheoryIdl::TheoryIdl(context::Context* c, context::UserContext* u, OutputChannel& out,
-                     Valuation valuation, const LogicInfo& logicInfo, QuantifiersEngine* qe)
-: Theory(THEORY_ARITH, c, u, out, valuation, logicInfo, qe)
+                     Valuation valuation, const LogicInfo& logicInfo)
+: Theory(THEORY_ARITH, c, u, out, valuation, logicInfo)
 , d_model(c)
 , d_assertionsDB(c)
 {}

@@ -1,11 +1,11 @@
 /*********************                                                        */
 /*! \file theory_arith.cpp
  ** \verbatim
- ** Original author: taking
- ** Major contributors: none
- ** Minor contributors (to current version): kshitij, ajreynol, mdeters, dejan
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Original author: Tim King
+ ** Major contributors: Morgan Deters
+ ** Minor contributors (to current version): Andrew Reynolds, Tianyi Liang, Dejan Jovanovic
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -25,9 +25,9 @@ namespace CVC4 {
 namespace theory {
 namespace arith {
 
-TheoryArith::TheoryArith(context::Context* c, context::UserContext* u, OutputChannel& out, Valuation valuation, const LogicInfo& logicInfo, QuantifiersEngine* qe)
-  : Theory(THEORY_ARITH, c, u, out, valuation, logicInfo, qe)
-  , d_internal(new TheoryArithPrivate(*this, c, u, out, valuation, logicInfo, qe))
+TheoryArith::TheoryArith(context::Context* c, context::UserContext* u, OutputChannel& out, Valuation valuation, const LogicInfo& logicInfo)
+  : Theory(THEORY_ARITH, c, u, out, valuation, logicInfo)
+  , d_internal(new TheoryArithPrivate(*this, c, u, out, valuation, logicInfo))
 {}
 
 TheoryArith::~TheoryArith(){
@@ -40,6 +40,11 @@ void TheoryArith::preRegisterTerm(TNode n){
 
 void TheoryArith::setMasterEqualityEngine(eq::EqualityEngine* eq) {
   d_internal->setMasterEqualityEngine(eq);
+}
+
+void TheoryArith::setQuantifiersEngine(QuantifiersEngine* qe) {
+  this->Theory::setQuantifiersEngine(qe);
+  d_internal->setQuantifiersEngine(qe);
 }
 
 void TheoryArith::addSharedTerm(TNode n){

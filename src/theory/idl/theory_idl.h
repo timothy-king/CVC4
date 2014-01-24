@@ -2,7 +2,7 @@
 /*! \file theory_idl.h
  ** \verbatim
  ** Original author: Dejan Jovanovic
- ** Major contributors: none
+ ** Major contributors: Morgan Deters
  ** Minor contributors (to current version): none
  ** This file is part of the CVC4 project.
  ** Copyright (c) 2009-2013  New York University and The University of Iowa
@@ -45,7 +45,7 @@ public:
 
   /** Theory constructor. */
   TheoryIdl(context::Context* c, context::UserContext* u, OutputChannel& out,
-            Valuation valuation, const LogicInfo& logicInfo, QuantifiersEngine* qe);
+            Valuation valuation, const LogicInfo& logicInfo);
 
   /** Pre-processing of input atoms */
   Node ppRewrite(TNode atom);

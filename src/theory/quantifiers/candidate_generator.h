@@ -2,7 +2,7 @@
 /*! \file candidate_generator.h
  ** \verbatim
  ** Original author: Morgan Deters
- ** Major contributors: none
+ ** Major contributors: Andrew Reynolds
  ** Minor contributors (to current version): none
  ** This file is part of the CVC4 project.
  ** Copyright (c) 2009-2013  New York University and The University of Iowa
@@ -79,10 +79,19 @@ private:
   //instantiator pointer
   QuantifiersEngine* d_qe;
   //the equality class iterator
-  std::vector< Node > d_eqc;
+  eq::EqClassIterator d_eqc_iter;
+  //std::vector< Node > d_eqc;
   int d_term_iter;
   int d_term_iter_limit;
   bool d_using_term_db;
+  enum {
+    cand_term_db,
+    cand_term_ident,
+    cand_term_eqc,
+  };
+  short d_mode;
+  bool isLegalOpCandidate( Node n );
+  Node d_n;
 public:
   CandidateGeneratorQE( QuantifiersEngine* qe, Node op );
   ~CandidateGeneratorQE(){}

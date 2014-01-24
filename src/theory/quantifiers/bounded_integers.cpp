@@ -2,6 +2,8 @@
 /*! \file bounded_integers.cpp
  ** \verbatim
  ** Original author: Andrew Reynolds
+ ** Major contributors: Morgan Deters
+ ** Minor contributors (to current version): none
  ** This file is part of the CVC4 project.
  ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
@@ -102,7 +104,7 @@ Node BoundedIntegers::RangeModel::getNextDecisionRequest() {
         if (!d_lit_to_pol[it->first]) {
           rn = rn.negate();
         }
-        Trace("bound-int-dec") << "For " << d_range << ", make decision " << rn << " to make range " << i << std::endl;
+        Trace("bound-int-dec-debug") << "For " << d_range << ", make decision " << rn << " to make range " << i << std::endl;
         return rn;
       }
     }
@@ -196,10 +198,9 @@ void BoundedIntegers::processLiteral( Node f, Node lit, bool pol,
 void BoundedIntegers::process( Node f, Node n, bool pol,
                                std::map< int, std::map< Node, Node > >& bound_lit_map,
                                std::map< int, std::map< Node, bool > >& bound_lit_pol_map ){
-  if( (( n.getKind()==IMPLIES || n.getKind()==OR) && pol) || (n.getKind()==AND && !pol) ){
+  if( (n.getKind()==OR && pol) || (n.getKind()==AND && !pol) ){
     for( unsigned i=0; i<n.getNumChildren(); i++) {
-      bool newPol = n.getKind()==IMPLIES && i==0 ? !pol : pol;
-      process( f, n[i], newPol, bound_lit_map, bound_lit_pol_map );
+      process( f, n[i], pol, bound_lit_map, bound_lit_pol_map );
     }
   }else if( n.getKind()==NOT ){
     process( f, n[0], !pol, bound_lit_map, bound_lit_pol_map );
@@ -311,11 +312,26 @@ void BoundedIntegers::assertNode( Node n ) {
 }
 
 Node BoundedIntegers::getNextDecisionRequest() {
-  Trace("bound-int-dec") << "bi: Get next decision request?" << std::endl;
+  Trace("bound-int-dec-debug") << "bi: Get next decision request?" << std::endl;
   for( unsigned i=0; i<d_ranges.size(); i++) {
     Node d = d_rms[d_ranges[i]]->getNextDecisionRequest();
     if (!d.isNull()) {
-      return d;
+      bool polLit = d.getKind()!=NOT;
+      Node lit = d.getKind()==NOT ? d[0] : d;
+      bool value;
+      if( d_quantEngine->getValuation().hasSatValue( lit, value ) ) {
+        if( value==polLit ){
+          Trace("bound-int-dec-debug") << "...already asserted properly." << std::endl;
+          //already true, we're already fine
+        }else{
+          Trace("bound-int-dec-debug") << "...already asserted with wrong polarity, re-assert." << std::endl;
+          assertNode( d.negate() );
+          i--;
+        }
+      }else{
+        Trace("bound-int-dec") << "Bounded Integers : Decide " << d << std::endl;
+        return d;
+      }
     }
   }
   return Node::null();

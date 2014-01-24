@@ -2,8 +2,8 @@
 /*! \file theory_white.h
  ** \verbatim
  ** Original author: Morgan Deters
- ** Major contributors: Clark Barrett, Tim King
- ** Minor contributors (to current version): Dejan Jovanovic
+ ** Major contributors: Tim King
+ ** Minor contributors (to current version): Dejan Jovanovic, Clark Barrett
  ** This file is part of the CVC4 project.
  ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
@@ -119,8 +119,8 @@ public:
   set<Node> d_registered;
   vector<Node> d_getSequence;
 
-  DummyTheory(Context* ctxt, UserContext* uctxt, OutputChannel& out, Valuation valuation, const LogicInfo& logicInfo, QuantifiersEngine* qe) :
-    Theory(theory::THEORY_BUILTIN, ctxt, uctxt, out, valuation, logicInfo, qe) {
+  DummyTheory(Context* ctxt, UserContext* uctxt, OutputChannel& out, Valuation valuation, const LogicInfo& logicInfo) :
+    Theory(theory::THEORY_BUILTIN, ctxt, uctxt, out, valuation, logicInfo) {
   }
 
   void registerTerm(TNode n) {
@@ -196,7 +196,7 @@ public:
     d_smt->d_theoryEngine->d_theoryTable[THEORY_BUILTIN] = NULL;
     d_smt->d_theoryEngine->d_theoryOut[THEORY_BUILTIN] = NULL;
 
-    d_dummy = new DummyTheory(d_ctxt, d_uctxt, d_outputChannel, Valuation(NULL), *d_logicInfo, NULL);
+    d_dummy = new DummyTheory(d_ctxt, d_uctxt, d_outputChannel, Valuation(NULL), *d_logicInfo);
     d_outputChannel.clear();
     atom0 = d_nm->mkConst(true);
     atom1 = d_nm->mkConst(false);

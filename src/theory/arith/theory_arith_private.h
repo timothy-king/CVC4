@@ -1,11 +1,11 @@
 /*********************                                                        */
-/*! \file theory_arith.cpp
+/*! \file theory_arith_private.h
  ** \verbatim
- ** Original author: taking
+ ** Original author: Tim King
  ** Major contributors: none
- ** Minor contributors (to current version): kshitij, ajreynol, mdeters, dejan
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Minor contributors (to current version): Andrew Reynolds, Tianyi Liang, Morgan Deters
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -350,7 +350,7 @@ private:
   Node ppRewriteTerms(TNode atom);
 
 public:
-  TheoryArithPrivate(TheoryArith& containing, context::Context* c, context::UserContext* u, OutputChannel& out, Valuation valuation, const LogicInfo& logicInfo, QuantifiersEngine* qe);
+  TheoryArithPrivate(TheoryArith& containing, context::Context* c, context::UserContext* u, OutputChannel& out, Valuation valuation, const LogicInfo& logicInfo);
   ~TheoryArithPrivate();
 
   /**
@@ -359,6 +359,7 @@ public:
   void preRegisterTerm(TNode n);
 
   void setMasterEqualityEngine(eq::EqualityEngine* eq);
+  void setQuantifiersEngine(QuantifiersEngine* qe);
 
   void check(Theory::Effort e);
   void propagate(Theory::Effort e);

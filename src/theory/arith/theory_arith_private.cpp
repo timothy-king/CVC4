@@ -1,11 +1,11 @@
 /*********************                                                        */
-/*! \file theory_arith.cpp
+/*! \file theory_arith_private.cpp
  ** \verbatim
- ** Original author: taking
+ ** Original author: Tim King
  ** Major contributors: none
- ** Minor contributors (to current version): kshitij, ajreynol, mdeters, dejan
- ** This file is part of the CVC4 prototype.
- ** Copyright (c) 2009-2012  New York University and The University of Iowa
+ ** Minor contributors (to current version): Andrew Reynolds, Tianyi Liang, Morgan Deters
+ ** This file is part of the CVC4 project.
+ ** Copyright (c) 2009-2013  New York University and The University of Iowa
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
@@ -82,7 +82,7 @@ namespace CVC4 {
 namespace theory {
 namespace arith {
 
-TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context* c, context::UserContext* u, OutputChannel& out, Valuation valuation, const LogicInfo& logicInfo, QuantifiersEngine* qe) :
+TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context* c, context::UserContext* u, OutputChannel& out, Valuation valuation, const LogicInfo& logicInfo) :
   d_containing(containing),
   d_nlIncomplete( false),
   d_rowTracking(),
@@ -91,7 +91,7 @@ TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context
   d_unknownsInARow(0),
   d_hasDoneWorkSinceCut(false),
   d_learner(u),
-  d_quantEngine(qe),
+  d_quantEngine(NULL),
   d_assertionsThatDoNotMatchTheirLiterals(c),
   d_nextIntegerCheckVar(0),
   d_constantIntegerVariables(c),
@@ -130,6 +130,10 @@ TheoryArithPrivate::~TheoryArithPrivate(){ }
 
 void TheoryArithPrivate::setMasterEqualityEngine(eq::EqualityEngine* eq) {
   d_congruenceManager.setMasterEqualityEngine(eq);
+}
+
+void TheoryArithPrivate::setQuantifiersEngine(QuantifiersEngine* qe) {
+  d_quantEngine = qe;
 }
 
 Node TheoryArithPrivate::getRealDivideBy0Func(){
