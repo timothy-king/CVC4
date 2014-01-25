@@ -30,6 +30,7 @@ Constant Constant::mkConstant(const Rational& rat) {
   return Constant(mkRationalNode(rat));
 }
 
+
 bool Variable::isLeafMember(Node n){
   return (!isRelationOperator(n.getKind())) &&
     (Theory::isLeafOf(n, theory::THEORY_ARITH));
@@ -293,7 +294,7 @@ Monomial Polynomial::selectAbsMinimum() const {
   ++iter;
   for(; iter != end(); ++iter){
     Monomial curr = *iter;
-    if(curr.absLessThan(min)){
+    if(curr.absCmp(min) < 0){
       min = curr;
     }
   }
@@ -327,10 +328,16 @@ Integer Polynomial::numeratorGCD() const {
   Assert(i!=e);
 
   Integer d = (*i).getConstant().getValue().getNumerator().abs();
+  if(d.isOne()){
+    return d;
+  }
   ++i;
   for(; i!=e; ++i){
     Integer c = (*i).getConstant().getValue().getNumerator();
     d = d.gcd(c);
+    if(d.isOne()){
+      return d;
+    }
   }
   return d;
 }
@@ -816,10 +823,10 @@ bool Comparison::isNormalEqualityOrDisequality() const {
           }else{
             Monomial absMinRight = varRight.selectAbsMinimum();
             Debug("nf::tmp") << mleft.getNode() << " " << absMinRight.getNode() << endl;
-            if( mleft.absLessThan(absMinRight) ){
+            if( mleft.absCmp(absMinRight) < 0){
               return true;
             }else{
-              return (!absMinRight.absLessThan(mleft)) && mleft < absMinRight;
+              return (!(absMinRight.absCmp(mleft)< 0)) && mleft < absMinRight;
             }
           }
         }

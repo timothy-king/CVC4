@@ -320,6 +320,7 @@ public:
     return getNode().getConst<Rational>();
   }
 
+  static int absCmp(const Constant& a, const Constant& b);
   bool isIntegral() const { return getValue().isIntegral(); }
 
   int sgn() const { return getValue().sgn(); }
@@ -712,9 +713,12 @@ public:
    */
   static std::vector<Monomial> sumLikeTerms(const std::vector<Monomial>& monos);
 
-  bool absLessThan(const Monomial& other) const{
-    return getConstant().abs() < other.getConstant().abs();
+  int absCmp(const Monomial& other) const{
+    return getConstant().getValue().absCmp(other.getConstant().getValue());
   }
+  // bool absLessThan(const Monomial& other) const{
+  //   return getConstant().abs() < other.getConstant().abs();
+  // }
 
   uint32_t coefficientLength() const{
     return getConstant().length();
@@ -1161,6 +1165,10 @@ public:
 
   bool isZero() const {
     return getConstant().isZero() && isConstant();
+  }
+
+  uint32_t size() const{
+    return getPolynomial().size();
   }
 
   /**
