@@ -1694,6 +1694,9 @@ Node TheoryArithPrivate::dioCutting(){
     Comparison geq = Comparison::mkComparison(GEQ, p, c);
     Node lemma = NodeManager::currentNM()->mkNode(OR, leq.getNode(), geq.getNode());
     Node rewrittenLemma = Rewriter::rewrite(lemma);
+    Debug("arith::dio::ex") << "dioCutting found the plane: " << plane.getNode() << endl;
+    Debug("arith::dio::ex") << "resulting in the cut: " << lemma << endl;
+    Debug("arith::dio::ex") << "rewritten " << rewrittenLemma << endl;
     Debug("arith::dio") << "dioCutting found the plane: " << plane.getNode() << endl;
     Debug("arith::dio") << "resulting in the cut: " << lemma << endl;
     Debug("arith::dio") << "rewritten " << rewrittenLemma << endl;
@@ -2712,6 +2715,22 @@ bool TheoryArithPrivate::replayLemmas(ApproximateSimplex* approx){
   }
   return anythingnew;
 }
+bool TheoryArithPrivate::safeToCallApprox() const{
+  unsigned numRows = 0;
+  unsigned numCols = 0;
+  var_iterator vi = var_begin(), vi_end = var_end();
+  // Assign each variable to a row and column variable as it appears in the input
+  for(; vi != vi_end && !(numRows > 0 && numCols > 0); ++vi){
+    ArithVar v = *vi;
+
+    if(d_partialModel.isAuxiliary(v)){
+      ++numRows;
+    }else{
+      ++numCols;
+    }
+  }
+  return (numRows > 0 && numCols > 0);
+}
 
 // solve()
 //   res = solveRealRelaxation(effortLevel);
@@ -2723,7 +2742,11 @@ bool TheoryArithPrivate::replayLemmas(ApproximateSimplex* approx){
 //   case Error
 //     if()
 bool TheoryArithPrivate::solveInteger(Theory::Effort effortLevel){
+  if(!safeToCallApprox()) { return false; }
+
+  Assert(safeToCallApprox());
   TimerStat::CodeTimer codeTimer(d_statistics.d_solveIntTimer);
+
   ++(d_statistics.d_solveIntCalls);
   d_statistics.d_inSolveInteger.setData(1);
 
@@ -2731,6 +2754,7 @@ bool TheoryArithPrivate::solveInteger(Theory::Effort effortLevel){
     d_solveIntAttempts++;
     ++(d_statistics.d_solveStandardEffort);
   }
+
 
   // if integers are attempted,
   Assert(options::useApprox());
@@ -2918,7 +2942,7 @@ bool TheoryArithPrivate::solveRealRelaxation(Theory::Effort effortLevel){
   bool noPivotLimitPass1 = noPivotLimit && !useApprox;
   d_qflraStatus = simplex.findModel(noPivotLimitPass1);
 
-  if(d_qflraStatus == Result::SAT_UNKNOWN && useApprox){
+  if(d_qflraStatus == Result::SAT_UNKNOWN && useApprox && safeToCallApprox()){
     // pass2: fancy-final
     static const int32_t relaxationLimit = 10000;
 

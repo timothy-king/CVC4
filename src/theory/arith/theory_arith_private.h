@@ -352,6 +352,7 @@ private:
   bool attemptSolveInteger(Theory::Effort effortLevel, bool emmmittedLemmaOrSplit);
   bool replayLemmas(ApproximateSimplex* approx);
   bool solveInteger(Theory::Effort effortLevel);
+  bool safeToCallApprox() const;
   SimplexDecisionProcedure& selectSimplex(bool pass1);
   SimplexDecisionProcedure* d_pass1SDP;
   SimplexDecisionProcedure* d_otherSDP;

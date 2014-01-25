@@ -7,6 +7,7 @@
 #include "theory/arith/matrix.h"
 #include <math.h>
 #include <cmath>
+#include <cfloat>
 #include <map>
 
 using namespace std;
@@ -567,6 +568,9 @@ private:
   bool replaceSlacksOnCuts();
   bool loadVB(int nid, int M, int j, int ri, bool wantUb, VirtualBound& tmp);
 
+
+
+  double sumInfeasibilities(glp_prob* prob, bool mip) const;
 };
 
 int ApproxGLPK::s_verbosity = 0;
@@ -661,6 +665,11 @@ ApproxGLPK::ApproxGLPK(const ArithVariables& v, TreeLog& l, ApproximateStatistic
       Debug("approx") << "Col vars: " << v << "<->" << numCols << endl;
     }
   }
+  Assert(numRows > 0);
+  Assert(numCols > 0);
+
+
+
   glp_add_rows(d_inputProb, numRows);
   glp_add_cols(d_inputProb, numCols);
 
@@ -1139,6 +1148,50 @@ ApproximateSimplex::Solution ApproxGLPK::extractSolution(bool mip) const{
     }
   }
   return sol;
+}
+
+double ApproxGLPK::sumInfeasibilities(glp_prob* prob, bool mip) const{
+  /* compute the sum of dual infeasibilities */
+  double infeas = 0.0;
+
+  for(ArithVariables::var_iterator i = d_vars.var_begin(), i_end = d_vars.var_end(); i != i_end; ++i){
+    ArithVar vi = *i;
+    bool isAux = d_vars.isAuxiliary(vi);
+    int glpk_index = isAux ? d_rowIndices[vi] : d_colIndices[vi];
+
+    double newAssign;
+    if(mip){
+      newAssign = (isAux ? glp_mip_row_val(prob, glpk_index)
+                   :  glp_mip_col_val(prob, glpk_index));
+    }else{
+      newAssign = (isAux ? glp_get_row_prim(prob, glpk_index)
+                   :  glp_get_col_prim(prob, glpk_index));
+    }
+
+
+    double ub = isAux ?
+      glp_get_row_ub(prob, glpk_index) : glp_get_col_ub(prob, glpk_index);
+
+    double lb = isAux ?
+      glp_get_row_lb(prob, glpk_index) : glp_get_col_lb(prob, glpk_index);
+
+    if(ub != +DBL_MAX){
+      if(newAssign > ub){
+        double ubinf = newAssign - ub;
+        infeas += ubinf;
+        cout << "ub inf" << vi << " " << ubinf << " " << infeas << endl;
+      }
+    }
+    if(lb != -DBL_MAX){
+      if(newAssign < lb){
+        double lbinf = lb - newAssign;
+        infeas  += lbinf;
+
+        cout << "lb inf" << vi << " " << lbinf << " " << infeas << endl;
+      }
+    }
+  }
+  return infeas;
 }
 
 LinResult ApproxGLPK::solveRelaxation(){
