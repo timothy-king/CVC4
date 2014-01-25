@@ -2571,6 +2571,13 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
               resolve(back, dnc, dnconf, upconf);
             }
           }
+          if(res.size() >= 2u){
+            subsumption(res);
+
+            if(res.size() > 100u){
+              res.resize(100u);
+            }
+          }
         }else{
           Debug("approx::replayLogRec") << "replayLogRec() skipping resolving" << nl << std::endl;
         }
