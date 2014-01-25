@@ -330,6 +330,10 @@ public:
     uint32_t denLen = getDenominator().length();
     return  numLen + denLen;
   }
+
+  /** Equivalent to calling (this->abs()).cmp(b.abs()) */
+  int absCmp(const Rational& q) const;
+
 };/* class Rational */
 
 struct RationalHashFunction {

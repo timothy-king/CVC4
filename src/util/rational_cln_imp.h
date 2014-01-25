@@ -353,6 +353,9 @@ public:
     return getNumerator().length() + getDenominator().length();
   }
 
+  /** Equivalent to calling (this->abs()).cmp(b.abs()) */
+  int absCmp(const Rational& q) const;
+
 };/* class Rational */
 
 struct RationalHashFunction {
