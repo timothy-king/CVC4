@@ -30,6 +30,37 @@ Constant Constant::mkConstant(const Rational& rat) {
   return Constant(mkRationalNode(rat));
 }
 
+size_t Variable::getComplexity() const{
+  return 1u;
+}
+
+size_t VarList::getComplexity() const{
+  if(empty()){
+    return 1;
+  }else if(singleton()){
+    return 1;
+  }else{
+    return size() + 1;
+  }
+}
+
+size_t Monomial::getComplexity() const{
+  return getConstant().getComplexity() + getVarList().getComplexity();
+}
+
+size_t Polynomial::getComplexity() const{
+  size_t cmp = 0;
+  iterator i = begin(), e = end();
+  for(; i != e; ++i){
+    Monomial m = *i;
+    cmp += m.getComplexity();
+  }
+  return cmp;
+}
+
+size_t Constant::getComplexity() const{
+  return getValue().complexity();
+}
 
 bool Variable::isLeafMember(Node n){
   return (!isRelationOperator(n.getKind())) &&

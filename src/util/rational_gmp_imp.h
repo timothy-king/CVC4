@@ -29,6 +29,7 @@
 namespace CVC4 {
 
 class CVC4_PUBLIC RationalFromDoubleException : public Exception {
+public:
   RationalFromDoubleException(double d) throw();
 };
 

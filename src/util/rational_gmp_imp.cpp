@@ -17,6 +17,8 @@
 #include "cvc4autoconfig.h"
 #include "util/rational.h"
 #include <string>
+#include <sstream>
+#include <cmath>
 
 #ifndef CVC4_GMP_IMP
 #  error "This source should only ever be built if CVC4_GMP_IMP is on !"
@@ -80,12 +82,22 @@ int Rational::absCmp(const Rational& q) const{
 
 
 /** Return an exact rational for a double d. */
-static Rational Rational::fromDouble(double d) throw(RationalFromDoubleException){
-  if(isfinite(d)){
+Rational Rational::fromDouble(double d) throw(RationalFromDoubleException){
+  if(std::isfinite(d)){
     Rational q;
     mpq_set_d(q.d_value.get_mpq_t(), d);
     return q;
   }
 
   throw RationalFromDoubleException(d);
+}
+
+RationalFromDoubleException::RationalFromDoubleException(double d) throw()
+  : Exception()
+{
+  std::stringstream ss;
+  ss << "RationalFromDoubleException(";
+  ss << d;
+  ss << ")";
+  setMessage(ss.str());
 }
