@@ -38,6 +38,11 @@
 
 namespace CVC4 {
 
+class CVC4_PUBLIC RationalFromDoubleException : public Exception {
+public:
+  RationalFromDoubleException(double d) throw();
+};
+
 /**
  ** A multi-precision rational constant.
  ** This stores the rational as a pair of multi-precision integers,
@@ -189,12 +194,7 @@ public:
   }
 
   /** Return an exact rational for a double d. */
-  static Rational fromDouble(double d){
-    cln::cl_DF fromD = d;
-    Rational q;
-    q.d_value = cln::rationalize(fromD);
-    return q;
-  }
+  static Rational fromDouble(double d) throw(RationalFromDoubleException);
 
   /**
    * Get a double representation of this Rational, which is

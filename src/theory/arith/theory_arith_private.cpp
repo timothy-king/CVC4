@@ -132,8 +132,12 @@ TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context
   d_likelyIntegerInfeasible(c, false),
   d_guessedCoeffSet(c, false),
   d_guessedCoeffs(),
+  d_treeLog(NULL),
   d_replayVariables(),
   d_replayConstraints(),
+  d_lhsTmp(),
+  d_approxStats(NULL),
+  d_approxDisabled(u, false),
   d_solveIntMaybeHelp(0u),
   d_solveIntAttempts(0u),
   d_statistics()
@@ -305,6 +309,7 @@ TheoryArithPrivate::Statistics::Statistics()
   , d_solveRealRelaxTimer("z::solveRealRelax::timer")
   , d_solveIntCalls("z::solveInt::calls", 0)
   , d_solveStandardEffort("z::solveInt::calls::standardEffort", 0)
+  , d_approxDisabled("z::approxDisabled", 0)
   , d_satPivots("pivots::sat")
   , d_unsatPivots("pivots::unsat")
   , d_unknownPivots("pivots::unkown")
@@ -385,6 +390,8 @@ TheoryArithPrivate::Statistics::Statistics()
   StatisticsRegistry::registerStat(&d_solveIntCalls);
   StatisticsRegistry::registerStat(&d_solveStandardEffort);
 
+  StatisticsRegistry::registerStat(&d_approxDisabled);
+
 }
 
 TheoryArithPrivate::Statistics::~Statistics(){
@@ -463,6 +470,8 @@ TheoryArithPrivate::Statistics::~Statistics(){
 
   StatisticsRegistry::unregisterStat(&d_solveIntCalls);
   StatisticsRegistry::unregisterStat(&d_solveStandardEffort);
+
+  StatisticsRegistry::unregisterStat(&d_approxDisabled);
 }
 
 void TheoryArithPrivate::revertOutOfConflict(){
@@ -1977,7 +1986,9 @@ bool TheoryArithPrivate::attemptSolveInteger(Theory::Effort effortLevel, bool em
 
   if(d_qflraStatus == Result::UNSAT){ return false; }
   if(emmmittedLemmaOrSplit){ return false; }
-  if(!(options::useApprox() && ApproximateSimplex::enabled())){ return false; }
+  if(!options::useApprox()){ return false; }
+  if(!ApproximateSimplex::enabled()){ return false; }
+  if( d_approxDisabled.get() ){ return false; }
 
   if(Theory::fullEffort(effortLevel) && !hasIntegerModel()){
     static int instances = 0 ;
@@ -2044,10 +2055,13 @@ bool TheoryArithPrivate::replayLog(ApproximateSimplex* approx){
   //tl.applySelected(); /* set row ids */
 
   std::vector<ConstraintCPVec> res;
-  { /* create a block for the purpose of pushing the sat context */
+  try{
+    /* use the try block for the purpose of pushing the sat context */
     context::Context::ScopedPush speculativePush(getSatContext());
     d_cmEnabled = false;
     res = replayLogRec(approx, tl.getRootId(), NullConstraint);
+  }catch(RationalFromDoubleException& rfde){
+    turnOffApprox();
   }
 
   for(size_t i =0, N = res.size(); i < N; ++i){
@@ -2115,7 +2129,7 @@ std::pair<ConstraintP, ArithVar> TheoryArithPrivate::replayGetConstraint(const D
   return make_pair(newc, added);
 }
 
-std::pair<ConstraintP, ArithVar> TheoryArithPrivate::replayGetConstraint(ApproximateSimplex* approx, const NodeLog& nl){
+std::pair<ConstraintP, ArithVar> TheoryArithPrivate::replayGetConstraint(ApproximateSimplex* approx, const NodeLog& nl) throw(RationalFromDoubleException){
   Assert(nl.isBranch());
   Assert(d_lhsTmp.empty());
   ArithVar v = approx->getBranchVar(nl);
@@ -2134,7 +2148,7 @@ std::pair<ConstraintP, ArithVar> TheoryArithPrivate::replayGetConstraint(Approxi
   return make_pair(NullConstraint, ARITHVAR_SENTINEL);
 }
 
-std::pair<ConstraintP, ArithVar> TheoryArithPrivate::replayGetConstraint(const CutInfo& ci){
+std::pair<ConstraintP, ArithVar> TheoryArithPrivate::replayGetConstraint(const CutInfo& ci) {
   Assert(ci.reconstructed());
   const DenseMap<Rational>& lhs = ci.getReconstruction().lhs;
   const Rational& rhs = ci.getReconstruction().rhs;
@@ -2639,7 +2653,7 @@ ApproximateStatistics& TheoryArithPrivate::getApproxStats(){
   return *d_approxStats;
 }
 
-Node TheoryArithPrivate::branchToNode(ApproximateSimplex*  approx, const NodeLog& bn) const{
+Node TheoryArithPrivate::branchToNode(ApproximateSimplex*  approx, const NodeLog& bn) const throw(RationalFromDoubleException) {
   Assert(bn.isBranch());
   ArithVar v = approx->getBranchVar(bn);
   if(v != ARITHVAR_SENTINEL && d_partialModel.isIntegerInput(v)){
@@ -2675,46 +2689,57 @@ Node TheoryArithPrivate::cutToLiteral(ApproximateSimplex* approx, const CutInfo&
 }
 
 bool TheoryArithPrivate::replayLemmas(ApproximateSimplex* approx){
-  ++(d_statistics.d_mipReplayLemmaCalls);
-  bool anythingnew = false;
+  try{
+    ++(d_statistics.d_mipReplayLemmaCalls);
+    bool anythingnew = false;
 
-  TreeLog& tl = getTreeLog();
-  NodeLog& root = tl.getRootNode();
-  root.applySelected(); /* set row ids */
+    TreeLog& tl = getTreeLog();
+    NodeLog& root = tl.getRootNode();
+    root.applySelected(); /* set row ids */
 
-  vector<const CutInfo*> cuts = approx->getValidCuts(root);
-  for(size_t i =0, N =cuts.size(); i < N; ++i){
-    const CutInfo* cut = cuts[i];
-    Assert(cut->reconstructed());
-    Assert(cut->proven());
+    vector<const CutInfo*> cuts = approx->getValidCuts(root);
+    for(size_t i =0, N =cuts.size(); i < N; ++i){
+      const CutInfo* cut = cuts[i];
+      Assert(cut->reconstructed());
+      Assert(cut->proven());
 
-    Node cutConstraint = cutToLiteral(approx, *cut);
-    if(!cutConstraint.isNull()){
-      const ConstraintCPVec& exp = cut->getExplanation();
-      Node asLemma = Constraint_::externalExplainByAssertions(exp);
+      Node cutConstraint = cutToLiteral(approx, *cut);
+      if(!cutConstraint.isNull()){
+        const ConstraintCPVec& exp = cut->getExplanation();
+        Node asLemma = Constraint_::externalExplainByAssertions(exp);
 
-      Node implied = Rewriter::rewrite(cutConstraint);
-      anythingnew = anythingnew || !isSatLiteral(implied);
+        Node implied = Rewriter::rewrite(cutConstraint);
+        anythingnew = anythingnew || !isSatLiteral(implied);
 
-      Node implication = asLemma.impNode(implied);
+        Node implication = asLemma.impNode(implied);
 
-      outputLemma(implication);
-      Debug("approx::lemmas") << "cut["<<i<<"] " << implication << endl;
-      ++(d_statistics.d_mipExternalCuts);
+        outputLemma(implication);
+        Debug("approx::lemmas") << "cut["<<i<<"] " << implication << endl;
+        ++(d_statistics.d_mipExternalCuts);
+      }
     }
-  }
-  if(root.isBranch()){
-    Node lit = branchToNode(approx, root);
-    if(!lit.isNull()){
-      anythingnew = anythingnew || !isSatLiteral(lit);
-      Node branch = lit.orNode(lit.notNode());
-      outputLemma(branch);
-      ++(d_statistics.d_mipExternalBranch);
-      Debug("approx::lemmas") << "branching "<< root <<" as " << branch << endl;
+    if(root.isBranch()){
+      Node lit = branchToNode(approx, root);
+      if(!lit.isNull()){
+        anythingnew = anythingnew || !isSatLiteral(lit);
+        Node branch = lit.orNode(lit.notNode());
+        outputLemma(branch);
+        ++(d_statistics.d_mipExternalBranch);
+        Debug("approx::lemmas") << "branching "<< root <<" as " << branch << endl;
+      }
     }
+    return anythingnew;
+  }catch(RationalFromDoubleException& rfde){
+    turnOffApprox();
+    return false;
   }
-  return anythingnew;
 }
+
+void TheoryArithPrivate::turnOffApprox(){
+  d_approxDisabled.set(true);
+  ++(d_statistics.d_approxDisabled);
+}
+
 bool TheoryArithPrivate::safeToCallApprox() const{
   unsigned numRows = 0;
   unsigned numCols = 0;
@@ -2743,6 +2768,7 @@ bool TheoryArithPrivate::safeToCallApprox() const{
 //     if()
 bool TheoryArithPrivate::solveInteger(Theory::Effort effortLevel){
   if(!safeToCallApprox()) { return false; }
+  bool emittedConflictOrLemma = false;
 
   Assert(safeToCallApprox());
   TimerStat::CodeTimer codeTimer(d_statistics.d_solveIntTimer);
@@ -2755,15 +2781,14 @@ bool TheoryArithPrivate::solveInteger(Theory::Effort effortLevel){
     ++(d_statistics.d_solveStandardEffort);
   }
 
-
   // if integers are attempted,
   Assert(options::useApprox());
+  Assert(!d_approxDisabled.get());
   Assert(ApproximateSimplex::enabled());
 
   int level = getSatContext()->getLevel();
   d_lastContextIntegerAttempted = level;
 
-  bool emittedConflictOrLemma = false;
 
   static const int32_t mipLimit = 200000;
 
@@ -2772,70 +2797,74 @@ bool TheoryArithPrivate::solveInteger(Theory::Effort effortLevel){
   ApproximateSimplex* approx =
     ApproximateSimplex::mkApproximateSimplexSolver(d_partialModel, tl, stats);
 
-  approx->setPivotLimit(mipLimit);
-  if(!d_guessedCoeffSet){
-    d_guessedCoeffs = approx->heuristicOptCoeffs();
-    d_guessedCoeffSet = true;
-  }
-  if(!d_guessedCoeffs.empty()){
-    approx->setOptCoeffs(d_guessedCoeffs);
-  }
-  static const int32_t depthForLikelyInfeasible = 10;
-  int maxDepthPass1 = d_likelyIntegerInfeasible ?
-    depthForLikelyInfeasible : options::maxApproxDepth();
-  approx->setBranchingDepth(maxDepthPass1);
-  approx->setBranchOnVariableLimit(100);
-  LinResult relaxRes = approx->solveRelaxation();
-  if( relaxRes == LinFeasible ){
-    MipResult mipRes = approx->solveMIP(false);
-    Debug("arith::solveInteger") << "mipRes " << mipRes << endl;
-    switch(mipRes) {
-    case MipBingo:
-      // attempt the solution
-      {
-        d_partialModel.stopQueueingBoundCounts();
-        UpdateTrackingCallback utcb(&d_linEq);
-        d_partialModel.processBoundsQueue(utcb);
-        d_linEq.startTrackingBoundCounts();
-
-        ApproximateSimplex::Solution mipSolution;
-        mipSolution = approx->extractMIP();
-        importSolution(mipSolution);
-        solveRelaxationOrPanic(effortLevel);
-
-        // shutdown simplex
-        d_linEq.stopTrackingBoundCounts();
-        d_partialModel.startQueueingBoundCounts();
-      }
-      break;
-    case MipClosed:
-      /* All integer branches closed */
-      approx->setPivotLimit(2*mipLimit);
-      mipRes = approx->solveMIP(true);
-      if(mipRes == MipClosed){
-        d_likelyIntegerInfeasible = true;
-        emittedConflictOrLemma = replayLog(approx);
-      }
-      break;
-    case BranchesExhausted:
-    case ExecExhausted:
-    case PivotsExhauasted:
-      if(mipRes == BranchesExhausted){
-        ++d_statistics.d_branchesExhausted;
-      }else if(mipRes == ExecExhausted){
-        ++d_statistics.d_execExhausted;
-      }else if(mipRes == PivotsExhauasted){
-        ++d_statistics.d_pivotsExhausted;
-      }
-
-      approx->setPivotLimit(2*mipLimit);
-      approx->setBranchingDepth(2);
-      mipRes = approx->solveMIP(true);
-      emittedConflictOrLemma = replayLemmas(approx);
-      break;
-    case MipUnknown:
-      break;
+  try{
+    approx->setPivotLimit(mipLimit);
+    if(!d_guessedCoeffSet){
+      d_guessedCoeffs = approx->heuristicOptCoeffs();
+      d_guessedCoeffSet = true;
     }
+    if(!d_guessedCoeffs.empty()){
+      approx->setOptCoeffs(d_guessedCoeffs);
+    }
+    static const int32_t depthForLikelyInfeasible = 10;
+    int maxDepthPass1 = d_likelyIntegerInfeasible ?
+      depthForLikelyInfeasible : options::maxApproxDepth();
+    approx->setBranchingDepth(maxDepthPass1);
+    approx->setBranchOnVariableLimit(100);
+    LinResult relaxRes = approx->solveRelaxation();
+    if( relaxRes == LinFeasible ){
+      MipResult mipRes = approx->solveMIP(false);
+      Debug("arith::solveInteger") << "mipRes " << mipRes << endl;
+      switch(mipRes) {
+      case MipBingo:
+        // attempt the solution
+        {
+          d_partialModel.stopQueueingBoundCounts();
+          UpdateTrackingCallback utcb(&d_linEq);
+          d_partialModel.processBoundsQueue(utcb);
+          d_linEq.startTrackingBoundCounts();
+
+          ApproximateSimplex::Solution mipSolution;
+          mipSolution = approx->extractMIP();
+          importSolution(mipSolution);
+          solveRelaxationOrPanic(effortLevel);
+
+          // shutdown simplex
+          d_linEq.stopTrackingBoundCounts();
+          d_partialModel.startQueueingBoundCounts();
+        }
+        break;
+      case MipClosed:
+        /* All integer branches closed */
+        approx->setPivotLimit(2*mipLimit);
+        mipRes = approx->solveMIP(true);
+        if(mipRes == MipClosed){
+          d_likelyIntegerInfeasible = true;
+          emittedConflictOrLemma = replayLog(approx);
+        }
+        break;
+      case BranchesExhausted:
+      case ExecExhausted:
+      case PivotsExhauasted:
+        if(mipRes == BranchesExhausted){
+          ++d_statistics.d_branchesExhausted;
+        }else if(mipRes == ExecExhausted){
+          ++d_statistics.d_execExhausted;
+        }else if(mipRes == PivotsExhauasted){
+          ++d_statistics.d_pivotsExhausted;
+        }
+
+        approx->setPivotLimit(2*mipLimit);
+        approx->setBranchingDepth(2);
+        mipRes = approx->solveMIP(true);
+        emittedConflictOrLemma = replayLemmas(approx);
+        break;
+      case MipUnknown:
+        break;
+      }
+    }
+  }catch(RationalFromDoubleException& rfde){
+    turnOffApprox();
   }
   delete approx;
 
@@ -2937,7 +2966,7 @@ bool TheoryArithPrivate::solveRealRelaxation(Theory::Effort effortLevel){
 
   SimplexDecisionProcedure& simplex = selectSimplex(true);
 
-  bool useApprox = options::useApprox() && ApproximateSimplex::enabled();
+  bool useApprox = options::useApprox() && ApproximateSimplex::enabled() && !(d_approxDisabled.get());
 
   bool noPivotLimitPass1 = noPivotLimit && !useApprox;
   d_qflraStatus = simplex.findModel(noPivotLimitPass1);
@@ -2965,35 +2994,39 @@ bool TheoryArithPrivate::solveRealRelaxation(Theory::Effort effortLevel){
 
     ApproximateSimplex::Solution relaxSolution;
     LinResult relaxRes = approxSolver->solveRelaxation();
-    Debug("solveRealRelaxation") << "solve relaxation? " << endl;
-    switch(relaxRes){
-    case LinFeasible:
-      Debug("solveRealRelaxation") << "lin feasible? " << endl;
-      ++d_statistics.d_relaxLinFeas;
-      relaxSolution = approxSolver->extractRelaxation();
-      importSolution(relaxSolution);
-      if(d_qflraStatus != Result::SAT){
-        ++d_statistics.d_relaxLinFeasFailures;
+    try{
+      Debug("solveRealRelaxation") << "solve relaxation? " << endl;
+      switch(relaxRes){
+      case LinFeasible:
+        Debug("solveRealRelaxation") << "lin feasible? " << endl;
+        ++d_statistics.d_relaxLinFeas;
+        relaxSolution = approxSolver->extractRelaxation();
+        importSolution(relaxSolution);
+        if(d_qflraStatus != Result::SAT){
+          ++d_statistics.d_relaxLinFeasFailures;
+        }
+        break;
+      case LinInfeasible:
+        // todo attempt to recreate approximate conflict
+        ++d_statistics.d_relaxLinInfeas;
+        Debug("solveRealRelaxation") << "lin infeasible " << endl;
+        relaxSolution = approxSolver->extractRelaxation();
+        importSolution(relaxSolution);
+        if(d_qflraStatus != Result::UNSAT){
+          ++d_statistics.d_relaxLinInfeasFailures;
+        }
+        break;
+      case LinExhausted:
+        ++d_statistics.d_relaxLinExhausted;
+        Debug("solveRealRelaxation") << "exhuasted " << endl;
+        break;
+      case LinUnknown:
+      default:
+        ++d_statistics.d_relaxOthers;
+        break;
       }
-      break;
-    case LinInfeasible:
-      // todo attempt to recreate approximate conflict
-      ++d_statistics.d_relaxLinInfeas;
-      Debug("solveRealRelaxation") << "lin infeasible " << endl;
-      relaxSolution = approxSolver->extractRelaxation();
-      importSolution(relaxSolution);
-      if(d_qflraStatus != Result::UNSAT){
-        ++d_statistics.d_relaxLinInfeasFailures;
-      }
-      break;
-    case LinExhausted:
-      ++d_statistics.d_relaxLinExhausted;
-      Debug("solveRealRelaxation") << "exhuasted " << endl;
-      break;
-    case LinUnknown:
-    default:
-      ++d_statistics.d_relaxOthers;
-      break;
+    }catch(RationalFromDoubleException& rfde){
+      turnOffApprox();
     }
     delete approxSolver;
 

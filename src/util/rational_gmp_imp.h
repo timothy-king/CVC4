@@ -28,6 +28,10 @@
 
 namespace CVC4 {
 
+class CVC4_PUBLIC RationalFromDoubleException : public Exception {
+  RationalFromDoubleException(double d) throw();
+};
+
 /**
  ** A multi-precision rational constant.
  ** This stores the rational as a pair of multi-precision integers,
@@ -172,12 +176,7 @@ public:
     return Integer(d_value.get_den());
   }
 
-  /** Return an exact rational for a double d. */
-  static Rational fromDouble(double d){
-    Rational q;
-    mpq_set_d(q.d_value.get_mpq_t(), d);
-    return q;
-  }
+  static Rational fromDouble(double d) throw(RationalFromDoubleException);
 
   /**
    * Get a double representation of this Rational, which is

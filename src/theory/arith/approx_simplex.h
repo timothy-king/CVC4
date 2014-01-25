@@ -130,17 +130,17 @@ public:
   virtual ArithRatPairVec heuristicOptCoeffs() const = 0;
 
   virtual LinResult solveRelaxation() = 0;
-  virtual Solution extractRelaxation() const = 0;
+  virtual Solution extractRelaxation() const throw(RationalFromDoubleException) = 0;
 
   virtual MipResult solveMIP(bool activelyLog) = 0;
-  virtual Solution extractMIP() const = 0;
+  virtual Solution extractMIP() const throw(RationalFromDoubleException) = 0;
 
-  virtual std::vector<const CutInfo*> getValidCuts(const NodeLog& node) = 0;
+  virtual std::vector<const CutInfo*> getValidCuts(const NodeLog& node) throw(RationalFromDoubleException) = 0;
   //virtual std::vector<const NodeLog*> getBranches() = 0;
 
   //virtual Node downBranchLiteral(const NodeLog& con) const = 0;
 
-  virtual void tryCut(int nid, CutInfo& cut) = 0;
+  virtual void tryCut(int nid, CutInfo& cut) throw(RationalFromDoubleException) = 0;
 
   /** UTILITIES FOR DEALING WITH ESTIMATES */
 
@@ -155,8 +155,8 @@ public:
    * cuts off the estimate once the value is approximately zero.
    * This is designed for removing rounding artifacts.
    */
-  static Rational estimateWithCFE(double d);
-  static Rational estimateWithCFE(double d, const Integer& D);
+  static Rational estimateWithCFE(double d) throw(RationalFromDoubleException);
+  static Rational estimateWithCFE(double d, const Integer& D) throw(RationalFromDoubleException);
 
   /**
    * Converts a rational to a continued fraction expansion representation

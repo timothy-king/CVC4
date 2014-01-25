@@ -77,3 +77,15 @@ int Rational::absCmp(const Rational& q) const{
     return r.cmp(qpos);
   }
 }
+
+
+/** Return an exact rational for a double d. */
+static Rational Rational::fromDouble(double d) throw(RationalFromDoubleException){
+  if(isfinite(d)){
+    Rational q;
+    mpq_set_d(q.d_value.get_mpq_t(), d);
+    return q;
+  }
+
+  throw RationalFromDoubleException(d);
+}

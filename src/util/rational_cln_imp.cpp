@@ -17,6 +17,7 @@
 #include "cvc4autoconfig.h"
 #include "util/rational.h"
 #include <string>
+#include <sstream>
 
 #ifndef CVC4_CLN_IMP
 #  error "This source should only ever be built if CVC4_CLN_IMP is on !"
@@ -77,4 +78,29 @@ int Rational::absCmp(const Rational& q) const{
     Rational qpos = -q;
     return r.cmp(qpos);
   }
+}
+
+Rational Rational::fromDouble(double d) throw(RationalFromDoubleException){
+  try{
+    cln::cl_DF fromD = d;
+    Rational q;
+    q.d_value = cln::rationalize(fromD);
+    return q;
+  }catch(cln::floating_point_underflow_exception& fpue){
+    throw RationalFromDoubleException(d);
+  }catch(cln::floating_point_nan_exception& fpne){
+    throw RationalFromDoubleException(d);
+  }catch(cln::floating_point_overflow_exception& fpoe){
+    throw RationalFromDoubleException(d);
+  }
+}
+
+RationalFromDoubleException::RationalFromDoubleException(double d) throw()
+  : Exception()
+{
+  std::stringstream ss;
+  ss << "RationalFromDoubleException(";
+  ss << d;
+  ss << ")";
+  setMessage(ss.str());
 }

@@ -354,11 +354,11 @@ Rational ApproximateSimplex::estimateWithCFE(const Rational& r, const Integer& K
   }
 }
 
-Rational ApproximateSimplex::estimateWithCFE(double d, const Integer& D){
+Rational ApproximateSimplex::estimateWithCFE(double d, const Integer& D) throw (RationalFromDoubleException){
   return estimateWithCFE(Rational::fromDouble(d), D);
 }
 
-Rational ApproximateSimplex::estimateWithCFE(double d){
+Rational ApproximateSimplex::estimateWithCFE(double d) throw (RationalFromDoubleException){
   return estimateWithCFE(d, s_defaultMaxDenom);
 }
 
@@ -372,7 +372,7 @@ public:
   virtual LinResult solveRelaxation(){
     return LinUnknown;
   }
-  virtual Solution extractRelaxation() const{
+  virtual Solution extractRelaxation() const throw (RationalFromDoubleException){
     return Solution();
   }
 
@@ -383,7 +383,7 @@ public:
   virtual MipResult solveMIP(bool al){
     return MipUnknown;
   }
-  virtual Solution extractMIP() const{
+  virtual Solution extractMIP() const throw (RationalFromDoubleException){
     return Solution();
   }
 
@@ -392,7 +392,7 @@ public:
     return std::vector<const CutInfo*>();
   }
 
-  virtual void tryCut(int nid, CutInfo& cut){}
+  virtual void tryCut(int nid, CutInfo& cut) throw (RationalFromDoubleException){}
 
 
 };
@@ -461,19 +461,19 @@ public:
   ~ApproxGLPK();
 
   virtual LinResult solveRelaxation();
-  virtual Solution extractRelaxation() const{
+  virtual Solution extractRelaxation() const throw (RationalFromDoubleException){
     return extractSolution(false);
   }
 
   virtual ArithRatPairVec heuristicOptCoeffs() const;
 
   virtual MipResult solveMIP(bool al);
-  virtual Solution extractMIP() const{
+  virtual Solution extractMIP() const throw (RationalFromDoubleException){
     return extractSolution(true);
   }
   virtual void setOptCoeffs(const ArithRatPairVec& ref);
   //void getValidCuts(const NodeLog& con, std::vector<const CutInfo*>& out);
-  virtual std::vector<const CutInfo*> getValidCuts(const NodeLog& nodes);
+  virtual std::vector<const CutInfo*> getValidCuts(const NodeLog& nodes) throw (RationalFromDoubleException);
   //virtual std::vector<const NodeLog*> getBranches();
 
   //Node downBranchLiteral(const NodeLog& con) const;
@@ -483,11 +483,11 @@ public:
 
 
 private:
-  Solution extractSolution(bool mip) const;
+  Solution extractSolution(bool mip) const throw (RationalFromDoubleException);
   int guessDir(ArithVar v) const;
 
   // get this stuff out of here
-  void tryCut(int nid, CutInfo& cut);
+  void tryCut(int nid, CutInfo& cut) throw (RationalFromDoubleException);
 
   ArithVar _getArithVar(int nid, int M, int ind) const;
   ArithVar getArithVarFromRow(int nid, int ind) const {
@@ -1039,7 +1039,7 @@ ApproxGLPK::~ApproxGLPK(){
 }
 
 
-ApproximateSimplex::Solution ApproxGLPK::extractSolution(bool mip) const{
+ApproximateSimplex::Solution ApproxGLPK::extractSolution(bool mip) const throw (RationalFromDoubleException){
   Assert(d_solvedRelaxation);
   Assert(!mip  || d_solvedMIP);
 
@@ -1680,7 +1680,7 @@ static void glpkCallback(glp_tree *tree, void *info){
   }
 }
 
-std::vector<const CutInfo*> ApproxGLPK::getValidCuts(const NodeLog& con){
+std::vector<const CutInfo*> ApproxGLPK::getValidCuts(const NodeLog& con) throw (RationalFromDoubleException){
   std::vector<const CutInfo*> proven;
   int nid = con.getNodeId();
   for(NodeLog::const_iterator j = con.begin(), jend=con.end(); j!=jend; ++j){
@@ -2671,8 +2671,7 @@ bool ApproxGLPK::makeRangeForComplemented(int nid, const MirInfo& mir){
       if(!alpha.isKey(x)){ return true; }
       if(!d_vars.isIntegerInput(x)){ return true; }
       Assert(d_pad.d_slacks.isKey(x));
-      SlackReplace rep = d_pad.d_slacks[x];
-      Assert(rep == SlackLB || rep == SlackUB);
+      Assert(d_pad.d_slacks[x] == SlackLB || d_pad.d_slacks[x] == SlackUB);
 
       ConstraintP lb = d_vars.getLowerBoundConstraint(x);
       ConstraintP ub = d_vars.getUpperBoundConstraint(x);
@@ -3091,9 +3090,9 @@ bool ApproxGLPK::constructGmiCut(){
   return false;
 }
 
-void ApproxGLPK::tryCut(int nid, CutInfo& cut){
+void ApproxGLPK::tryCut(int nid, CutInfo& cut) throw (RationalFromDoubleException){
   Assert(cut.getKlass() != RowsDeletedKlass);
-  bool failure;
+  bool failure = false;
   switch(cut.getKlass()){
   case GmiCutKlass:
     failure = attemptGmi(nid, static_cast<const GmiInfo&>(cut));

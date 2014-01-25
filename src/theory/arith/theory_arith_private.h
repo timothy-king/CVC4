@@ -548,7 +548,7 @@ private:
   void subsumption(std::vector<ConstraintCPVec>& confs) const;
 
   Node cutToLiteral(ApproximateSimplex*  approx, const CutInfo& cut) const;
-  Node branchToNode(ApproximateSimplex*  approx, const NodeLog& cut) const;
+  Node branchToNode(ApproximateSimplex*  approx, const NodeLog& cut) const throw(RationalFromDoubleException);
 
 
   void propagateCandidates();
@@ -654,13 +654,15 @@ private:
   /* Approximate simpplex solvers are given a copy of their stats */
   ApproximateStatistics* d_approxStats;
   ApproximateStatistics& getApproxStats();
+  context::CDO<bool> d_approxDisabled;
+  void turnOffApprox();
 
   void tryBranchCut(ApproximateSimplex* approx, int nid, BranchCutInfo& bl);
   std::vector<ConstraintCPVec> replayLogRec(ApproximateSimplex* approx, int nid, ConstraintP bc);
 
 
   std::pair<ConstraintP, ArithVar> replayGetConstraint(const CutInfo& info);
-  std::pair<ConstraintP, ArithVar> replayGetConstraint(ApproximateSimplex* approx, const NodeLog& nl);
+  std::pair<ConstraintP, ArithVar> replayGetConstraint(ApproximateSimplex* approx, const NodeLog& nl) throw(RationalFromDoubleException);
   std::pair<ConstraintP, ArithVar> replayGetConstraint(const DenseMap<Rational>& lhs, Kind k, const Rational& rhs, bool branch);
 
   void replayAssert(ConstraintP c);
@@ -740,6 +742,8 @@ private:
 
     IntStat d_solveIntCalls,
       d_solveStandardEffort;
+
+    IntStat d_approxDisabled;
 
     HistogramStat<uint32_t> d_satPivots;
     HistogramStat<uint32_t> d_unsatPivots;
