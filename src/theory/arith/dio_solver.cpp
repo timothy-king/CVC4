@@ -116,6 +116,16 @@ DioSolver::Statistics::~Statistics(){
   StatisticsRegistry::unregisterStat(&d_subAndReduceCurrentFByIndexTimer);
 }
 
+void DioSolver::pushToQueueBack(TrailIndex t){
+  Assert(!options::oldDio() || queueConditions(t));
+  d_currentF.push_back(t);
+}
+
+// void DioSolver::pushToQueueFront(TrailIndex t){
+//   Assert(!options::oldDio() || queueConditions(t));
+//   d_currentF.push_front(t);
+// }
+
 bool DioSolver::queueConditions(TrailIndex t){
   /* debugPrintTrail(t); */
   Debug("queueConditions") << !inConflict() << std::endl;
@@ -551,11 +561,14 @@ bool DioSolver::processEquations(){
         if(inConflict()){
           break;
         }
+
         Assert(!triviallyUnsat(k));
         Assert(!triviallySat(k));
         Assert(queueConditions(k));
         d_currentF.pop_front();
-        if(canDirectlySolve(k)){
+        if(anyCoefficientExceedsMaximum(k)){
+          // do nothing
+        }else if(canDirectlySolve(k)){
           solveIndex(k);
         }else{
           std::pair<DioSolver::SubIndex, DioSolver::TrailIndex> p;
@@ -748,10 +761,18 @@ SumPair DioSolver::purifyIndex(TrailIndex i){
       Polynomial rlhs = lhs.exactDivide(d);
       Integer rrhs = r.exactQuotient(d);
 
-      Integer dprime = heuristicFindFactor(d);
+      SumPair red(rlhs, Constant::mkConstant(Rational(rrhs)));
+
+      Integer rg = rlhs.gcd();
+      Integer dprime = heuristicFindFactor(rg);
 
       SumPair inp = d_trail[multVar].d_eq;
-      SumPair next = newConstraint + inp * Constant::mkConstant(Rational(dprime));
+      SumPair next = red + inp * Constant::mkConstant(Rational(dprime));
+
+      Debug("arith::dio:massage") << "massage input" << newConstraint.getNode() << endl;
+      Debug("arith::dio:massage") << "massage red" << red.getNode() << endl;
+      Debug("arith::dio:massage") << "massage used" << "+= "<< dprime << "*" << inp.getNode() << endl;
+      Debug("arith::dio:massage") << "massage output" << next.getNode() << endl;
       newConstraint = next;
       d_singleVarCutsInARow = 0;
     }

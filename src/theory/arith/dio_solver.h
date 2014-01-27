@@ -370,15 +370,9 @@ private:
   bool queueConditions(TrailIndex t);
 
 
-  void pushToQueueBack(TrailIndex t){
-    Assert(queueConditions(t));
-    d_currentF.push_back(t);
-  }
+  void pushToQueueBack(TrailIndex t);
 
-  void pushToQueueFront(TrailIndex t){
-    Assert(queueConditions(t));
-    d_currentF.push_front(t);
-  }
+  void pushToQueueFront(TrailIndex t);
 
   /**
    * Moves the minimum Constraint by absolute value of the minimum coefficient to
