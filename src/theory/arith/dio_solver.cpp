@@ -46,8 +46,15 @@ DioSolver::DioSolver(context::Context* ctxt) :
   d_lastPureSubstitution(ctxt, 0),
   d_pureSubstitionIter(ctxt, 0),
   d_decompositionLemmaQueue(ctxt),
+  d_smallPrimes(NULL),
   d_singleVarCutsInARow(0)
 {}
+
+DioSolver::~DioSolver(){
+  if( d_smallPrimes != NULL) {
+    delete d_smallPrimes;
+  }
+}
 
 DioSolver::Statistics::Statistics() :
   d_conflictCalls("theory::arith::dio::conflictCalls",0),
@@ -114,14 +121,14 @@ bool DioSolver::queueConditions(TrailIndex t){
   Debug("queueConditions") << !inConflict() << std::endl;
   Debug("queueConditions") << gcdIsOne(t) << std::endl;
   //This is no longer true of the queue
-  //Debug("queueConditions") << !debugAnySubstitionApplies(t) << std::endl;
+  Debug("queueConditions") << !debugAnySubstitionApplies(t) << std::endl;
   Debug("queueConditions") << !triviallySat(t) << std::endl;
   Debug("queueConditions") << !triviallyUnsat(t) << std::endl;
 
   return
     !inConflict() &&
     gcdIsOne(t) &&
-    //!debugAnySubstitionApplies(t) &&
+    !debugAnySubstitionApplies(t) &&
     !triviallySat(t) &&
     !triviallyUnsat(t);
 }
@@ -529,6 +536,8 @@ bool DioSolver::processEquations(){
 
       TrailIndex reducedMinimum = _applyAllSubstitutionsToIndex(minimum);
 
+      Assert(!debugAnySubstitionApplies(reducedMinimum));
+
       Debug("arith::dio") << "processEquations " << reducedMinimum
                           << " : " << d_trail[reducedMinimum].d_eq.getNode()
                           << endl;
@@ -544,13 +553,13 @@ bool DioSolver::processEquations(){
         }
         Assert(!triviallyUnsat(k));
         Assert(!triviallySat(k));
-
+        Assert(queueConditions(k));
         d_currentF.pop_front();
         if(canDirectlySolve(k)){
           solveIndex(k);
         }else{
           std::pair<DioSolver::SubIndex, DioSolver::TrailIndex> p;
-          p = decomposeIndex(minimum);
+          p = decomposeIndex(reducedMinimum);
           TrailIndex next = p.second;
           if(triviallyUnsat(next)){
             raiseConflict(next);
@@ -594,18 +603,59 @@ SumPair DioSolver::processEquationsForCut(){
   }
 }
 
-Integer heuristicFindFactor(const Integer& x){
+void DioSolver::generatePrimesUpTo(uint32_t N){
+  d_smallPrimes = new std::vector<Integer>();
+  d_smallPrimes->push_back(2);
+  d_smallPrimes->push_back(3);
+  d_smallPrimes->push_back(5);
+  // 0 mod 6 cannot be prime
+  // 1 mod 6
+  // 2 mod 6 cannot be prime
+  // 3 mod 6 cannot be prime
+  // 4 mod 6 cannot be prime
+  // 5 mod 6
+  for(uint32_t i = 6; i <= N; i+=6){
+    Integer j( i+1 );
+    Integer k (i+5);
+
+    bool failedJ = i + 1 > N;
+    bool failedK = i + 1 > N;
+
+    for(size_t ind = 0; !(failedJ && failedK) && ind < d_smallPrimes->size(); ++ind){
+      const Integer& p = (*d_smallPrimes)[ind];
+      if(!failedJ){
+        if(p.divides(j)){
+          failedJ = true;
+        }
+      }
+      if(!failedK){
+        if(p.divides(k)){
+          failedK = true;
+        }
+      }
+    }
+    if(!failedK){
+      d_smallPrimes->push_back(k);
+    }
+    if(!failedJ){
+      d_smallPrimes->push_back(j);
+    }
+  }
+}
+
+Integer DioSolver::heuristicFindFactor(const Integer& x){
   if(x.isOne()){
     return x;
   }else if(x.isZero()){
     return Integer(1);
   }else{
-    vector<Integer> smallPrimes;
-    smallPrimes.push_back(Integer(2));
-    smallPrimes.push_back(Integer(3));
-    smallPrimes.push_back(Integer(5));
-    smallPrimes.push_back(Integer(7));
-    for(size_t i=0; i < smallPrimes.size(); ++i){
+    if(d_smallPrimes == NULL){
+      generatePrimesUpTo(1000);
+      Assert(d_smallPrimes != NULL);
+    }
+    const std::vector<Integer>& smallPrimes = *d_smallPrimes;
+
+    for(size_t i=0, N = smallPrimes.size(); i < N; ++i){
       const Integer& p = smallPrimes[i];
       if(p.divides(x)){
         return p;
@@ -702,8 +752,6 @@ SumPair DioSolver::purifyIndex(TrailIndex i){
 
       SumPair inp = d_trail[multVar].d_eq;
       SumPair next = newConstraint + inp * Constant::mkConstant(Rational(dprime));
-      //cout << "newConstraint " << newConstraint.getNode() << endl;
-      //cout << "   -> " << next.getNode() << endl;
       newConstraint = next;
       d_singleVarCutsInARow = 0;
     }
@@ -803,11 +851,13 @@ DioSolver::TrailIndex DioSolver::_applyAllSubstitutionsToIndex(DioSolver::TrailI
     SubIndex subSelected = d_subs.size();
     Polynomial::iterator iter = csum.begin(), end = csum.end();
     for(; iter!= end; ++iter){
-      Assert(subSelected >= d_subs.size());
       Monomial m = *iter;
       VarList vl = m.getVarList();
       if(d_elimPos.contains(vl.getNode())){
-        subSelected = d_elimPos[vl.getNode()];
+        SubIndex subCurr = d_elimPos[vl.getNode()];
+        if(subCurr < subSelected){
+          subSelected = subCurr;
+        }
       }
     }
     if(subSelected < d_subs.size()){
@@ -822,7 +872,7 @@ DioSolver::TrailIndex DioSolver::_applyAllSubstitutionsToIndex(DioSolver::TrailI
   return currentIndex;
 }
 
-bool DioSolver::debugSubstitutionApplies(DioSolver::SubIndex si, DioSolver::TrailIndex ti){
+bool DioSolver::debugSubstitutionApplies(DioSolver::SubIndex si, DioSolver::TrailIndex ti) const {
   Variable var = d_subs[si].d_eliminated;
 
   const SumPair& curr = d_trail[ti].d_eq;
@@ -832,7 +882,7 @@ bool DioSolver::debugSubstitutionApplies(DioSolver::SubIndex si, DioSolver::Trai
   return !a.isZero();
 }
 
-bool DioSolver::debugAnySubstitionApplies(DioSolver::TrailIndex i){
+bool DioSolver::debugAnySubstitionApplies(DioSolver::TrailIndex i) const{
   for(SubIndex subIter = 0, siEnd = d_subs.size(); subIter < siEnd; ++subIter){
     if(debugSubstitutionApplies(subIter, i)){
       return true;
@@ -843,6 +893,8 @@ bool DioSolver::debugAnySubstitionApplies(DioSolver::TrailIndex i){
 
 std::pair<DioSolver::SubIndex, DioSolver::TrailIndex> DioSolver::solveIndex(DioSolver::TrailIndex i){
   TimerStat::CodeTimer codeTimer(d_statistics.d_solveIndexTimer);
+  Assert(!debugAnySubstitionApplies(i));
+
 
   const SumPair& si = d_trail[i].d_eq;
 
@@ -869,7 +921,7 @@ std::pair<DioSolver::SubIndex, DioSolver::TrailIndex> DioSolver::solveIndex(DioS
 
   SubIndex subBy = push_back_sub(Node::null(), var, ci);
 
-  Debug("arith::dio") << "after solveIndex " <<  d_trail[ci].d_eq.getNode() << " for " << av.getNode() << endl;
+  Debug("arith::dio") << "solveIndex " <<  d_trail[ci].d_eq.getNode() << " for " << av.getNode() << endl;
   Assert(d_trail[ci].d_eq.getPolynomial().getCoefficient(vl) == Constant::mkConstant(-1));
 
   return make_pair(subBy, i);
@@ -879,7 +931,7 @@ std::pair<DioSolver::SubIndex, DioSolver::TrailIndex> DioSolver::decomposeIndex(
   const SumPair& si = d_trail[i].d_eq;
 
   d_usedDecomposeIndex = true;
-
+  Assert(!debugAnySubstitionApplies(i));
   Debug("arith::dio") << "before decomposeIndex("<<i<<":"<<si.getNode()<< ")" << endl;
 
 #ifdef CVC4_ASSERTIONS
@@ -928,7 +980,6 @@ std::pair<DioSolver::SubIndex, DioSolver::TrailIndex> DioSolver::decomposeIndex(
   Debug("arith::dio") << "Decompose ci(" << ci <<":" <<  d_trail[ci].d_eq.getNode()
                       << ") for " << d_trail[i].d_minimalMonomial.getNode() << endl;
   Assert(d_trail[ci].d_eq.getPolynomial().getCoefficient(vl) == Constant::mkConstant(-1));
-
   SumPair newFact = r + fresh_a;
 
   TrailIndex nextIndex = d_trail.size();

@@ -192,6 +192,7 @@ public:
 
   /** Construct a Diophantine equation solver with the given context. */
   DioSolver(context::Context* ctxt);
+  ~DioSolver();
 
   /** Returns true if the substitutions use no new variables. */
   bool hasMorePureSubstitutions() const{
@@ -351,10 +352,16 @@ private:
   /** Returns true if the gcd of the i'th element of the trail is 1.*/
   bool gcdIsOne(TrailIndex t);
 
-  bool debugAnySubstitionApplies(TrailIndex t);
-  bool debugSubstitutionApplies(SubIndex si, TrailIndex ti);
+  bool debugAnySubstitionApplies(TrailIndex t) const;
+  bool debugSubstitutionApplies(SubIndex si, TrailIndex ti) const;
 
   bool debugIsZeroOn(TrailIndex ti, const Variable& v) const;
+
+  /** Heuristically tries to find a small factor of x. */
+  Integer heuristicFindFactor(const Integer& x);
+
+  void generatePrimesUpTo(uint32_t h);
+  std::vector<Integer>* d_smallPrimes;
 
 
   /** Returns true if the queue of nodes to process is empty. */
