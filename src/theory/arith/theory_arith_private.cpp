@@ -310,6 +310,7 @@ TheoryArithPrivate::Statistics::Statistics()
   , d_solveIntCalls("z::solveInt::calls", 0)
   , d_solveStandardEffort("z::solveInt::calls::standardEffort", 0)
   , d_approxDisabled("z::approxDisabled", 0)
+  , d_replayAttemptFailed("z::replayAttemptFailed",0)
   , d_satPivots("pivots::sat")
   , d_unsatPivots("pivots::unsat")
   , d_unknownPivots("pivots::unkown")
@@ -392,6 +393,7 @@ TheoryArithPrivate::Statistics::Statistics()
 
   StatisticsRegistry::registerStat(&d_approxDisabled);
 
+  StatisticsRegistry::registerStat(&d_replayAttemptFailed);
 }
 
 TheoryArithPrivate::Statistics::~Statistics(){
@@ -472,6 +474,8 @@ TheoryArithPrivate::Statistics::~Statistics(){
   StatisticsRegistry::unregisterStat(&d_solveStandardEffort);
 
   StatisticsRegistry::unregisterStat(&d_approxDisabled);
+
+  StatisticsRegistry::unregisterStat(&d_replayAttemptFailed);
 }
 
 void TheoryArithPrivate::revertOutOfConflict(){
@@ -2005,7 +2009,7 @@ bool TheoryArithPrivate::attemptSolveInteger(Theory::Effort effortLevel, bool em
     return true;
   }
 
-  if(d_lastContextIntegerAttempted <= 0){
+  if(!hasIntegerModel() && d_lastContextIntegerAttempted <= 0){
     static int instances = 0 ;
     instances++;
     // cout
@@ -2019,6 +2023,8 @@ bool TheoryArithPrivate::attemptSolveInteger(Theory::Effort effortLevel, bool em
     //   << endl;
     return true;
   }
+
+  if(!options::trySolveIntStandardEffort()){ return false; }
 
   if (d_lastContextIntegerAttempted <= (level >> 2)){
 
@@ -2066,6 +2072,9 @@ bool TheoryArithPrivate::replayLog(ApproximateSimplex* approx){
 
   for(size_t i =0, N = res.size(); i < N; ++i){
     raiseConflict(res[i]);
+  }
+  if(res.empty()){
+    ++d_statistics.d_replayAttemptFailed;
   }
   if(d_currentPropagationList.size() > enteringPropN){
     d_currentPropagationList.resize(enteringPropN);
@@ -2849,6 +2858,11 @@ bool TheoryArithPrivate::solveInteger(Theory::Effort effortLevel){
           d_likelyIntegerInfeasible = true;
           emittedConflictOrLemma = replayLog(approx);
         }
+        if(options::replayFailureLemma()){
+          if(!emittedConflictOrLemma){
+            emittedConflictOrLemma = replayLemmas(approx);
+          }
+        }
         break;
       case BranchesExhausted:
       case ExecExhausted:
@@ -3424,7 +3438,6 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
       Node possibleLemma = dioCutting();
       if(!possibleLemma.isNull()){
         Debug("arith") << "dio cut   " << possibleLemma << endl;
-        //cout << "dio cut   " << possibleLemma << endl;
         emmittedConflictOrSplit = true;
         d_hasDoneWorkSinceCut = false;
         d_cutCount = d_cutCount + 1;

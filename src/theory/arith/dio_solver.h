@@ -23,6 +23,7 @@
 #include "context/cdo.h"
 #include "context/cdlist.h"
 #include "context/cdqueue.h"
+#include "context/cdinsert_hashmap.h"
 
 #include "theory/arith/partial_model.h"
 #include "util/rational.h"
@@ -134,6 +135,19 @@ private:
   };
   context::CDList<Substitution> d_subs;
 
+  typedef context::CDInsertHashMap<Node, SubIndex, NodeHashFunction> ElimPositionMap;
+  ElimPositionMap d_elimPos;
+
+  SubIndex push_back_sub(Node f, const Variable& e, TrailIndex c){
+    Node eliminated = e.getNode();
+    Assert(!d_elimPos.contains(eliminated));
+    SubIndex at = d_subs.size();
+    d_subs.push_back(Substitution(f, e, c));
+    d_elimPos.insert(eliminated, at);
+    return at;
+  }
+
+
   /**
    * This is the queue of constraints to be processed in the current context level.
    * This is to be empty upon entering solver and cleared upon leaving the solver.
@@ -172,6 +186,7 @@ private:
    * Decomposition lemma queue.
    */
   context::CDQueue<TrailIndex> d_decompositionLemmaQueue;
+
 
 public:
 
@@ -303,12 +318,15 @@ private:
    * Exhaustively applies all substitutions discovered to an element of the trail.
    * Returns a TrailIndex corresponding to the substitutions being applied.
    */
-  TrailIndex applyAllSubstitutionsToIndex(TrailIndex i);
+  TrailIndex _applyAllSubstitutionsToIndex(TrailIndex i);
 
   /**
    * Applies a substitution to an element in the trail.
    */
-  TrailIndex applySubstitution(SubIndex s, TrailIndex i);
+  TrailIndex _applySubstitution(SubIndex s, TrailIndex i);
+
+  /* The fully substituted index at i can be directly solved. */
+  bool canDirectlySolve(TrailIndex i) const;
 
   /**
    * Reduces the trail node at i by the gcd of the variables.
@@ -335,6 +353,8 @@ private:
 
   bool debugAnySubstitionApplies(TrailIndex t);
   bool debugSubstitutionApplies(SubIndex si, TrailIndex ti);
+
+  bool debugIsZeroOn(TrailIndex ti, const Variable& v) const;
 
 
   /** Returns true if the queue of nodes to process is empty. */
@@ -369,7 +389,7 @@ private:
    *
    * decomposeIndex() rule is only applied if allowDecomposition is true.
    */
-  bool processEquations(bool allowDecomposition);
+  bool processEquations();
 
   /**
    * Constructs a proof from any d_trail[i] in terms of input literals.
@@ -398,6 +418,8 @@ private:
   Node trailIndexToEquality(TrailIndex i) const;
   void addTrailElementAsLemma(TrailIndex i);
 
+  uint32_t d_singleVarCutsInARow;
+
 public:
 
   /** These fields are designed to be accessible to TheoryArith methods. */
@@ -412,6 +434,16 @@ public:
 
     TimerStat d_conflictTimer;
     TimerStat d_cutTimer;
+
+    TimerStat d_enqueueInputConstraintsTimer;
+    TimerStat d_pushInputConstraintsTimer;
+    TimerStat d_scaleEqAtIndexTimer;
+    TimerStat d_moveMinimumByAbsToQueueFrontTimer;
+    TimerStat d_impliedGcdOfOneTimer;
+    TimerStat d_columnGcdIsOneTimer;
+    TimerStat d_solveIndexTimer;
+    TimerStat d_reduceByGCDTimer;
+    TimerStat d_subAndReduceCurrentFByIndexTimer;
 
     Statistics();
     ~Statistics();

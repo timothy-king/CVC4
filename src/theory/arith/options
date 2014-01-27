@@ -106,4 +106,16 @@ option soiQuickExplain --soi-qe bool :default false :read-write
 option rewriteDivk rewrite-divk --rewrite-divk bool :default false
  rewrite division and mod when by a constant into linear terms
 
+option trySolveIntStandardEffort --se-solve-int bool :default false
+ attempt to use the approximate solve integer method on standard effort
+
+option replayFailureLemma --lemmas-on-replay-failure bool :default false
+ attempt to use external lemmas if approximate solve integer failed
+
+option oldDio --old-dio bool :default false
+ use the old dio solver
+
+option massageCut --massage-cut bool :default false
+ massage cuts after a while
+
 endmodule

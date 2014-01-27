@@ -744,6 +744,7 @@ private:
       d_solveStandardEffort;
 
     IntStat d_approxDisabled;
+    IntStat d_replayAttemptFailed;
 
     HistogramStat<uint32_t> d_satPivots;
     HistogramStat<uint32_t> d_unsatPivots;
