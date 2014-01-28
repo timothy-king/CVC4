@@ -128,6 +128,7 @@ private:
   //                     if unknown, the simplex priority queue cannot be emptied
   int d_unknownsInARow;
 
+  bool d_replayedLemmas;
 
   /**
    * This counter is false if nothing has been done since the last cut.
@@ -614,7 +615,7 @@ private:
     (d_containing.d_out)->setIncomplete();
     d_nlIncomplete = true;
   }
-  inline void outputLemma(TNode lem) { (d_containing.d_out)->lemma(lem); }
+  void outputLemma(TNode lem);
   inline void outputPropagate(TNode lit) { (d_containing.d_out)->propagate(lit); }
   inline void outputRestart() { (d_containing.d_out)->demandRestart(); }
 

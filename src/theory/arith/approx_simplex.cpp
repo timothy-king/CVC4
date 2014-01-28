@@ -1685,8 +1685,12 @@ std::vector<const CutInfo*> ApproxGLPK::getValidCuts(const NodeLog& con) throw (
   int nid = con.getNodeId();
   for(NodeLog::const_iterator j = con.begin(), jend=con.end(); j!=jend; ++j){
     CutInfo* cut = *j;
+
     if(cut->getKlass() != RowsDeletedKlass){
-      tryCut(nid, *cut);
+      if(!cut->reconstructed()){
+        Assert(!cut->reconstructed());
+        tryCut(nid, *cut);
+      }
     }
 
     if(cut->proven()){
@@ -3091,6 +3095,7 @@ bool ApproxGLPK::constructGmiCut(){
 }
 
 void ApproxGLPK::tryCut(int nid, CutInfo& cut) throw (RationalFromDoubleException){
+  Assert(!cut.reconstructed());
   Assert(cut.getKlass() != RowsDeletedKlass);
   bool failure = false;
   switch(cut.getKlass()){
