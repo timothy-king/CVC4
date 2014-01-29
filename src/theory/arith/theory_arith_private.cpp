@@ -2610,14 +2610,18 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
     }
     resolveOutPropagated(res, propagated);
     Debug("approx::replayLogRec") << "replayLogRec() ending" << std::endl;
+
+
+    if(options::replayFailureLemma()){
+      // must be done inside the sat context to get things
+      // propagated at this level
+      if(res.empty() && nid == getTreeLog().getRootId()){
+        Assert(!d_replayedLemmas);
+        d_replayedLemmas = replayLemmas(approx);
+      }
+    }
   } /* pop the sat context */
 
-  if(options::replayFailureLemma()){
-    if(res.empty() && nid == getTreeLog().getRootId()){
-      Assert(!d_replayedLemmas);
-      d_replayedLemmas = replayLemmas(approx);
-    }
-  }
 
   /* Garbage collect the constraints from this call */
   while(d_replayConstraints.size() > rpcons_size){
