@@ -2618,9 +2618,23 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
       if(res.empty() && nid == getTreeLog().getRootId()){
         Assert(!d_replayedLemmas);
         d_replayedLemmas = replayLemmas(approx);
+        Assert(d_acTmp.empty());
+        while(!d_approxCuts.empty()){
+          Node lem = d_approxCuts.front();
+          d_approxCuts.pop();
+          d_acTmp.push_back(lem);
+        }
       }
     }
   } /* pop the sat context */
+
+  /* move into the current context. */
+  while(!d_acTmp.empty()){
+    Node lem = d_acTmp.back();
+    d_acTmp.pop_back();
+    d_approxCuts.push_back(lem);
+  }
+  Assert(d_acTmp.empty());
 
 
   /* Garbage collect the constraints from this call */
@@ -2798,9 +2812,8 @@ bool TheoryArithPrivate::safeToCallApprox() const{
 //   case Unknown:
 //   case Error
 //     if()
-bool TheoryArithPrivate::solveInteger(Theory::Effort effortLevel){
-  if(!safeToCallApprox()) { return false; }
-  bool emittedConflictOrLemma = false;
+void TheoryArithPrivate::solveInteger(Theory::Effort effortLevel){
+  if(!safeToCallApprox()) { return; }
 
   Assert(safeToCallApprox());
   TimerStat::CodeTimer codeTimer(d_statistics.d_solveIntTimer);
@@ -2872,16 +2885,7 @@ bool TheoryArithPrivate::solveInteger(Theory::Effort effortLevel){
         mipRes = approx->solveMIP(true);
         if(mipRes == MipClosed){
           d_likelyIntegerInfeasible = true;
-          emittedConflictOrLemma = replayLog(approx);
-          // if(emittedConflictOrLemma){
-          //   cout << "closed" << endl;
-          // }
-        }
-        if(options::replayFailureLemma()){
-          // if(d_replayedLemmas){
-          //   cout << "d_replayedLemmas" << endl;
-          // }
-          emittedConflictOrLemma = emittedConflictOrLemma || d_replayedLemmas;
+          replayLog(approx);
         }
         break;
       case BranchesExhausted:
@@ -2898,10 +2902,7 @@ bool TheoryArithPrivate::solveInteger(Theory::Effort effortLevel){
         approx->setPivotLimit(2*mipLimit);
         approx->setBranchingDepth(2);
         mipRes = approx->solveMIP(true);
-        emittedConflictOrLemma = replayLemmas(approx);
-        // if(emittedConflictOrLemma){
-        //   cout << "replayLemmas norm" << endl;
-        // }
+        replayLemmas(approx);
         break;
       case MipUnknown:
         break;
@@ -2913,13 +2914,12 @@ bool TheoryArithPrivate::solveInteger(Theory::Effort effortLevel){
   delete approx;
 
   if(!Theory::fullEffort(effortLevel)){
-    if(emittedConflictOrLemma){
+    if(anyConflict() || !d_approxCuts.empty()){
       d_solveIntMaybeHelp++;
     }
   }
 
   d_statistics.d_inSolveInteger.setData(0);
-  return emittedConflictOrLemma;
 }
 
 SimplexDecisionProcedure& TheoryArithPrivate::selectSimplex(bool pass1){
@@ -3313,12 +3313,21 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
   Assert(d_conflicts.empty());
 
   bool useSimplex = d_qflraStatus != Result::SAT;
+  Debug("arith::ems") << "ems: " << emmittedConflictOrSplit
+                      << "pre realRelax" << endl;
+
   if(useSimplex){
     emmittedConflictOrSplit = solveRealRelaxation(effortLevel);
   }
-  //cout << "solveRealRelaxation" << emmittedConflictOrSplit << endl;
+  Debug("arith::ems") << "ems: " << emmittedConflictOrSplit
+                      << "post realRelax" << endl;
+
+
+  Debug("arith::ems") << "ems: " << emmittedConflictOrSplit
+                      << "pre solveInteger" << endl;
+
   if(attemptSolveInteger(effortLevel, emmittedConflictOrSplit)){
-    bool foundSomething = solveInteger(effortLevel);
+    solveInteger(effortLevel);
     if(anyConflict()){
       ++d_statistics.d_commitsOnConflicts;
       Debug("arith::bt") << "committing here " << " " << newFacts << " " << previous << " " << d_qflraStatus  << endl;
@@ -3327,16 +3336,10 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
       outputConflicts();
       return;
     }
-    //if( Theory::fullEffort(effortLevel) && foundSomething ){
-      //cout << "foundSomething on final" << endl;
-    //}
-    emmittedConflictOrSplit = emmittedConflictOrSplit || foundSomething;
-    //  if(emmittedConflictOrSplit){
-    //   cout << "solve integer found something " << endl;
-    // }
   }
 
-
+  Debug("arith::ems") << "ems: " << emmittedConflictOrSplit
+                      << "post solveInteger" << endl;
 
   switch(d_qflraStatus){
   case Result::SAT:
@@ -3394,7 +3397,7 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
     }
     outputConflicts();
     emmittedConflictOrSplit = true;
-    //cout << "simplex unsat " << endl;
+    Debug("arith::conflict") << "simplex conflict" << endl;
 
     if(useSimplex && options::collectPivots()){
       if(options::useFC()){
@@ -3409,6 +3412,8 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
   }
   d_statistics.d_avgUnknownsInARow.addEntry(d_unknownsInARow);
 
+  Debug("arith::ems") << "ems: " << emmittedConflictOrSplit
+                      << "pre approx cuts" << endl;
   if(!d_approxCuts.empty()){
     bool anyFresh = false;
     while(!d_approxCuts.empty()){
@@ -3416,12 +3421,16 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
       d_approxCuts.pop();
       Debug("arith::approx::cuts") << "approximate cut:" << lem << endl;
       anyFresh = anyFresh || hasFreshArithLiteral(lem);
+      Debug("arith::lemma") << "approximate cut:" << lem << endl;
       outputLemma(lem);
     }
     if(anyFresh){
       emmittedConflictOrSplit = true;
     }
   }
+
+  Debug("arith::ems") << "ems: " << emmittedConflictOrSplit
+                      << "post approx cuts" << endl;
 
   // This should be fine if sat or unknown
   if(!emmittedConflictOrSplit &&
@@ -3476,6 +3485,7 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
       //cout << "unate conflict " << endl;
       Debug("arith::bt") << "committing on unate conflict" << " " << newFacts << " " << previous << " " << d_qflraStatus  << endl;
 
+      Debug("arith::conflict") << "unate arith conflict" << endl;
     }
   }else{
     TimerStat::CodeTimer codeTimer(d_statistics.d_newPropTime);
@@ -3483,15 +3493,18 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
   }
   Assert( d_currentPropagationList.empty());
 
+  Debug("arith::ems") << "ems: " << emmittedConflictOrSplit
+                      << "post unate" << endl;
+
   if(!emmittedConflictOrSplit && Theory::fullEffort(effortLevel)){
     ++d_fullCheckCounter;
   }
   if(!emmittedConflictOrSplit && Theory::fullEffort(effortLevel)){
     emmittedConflictOrSplit = splitDisequalities();
-    // if(emmittedConflictOrSplit){
-    //   cout << "split diseq" << endl;
-    // }
   }
+  Debug("arith::ems") << "ems: " << emmittedConflictOrSplit
+                      << "pos splitting" << endl;
+
 
   Debug("arith") << "integer? "
        << " conf/split " << emmittedConflictOrSplit
@@ -3505,23 +3518,20 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
       if(possibleConflict != Node::null()){
         revertOutOfConflict();
         Debug("arith::conflict") << "dio conflict   " << possibleConflict << endl;
-        //cout << "dio conflict   " << possibleConflict << endl;
         blackBoxConflict(possibleConflict);
         outputConflicts();
         emmittedConflictOrSplit = true;
-        //cout << "bbc" << possibleConflict << endl;
       }
     }
 
     if(!emmittedConflictOrSplit && d_hasDoneWorkSinceCut && options::arithDioSolver()){
       Node possibleLemma = dioCutting();
       if(!possibleLemma.isNull()){
-        Debug("arith") << "dio cut   " << possibleLemma << endl;
         emmittedConflictOrSplit = true;
         d_hasDoneWorkSinceCut = false;
         d_cutCount = d_cutCount + 1;
+        Debug("arith::lemma") << "dio cut   " << possibleLemma << endl;
         outputLemma(possibleLemma);
-        //cout << "dio" << possibleLemma << endl;
       }
     }
 
@@ -3531,8 +3541,10 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
         ++(d_statistics.d_externalBranchAndBounds);
         d_cutCount = d_cutCount + 1;
         emmittedConflictOrSplit = true;
+        Debug("arith::lemma") << "rrbranch lemma"
+                              << possibleLemma << endl;
         outputLemma(possibleLemma);
-        //cout << "rrb" << possibleLemma << endl;
+
       }
     }
 
@@ -3540,11 +3552,12 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
       if(d_diosolver.hasMoreDecompositionLemmas()){
         while(d_diosolver.hasMoreDecompositionLemmas()){
           Node decompositionLemma = d_diosolver.nextDecompositionLemma();
-          Debug("arith") << "dio decomposition lemma   " << decompositionLemma << endl;
+          Debug("arith::lemma") << "dio decomposition lemma "
+                                << decompositionLemma << endl;
           outputLemma(decompositionLemma);
-          //cout << "decomp" << decompositionLemma << endl;
         }
       }else{
+        Debug("arith::restart") << "arith restart!" << endl;
         outputRestart();
       }
     }

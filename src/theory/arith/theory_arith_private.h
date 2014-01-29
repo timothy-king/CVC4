@@ -352,7 +352,7 @@ private:
    */
   bool attemptSolveInteger(Theory::Effort effortLevel, bool emmmittedLemmaOrSplit);
   bool replayLemmas(ApproximateSimplex* approx);
-  bool solveInteger(Theory::Effort effortLevel);
+  void solveInteger(Theory::Effort effortLevel);
   bool safeToCallApprox() const;
   SimplexDecisionProcedure& selectSimplex(bool pass1);
   SimplexDecisionProcedure* d_pass1SDP;
@@ -627,6 +627,7 @@ private:
   }
 
   context::CDQueue<Node> d_approxCuts;
+  std::vector<Node> d_acTmp;
 
   /** Counts the number of fullCheck calls to arithmetic. */
   uint32_t d_fullCheckCounter;
