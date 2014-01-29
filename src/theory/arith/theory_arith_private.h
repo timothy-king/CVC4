@@ -661,13 +661,18 @@ private:
   void tryBranchCut(ApproximateSimplex* approx, int nid, BranchCutInfo& bl);
   std::vector<ConstraintCPVec> replayLogRec(ApproximateSimplex* approx, int nid, ConstraintP bc);
 
-
   std::pair<ConstraintP, ArithVar> replayGetConstraint(const CutInfo& info);
   std::pair<ConstraintP, ArithVar> replayGetConstraint(ApproximateSimplex* approx, const NodeLog& nl) throw(RationalFromDoubleException);
   std::pair<ConstraintP, ArithVar> replayGetConstraint(const DenseMap<Rational>& lhs, Kind k, const Rational& rhs, bool branch);
 
   void replayAssert(ConstraintP c);
   //ConstConstraintVec toExplanation(Node n) const;
+
+  // Returns true if the node contains a literal
+  // that is an arithmetic literal and is not a sat literal
+  // No caching is done so this should likely only
+  // be called carefully!
+  bool hasFreshArithLiteral(Node n) const;
 
   uint32_t d_solveIntMaybeHelp, d_solveIntAttempts;
 

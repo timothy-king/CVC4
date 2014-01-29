@@ -1964,7 +1964,6 @@ void TheoryArithPrivate::outputConflicts(){
   }
 }
 void TheoryArithPrivate::outputLemma(TNode lem) {
-  //cout << "outputLemma " <<  lem << endl;
   (d_containing.d_out)->lemma(lem);
 }
 
@@ -2741,8 +2740,8 @@ bool TheoryArithPrivate::replayLemmas(ApproximateSimplex* approx){
         anythingnew = anythingnew || !isSatLiteral(implied);
 
         Node implication = asLemma.impNode(implied);
-
-        outputLemma(implication);
+        // DO NOT CALL OUTPUT LEMMA!
+        d_approxCuts.push_back(implication);
         Debug("approx::lemmas") << "cut["<<i<<"] " << implication << endl;
         ++(d_statistics.d_mipExternalCuts);
       }
@@ -2752,7 +2751,7 @@ bool TheoryArithPrivate::replayLemmas(ApproximateSimplex* approx){
       if(!lit.isNull()){
         anythingnew = anythingnew || !isSatLiteral(lit);
         Node branch = lit.orNode(lit.notNode());
-        outputLemma(branch);
+        d_approxCuts.push_back(branch);
         ++(d_statistics.d_mipExternalBranch);
         Debug("approx::lemmas") << "branching "<< root <<" as " << branch << endl;
       }
@@ -2990,7 +2989,7 @@ bool TheoryArithPrivate::solveRelaxationOrPanic(Theory::Effort effortLevel){
       Assert(branch.getKind() == kind::OR);
       Node rwbranch = Rewriter::rewrite(branch[0]);
       if(!isSatLiteral(rwbranch)){
-        outputLemma(branch);
+        d_approxCuts.push_back(branch);
         return true;
       }
     }
@@ -3209,6 +3208,39 @@ bool TheoryArithPrivate::solveRealRelaxation(Theory::Effort effortLevel){
 //   return emmittedConflictOrSplit;
 // }
 
+bool TheoryArithPrivate::hasFreshArithLiteral(Node n) const{
+  switch(n.getKind()){
+  case kind::LEQ:
+  case kind::GEQ:
+  case kind::GT:
+  case kind::LT:
+    return !isSatLiteral(n);
+  case kind::EQUAL:
+    if(n[0].getType().isReal()){
+      return !isSatLiteral(n);
+    }else if(n[0].getType().isBoolean()){
+      return hasFreshArithLiteral(n[0]) ||
+        hasFreshArithLiteral(n[1]);
+    }else{
+      return false;
+    }
+  case kind::IMPLIES:
+    // try the rhs first
+    return hasFreshArithLiteral(n[1]) ||
+      hasFreshArithLiteral(n[0]);
+  default:
+    if(n.getType().isBoolean()){
+      for(Node::iterator ni=n.begin(), nend=n.end(); ni!=nend; ++ni){
+        Node child = *ni;
+        if(hasFreshArithLiteral(child)){
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+}
+
 void TheoryArithPrivate::check(Theory::Effort effortLevel){
   Assert(d_currentPropagationList.empty());
   //cout << "TheoryArithPrivate::check " << effortLevel << std::endl;
@@ -3373,14 +3405,17 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
   }
   d_statistics.d_avgUnknownsInARow.addEntry(d_unknownsInARow);
 
-  if(!emmittedConflictOrSplit && !d_approxCuts.empty()){
+  if(!d_approxCuts.empty()){
+    bool anyFresh = false;
     while(!d_approxCuts.empty()){
       Node lem = d_approxCuts.front();
       d_approxCuts.pop();
       Debug("arith::approx::cuts") << "approximate cut:" << lem << endl;
+      anyFresh = anyFresh || hasFreshArithLiteral(lem);
       outputLemma(lem);
+    }
+    if(anyFresh){
       emmittedConflictOrSplit = true;
-      //cout << "approx cuts" << endl;
     }
   }
 
