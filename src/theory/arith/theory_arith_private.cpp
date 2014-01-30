@@ -2887,6 +2887,9 @@ void TheoryArithPrivate::solveInteger(Theory::Effort effortLevel){
           d_likelyIntegerInfeasible = true;
           replayLog(approx);
         }
+        if(!(anyConflict() || !d_approxCuts.empty())){
+          turnOffApprox();
+        }
         break;
       case BranchesExhausted:
       case ExecExhausted:
