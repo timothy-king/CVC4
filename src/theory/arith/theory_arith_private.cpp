@@ -138,6 +138,7 @@ TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context
   d_lhsTmp(),
   d_approxStats(NULL),
   d_approxDisabled(u, false),
+  d_dioSolveResources(0),
   d_solveIntMaybeHelp(0u),
   d_solveIntAttempts(0u),
   d_statistics()
@@ -519,6 +520,22 @@ void TheoryArithPrivate::zeroDifferenceDetected(ArithVar x){
     }else{
       d_congruenceManager.watchedVariableIsZero(lb, ub);
     }
+  }
+}
+
+bool TheoryArithPrivate::getDioCuttingResource(){
+  if(d_dioSolveResources > 0){
+    d_dioSolveResources--;
+    if(d_dioSolveResources == 0){
+      d_dioSolveResources = -options::rrTurns();
+    }
+    return true;
+  }else{
+    d_dioSolveResources++;
+    if(d_dioSolveResources >= 0){
+      d_dioSolveResources = options::dioSolverTurns();
+    }
+    return false;
   }
 }
 
@@ -3528,13 +3545,15 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
     }
 
     if(!emmittedConflictOrSplit && d_hasDoneWorkSinceCut && options::arithDioSolver()){
-      Node possibleLemma = dioCutting();
-      if(!possibleLemma.isNull()){
-        emmittedConflictOrSplit = true;
-        d_hasDoneWorkSinceCut = false;
-        d_cutCount = d_cutCount + 1;
-        Debug("arith::lemma") << "dio cut   " << possibleLemma << endl;
-        outputLemma(possibleLemma);
+      if(getDioCuttingResource()){
+        Node possibleLemma = dioCutting();
+        if(!possibleLemma.isNull()){
+          emmittedConflictOrSplit = true;
+          d_hasDoneWorkSinceCut = false;
+          d_cutCount = d_cutCount + 1;
+          Debug("arith::lemma") << "dio cut   " << possibleLemma << endl;
+          outputLemma(possibleLemma);
+        }
       }
     }
 

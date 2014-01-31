@@ -112,10 +112,13 @@ option trySolveIntStandardEffort --se-solve-int bool :default false
 option replayFailureLemma --lemmas-on-replay-failure bool :default false
  attempt to use external lemmas if approximate solve integer failed
 
-option oldDio --old-dio bool :default false
- use the old dio solver
+option dioSolverTurns --dio-turns int :default 10
+ turns in a row dio solver cutting gets
 
-option massageCut --massage-cut bool :default false
- massage cuts after a while
+option rrTurns --rr-turns int :default 3
+ round robin turn
+
+option dioRepeat --dio-repeat bool :default false
+ handle dio solver constraints in mass or one at a time
 
 endmodule

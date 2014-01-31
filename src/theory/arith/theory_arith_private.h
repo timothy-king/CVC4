@@ -675,6 +675,9 @@ private:
   // be called carefully!
   bool hasFreshArithLiteral(Node n) const;
 
+  int32_t d_dioSolveResources;
+  bool getDioCuttingResource();
+
   uint32_t d_solveIntMaybeHelp, d_solveIntAttempts;
 
   /** These fields are designed to be accessible to TheoryArith methods. */
