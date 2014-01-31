@@ -1369,6 +1369,8 @@ public:
     return parse.isNormalForm();
   }
 
+  size_t getComplexity() const;
+
   SumPair toSumPair() const;
 
   Polynomial normalizedVariablePart() const;

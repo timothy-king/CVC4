@@ -665,6 +665,22 @@ bool Comparison::rightIsConstant() const {
   }
 }
 
+size_t Comparison::getComplexity() const{
+  switch(comparisonKind()){
+  case kind::CONST_BOOLEAN: return 1;
+  case kind::LT:
+  case kind::LEQ:
+  case kind::DISTINCT:
+  case kind::EQUAL:
+  case kind::GT:
+  case kind::GEQ:
+    return getLeft().getComplexity() +  getRight().getComplexity();
+  default:
+    Unhandled(comparisonKind());
+    return -1;
+  }
+}
+
 Polynomial Comparison::getLeft() const {
   TNode left;
   Kind k = comparisonKind();
