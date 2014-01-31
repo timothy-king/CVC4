@@ -259,6 +259,10 @@ public:
 
   int getRootId() const;
 
+  uint32_t numNodes() const{
+    return d_toNode.size();
+  }
+
   NodeLog& getRootNode();
   void printBranchInfo(std::ostream& os) const;
 };
