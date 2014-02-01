@@ -171,6 +171,10 @@ public:
   /** Estimates a rational as a continued fraction expansion.*/
   //static Rational estimateWithCFE(const Rational& q, int depth);
   static Rational estimateWithCFE(const Rational& q, const Integer& K);
+
+
+  virtual double sumInfeasibilities(bool mip) const = 0;
+
 };/* class ApproximateSimplex */
 
 

@@ -657,10 +657,10 @@ private:
   ApproximateStatistics* d_approxStats;
   ApproximateStatistics& getApproxStats();
   context::CDO<bool> d_approxDisabled;
-  void turnOffApprox();
+  void turnOffApproxFor(int rounds);
 
   void tryBranchCut(ApproximateSimplex* approx, int nid, BranchCutInfo& bl);
-  std::vector<ConstraintCPVec> replayLogRec(ApproximateSimplex* approx, int nid, ConstraintP bc);
+  std::vector<ConstraintCPVec> replayLogRec(ApproximateSimplex* approx, int nid, ConstraintP bc, int32_t depth);
 
   std::pair<ConstraintP, ArithVar> replayGetConstraint(const CutInfo& info);
   std::pair<ConstraintP, ArithVar> replayGetConstraint(ApproximateSimplex* approx, const NodeLog& nl) throw(RationalFromDoubleException);
@@ -679,6 +679,9 @@ private:
   bool getDioCuttingResource();
 
   uint32_t d_solveIntMaybeHelp, d_solveIntAttempts;
+
+  int32_t d_attemptSolveIntTurnedOff;
+  bool getSolveIntegerResource();
 
   /** These fields are designed to be accessible to TheoryArith methods. */
   class Statistics {
@@ -752,6 +755,9 @@ private:
 
     IntStat d_solveIntCalls,
       d_solveStandardEffort;
+
+    IntStat d_cutsRejectedDuringReplay;
+    IntStat d_cutsRejectedDuringLemmas;
 
     IntStat d_approxDisabled;
     IntStat d_replayAttemptFailed;

@@ -569,7 +569,7 @@ private:
   bool loadVB(int nid, int M, int j, int ri, bool wantUb, VirtualBound& tmp);
 
 
-
+  double sumInfeasibilities(bool mip) const;
   double sumInfeasibilities(glp_prob* prob, bool mip) const;
 };
 
@@ -1150,6 +1150,10 @@ ApproximateSimplex::Solution ApproxGLPK::extractSolution(bool mip) const throw (
   return sol;
 }
 
+double ApproxGLPK::sumInfeasibilities(bool mip) const{
+  return sumInfeasibilities(mip ? d_mipProb: d_realProb, mip);
+}
+
 double ApproxGLPK::sumInfeasibilities(glp_prob* prob, bool mip) const{
   /* compute the sum of dual infeasibilities */
   double infeas = 0.0;
@@ -1179,7 +1183,7 @@ double ApproxGLPK::sumInfeasibilities(glp_prob* prob, bool mip) const{
       if(newAssign > ub){
         double ubinf = newAssign - ub;
         infeas += ubinf;
-        cout << "ub inf" << vi << " " << ubinf << " " << infeas << endl;
+        Debug("approx::soi") << "ub inf" << vi << " " << ubinf << " " << infeas << endl;
       }
     }
     if(lb != -DBL_MAX){
@@ -1187,7 +1191,7 @@ double ApproxGLPK::sumInfeasibilities(glp_prob* prob, bool mip) const{
         double lbinf = lb - newAssign;
         infeas  += lbinf;
 
-        cout << "lb inf" << vi << " " << lbinf << " " << infeas << endl;
+        Debug("approx::soi") << "lb inf" << vi << " " << lbinf << " " << infeas << endl;
       }
     }
   }
