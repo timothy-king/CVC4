@@ -83,6 +83,8 @@ namespace CVC4 {
 namespace theory {
 namespace arith {
 
+static const int32_t HUGE_PENALTY = 1<<22;
+
 static Node toSumNode(const ArithVariables& vars, const DenseMap<Rational>& sum);
 static double fRand(double fMin, double fMax);
 
@@ -137,7 +139,7 @@ TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context
   d_replayConstraints(),
   d_lhsTmp(),
   d_approxStats(NULL),
-  d_approxDisabled(u, false),
+  d_attemptSolveIntTurnedOff(u, 0),
   d_dioSolveResources(0),
   d_solveIntMaybeHelp(0u),
   d_solveIntAttempts(0u),
@@ -520,6 +522,15 @@ void TheoryArithPrivate::zeroDifferenceDetected(ArithVar x){
     }else{
       d_congruenceManager.watchedVariableIsZero(lb, ub);
     }
+  }
+}
+
+bool TheoryArithPrivate::getSolveIntegerResource(){
+  if(d_attemptSolveIntTurnedOff > 0){
+    d_attemptSolveIntTurnedOff = d_attemptSolveIntTurnedOff - 1;
+    return true;
+  }else{
+    return false;
   }
 }
 
@@ -2012,36 +2023,13 @@ bool TheoryArithPrivate::attemptSolveInteger(Theory::Effort effortLevel, bool em
   if(emmmittedLemmaOrSplit){ return false; }
   if(!options::useApprox()){ return false; }
   if(!ApproximateSimplex::enabled()){ return false; }
-  if( d_approxDisabled.get() ){ return false; }
 
   if(Theory::fullEffort(effortLevel) && !hasIntegerModel()){
-    static int instances = 0 ;
-    instances++;
-    // cout
-    //   << "attemptSolveInteger 1:" << instances
-    //   << d_qflraStatus
-    //   << " " << emmmittedLemmaOrSplit
-    //   << " " << effortLevel
-    //   << " " << d_lastContextIntegerAttempted
-    //   << " " << level
-    //   << " " << hasIntegerModel()
-    //   << endl;
-    return true;
+    return getSolveIntegerResource();
   }
 
   if(!hasIntegerModel() && d_lastContextIntegerAttempted <= 0){
-    static int instances = 0 ;
-    instances++;
-    // cout
-    //   << "attemptSolveInteger 2: "  << instances
-    //   << d_qflraStatus
-    //   << " " << emmmittedLemmaOrSplit
-    //   << " " << effortLevel
-    //   << " " << d_lastContextIntegerAttempted
-    //   << " " << level
-    //   << " " << hasIntegerModel()
-    //   << endl;
-    return true;
+    return getSolveIntegerResource();
   }
 
   if(!options::trySolveIntStandardEffort()){ return false; }
@@ -2050,20 +2038,8 @@ bool TheoryArithPrivate::attemptSolveInteger(Theory::Effort effortLevel, bool em
 
     double d = (double)(d_solveIntMaybeHelp + 1) / (d_solveIntAttempts + 1 + level*level);
     double t = fRand(0.0, 1.0);
-    //cout << "d " << d << " t " << t << endl;
     if(t < d){
-      static int instances = 0 ;
-      instances++;
-      // cout
-      //   << "attemptSolveInteger 3: "  << instances
-      //   << " " << d_qflraStatus
-      //   << " " << emmmittedLemmaOrSplit
-      //   << " " << effortLevel
-      //   << " " << d_lastContextIntegerAttempted
-      //   << " " << level
-      //   << " " << hasIntegerModel()
-      //   << endl;
-      return true;
+      return getSolveIntegerResource();
     }
   }
   return false;
@@ -2089,7 +2065,7 @@ bool TheoryArithPrivate::replayLog(ApproximateSimplex* approx){
     d_cmEnabled = false;
     res = replayLogRec(approx, tl.getRootId(), NullConstraint);
   }catch(RationalFromDoubleException& rfde){
-    turnOffApprox();
+    turnOffApproxFor(HUGE_PENALTY);
   }
 
   for(size_t i =0, N = res.size(); i < N; ++i){
@@ -2793,13 +2769,13 @@ bool TheoryArithPrivate::replayLemmas(ApproximateSimplex* approx){
     }
     return anythingnew;
   }catch(RationalFromDoubleException& rfde){
-    turnOffApprox();
+    turnOffApproxFor(HUGE_PENALTY);
     return false;
   }
 }
 
-void TheoryArithPrivate::turnOffApprox(){
-  d_approxDisabled.set(true);
+void TheoryArithPrivate::turnOffApproxFor(int32_t rounds){
+  d_attemptSolveIntTurnedOff = d_attemptSolveIntTurnedOff + rounds;
   ++(d_statistics.d_approxDisabled);
 }
 
@@ -2905,7 +2881,7 @@ void TheoryArithPrivate::solveInteger(Theory::Effort effortLevel){
           replayLog(approx);
         }
         if(!(anyConflict() || !d_approxCuts.empty())){
-          turnOffApprox();
+          turnOffApproxFor(HUGE_PENALTY);
         }
         break;
       case BranchesExhausted:
@@ -2929,7 +2905,7 @@ void TheoryArithPrivate::solveInteger(Theory::Effort effortLevel){
       }
     }
   }catch(RationalFromDoubleException& rfde){
-    turnOffApprox();
+    turnOffApproxFor(HUGE_PENALTY);
   }
   delete approx;
 
@@ -3037,7 +3013,7 @@ bool TheoryArithPrivate::solveRealRelaxation(Theory::Effort effortLevel){
 
   SimplexDecisionProcedure& simplex = selectSimplex(true);
 
-  bool useApprox = options::useApprox() && ApproximateSimplex::enabled() && !(d_approxDisabled.get());
+  bool useApprox = options::useApprox() && ApproximateSimplex::enabled() && getSolveIntegerResource();
 
   bool noPivotLimitPass1 = noPivotLimit && !useApprox;
   d_qflraStatus = simplex.findModel(noPivotLimitPass1);
@@ -3097,7 +3073,7 @@ bool TheoryArithPrivate::solveRealRelaxation(Theory::Effort effortLevel){
         break;
       }
     }catch(RationalFromDoubleException& rfde){
-      turnOffApprox();
+      turnOffApproxFor(HUGE_PENALTY);
     }
     delete approxSolver;
 

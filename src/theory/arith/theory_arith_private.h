@@ -656,8 +656,9 @@ private:
   /* Approximate simpplex solvers are given a copy of their stats */
   ApproximateStatistics* d_approxStats;
   ApproximateStatistics& getApproxStats();
-  context::CDO<bool> d_approxDisabled;
-  void turnOffApprox();
+  context::CDO<int32_t> d_attemptSolveIntTurnedOff;
+  void turnOffApproxFor(int32_t rounds);
+  bool getSolveIntegerResource();
 
   void tryBranchCut(ApproximateSimplex* approx, int nid, BranchCutInfo& bl);
   std::vector<ConstraintCPVec> replayLogRec(ApproximateSimplex* approx, int nid, ConstraintP bc);
