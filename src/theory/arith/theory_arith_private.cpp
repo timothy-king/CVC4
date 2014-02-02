@@ -528,9 +528,9 @@ void TheoryArithPrivate::zeroDifferenceDetected(ArithVar x){
 bool TheoryArithPrivate::getSolveIntegerResource(){
   if(d_attemptSolveIntTurnedOff > 0){
     d_attemptSolveIntTurnedOff = d_attemptSolveIntTurnedOff - 1;
-    return true;
-  }else{
     return false;
+  }else{
+    return true;
   }
 }
 
