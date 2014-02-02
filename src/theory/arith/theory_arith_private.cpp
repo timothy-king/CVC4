@@ -144,6 +144,7 @@ TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context
   d_statistics()
 {
   srand(79);
+  d_attemptSolveIntTurnedOff = 0;
 }
 
 TheoryArithPrivate::~TheoryArithPrivate(){
@@ -2828,11 +2829,11 @@ void TheoryArithPrivate::turnOffApproxFor(int32_t solveOffFor){
 }
 
 bool TheoryArithPrivate::getSolveIntegerResource(){
-  if(d_attemptSolveIntTurnedOff >= 0){
+  if(d_attemptSolveIntTurnedOff > 0){
     d_attemptSolveIntTurnedOff--;
-    return true;
-  }else{
     return false;
+  }else{
+    return true;
   }
 }
 
