@@ -661,7 +661,7 @@ private:
   bool getSolveIntegerResource();
 
   void tryBranchCut(ApproximateSimplex* approx, int nid, BranchCutInfo& bl);
-  std::vector<ConstraintCPVec> replayLogRec(ApproximateSimplex* approx, int nid, ConstraintP bc);
+  std::vector<ConstraintCPVec> replayLogRec(ApproximateSimplex* approx, int nid, ConstraintP bc, int depth);
 
   std::pair<ConstraintP, ArithVar> replayGetConstraint(const CutInfo& info);
   std::pair<ConstraintP, ArithVar> replayGetConstraint(ApproximateSimplex* approx, const NodeLog& nl) throw(RationalFromDoubleException);
@@ -756,6 +756,9 @@ private:
 
     IntStat d_approxDisabled;
     IntStat d_replayAttemptFailed;
+
+    IntStat d_cutsRejectedDuringReplay;
+    IntStat d_cutsRejectedDuringLemmas;
 
     HistogramStat<uint32_t> d_satPivots;
     HistogramStat<uint32_t> d_unsatPivots;

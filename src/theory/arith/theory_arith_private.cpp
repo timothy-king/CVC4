@@ -83,10 +83,9 @@ namespace CVC4 {
 namespace theory {
 namespace arith {
 
-static const int32_t HUGE_PENALTY = 1<<22;
-
 static Node toSumNode(const ArithVariables& vars, const DenseMap<Rational>& sum);
 static double fRand(double fMin, double fMax);
+static bool complexityBelow(const DenseMap<Rational>& row, uint32_t cap);
 
 
 TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context* c, context::UserContext* u, OutputChannel& out, Valuation valuation, const LogicInfo& logicInfo, QuantifiersEngine* qe) :
@@ -314,6 +313,8 @@ TheoryArithPrivate::Statistics::Statistics()
   , d_solveStandardEffort("z::solveInt::calls::standardEffort", 0)
   , d_approxDisabled("z::approxDisabled", 0)
   , d_replayAttemptFailed("z::replayAttemptFailed",0)
+  , d_cutsRejectedDuringReplay("z::approx::replay::cuts::rejected", 0)
+  , d_cutsRejectedDuringLemmas("z::approx::external::cuts::rejected", 0)
   , d_satPivots("pivots::sat")
   , d_unsatPivots("pivots::unsat")
   , d_unknownPivots("pivots::unkown")
@@ -397,6 +398,10 @@ TheoryArithPrivate::Statistics::Statistics()
   StatisticsRegistry::registerStat(&d_approxDisabled);
 
   StatisticsRegistry::registerStat(&d_replayAttemptFailed);
+
+  StatisticsRegistry::registerStat(&d_cutsRejectedDuringReplay);
+  StatisticsRegistry::registerStat(&d_cutsRejectedDuringLemmas);
+
 }
 
 TheoryArithPrivate::Statistics::~Statistics(){
@@ -479,6 +484,21 @@ TheoryArithPrivate::Statistics::~Statistics(){
   StatisticsRegistry::unregisterStat(&d_approxDisabled);
 
   StatisticsRegistry::unregisterStat(&d_replayAttemptFailed);
+
+  StatisticsRegistry::unregisterStat(&d_cutsRejectedDuringReplay);
+  StatisticsRegistry::unregisterStat(&d_cutsRejectedDuringLemmas);
+}
+
+bool complexityBelow(const DenseMap<Rational>& row, uint32_t cap){
+  DenseMap<Rational>::const_iterator riter, rend;
+  for(riter=row.begin(), rend=row.end(); riter != rend; ++riter){
+    ArithVar v = *riter;
+    const Rational& q = row[v];
+    if(q.complexity() > cap){
+      return false;
+    }
+  }
+  return true;
 }
 
 void TheoryArithPrivate::revertOutOfConflict(){
@@ -2063,9 +2083,9 @@ bool TheoryArithPrivate::replayLog(ApproximateSimplex* approx){
     /* use the try block for the purpose of pushing the sat context */
     context::Context::ScopedPush speculativePush(getSatContext());
     d_cmEnabled = false;
-    res = replayLogRec(approx, tl.getRootId(), NullConstraint);
+    res = replayLogRec(approx, tl.getRootId(), NullConstraint, 1);
   }catch(RationalFromDoubleException& rfde){
-    turnOffApproxFor(HUGE_PENALTY);
+    turnOffApproxFor(options::replayNumericFailurePenalty());
   }
 
   for(size_t i =0, N = res.size(); i < N; ++i){
@@ -2381,7 +2401,7 @@ void TheoryArithPrivate::subsumption(std::vector<ConstraintCPVec>& confs) const 
   Debug("arith::subsumption") << "subsumed " << subsumed << "/" << checks << endl;
 }
 
-std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex* approx, int nid, ConstraintP bc){
+std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex* approx, int nid, ConstraintP bc, int depth){
   ++(d_statistics.d_replayLogRecCount);
   Debug("approx::replayLogRec") << "replayLogRec()"
                                 << d_statistics.d_replayLogRecCount.getData() << std::endl;
@@ -2406,7 +2426,7 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
     NodeLog::const_iterator iter = nl.begin(), end = nl.end();
     for(; conflictQueueEmpty() && iter != end; ++iter){
       CutInfo* ci = *iter;
-
+      bool reject = false;
       //cout << "  trying " << *ci << endl;
       if(ci->getKlass() == RowsDeletedKlass){
         RowsDeleted* rd = dynamic_cast<RowsDeleted*>(ci);
@@ -2427,35 +2447,15 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
           ++d_statistics.d_mirCutsAttempted;
         }
 
-#warning "todo get this right"
-        // if(false && ci->reconstructed()){
-        //   const DenseVector& rec = ci->getReconstruction();
-        //   bool reject = false;
-        //   uint32_t threshold = 512;
-
-        //   const DenseMap<Rational>& row = rec.lhs;
-        //   DenseMap<Rational>::const_iterator riter, rend;
-        //   for(riter=row.begin(), rend=row.end(); riter != rend; ++riter){
-        //     ArithVar v = *riter;
-        //     const Rational& q = row[v];
-        //     cout << "complexity " << q.complexity();
-        //     if(q.complexity() > threshold){
-        //       cout << " (huge)";
-        //       reject = true;
-        //     }
-        //     cout<< endl;
-        //   }
-
-        //   if(reject){
-        //     ci->clearReconstruction();
-        //     //++d_statistics.d_cutsRejected;
-        //   }
-        // }else{
-        //   //cout << "wasn't reconstructed?" << endl;
-        // }
+        if(ci->reconstructed() && ci->proven()){
+          const DenseMap<Rational>& row = ci->getReconstruction().lhs;
+          reject = !complexityBelow(row, options::replayRejectCutSize());
+        }
       }
       if(conflictQueueEmpty()){
-        if(ci->reconstructed()){
+        if(reject){
+          ++d_statistics.d_cutsRejectedDuringReplay;
+        }else if(ci->reconstructed()){
           // success
           ++d_statistics.d_cutsReconstructed;
 
@@ -2494,18 +2494,21 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
 
     /* check if the system is feasible under with the cuts */
     if(conflictQueueEmpty()){
-      TimerStat::CodeTimer codeTimer(d_statistics.d_replaySimplexTimer);
-      //test for linear feasibility
-      d_partialModel.stopQueueingBoundCounts();
-      UpdateTrackingCallback utcb(&d_linEq);
-      d_partialModel.processBoundsQueue(utcb);
-      d_linEq.startTrackingBoundCounts();
+      Assert(options::replayEarlyCloseDepths() >= 1);
+      if(!nl.isBranch() || depth % options::replayEarlyCloseDepths() == 0 ){
+        TimerStat::CodeTimer codeTimer(d_statistics.d_replaySimplexTimer);
+        //test for linear feasibility
+        d_partialModel.stopQueueingBoundCounts();
+        UpdateTrackingCallback utcb(&d_linEq);
+        d_partialModel.processBoundsQueue(utcb);
+        d_linEq.startTrackingBoundCounts();
 
-      SimplexDecisionProcedure& simplex = selectSimplex(true);
-      simplex.findModel(false);
+        SimplexDecisionProcedure& simplex = selectSimplex(true);
+        simplex.findModel(false);
 
-      d_linEq.stopTrackingBoundCounts();
-      d_partialModel.startQueueingBoundCounts();
+        d_linEq.stopTrackingBoundCounts();
+        d_partialModel.startQueueingBoundCounts();
+      }
     }else{
       ++d_statistics.d_replayLogRecConflictEscalation;
     }
@@ -2537,7 +2540,7 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
         std::vector<size_t> containsdn;
         std::vector<size_t> containsup;
         if(res.empty()){
-          dnres = replayLogRec(approx, dnid, dnc);
+          dnres = replayLogRec(approx, dnid, dnc, depth+1);
           for(size_t i = 0, N = dnres.size(); i < N; ++i){
             ConstraintCPVec& conf = dnres[i];
             if(contains(conf, dnc)){
@@ -2552,7 +2555,7 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
         }
 
         if(res.empty()){
-          upres = replayLogRec(approx, upid, upc);
+          upres = replayLogRec(approx, upid, upc, depth+1);
 
           for(size_t i = 0, N = upres.size(); i < N; ++i){
             ConstraintCPVec& conf = upres[i];
@@ -2742,6 +2745,12 @@ bool TheoryArithPrivate::replayLemmas(ApproximateSimplex* approx){
       Assert(cut->reconstructed());
       Assert(cut->proven());
 
+      const DenseMap<Rational>& row =  cut->getReconstruction().lhs;
+      if(!complexityBelow(row, options::lemmaRejectCutSize())){
+        ++(d_statistics.d_cutsRejectedDuringLemmas);
+        continue;
+      }
+
       Node cutConstraint = cutToLiteral(approx, *cut);
       if(!cutConstraint.isNull()){
         const ConstraintCPVec& exp = cut->getExplanation();
@@ -2769,7 +2778,7 @@ bool TheoryArithPrivate::replayLemmas(ApproximateSimplex* approx){
     }
     return anythingnew;
   }catch(RationalFromDoubleException& rfde){
-    turnOffApproxFor(HUGE_PENALTY);
+    turnOffApproxFor(options::replayNumericFailurePenalty());
     return false;
   }
 }
@@ -2881,7 +2890,7 @@ void TheoryArithPrivate::solveInteger(Theory::Effort effortLevel){
           replayLog(approx);
         }
         if(!(anyConflict() || !d_approxCuts.empty())){
-          turnOffApproxFor(HUGE_PENALTY);
+          turnOffApproxFor(options::replayNumericFailurePenalty());
         }
         break;
       case BranchesExhausted:
@@ -2905,7 +2914,7 @@ void TheoryArithPrivate::solveInteger(Theory::Effort effortLevel){
       }
     }
   }catch(RationalFromDoubleException& rfde){
-    turnOffApproxFor(HUGE_PENALTY);
+    turnOffApproxFor(options::replayNumericFailurePenalty());
   }
   delete approx;
 
@@ -3073,7 +3082,7 @@ bool TheoryArithPrivate::solveRealRelaxation(Theory::Effort effortLevel){
         break;
       }
     }catch(RationalFromDoubleException& rfde){
-      turnOffApproxFor(HUGE_PENALTY);
+      turnOffApproxFor(options::replayNumericFailurePenalty());
     }
     delete approxSolver;
 

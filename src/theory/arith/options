@@ -127,7 +127,7 @@ option replayEarlyCloseDepths --replay-early-close-depth int :default 1
 option replayFailurePenalty --replay-failure-penalty int :default 100
  number of solve integer attempts to skips after a numeric failure
 
-option replayNumericFailurePenalty --replay-num-err-penalty int :default 500
+option replayNumericFailurePenalty --replay-num-err-penalty int :default 4194304
  number of solve integer attempts to skips after a numeric failure
 
 option replayRejectCutSize --replay-reject-cut unsigned :default 25500
