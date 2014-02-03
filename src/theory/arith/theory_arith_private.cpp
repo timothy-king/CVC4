@@ -1654,7 +1654,7 @@ void TheoryArithPrivate::asVectors(const Polynomial& p, std::vector<Rational>& c
 
     Node n = variable.getNode();
 
-    Debug("rewriter") << "should be var: " << n << endl;
+    Debug("arith::asVectors") << "should be var: " << n << endl;
 
     // TODO: This VarList::isMember(n) can be stronger
     Assert(isLeaf(n) || VarList::isMember(n));
@@ -2830,7 +2830,6 @@ void TheoryArithPrivate::solveInteger(Theory::Effort effortLevel){
 
   // if integers are attempted,
   Assert(options::useApprox());
-  Assert(!d_approxDisabled.get());
   Assert(ApproximateSimplex::enabled());
 
   int level = getSatContext()->getLevel();

@@ -690,6 +690,9 @@ public:
     return isSorted(m) && std::adjacent_find(m.begin(),m.end()) == m.end();
   }
 
+  static void sort(std::vector<Monomial>& m);
+  static void combineAdjacentMonomials(std::vector<Monomial>& m);
+
   /**
    * The variable product
    */
@@ -715,7 +718,7 @@ public:
    * Given a sorted list of monomials, this function transforms this
    * into a strictly sorted list of monomials that does not contain zero.
    */
-  static std::vector<Monomial> sumLikeTerms(const std::vector<Monomial>& monos);
+  //static std::vector<Monomial> sumLikeTerms(const std::vector<Monomial>& monos);
 
   int absCmp(const Monomial& other) const{
     return getConstant().getValue().absCmp(other.getConstant().getValue());
@@ -939,6 +942,8 @@ public:
     }
     return true;
   }
+
+  static Polynomial sumPolynomials(const std::vector<Polynomial>& polynomials);
 
   /**
    * Selects a minimal monomial in the polynomial by the absolute value of
