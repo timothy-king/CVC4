@@ -231,6 +231,8 @@ static void flatten(std::vector<TNode>& pb, Kind k, TNode t){
       TNode child = *i;
       if(child.getKind() == k){
         flatten(pb, k, child);
+      }else{
+        pb.push_back(child);
       }
     }
   }else{
