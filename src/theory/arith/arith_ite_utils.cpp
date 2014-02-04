@@ -56,8 +56,7 @@ Node ArithIteUtils::reduceVariablesInItes(Node n){
         // cout << "\t" << e << " " << d_constants[e] << endl;
         Node constantite = rc.iteNode(d_constants[t], d_constants[e]);
         Node sum = nm->mkNode(kind::PLUS, vpite, constantite);
-        cout << n << endl
-             << "\t" << sum << endl;
+        //cout << n << endl << "\t" << sum << endl;
         d_reduceVar[n] = sum;
         d_constants[n] = constantite;
         d_varParts[n] = vpite;
