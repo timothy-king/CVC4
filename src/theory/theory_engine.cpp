@@ -17,6 +17,8 @@
 #include <vector>
 #include <list>
 
+#include "theory/arith/arith_ite_utils.h"
+
 #include "decision/decision_engine.h"
 
 #include "expr/attribute.h"
@@ -1436,7 +1438,8 @@ Node TheoryEngine::ppSimpITE(TNode assertion)
 
 bool TheoryEngine::donePPSimpITE(std::vector<Node>& assertions){
   bool result = true;
-  if(d_iteUtilities->simpIteDidALotOfWorkHeuristic()){
+  bool simpDidALotOfWork = d_iteUtilities->simpIteDidALotOfWorkHeuristic();
+  if(simpDidALotOfWork){
     if(options::compressItes()){
       result = d_iteUtilities->compress(assertions);
     }
@@ -1452,6 +1455,26 @@ bool TheoryEngine::donePPSimpITE(std::vector<Node>& assertions){
         d_iteRemover.garbageCollect();
         nm->reclaimZombiesUntil(options::zombieHuntThreshold());
         Chat() << "....node manager contains " << nm->poolSize() << " nodes after cleanup" << endl;
+      }
+    }
+  }
+
+  // Do theory specific preprocessing passes
+  if(d_logicInfo.isTheoryEnabled(theory::THEORY_ARITH)){
+    if(!simpDidALotOfWork){
+      ContainsTermITEVistor& contains = *d_iteRemover.getContainsVisitor();
+      arith::ArithIteUtils aiteu(contains);
+      for(size_t i = 0;  i < assertions.size(); ++i){
+        Node curr = assertions[i];
+        if(contains.containsTermITE(curr)){
+          Node res = aiteu.reduceVariablesInItes(curr);
+          Debug("arith::ite::red") << "@ " << i << " ... " << curr << endl << "   ->" << res << endl;
+          if(curr != res){
+            Node more = aiteu.reduceConstantIteByGCD(res);
+            Debug("arith::ite::red") << "  gcd->" << more << endl;
+            assertions[i] = more;
+          }
+        }
       }
     }
   }
