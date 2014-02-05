@@ -14,7 +14,7 @@
 #include <ext/hash_map>
 #include <ext/hash_set>
 #include "context/cdo.h"
-#include "context/cdhashset.h"
+#include "context/cdtrail_hashmap.h"
 
 namespace CVC4 {
 namespace theory {
@@ -43,8 +43,15 @@ class ArithIteUtils {
   Integer d_one;
 
   context::CDO<unsigned> d_subcount;
-  typedef context::CDHashSet<Node, NodeHashFunction> CDNodeSet;
-  CDNodeSet d_constructed;
+  typedef context::CDTrailHashMap<Node, Node, NodeHashFunction> CDNodeMap;
+  CDNodeMap d_skolems;
+
+  typedef std::map<Node, std::set<Node> > ImpMap;
+  ImpMap d_implies;
+
+  std::vector<Node> d_skolemsAdded;
+
+  std::vector<Node> d_orBinEqs;
 
 public:
   ArithIteUtils(ContainsTermITEVistor& contains, context::Context* userContext);
@@ -60,8 +67,9 @@ public:
   void clear();
 
   Node applySubstitutions(TNode f);
-  void learnSubstitutions(TNode assertion);
   unsigned getSubCount() const;
+
+  void learnSubstitutions(const std::vector<Node>& assertions);
 
 private:
   /* applies this to all children of n and constructs the result */
@@ -73,6 +81,11 @@ private:
 
   void addSubstitution(TNode f, TNode t);
   Node selectForCmp(Node n) const;
+
+  void collectAssertions(TNode assertion);
+  void addImplications(Node x, Node y);
+  Node findIteCnd(TNode tb, TNode fb) const;
+  bool solveBinOr(TNode binor);
 
 }; /* class ArithIteUtils */
 

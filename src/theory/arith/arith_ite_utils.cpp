@@ -127,7 +127,10 @@ ArithIteUtils::ArithIteUtils(ContainsTermITEVistor& contains, context::Context* 
   : d_contains(contains)
   , d_one(1)
   , d_subcount(uc, 0)
-  , d_constructed(uc)
+  , d_skolems(uc)
+  , d_implies()
+  , d_skolemsAdded()
+  , d_orBinEqs()
 {
   d_subs = new SubstitutionMap(uc);
 }
@@ -255,68 +258,174 @@ Node ArithIteUtils::applySubstitutions(TNode f){
 
 Node ArithIteUtils::selectForCmp(Node n) const{
   if(n.getKind() == kind::ITE){
-    if(d_constructed.find(n[0]) != d_constructed.end()){
+    if(d_skolems.find(n[0]) != d_skolems.end()){
       return selectForCmp(n[1]);
     }
   }
   return n;
 }
-void ArithIteUtils::learnSubstitutions(TNode n){
-  if(n.getKind() == kind::AND){
-    for(unsigned i=0; i < n.getNumChildren(); ++i){
-      learnSubstitutions(n[i]);
+
+void ArithIteUtils::learnSubstitutions(const std::vector<Node>& assertions){
+  for(size_t i=0, N=assertions.size(); i < N; ++i){
+    collectAssertions(assertions[i]);
+  }
+  bool solvedSomething;
+  do{
+    solvedSomething = false;
+    size_t readPos = 0, writePos = 0, N = d_orBinEqs.size();
+    for(; readPos < N; readPos++){
+      Node curr = d_orBinEqs[readPos];
+      bool solved = solveBinOr(curr);
+      if(solved){
+        solvedSomething = true;
+      }else{
+        // didn't solve, push back
+        d_orBinEqs[writePos] = curr;
+        writePos++;
+      }
     }
-  }else if(n.getKind() == kind::OR){
-    if(n.getNumChildren() == 2){
-      cout << "bin or " << n << endl;
-      TNode l = n[0];
-      TNode r = n[1];
+    Assert(writePos <= N);
+    d_orBinEqs.resize(writePos);
+  }while(solvedSomething);
 
-      bool lArithEq = l.getKind() == kind::EQUAL && l[0].getType().isInteger();
-      bool rArithEq = r.getKind() == kind::EQUAL && r[0].getType().isInteger();
+  for(size_t i = 0, N=d_skolemsAdded.size(); i<N; ++i){
+    Node sk = d_skolemsAdded[i];
+    Node to = d_skolems[sk];
+    if(!to.isNull()){
+      Node fp = applySubstitutions(to);
+      addSubstitution(sk, fp);
+    }
+  }
+  d_implies.clear();
+  d_skolemsAdded.clear();
+  d_orBinEqs.clear();
+}
 
-      if(lArithEq && rArithEq){
-        TNode sel = Node::null();
-        TNode otherL = Node::null();
-        TNode otherR = Node::null();
-        if(l[0] == r[0]) {
-          sel = l[0]; otherL = l[1]; otherR = r[1];
-        }else if(l[0] == r[1]){
-          sel = l[0]; otherL = l[1]; otherR = r[0];
-        }else if(l[1] == r[0]){
-          sel = l[1]; otherL = l[0]; otherR = r[1];
-        }else if(l[1] == r[1]){
-          sel = l[1]; otherL = l[0]; otherR = r[0];
-        }
-        cout << "selected " << sel << endl;
-        if(sel.isVar() && sel.getKind() != kind::SKOLEM){
+void ArithIteUtils::addImplications(Node x, Node y){
+  // (or x y)
+  // (=> (not x) y)
+  // (=> (not y) x)
 
-          cout << "others l:" << otherL << " r " << otherR << endl;
-          Node useForCmpL = selectForCmp(otherL);
-          Node useForCmpR = selectForCmp(otherR);
+  Node xneg = x.negate();
+  Node yneg = y.negate();
+  d_implies[xneg].insert(y);
+  d_implies[yneg].insert(x);
+}
 
-          Assert(Polynomial::isMember(sel));
-          Assert(Polynomial::isMember(useForCmpL));
-          Assert(Polynomial::isMember(useForCmpR));
-          Polynomial lside = Polynomial::parsePolynomial( useForCmpL );
-          Polynomial rside = Polynomial::parsePolynomial( useForCmpR );
-          Polynomial diff = lside-rside;
-
-          cout << "diff: " << diff.getNode() << endl;
-          if(diff.isConstant()){
-            // a: (sel = otherL) or (sel = otherR), otherL-otherR = c
-
-            NodeManager* nm = NodeManager::currentNM();
-
-            Node sk = nm->mkSkolem("deor$$", nm->booleanType());
-            Node ite = sk.iteNode(otherL, otherR);
-            d_constructed.insert(sk);
-            addSubstitution(sel, ite);
-          }
+void ArithIteUtils::collectAssertions(TNode assertion){
+  if(assertion.getKind() == kind::OR){
+    if(assertion.getNumChildren() == 2){
+      TNode left = assertion[0], right = assertion[1];
+      addImplications(left, right);
+      if(left.getKind() == kind::EQUAL && right.getKind() == kind::EQUAL){
+        if(left[0].getType().isInteger() && right[0].getType().isInteger()){
+          d_orBinEqs.push_back(assertion);
         }
       }
     }
+  }else if(assertion.getKind() == kind::AND){
+    for(unsigned i=0, N=assertion.getNumChildren(); i < N; ++i){
+      collectAssertions(assertion[i]);
+    }
   }
+}
+
+Node ArithIteUtils::findIteCnd(TNode tb, TNode fb) const{
+  Node negtb = tb.negate();
+  Node negfb = fb.negate();
+  ImpMap::const_iterator ti = d_implies.find(negtb);
+  ImpMap::const_iterator fi = d_implies.find(negfb);
+
+  if(ti != d_implies.end() && fi != d_implies.end()){
+    const std::set<Node>& negtimp = ti->second;
+    const std::set<Node>& negfimp = fi->second;
+
+    // (or (not x) y)
+    // (or x z)
+    // (or y z)
+    // ---
+    // (ite x y z) return x
+    // ---
+    // (not y) => (not x)
+    // (not z) => x
+    std::set<Node>::const_iterator ci = negtimp.begin(), cend = negtimp.end();
+    for(; ci != cend; ci++){
+      Node impliedByNotTB = *ci;
+      Node impliedByNotTBNeg = impliedByNotTB.negate();
+      if(negfimp.find(impliedByNotTBNeg) != negfimp.end()){
+        return impliedByNotTBNeg; // implies tb
+      }
+    }
+  }
+
+  return Node::null();
+}
+
+bool ArithIteUtils::solveBinOr(TNode binor){
+  Assert(binor.getKind() == kind::OR);
+  Assert(binor.getNumChildren() == 2);
+  Assert(binor[0].getKind() ==  kind::EQUAL);
+  Assert(binor[1].getKind() ==  kind::EQUAL);
+
+  Node n = applySubstitutions(binor);
+  Assert(n.getKind() == kind::OR);
+  Assert(binor.getNumChildren() == 2);
+  TNode l = n[0];
+  TNode r = n[1];
+
+  Assert(l.getKind() ==  kind::EQUAL);
+  Assert(r.getKind() ==  kind::EQUAL);
+
+  cout << "bin or " << n << endl;
+
+  bool lArithEq = l.getKind() == kind::EQUAL && l[0].getType().isInteger();
+  bool rArithEq = r.getKind() == kind::EQUAL && r[0].getType().isInteger();
+
+  if(lArithEq && rArithEq){
+    TNode sel = Node::null();
+    TNode otherL = Node::null();
+    TNode otherR = Node::null();
+    if(l[0] == r[0]) {
+      sel = l[0]; otherL = l[1]; otherR = r[1];
+    }else if(l[0] == r[1]){
+      sel = l[0]; otherL = l[1]; otherR = r[0];
+    }else if(l[1] == r[0]){
+      sel = l[1]; otherL = l[0]; otherR = r[1];
+    }else if(l[1] == r[1]){
+      sel = l[1]; otherL = l[0]; otherR = r[0];
+    }
+    cout << "selected " << sel << endl;
+    if(sel.isVar() && sel.getKind() != kind::SKOLEM){
+
+      cout << "others l:" << otherL << " r " << otherR << endl;
+      Node useForCmpL = selectForCmp(otherL);
+      Node useForCmpR = selectForCmp(otherR);
+
+      Assert(Polynomial::isMember(sel));
+      Assert(Polynomial::isMember(useForCmpL));
+      Assert(Polynomial::isMember(useForCmpR));
+      Polynomial lside = Polynomial::parsePolynomial( useForCmpL );
+      Polynomial rside = Polynomial::parsePolynomial( useForCmpR );
+      Polynomial diff = lside-rside;
+
+      cout << "diff: " << diff.getNode() << endl;
+      if(diff.isConstant()){
+        // a: (sel = otherL) or (sel = otherR), otherL-otherR = c
+
+        NodeManager* nm = NodeManager::currentNM();
+
+        Node cnd = findIteCnd(binor[0], binor[1]);
+
+        Node sk = nm->mkSkolem("deor$$", nm->booleanType());
+        Node ite = sk.iteNode(otherL, otherR);
+        d_skolems.insert(sk, cnd);
+        d_skolemsAdded.push_back(sk);
+        addSubstitution(sel, ite);
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 

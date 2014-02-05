@@ -1479,29 +1479,31 @@ bool TheoryEngine::donePPSimpITE(std::vector<Node>& assertions){
         }
       }
       if(!anyItes){
-        unsigned prevSubCount;
-        do{
-          prevSubCount = aiteu.getSubCount();
-          for(size_t i = 0;  i < assertions.size(); ++i){
+        unsigned prevSubCount = aiteu.getSubCount();
+        aiteu.learnSubstitutions(assertions);
+        if(prevSubCount < aiteu.getSubCount()){
+          bool anySuccess = false;
+          for(size_t i = 0, N =  assertions.size();  i < N; ++i){
             Node curr = assertions[i];
-            Node next = aiteu.applySubstitutions(curr);
-            aiteu.learnSubstitutions(next);
-            assertions[i] = next;
+            Node next = Rewriter::rewrite(aiteu.applySubstitutions(curr));
+            Node res = aiteu.reduceVariablesInItes(next);
+            Debug("arith::ite::red") << "@ " << i << " ... " << next << endl << "   ->" << res << endl;
+            Node more = aiteu.reduceConstantIteByGCD(res);
+            Debug("arith::ite::red") << "  gcd->" << more << endl;
+            if(more != next){
+              anySuccess = true;
+              break;
+            }
           }
-        }while(prevSubCount < aiteu.getSubCount());
-
-        for(size_t i = 0;  i < assertions.size(); ++i){
-          Node curr = assertions[i];
-          Node next = aiteu.applySubstitutions(curr);
-          cout << curr << " -> " << next << endl;
-          Node res = aiteu.reduceVariablesInItes(next);
-          Debug("arith::ite::red") << "@ " << i << " ... " << next << endl << "   ->" << res << endl;
-
-          Node more = aiteu.reduceConstantIteByGCD(res);
-          Debug("arith::ite::red") << "  gcd->" << more << endl;
-          cout << "  gcd->" << more << endl;
-          next = more;
-          assertions[i] = Rewriter::rewrite(next);
+          for(size_t i = 0, N =  assertions.size();  anySuccess && i < N; ++i){
+            Node curr = assertions[i];
+            Node next = Rewriter::rewrite(aiteu.applySubstitutions(curr));
+            Node res = aiteu.reduceVariablesInItes(next);
+            Debug("arith::ite::red") << "@ " << i << " ... " << next << endl << "   ->" << res << endl;
+            Node more = aiteu.reduceConstantIteByGCD(res);
+            Debug("arith::ite::red") << "  gcd->" << more << endl;
+            assertions[i] = Rewriter::rewrite(more);
+          }
         }
       }
     }
