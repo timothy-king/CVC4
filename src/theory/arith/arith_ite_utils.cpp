@@ -3,6 +3,7 @@
 #include "theory/arith/arith_utilities.h"
 #include "theory/ite_utilities.h"
 #include "theory/rewriter.h"
+#include "theory/substitutions.h"
 #include <ostream>
 
 using namespace std;
@@ -122,10 +123,18 @@ Node ArithIteUtils::reduceVariablesInItes(Node n){
   return Node::null();
 }
 
-ArithIteUtils::ArithIteUtils(ContainsTermITEVistor& contains)
+ArithIteUtils::ArithIteUtils(ContainsTermITEVistor& contains, context::Context* uc)
   : d_contains(contains)
   , d_one(1)
-{}
+  , d_anySub(uc, false)
+{
+  d_subs = new SubstitutionMap(uc);
+}
+
+ArithIteUtils::~ArithIteUtils(){
+  delete d_subs;
+  d_subs = NULL;
+}
 
 void ArithIteUtils::clear(){
   d_reduceVar.clear();
@@ -226,6 +235,77 @@ Node ArithIteUtils::reduceConstantIteByGCD(Node n){
     }
   }else{
     return n;
+  }
+}
+
+bool ArithIteUtils::hasAnySubstitutions() const{
+  return d_anySub;
+}
+
+void ArithIteUtils::addSubstitution(TNode f, TNode t){
+  cout << "adding " << f << " -> " << t << endl;
+  d_anySub = true;
+  d_subs->addSubstitution(f, t);
+}
+
+Node ArithIteUtils::applySubstitutions(TNode f){
+  return d_subs->apply(f);
+}
+
+void ArithIteUtils::learnSubstitutions(TNode n){
+  if(n.getKind() == kind::AND){
+    for(unsigned i=0; i < n.getNumChildren(); ++i){
+      learnSubstitutions(n[i]);
+    }
+  }else if(n.getKind() == kind::OR){
+    if(n.getNumChildren() == 2){
+      cout << "bin or " << endl;
+      TNode l = n[0];
+      TNode r = n[1];
+
+      bool lArithEq = l.getKind() == kind::EQUAL && l[0].getType().isInteger();
+      bool rArithEq = r.getKind() == kind::EQUAL && r[0].getType().isInteger();
+
+      if(lArithEq && rArithEq){
+        TNode sel = Node::null();
+        TNode otherL = Node::null();
+        TNode otherR = Node::null();
+        if(l[0] == r[0]) {
+          sel = l[0]; otherL = l[1]; otherR = r[1];
+        }else if(l[0] == r[1]){
+          sel = l[0]; otherL = l[1]; otherR = r[0];
+        }else if(l[1] == r[0]){
+          sel = l[1]; otherL = l[0]; otherR = r[1];
+        }else if(l[1] == r[1]){
+          sel = l[1]; otherL = l[0]; otherR = r[0];
+        }
+        cout << "selected " << sel << endl;
+        if(sel.isVar() && sel.getKind() != kind::SKOLEM){
+          cout << otherL << " " << otherR << endl;
+          Assert(Polynomial::isMember(sel));
+          Assert(Polynomial::isMember(otherL));
+          Assert(Polynomial::isMember(otherR));
+          Polynomial lside = Polynomial::parsePolynomial( otherL );
+          Polynomial rside = Polynomial::parsePolynomial( otherR );
+          Polynomial diff = lside-rside;
+
+          cout << diff.getNode() << endl;
+          if(diff.isConstant()){
+            // a: (sel = otherL) or (sel = otherR), otherL-otherR = c
+
+            // (sel = lc + vp) or (sel = rc + vp)
+            // (sel = (ite skolem (+ vp lc) (+vp rc)))
+            // sel -> vp + (ite skolem lc rc))
+            NodeManager* nm = NodeManager::currentNM();
+
+            Node sk = nm->mkSkolem("deor$$", nm->booleanType());
+            Node ite = sk.iteNode(lside.getNode(), rside.getNode());
+            Node newto = Rewriter::rewrite(ite);
+            addSubstitution(sel, newto);
+          }
+        }
+      }
+    }
   }
 }
 

@@ -1463,16 +1463,39 @@ bool TheoryEngine::donePPSimpITE(std::vector<Node>& assertions){
   if(d_logicInfo.isTheoryEnabled(theory::THEORY_ARITH)){
     if(!simpDidALotOfWork){
       ContainsTermITEVistor& contains = *d_iteRemover.getContainsVisitor();
-      arith::ArithIteUtils aiteu(contains);
+      arith::ArithIteUtils aiteu(contains, d_userContext);
+      bool anyItes = false;
       for(size_t i = 0;  i < assertions.size(); ++i){
         Node curr = assertions[i];
         if(contains.containsTermITE(curr)){
+          anyItes = true;
           Node res = aiteu.reduceVariablesInItes(curr);
           Debug("arith::ite::red") << "@ " << i << " ... " << curr << endl << "   ->" << res << endl;
           if(curr != res){
             Node more = aiteu.reduceConstantIteByGCD(res);
             Debug("arith::ite::red") << "  gcd->" << more << endl;
             assertions[i] = more;
+          }
+        }
+      }
+      if(!anyItes){
+        for(size_t i = 0;  i < assertions.size(); ++i){
+          aiteu.learnSubstitutions(assertions[i]);
+        }
+        if(aiteu.hasAnySubstitutions()){
+          for(size_t i = 0;  i < assertions.size(); ++i){
+            Node curr = assertions[i];
+            Node next = aiteu.applySubstitutions(curr);
+            cout << curr << " -> " << next << endl;
+            if(curr != next){
+              Node res = aiteu.reduceVariablesInItes(next);
+              Debug("arith::ite::red") << "@ " << i << " ... " << next << endl << "   ->" << res << endl;
+
+              Node more = aiteu.reduceConstantIteByGCD(res);
+              Debug("arith::ite::red") << "  gcd->" << more << endl;
+              next = more;
+            }
+            assertions[i] = Rewriter::rewrite(next);
           }
         }
       }

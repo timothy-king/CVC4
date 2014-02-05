@@ -55,6 +55,9 @@
 #include "theory/arith/approx_simplex.h"
 #include "theory/arith/constraint.h"
 
+#include "theory/ite_utilities.h"
+#include "theory/arith/arith_ite_utils.h"
+
 #include "theory/arith/arith_utilities.h"
 #include "theory/arith/delta_rational.h"
 #include "theory/arith/partial_model.h"

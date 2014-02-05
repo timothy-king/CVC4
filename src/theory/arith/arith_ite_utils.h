@@ -7,21 +7,24 @@
 
 #include "cvc4_private.h"
 
-#ifndef __CVC4__THEORY__ARITH__ARITH_STATIC_LEARNER_H
-#define __CVC4__THEORY__ARITH__ARITH_STATIC_LEARNER_H
+#ifndef __CVC4__THEORY__ARITH__ARITH_ITE_UTILS_H
+#define __CVC4__THEORY__ARITH__ARITH_ITE_UTILS_H
 
 #include "expr/node.h"
 #include <ext/hash_map>
 #include <ext/hash_set>
+#include "context/cdo.h"
 
 namespace CVC4 {
 namespace theory {
 class ContainsTermITEVistor;
+class SubstitutionMap;
 
 namespace arith {
 
 class ArithIteUtils {
   ContainsTermITEVistor& d_contains;
+  SubstitutionMap* d_subs;
 
   typedef std::hash_map<Node, Node, NodeHashFunction> NodeMap;
   // cache for reduce vars
@@ -38,13 +41,13 @@ class ArithIteUtils {
 
   Integer d_one;
 
+  context::CDO<bool> d_anySub;
+
 public:
-  ArithIteUtils(ContainsTermITEVistor& contains);
+  ArithIteUtils(ContainsTermITEVistor& contains, context::Context* userContext);
+  ~ArithIteUtils();
 
   //(ite ?v_2 ?v_1 (ite ?v_3 (- ?v_1 128) (- ?v_1 256)))
-
-  /* applies this to all children of n and constructs the result */
-  Node applyReduceVariablesInItes(Node n);
 
   /** removes common sums variables sums from term ites. */
   Node reduceVariablesInItes(Node n);
@@ -52,14 +55,25 @@ public:
   Node reduceConstantIteByGCD(Node n);
 
   void clear();
+
+  Node applySubstitutions(TNode f);
+  void learnSubstitutions(TNode assertion);
+  bool hasAnySubstitutions() const;
+
 private:
+  /* applies this to all children of n and constructs the result */
+  Node applyReduceVariablesInItes(Node n);
+
   const Integer& gcdIte(Node n);
   Node reduceIteConstantIteByGCD_rec(Node n, const Rational& q);
   Node reduceIteConstantIteByGCD(Node n);
+
+  void addSubstitution(TNode f, TNode t);
+
 }; /* class ArithIteUtils */
 
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */
 }/* CVC4 namespace */
 
-#endif /* __CVC4__THEORY__ARITH__ARITH_STATIC_LEARNER_H */
+#endif /* __CVC4__THEORY__ARITH__ARITH_ITE_UTILS_H */
