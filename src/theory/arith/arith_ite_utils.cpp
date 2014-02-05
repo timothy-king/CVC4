@@ -52,12 +52,8 @@ Node ArithIteUtils::reduceVariablesInItes(Node n){
         return rite;
       }else{
         NodeManager* nm = NodeManager::currentNM();
-        // cout << "vp" << vpite << endl;
-        // cout << "\t" << t << " " << d_constants[t] << endl;
-        // cout << "\t" << e << " " << d_constants[e] << endl;
         Node constantite = rc.iteNode(d_constants[t], d_constants[e]);
         Node sum = nm->mkNode(kind::PLUS, vpite, constantite);
-        //cout << n << endl << "\t" << sum << endl;
         d_reduceVar[n] = sum;
         d_constants[n] = constantite;
         d_varParts[n] = vpite;
@@ -247,7 +243,7 @@ unsigned ArithIteUtils::getSubCount() const{
 }
 
 void ArithIteUtils::addSubstitution(TNode f, TNode t){
-  cout << "adding " << f << " -> " << t << endl;
+  Debug("arith::ite") << "adding " << f << " -> " << t << endl;
   d_subcount = d_subcount + 1;
   d_subs->addSubstitution(f, t);
 }
@@ -376,7 +372,7 @@ bool ArithIteUtils::solveBinOr(TNode binor){
   Assert(l.getKind() ==  kind::EQUAL);
   Assert(r.getKind() ==  kind::EQUAL);
 
-  cout << "bin or " << n << endl;
+  Debug("arith::ite") << "bin or " << n << endl;
 
   bool lArithEq = l.getKind() == kind::EQUAL && l[0].getType().isInteger();
   bool rArithEq = r.getKind() == kind::EQUAL && r[0].getType().isInteger();
@@ -394,10 +390,10 @@ bool ArithIteUtils::solveBinOr(TNode binor){
     }else if(l[1] == r[1]){
       sel = l[1]; otherL = l[0]; otherR = r[0];
     }
-    cout << "selected " << sel << endl;
+    Debug("arith::ite") << "selected " << sel << endl;
     if(sel.isVar() && sel.getKind() != kind::SKOLEM){
 
-      cout << "others l:" << otherL << " r " << otherR << endl;
+      Debug("arith::ite") << "others l:" << otherL << " r " << otherR << endl;
       Node useForCmpL = selectForCmp(otherL);
       Node useForCmpR = selectForCmp(otherR);
 
@@ -408,7 +404,7 @@ bool ArithIteUtils::solveBinOr(TNode binor){
       Polynomial rside = Polynomial::parsePolynomial( useForCmpR );
       Polynomial diff = lside-rside;
 
-      cout << "diff: " << diff.getNode() << endl;
+      Debug("arith::ite") << "diff: " << diff.getNode() << endl;
       if(diff.isConstant()){
         // a: (sel = otherL) or (sel = otherR), otherL-otherR = c
 

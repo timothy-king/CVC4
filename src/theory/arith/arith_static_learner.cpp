@@ -107,10 +107,6 @@ void ArithStaticLearner::staticLearning(TNode n, NodeBuilder<>& learned){
 void ArithStaticLearner::process(TNode n, NodeBuilder<>& learned, const TNodeSet& defTrue){
   Debug("arith::static") << "===================== looking at " << n << endl;
 
-  if(defTrue.find(n) != defTrue.end()){
-    cout << "def " << n << endl;
-  }
-
   switch(n.getKind()){
   case ITE:
     if(n[0].getKind() != EQUAL &&
@@ -123,6 +119,7 @@ void ArithStaticLearner::process(TNode n, NodeBuilder<>& learned, const TNodeSet
       iteConstant(n, learned);
     }
     break;
+
   case CONST_RATIONAL:
     // Mark constants as minmax
     d_minMap.insert(n, n.getConst<Rational>());
