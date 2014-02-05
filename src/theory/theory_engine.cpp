@@ -131,7 +131,8 @@ TheoryEngine::TheoryEngine(context::Context* context,
   d_preRegistrationVisitor(this, context),
   d_sharedTermsVisitor(d_sharedTerms),
   d_unconstrainedSimp(new UnconstrainedSimplifier(context, logicInfo)),
-  d_bvToBoolPreprocessor()
+  d_bvToBoolPreprocessor(),
+  d_arithSubstitutionsAdded("zzz::arith::substitutions", 0)
 {
   for(TheoryId theoryId = theory::THEORY_FIRST; theoryId != theory::THEORY_LAST; ++ theoryId) {
     d_theoryTable[theoryId] = NULL;
@@ -151,6 +152,8 @@ TheoryEngine::TheoryEngine(context::Context* context,
   PROOF (ProofManager::currentPM()->initTheoryProof(); );
 
   d_iteUtilities = new ITEUtilities(d_iteRemover.getContainsVisitor());
+
+  StatisticsRegistry::registerStat(&d_arithSubstitutionsAdded);
 }
 
 TheoryEngine::~TheoryEngine() {
@@ -175,6 +178,8 @@ TheoryEngine::~TheoryEngine() {
   delete d_unconstrainedSimp;
 
   delete d_iteUtilities;
+
+  StatisticsRegistry::unregisterStat(&d_arithSubstitutionsAdded);
 }
 
 void TheoryEngine::interrupt() throw(ModalException) {
@@ -1482,6 +1487,7 @@ bool TheoryEngine::donePPSimpITE(std::vector<Node>& assertions){
         unsigned prevSubCount = aiteu.getSubCount();
         aiteu.learnSubstitutions(assertions);
         if(prevSubCount < aiteu.getSubCount()){
+          d_arithSubstitutionsAdded += aiteu.getSubCount() - prevSubCount;
           bool anySuccess = false;
           for(size_t i = 0, N =  assertions.size();  i < N; ++i){
             Node curr = assertions[i];
