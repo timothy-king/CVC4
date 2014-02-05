@@ -1479,24 +1479,29 @@ bool TheoryEngine::donePPSimpITE(std::vector<Node>& assertions){
         }
       }
       if(!anyItes){
-        for(size_t i = 0;  i < assertions.size(); ++i){
-          aiteu.learnSubstitutions(assertions[i]);
-        }
-        if(aiteu.hasAnySubstitutions()){
+        unsigned prevSubCount;
+        do{
+          prevSubCount = aiteu.getSubCount();
           for(size_t i = 0;  i < assertions.size(); ++i){
             Node curr = assertions[i];
             Node next = aiteu.applySubstitutions(curr);
-            cout << curr << " -> " << next << endl;
-            if(curr != next){
-              Node res = aiteu.reduceVariablesInItes(next);
-              Debug("arith::ite::red") << "@ " << i << " ... " << next << endl << "   ->" << res << endl;
-
-              Node more = aiteu.reduceConstantIteByGCD(res);
-              Debug("arith::ite::red") << "  gcd->" << more << endl;
-              next = more;
-            }
-            assertions[i] = Rewriter::rewrite(next);
+            aiteu.learnSubstitutions(next);
+            assertions[i] = next;
           }
+        }while(prevSubCount < aiteu.getSubCount());
+
+        for(size_t i = 0;  i < assertions.size(); ++i){
+          Node curr = assertions[i];
+          Node next = aiteu.applySubstitutions(curr);
+          cout << curr << " -> " << next << endl;
+          Node res = aiteu.reduceVariablesInItes(next);
+          Debug("arith::ite::red") << "@ " << i << " ... " << next << endl << "   ->" << res << endl;
+
+          Node more = aiteu.reduceConstantIteByGCD(res);
+          Debug("arith::ite::red") << "  gcd->" << more << endl;
+          cout << "  gcd->" << more << endl;
+          next = more;
+          assertions[i] = Rewriter::rewrite(next);
         }
       }
     }

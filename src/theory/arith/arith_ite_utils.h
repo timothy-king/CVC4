@@ -14,6 +14,7 @@
 #include <ext/hash_map>
 #include <ext/hash_set>
 #include "context/cdo.h"
+#include "context/cdhashset.h"
 
 namespace CVC4 {
 namespace theory {
@@ -41,7 +42,9 @@ class ArithIteUtils {
 
   Integer d_one;
 
-  context::CDO<bool> d_anySub;
+  context::CDO<unsigned> d_subcount;
+  typedef context::CDHashSet<Node, NodeHashFunction> CDNodeSet;
+  CDNodeSet d_constructed;
 
 public:
   ArithIteUtils(ContainsTermITEVistor& contains, context::Context* userContext);
@@ -58,7 +61,7 @@ public:
 
   Node applySubstitutions(TNode f);
   void learnSubstitutions(TNode assertion);
-  bool hasAnySubstitutions() const;
+  unsigned getSubCount() const;
 
 private:
   /* applies this to all children of n and constructs the result */
@@ -69,6 +72,7 @@ private:
   Node reduceIteConstantIteByGCD(Node n);
 
   void addSubstitution(TNode f, TNode t);
+  Node selectForCmp(Node n) const;
 
 }; /* class ArithIteUtils */
 

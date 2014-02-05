@@ -126,7 +126,8 @@ Node ArithIteUtils::reduceVariablesInItes(Node n){
 ArithIteUtils::ArithIteUtils(ContainsTermITEVistor& contains, context::Context* uc)
   : d_contains(contains)
   , d_one(1)
-  , d_anySub(uc, false)
+  , d_subcount(uc, 0)
+  , d_constructed(uc)
 {
   d_subs = new SubstitutionMap(uc);
 }
@@ -238,13 +239,13 @@ Node ArithIteUtils::reduceConstantIteByGCD(Node n){
   }
 }
 
-bool ArithIteUtils::hasAnySubstitutions() const{
-  return d_anySub;
+unsigned ArithIteUtils::getSubCount() const{
+  return d_subcount;
 }
 
 void ArithIteUtils::addSubstitution(TNode f, TNode t){
   cout << "adding " << f << " -> " << t << endl;
-  d_anySub = true;
+  d_subcount = d_subcount + 1;
   d_subs->addSubstitution(f, t);
 }
 
@@ -252,6 +253,14 @@ Node ArithIteUtils::applySubstitutions(TNode f){
   return d_subs->apply(f);
 }
 
+Node ArithIteUtils::selectForCmp(Node n) const{
+  if(n.getKind() == kind::ITE){
+    if(d_constructed.find(n[0]) != d_constructed.end()){
+      return selectForCmp(n[1]);
+    }
+  }
+  return n;
+}
 void ArithIteUtils::learnSubstitutions(TNode n){
   if(n.getKind() == kind::AND){
     for(unsigned i=0; i < n.getNumChildren(); ++i){
@@ -259,7 +268,7 @@ void ArithIteUtils::learnSubstitutions(TNode n){
     }
   }else if(n.getKind() == kind::OR){
     if(n.getNumChildren() == 2){
-      cout << "bin or " << endl;
+      cout << "bin or " << n << endl;
       TNode l = n[0];
       TNode r = n[1];
 
@@ -281,27 +290,28 @@ void ArithIteUtils::learnSubstitutions(TNode n){
         }
         cout << "selected " << sel << endl;
         if(sel.isVar() && sel.getKind() != kind::SKOLEM){
-          cout << otherL << " " << otherR << endl;
+
+          cout << "others l:" << otherL << " r " << otherR << endl;
+          Node useForCmpL = selectForCmp(otherL);
+          Node useForCmpR = selectForCmp(otherR);
+
           Assert(Polynomial::isMember(sel));
-          Assert(Polynomial::isMember(otherL));
-          Assert(Polynomial::isMember(otherR));
-          Polynomial lside = Polynomial::parsePolynomial( otherL );
-          Polynomial rside = Polynomial::parsePolynomial( otherR );
+          Assert(Polynomial::isMember(useForCmpL));
+          Assert(Polynomial::isMember(useForCmpR));
+          Polynomial lside = Polynomial::parsePolynomial( useForCmpL );
+          Polynomial rside = Polynomial::parsePolynomial( useForCmpR );
           Polynomial diff = lside-rside;
 
-          cout << diff.getNode() << endl;
+          cout << "diff: " << diff.getNode() << endl;
           if(diff.isConstant()){
             // a: (sel = otherL) or (sel = otherR), otherL-otherR = c
 
-            // (sel = lc + vp) or (sel = rc + vp)
-            // (sel = (ite skolem (+ vp lc) (+vp rc)))
-            // sel -> vp + (ite skolem lc rc))
             NodeManager* nm = NodeManager::currentNM();
 
             Node sk = nm->mkSkolem("deor$$", nm->booleanType());
-            Node ite = sk.iteNode(lside.getNode(), rside.getNode());
-            Node newto = Rewriter::rewrite(ite);
-            addSubstitution(sel, newto);
+            Node ite = sk.iteNode(otherL, otherR);
+            d_constructed.insert(sk);
+            addSubstitution(sel, ite);
           }
         }
       }
