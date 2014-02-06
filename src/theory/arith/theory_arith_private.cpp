@@ -2047,13 +2047,23 @@ bool TheoryArithPrivate::attemptSolveInteger(Theory::Effort effortLevel, bool em
   if(!options::useApprox()){ return false; }
   if(!ApproximateSimplex::enabled()){ return false; }
 
-  if(Theory::fullEffort(effortLevel) && !hasIntegerModel()){
-    return getSolveIntegerResource();
+  if(Theory::fullEffort(effortLevel)){
+    if(hasIntegerModel()){
+      return false;
+    }else{
+      return getSolveIntegerResource();
+    }
   }
 
-  if(!hasIntegerModel() && d_lastContextIntegerAttempted <= 0){
-    return getSolveIntegerResource();
+  if(d_lastContextIntegerAttempted <= 0){
+    if(hasIntegerModel()){
+      d_lastContextIntegerAttempted = getSatContext()->getLevel();
+      return false;
+    }else{
+      return getSolveIntegerResource();
+    }
   }
+
 
   if(!options::trySolveIntStandardEffort()){ return false; }
 
