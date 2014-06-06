@@ -57,14 +57,14 @@ bool PseudoBooleanProcessor::decomposeAssertion(Node assertion, bool negated){
     d_off = r.getConst<Rational>();
     d_off = Rational(d_off.constValue().ceiling());
   }
-  Assert(d_off.isInteger());
+  Assert(d_off.constValue().isIntegral());
 
   int adj = negated ? -1 : 1;
   for(Polynomial::iterator i=p.begin(), end=p.end(); i != end; ++i){
     Monomial m = *i;
     const Rational& coeff = m.getConstant().getValue();
     if(!(coeff.isOne() || coeff.isNegativeOne())){ return false; }
-    Assert(sgn != 0);
+    Assert(coeff.sgn() != 0);
 
     const VarList& vl = m.getVarList();
     Node v = vl.getNode();
@@ -93,7 +93,7 @@ bool PseudoBooleanProcessor::isPseudoBoolean(Node v) const{
 
 void PseudoBooleanProcessor::addGeqZero(Node v, Node exp){
   Assert(isIntVar(v));
-  Assert(!exp.isNull())
+  Assert(!exp.isNull());
   CDNode2PairMap::const_iterator ci = d_pbBounds.find(v);
 
   Debug("pbs::rewrites") << "addGeqZero " << v << std::endl;
@@ -114,7 +114,7 @@ void PseudoBooleanProcessor::addGeqZero(Node v, Node exp){
 
 void PseudoBooleanProcessor::addLeqOne(Node v, Node exp){
   Assert(isIntVar(v));
-  Assert(!exp.isNull())
+  Assert(!exp.isNull());
   Debug("pbs::rewrites") << "addLeqOne " << v << std::endl;
   CDNode2PairMap::const_iterator ci = d_pbBounds.find(v);
   if(ci == d_pbBounds.end()){
@@ -204,7 +204,7 @@ Node PseudoBooleanProcessor::applyGeq(Node geq, bool negated){
     Debug("pbs::rewrites") << "failed " << std::endl;
     return negated ? geq.notNode() : geq;
   }
-  Assert(d_off.isIntegral());
+  Assert(d_off.constValue().isIntegral());
   Integer off = d_off.constValue().ceiling();
 
   // \sum pos >= \sum neg + off
