@@ -11,6 +11,9 @@
 #include "context/cdo.h"
 #include "context/cdhashmap.h"
 
+#include "theory/substitutions.h"
+#include <ext/hash_set>
+
 namespace CVC4 {
 namespace theory {
 namespace arith {
@@ -22,6 +25,11 @@ private:
   typedef std::vector<Node> NodeVec;
   typedef context::CDHashMap<Node, PairNode, NodeHashFunction> CDNode2PairMap;
   CDNode2PairMap d_pbBounds;
+  SubstitutionMap d_subCache;
+
+  typedef __gnu_cxx::hash_set<Node, NodeHashFunction> NodeSet;
+  NodeSet d_learningCache;
+
   context::CDO<unsigned> d_pbs;
 
   // decompose into \sum pos >= neg + off
@@ -35,16 +43,11 @@ private:
 public:
   PseudoBooleanProcessor(context::Context* user_context);
 
-
-  /** Assumes that the assertion has been rewritten. */
-  void learn(Node assertion);
   /** Assumes that the assertions have been rewritten. */
   void learn(const NodeVec& assertions);
 
   /** Assumes that the assertions have been rewritten. */
   void applyReplacements(NodeVec& assertions);
-  /** Rewrites a node  */
-  Node applyReplacements(Node assertion);
 
   bool likelyToHelp() const;
 
@@ -68,10 +71,17 @@ public:
   }
 
 private:
-  void learnInternal(Node assertion, bool negated, Node orig);
-  Node applyInternal(Node assertion, bool negated);
-  Node applyGeq(Node geq, bool negated);
+  /** Assumes that the assertion has been rewritten. */
+  void learn(Node assertion);
 
+  /** Rewrites a node  */
+  Node applyReplacements(Node assertion);
+
+  void learnInternal(Node assertion, bool negated, Node orig);
+  void learnRewrittenGeq(Node assertion, bool negated, Node orig);
+
+  void addSub(Node from, Node to);
+  void learnGeqSub(Node geq);
 
   static Node mkGeqOne(Node v);
 };

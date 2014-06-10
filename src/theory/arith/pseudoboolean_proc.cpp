@@ -11,6 +11,7 @@ namespace arith {
 
 PseudoBooleanProcessor::PseudoBooleanProcessor(context::Context* user_context)
   : d_pbBounds(user_context)
+  , d_subCache(user_context)
   , d_pbs(user_context, 0)
 {}
 
@@ -131,35 +132,54 @@ void PseudoBooleanProcessor::addLeqOne(Node v, Node exp){
   }
 }
 
+void PseudoBooleanProcessor::learnRewrittenGeq(Node assertion, bool negated, Node orig){
+  Assert(assertion.getKind() == kind::GEQ);
+  Assert(assertion == Rewriter::rewrite(assertion));
+
+  // assume assertion is rewritten
+  Node l = assertion[0];
+  Node r = assertion[1];
+
+
+  if(r.getKind() == kind::CONST_RATIONAL){
+    const Rational& rc = r.getConst<Rational>();
+    if(isIntVar(l)){
+      if(!negated && rc.isZero()){  // (>= x 0)
+	addGeqZero(l, orig);
+      }else if(negated && rc == Rational(2)){
+	addLeqOne(l, orig);
+      }
+    }else if(l.getKind() == kind::MULT && l.getNumChildren() == 2){
+      Node c = l[0], v = l[1];
+      if(c.getKind() == kind::CONST_RATIONAL && c.getConst<Rational>().isNegativeOne()){
+	if(isIntVar(v)){
+	  if(!negated && rc.isNegativeOne()){ // (>= (* -1 x) -1)
+	    addLeqOne(v, orig);
+	  }
+	}
+      }
+    }
+  }
+
+  if(!negated){
+    learnGeqSub(assertion);
+  }
+}
+
 void PseudoBooleanProcessor::learnInternal(Node assertion, bool negated, Node orig){
   switch(assertion.getKind()){
   case kind::GEQ:
-    // assume assertion is rewritten
+  case kind::GT:
+  case kind::LEQ:
+  case kind::LT:
     {
-      Node l = assertion[0];
-      Node r = assertion[1];
-
-
-      if(r.getKind() == kind::CONST_RATIONAL){
-        const Rational& rc = r.getConst<Rational>();
-        if(isIntVar(l)){
-          if(!negated && rc.isZero()){  // (>= x 0)
-            addGeqZero(l, orig);
-          }else if(negated && rc.isNegativeOne()){ // (not (<= x -1))
-            addGeqZero(l, orig);
-          }else if(negated && rc == Rational(2)){
-            addLeqOne(l, orig);
-          }
-        }else if(l.getKind() == kind::MULT && l.getNumChildren() == 2){
-          Node c = l[0], v = l[1];
-          if(c.getKind() == kind::CONST_RATIONAL && c.getConst<Rational>().isNegativeOne()){
-            if(isIntVar(v)){
-              if(!negated && rc.isNegativeOne()){ // (>= (* -1 x) -1)
-                addLeqOne(v, orig);
-              }
-            }
-          }
-        }
+      Node rw = Rewriter::rewrite(assertion);
+      if(assertion == rw){
+	if(assertion.getKind() == kind::GEQ){
+	  learnRewrittenGeq(assertion, negated, orig);
+	}
+      }else{
+	learnInternal(rw, negated, orig);
       }
     }
     break;
@@ -191,18 +211,24 @@ void PseudoBooleanProcessor::learn(const NodeVec& assertions){
   NodeVec::const_iterator ci, cend;
   ci = assertions.begin(); cend=assertions.end();
   for(; ci != cend; ++ci ){
-    Node assert = Rewriter::rewrite(*ci);
-    learn(assert);
+    learn(*ci);
   }
 }
 
+void PseudoBooleanProcessor::addSub(Node from, Node to){
+  if(!d_subCache.hasSubstitution(from)){
+    Node rw_to = Rewriter::rewrite(to);
+    d_subCache.addSubstitution(from, rw_to);
+  }
+}
 
-Node PseudoBooleanProcessor::applyGeq(Node geq, bool negated){
+void PseudoBooleanProcessor::learnGeqSub(Node geq){
   Assert(geq.getKind() == kind::GEQ);
+  const bool negated = false;
   bool success = decomposeAssertion(geq, negated);
   if(!success){
     Debug("pbs::rewrites") << "failed " << std::endl;
-    return negated ? geq.notNode() : geq;
+    return;
   }
   Assert(d_off.constValue().isIntegral());
   Integer off = d_off.constValue().ceiling();
@@ -219,9 +245,9 @@ Node PseudoBooleanProcessor::applyGeq(Node geq, bool negated){
 
     Node xGeq1 = mkGeqOne(x);
     Node yGeq1 = mkGeqOne(y);
-    return yGeq1.impNode(xGeq1);
-  }
-  if( d_pos.size() == 0 && d_neg.size() == 2 && off.isNegativeOne()){
+    Node imp = yGeq1.impNode(xGeq1);
+    addSub(geq, imp);
+  }else if( d_pos.size() == 0 && d_neg.size() == 2 && off.isNegativeOne()){
     // 0 >= (x + y -1)
     // |- 1 >= x + y
     // |- (or (not (x >= 1)) (not (y >= 1)))
@@ -230,9 +256,9 @@ Node PseudoBooleanProcessor::applyGeq(Node geq, bool negated){
 
     Node xGeq1 = mkGeqOne(x);
     Node yGeq1 = mkGeqOne(y);
-    return (xGeq1.notNode()).orNode(yGeq1.notNode());
-  }
-  if( d_pos.size() == 2 && d_neg.size() == 1 && off.isZero() ){
+    Node cases = (xGeq1.notNode()).orNode(yGeq1.notNode());
+    addSub(geq, cases);
+  }else if( d_pos.size() == 2 && d_neg.size() == 1 && off.isZero() ){
     // (x + y) >= z
     // |- (z >= 1) => (or (x >= 1) (y >=1 ))
     Node x = d_pos[0];
@@ -243,49 +269,16 @@ Node PseudoBooleanProcessor::applyGeq(Node geq, bool negated){
     Node yGeq1 = mkGeqOne(y);
     Node zGeq1 = mkGeqOne(z);
     NodeManager* nm =NodeManager::currentNM();
-    return nm->mkNode(kind::OR, zGeq1.notNode(), xGeq1, yGeq1);
+    Node dis = nm->mkNode(kind::OR, zGeq1.notNode(), xGeq1, yGeq1);
+    addSub(geq, dis);
   }
-
-  return negated ? geq.notNode() : geq;
 }
 
-Node PseudoBooleanProcessor::applyInternal(Node assertion, bool negated){
-  switch(assertion.getKind()){
-  case kind::GEQ:
-    return applyGeq(assertion, negated);
-  case kind::NOT:
-    return applyInternal(assertion[0], !negated);
-    break;
-  default:
-    break;
-  }
-  //return assertion;
-  return negated ? assertion.notNode() : assertion;
-}
+Node PseudoBooleanProcessor::applyReplacements(Node pre){
+  Node assertion = Rewriter::rewrite(pre);
 
-Node PseudoBooleanProcessor::applyReplacements(Node assertion){
-  Node result = Node::null();
-
-  if(assertion.getKind() == kind::AND){
-    NodeBuilder<> nb(kind::AND);
-    bool changed = false;
-    for(size_t i=0, N=assertion.getNumChildren(); i < N; ++i){
-      Node child = assertion[i];
-      Node rep = applyReplacements(child);
-      nb << rep;
-      changed = changed || child != rep;
-    }
-    if(changed){
-      result =  nb;
-    }else{
-      result = assertion;
-    }
-  }else{
-    result = applyInternal(assertion, false);
-  }
-
-  if( result != assertion ){
-    result = Rewriter::rewrite(result);
+  Node result = d_subCache.apply(assertion);
+  if(Debug.isOn("pbs::rewrites") && result != assertion ){
     Debug("pbs::rewrites") << "applyReplacements" <<assertion << "-> " << result << std::endl;
   }
   return result;
@@ -297,7 +290,7 @@ bool PseudoBooleanProcessor::likelyToHelp() const{
 
 void PseudoBooleanProcessor::applyReplacements(NodeVec& assertions){
   for(size_t i=0, N=assertions.size(); i < N; ++i){
-    Node assertion = Rewriter::rewrite(assertions[i]);
+    Node assertion = assertions[i];
     Node res = applyReplacements(assertion);
     assertions[i] = res;
   }
