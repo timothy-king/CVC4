@@ -1664,6 +1664,12 @@ ArithVar TheoryArithPrivate::requestArithVar(TNode x, bool aux, bool internal){
   ArithVar max = d_partialModel.getNumberOfVariables();
   ArithVar varX = d_partialModel.allocate(x, aux);
 
+  if(options::arithDistinctDefaults()){
+    unsigned long int id = x.getId();
+    Rational idVal(id);
+    d_partialModel.setAssignment(varX, idVal);
+  }
+
   bool reclaim =  max >= d_partialModel.getNumberOfVariables();;
 
   if(!reclaim){
@@ -4020,7 +4026,11 @@ DeltaRational TheoryArithPrivate::getDeltaValue(TNode n) const throw (DeltaRatio
     if(isSetup(n)){
       ArithVar var = d_partialModel.asArithVar(n);
       return d_partialModel.getAssignment(var);
-    }else{
+    } else if(options::arithDistinctDefaults() && n.getMetaKind() == kind::metakind::VARIABLE){
+      unsigned long int id = n.getId();
+      Rational val(id);
+      return DeltaRational(val);
+    } else {
       throw ModelException(n, "Expected a setup node.");
     }
   }

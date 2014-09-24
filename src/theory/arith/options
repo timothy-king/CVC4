@@ -161,4 +161,8 @@ option pbRewrites --pb-rewrites bool :default false
 option pbRewriteThreshold --pb-rewrite-threshold int :default 256
  threshold of number of pseudoboolean variables to have before doing rewrites
 
+option arithDistinctDefaults --distinct-defaults bool :default false
+ try to assignm each variable a distinct value by default
+
+
 endmodule
