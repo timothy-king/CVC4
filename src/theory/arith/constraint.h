@@ -76,10 +76,12 @@
 #define __CVC4__THEORY__ARITH__CONSTRAINT_H
 
 #include "expr/node.h"
+#include "proof/proof.h"
 
 #include "context/context.h"
 #include "context/cdlist.h"
 #include "context/cdqueue.h"
+#include "context/cdconsequent_tracker.h"
 
 #include "theory/arith/arithvar.h"
 #include "theory/arith/delta_rational.h"
@@ -117,6 +119,7 @@ namespace arith {
  *                    :   !(x > a) and !(x < a) => x = a
  * - EqualityEngineAP : This is propagated by the equality engine.
  *                    : Consult this for the proof.
+ * - IntHoleAP        : This is currently a catch-all for all integer specific reason.
  */
 enum ArithProofType { NoAP, AssumeAP, InternalAssumeAP, FarkasAP, StrictClosureAP, EqualityEngineAP};
 
@@ -141,7 +144,7 @@ static const AssertionOrder AssertionOrderSentinel = std::numeric_limits<Asserti
 
 typedef std::vector<Rational> RationalVector;
 typedef const RationalVector* RationalVectorCP;
-static const RationalVectorCP RationalVectorSentinal = NULL;
+static const RationalVectorCP RationalVectorSentinel = NULL;
 
 
 /**
@@ -292,14 +295,16 @@ private:
    */
   TNode d_witness;
 
-	/**
+  /**
    * This contains the type of the proof of the constraint.
-	 *
+   *
    * Sat Context Dependent.
    * This is initially NoAP.
-	 */
-	ArithProofType d_proofType;	
+   */
+  ArithProofType d_proofType;	
 
+  context::ConsequentID d_cid;
+  
   /**
    * This points at the farkas proof for the constraint in the current context.
    *
@@ -349,13 +354,55 @@ private:
    */
   void initialize(ConstraintDatabase* db, SortedConstraintMapIterator v, ConstraintP negation);
 
+  /**
+   * 
+   *
+   * If proofs are on, there is a vector of rationals for farkas coefficients.
+   * This is the owner of the memory for the vector, and calls delete upon cleanup.
+   */
+  struct ConstraintRule {
+    ConstraintP d_constraint;
+    ArithProofType d_proofType;
+
+#ifdef CVC4_PROOF
+    RationalVectorCP d_farkasCoefficients;
+#endif
+    
+    ConstraintRule(ConstraintP con, ArithProofType pt)
+      : d_constraint(con), d_proofType(pt) {
+      PROOF( d_farkasCoefficients = RationalVectorSentinel );
+    }
+    ConstraintRule(ConstraintP con, ArithProofType pt, RationalVectorCP coeffs)
+      : d_constraint(con), d_proofType(pt)
+    {
+      Assert(PROOF_ON() || coeffs == RationalVectorSentinel);
+      PROOF( d_farkasCoefficients = coeffs );
+    }
+  };
+
+  class ConstraintRuleCleanup {
+  public:
+    inline void operator()(ConstraintRule* crp){
+      Assert(crp != NULL);
+      ConstraintP constraint = crp->d_constraint;
+      Assert(!constraint->d_cid.isSentinel());
+      Assert(crp->d_proofType == constraint->d_proofType);
+      
+      constraint->d_cid = context::ConsequentID::Sentinel;
+      constraint->d_proofType = NoAP;
+      
+      PROOF(if(coeffs != RationalVectorSentinel){ delete coeffs; });
+    }
+  };
+
+  
   class ProofTypeCleanup {
   public:
     inline void operator()(ConstraintP* p){
       ConstraintP constraint = *p;
       Assert(constraint->d_proofType != NoAP);
       Assert(constraint->d_proofType != FarkasAP ||
-						 constraint->d_farkasProof == FarkasProofIdSentinel);
+             constraint->d_farkasProof == FarkasProofIdSentinel);
 
       constraint->d_proofType = NoAP;
 			/* In all cases, d_farkasProof is FarkasProofIdSentinel.

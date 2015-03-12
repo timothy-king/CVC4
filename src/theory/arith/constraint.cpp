@@ -1059,7 +1059,7 @@ void Constraint::_markAsTrue(ConstraintCP impA, ConstraintCP impB){
  */
 void Constraint::markFarkasProof(const ConstraintCPVec& a, RationalVectorCP coeffs){
   Assert(!hasProof());
-  Assert( PROOF_ON() == (coeffs != RationalVectorSentinal) );
+  Assert( PROOF_ON() == (coeffs != RationalVectorSentinel) );
   Assert( PROOF_ON() || coeffs->size() == a.size() + 1);
   Assert(a.size() >= 1);
 
@@ -1072,7 +1072,7 @@ void Constraint::markFarkasProof(const ConstraintCPVec& a, RationalVectorCP coef
   FarkasProofId proof = d_database->d_farkasProofs.size() - 1;
 
   if(PROOF_ON()){
-    Assert(coeffs != RationalVectorSentinal);
+    Assert(coeffs != RationalVectorSentinel);
 
     d_database->d_farkasCoefficients.push_back(coeffs->back());
 
