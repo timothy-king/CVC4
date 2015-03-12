@@ -26,9 +26,9 @@ namespace CVC4 {
 namespace theory {
 namespace arith {
 
-class Constraint_;
-typedef Constraint_* ConstraintP;
-typedef const Constraint_* ConstraintCP;
+class Constraint;
+typedef Constraint* ConstraintP;
+typedef const Constraint* ConstraintCP;
 
 const ConstraintP NullConstraint = NULL;
 

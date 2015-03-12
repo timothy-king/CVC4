@@ -506,7 +506,7 @@ void LinearEqualityModule::propagateBasicFromRow(ConstraintP c){
 
   ConstraintCPVec bounds;
   propagateRow(bounds, ridx, upperBound, c);
-  c->impliedBy(bounds);
+  c->_impliedBy(bounds);
 }
 
 void LinearEqualityModule::propagateRow(ConstraintCPVec& into, RowIndex ridx, bool rowUp, ConstraintP c){

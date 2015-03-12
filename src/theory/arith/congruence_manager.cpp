@@ -173,7 +173,7 @@ void ArithCongruenceManager::watchedVariableIsZero(ConstraintCP lb, ConstraintCP
   ++(d_statistics.d_watchedVariableIsZero);
 
   ArithVar s = lb->getVariable();
-  Node reason = Constraint_::externalExplainByAssertions(lb,ub);
+  Node reason = Constraint::externalExplainByAssertions(lb,ub);
 
   d_keepAlive.push_back(reason);
   assertionToEqualityEngine(true, s, reason);
@@ -414,7 +414,7 @@ void ArithCongruenceManager::equalsConstant(ConstraintCP lb, ConstraintCP ub){
                           << ub << std::endl;
 
   ArithVar x = lb->getVariable();
-  Node reason = Constraint_::externalExplainByAssertions(lb,ub);
+  Node reason = Constraint::externalExplainByAssertions(lb,ub);
 
   Node xAsNode = d_avariables.asNode(x);
   Node asRational = mkRationalNode(lb->getValue().getNoninfinitesimalPart());

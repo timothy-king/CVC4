@@ -668,7 +668,7 @@ bool TheoryArithPrivate::AssertLower(ConstraintP constraint){
         return true;
       }else if(!eq->isTrue()){
         Debug("eq") << "lb == ub, propagate eq" << eq << endl;
-        eq->impliedBy(constraint, d_partialModel.getUpperBoundConstraint(x_i));
+        eq->_impliedBy(constraint, d_partialModel.getUpperBoundConstraint(x_i));
         // do not need to add to d_learnedBounds
       }
     }
@@ -690,7 +690,7 @@ bool TheoryArithPrivate::AssertLower(ConstraintP constraint){
           // return true;
         }else if(!ub->negationHasProof()){
           ConstraintP negUb = ub->getNegation();
-          negUb->impliedBy(constraint, diseq);
+          negUb->_impliedBy(constraint, diseq);
           d_learnedBounds.push_back(negUb);
         }
       }
@@ -796,7 +796,7 @@ bool TheoryArithPrivate::AssertUpper(ConstraintP constraint){
         return true;
       }else if(!eq->isTrue()){
         Debug("eq") << "lb == ub, propagate eq" << eq << endl;
-        eq->impliedBy(constraint, d_partialModel.getLowerBoundConstraint(x_i));
+        eq->_impliedBy(constraint, d_partialModel.getLowerBoundConstraint(x_i));
         //do not bother to add to d_learnedBounds
       }
     }
@@ -1008,7 +1008,7 @@ bool TheoryArithPrivate::AssertDisequality(ConstraintP constraint){
       Debug("eq") << "propagate UpperBound " << constraint << lb << ub << endl;
       const ConstraintP negUb = ub->getNegation();
       if(!negUb->isTrue()){
-        negUb->impliedBy(constraint, lb);
+        negUb->_impliedBy(constraint, lb);
         d_learnedBounds.push_back(negUb);
       }
     }
@@ -1021,7 +1021,7 @@ bool TheoryArithPrivate::AssertDisequality(ConstraintP constraint){
       Debug("eq") << "propagate LowerBound " << constraint << lb << ub << endl;
       const ConstraintP negLb = lb->getNegation();
       if(!negLb->isTrue()){
-        negLb->impliedBy(constraint, ub);
+        negLb->_impliedBy(constraint, ub);
         d_learnedBounds.push_back(negLb);
       }
     }
@@ -1823,7 +1823,7 @@ Node TheoryArithPrivate::callDioSolver(){
     }else if(ub->isEquality()){
       orig = ub->externalExplainByAssertions();
     }else {
-      orig = Constraint_::externalExplainByAssertions(ub, lb);
+      orig = Constraint::externalExplainByAssertions(ub, lb);
     }
 
     Assert(d_partialModel.assignmentIsConsistent(v));
@@ -1943,8 +1943,6 @@ bool TheoryArithPrivate::assertionCases(ConstraintP constraint){
       if(!floorConstraint->isTrue()){
         if(floorConstraint->negationHasProof()){
           raiseConflict(constraint, floorConstraint->getNegation());
-          //Node conf = Constraint_::explainConflict(constraint, floorConstraint->getNegation());
-          //raiseConflict(conf);
           return true;
         }else{
           floorConstraint->impliedBy(constraint);
