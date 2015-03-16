@@ -76,7 +76,7 @@ Constraint::Constraint(ArithVar x,  ConstraintType t, const DeltaRational& v)
     d_canBePropagated(false),
     d_assertionOrder(AssertionOrderSentinel),
     d_witness(TNode::null()),
-    d_farkasProof(FarkasProofIdSentinel),
+    d_crid(ConstraintRuleIdSentinel),
     d_split(false),
     d_variablePosition()
 {
@@ -394,9 +394,11 @@ Constraint::~Constraint() {
   }
 }
 
-const ValueCollection& Constraint::getValueCollection() const{
-  return d_variablePosition->second;
+const ConstraintRule& Constraint::getConstraintRule() const {
+  Assert(hasProof());
+  return d_database->d_watches->d_constraintProofs[d_crid];
 }
+
 
 ConstraintP Constraint::getCeiling() {
   Debug("getCeiling") << "Constraint_::getCeiling on " << *this << endl;
@@ -451,19 +453,19 @@ bool Constraint::satisfiedBy(const DeltaRational& dr) const {
 }
 
 bool Constraint::isInternalAssumption() const {
-  return d_proofType == InternalAssumeAP;
+  return getProofType() == InternalAssumeAP;
 }
 
 bool Constraint::isAssumption() const {
-  return d_proofType == AssumeAP;
+  return getProofType() == AssumeAP;
 }
 
 bool Constraint::hasEqualityEngineProof() const {
-  return d_proofType == EqualityEngineAP;
+  return getProofType() == EqualityEngineAP;
 }
 
 bool Constraint::hasFarkasProof() const {
-  return d_proofType == FarkasAP;
+  return getProofType() == FarkasAP;
 }
 
 bool Constraint::sanityChecking(Node n) const {
@@ -555,8 +557,7 @@ ConstraintP Constraint::makeNegation(ArithVar v, ConstraintType t, const DeltaRa
 ConstraintDatabase::ConstraintDatabase(context::Context* satContext, context::Context* userContext, const ArithVariables& avars, ArithCongruenceManager& cm, RaiseConflict raiseConflict)
   : d_varDatabases(),
     d_toPropagate(satContext),
-    d_farkasProofs(satContext, false),
-    d_farkasCoefficients(satContext),
+    d_antecedents(satContext, false),
     d_watches(new Watches(satContext, userContext)),
     d_avariables(avars),
     d_congruenceManager(cm),
@@ -590,18 +591,13 @@ void ConstraintDatabase::pushAssertionOrderWatch(ConstraintP c, TNode witness){
   d_watches->d_assertionOrderWatches.push_back(c);
 }
 
-void ConstraintDatabase::pushProofWatch(ConstraintP c, ArithProofType apt){
-  Assert(c->d_proofType == NoAP);
-  Assert(c->d_proofType != FarkasAP);
-  c->d_proofType = apt;
-  d_watches->d_proofTypeWatches.push_back(c);
-}
 
-void ConstraintDatabase::pushFarkasProofWatch(ConstraintP c, FarkasProofId pid){
-  Assert(c->d_proofType == NoAP);
-  c->d_proofType = FarkasAP;
-  c->d_farkasProof = pid;
-  d_watches->d_proofTypeWatches.push_back(c);
+void ConstraintDatabase::pushConstraintRule(const ConstraintRule& crp){
+  ConstraintP c = crp.d_constraint;
+  Assert(c->d_crid == ConstraintRuleIdSentinel);
+  Assert(!c->hasProof());
+  c->d_crid = d_watches->d_constraintProofs.size();
+  d_watches->d_constraintProofs.push_back(crp);
 }
 
 ConstraintP ConstraintDatabase::getConstraint(ArithVar v, ConstraintType t, const DeltaRational& r){
@@ -907,7 +903,7 @@ void Constraint::setAssumptionInConflict(){
   Assert(hasLiteral());
   Assert(assertedToTheTheory());
 
-  d_database->pushProofWatch(this, AssumeAP);
+  d_database->pushConstraintRule(ConstraintRule(this, AssumeAP));
 }
 
 void Constraint::setAssumption(){
@@ -979,20 +975,20 @@ void Constraint::setInternalAssumption(){
   Assert(truthIsUnknown());
   Assert(!assertedToTheTheory());
 
-  d_database->pushProofWatch(this, InternalAssumeAP);
+  d_database->pushConstraintRule(ConstraintRule(this, InternalAssumeAP));
 }
 
 void Constraint::setEqualityEngineProof(){
   Assert(truthIsUnknown());
   Assert(hasLiteral());
-  d_database->pushProofWatch(this, InternalAssumeAP);
+  d_database->pushConstraintRule(ConstraintRule(this, EqualityEngineAP));
 }
 
 void Constraint::markAssumption(){
   Assert(truthIsUnknown());
   Assert(hasLiteral());
   Assert(assertedToTheTheory());
-  d_database->pushProofWatch(this, AssumeAP);
+  d_database->pushConstraintRule(ConstraintRule(this, AssumeAP));
 }
 
 // void Constraint::_markAsTrue(ConstraintCP imp){
@@ -1018,21 +1014,24 @@ void Constraint::markUnateFarkasProof(ConstraintCP imp){
   Assert(getNegation()->isDisequality());
   Assert(imp->isDisequality());
 
-  d_database->d_farkasProofs.push_back(NullConstraint);
-  d_database->d_farkasProofs.push_back(imp);
+  d_database->d_antecedents.push_back(NullConstraint);
+  d_database->d_antecedents.push_back(imp);
 
-  FarkasProofId proof = d_database->d_farkasProofs.size() - 1;
+  AntecedentId antecedentEnd = d_database->d_antecedents.size() - 1;
 
+  RationalVectorP coeffs;
   if(PROOF_ON()){
     
     std::pair<int, int> sgns = unateFarkasSigns(getNegation()->getType(), imp->getType());
 
-    d_database->d_farkasCoefficients.push_back(Rational(sgns.first));
-    d_database->d_farkasCoefficients.push_back(Rational(sgns.second));
-    Assert(d_database->d_farkasProofs.size() == d_database->d_farkasCoefficients.size());
+    coeffs = new RationalVector(2);
+    coeffs->push_back(Rational(sgns.first));
+    coeffs->push_back(Rational(sgns.second));
+  } else {
+    coeffs = RationalVectorPSentinel;
   }
 
-  d_database->pushFarkasProofWatch(this, proof);
+  d_database->pushConstraintRule(ConstraintRule(this, FarkasAP, antecedentEnd, coeffs));
 }
 
 void Constraint::_markAsTrue(ConstraintCP impA, ConstraintCP impB){
@@ -1063,28 +1062,22 @@ void Constraint::markFarkasProof(const ConstraintCPVec& a, RationalVectorCP coef
   Assert( PROOF_ON() || coeffs->size() == a.size() + 1);
   Assert(a.size() >= 1);
 
-  d_database->d_farkasProofs.push_back(NullConstraint);
+  d_database->d_antecedents.push_back(NullConstraint);
   for(ConstraintCPVec::const_iterator i = a.begin(), end = a.end(); i != end; ++i){
     ConstraintCP c_i = *i;
     Assert(c_i->hasProof());
-    d_database->d_farkasProofs.push_back(c_i);
+    d_database->d_antecedents.push_back(c_i);
   }
-  FarkasProofId proof = d_database->d_farkasProofs.size() - 1;
+  AntecedentId antecedentEnd = d_database->d_antecedents.size() - 1;
 
+  RationalVectorCP coeffsCopy;
   if(PROOF_ON()){
     Assert(coeffs != RationalVectorSentinel);
-
-    d_database->d_farkasCoefficients.push_back(coeffs->back());
-
-    RationalVector::const_iterator coeff_i = coeffs->begin();
-    RationalVector::const_iterator coeff_end = coeffs->end();
-    --coeff_end; /* do not include the final element */
-    for(; coeff_i != coeff_end; ++coeff_i){
-      const Rational& coeff = *coeff_i;
-      d_database->d_farkasCoefficients.push_back(coeff);      
-    }
+    coeffsCopy = new RationalVector(*coeffs);
+  } else {
+    coeffsCopy = RationalVectorSentinel;
   }
-  d_database->pushFarkasProofWatch(this, proof);
+  d_database->pushConstraintRule(ConstraintRule(this, FarkasAP, antecedentEnd, coeffsCopy));
 }
 
 void Constraint::_markAsTrue(const ConstraintCPVec& a){
@@ -1109,9 +1102,15 @@ SortedConstraintMap& Constraint::constraintSet() const{
   return (d_database->d_varDatabases[d_variable])->d_constraints;
 }
 
-bool Constraint::debugFarkasProofIsEmpty() const{
-  Assert(hasFarkasProof());
-  return d_database->d_farkasProofs[d_farkasProof] == NullConstraint;
+bool Constraint::antecentListIsEmpty() const{
+  Assert(hasProof());
+  return d_database->d_antecedents[getEndAntecedent()] == NullConstraint;
+}
+
+bool Constraint::antecedentListLengthIsOne() const {
+  Assert(hasProof());
+  return !antecentListIsEmpty() &&
+    d_database->d_antecedents[getEndAntecedent()-1] == NullConstraint;
 }
 
 Node Constraint::externalImplication(const ConstraintCPVec& b) const{
@@ -1140,7 +1139,7 @@ void Constraint::assertionFringe(ConstraintCPVec& v){
 
   if(!v.empty()){
     const ConstraintDatabase* db = v.back()->d_database;
-    const CDConstraintList& proofs = db->d_farkasProofs;
+    const CDConstraintList& proofs = db->d_antecedents;
     for(size_t i = 0; i < v.size(); ++i){
       ConstraintCP vi = v[i];
       if(visited.find(vi) == visited.end()){
@@ -1151,7 +1150,7 @@ void Constraint::assertionFringe(ConstraintCPVec& v){
           writePos++;
         }else{
           Assert(vi->hasFarkasProof());
-          FarkasProofId p = vi->d_farkasProof;
+          AntecedentId p = vi->d_crid;
           ConstraintCP antecedent = proofs[p];
           while(antecedent != NullConstraint){
             v.push_back(antecedent);
@@ -1191,11 +1190,13 @@ void Constraint::externalExplain(NodeBuilder<>& nb, AssertionOrder order) const{
     d_database->eeExplain(this, nb);
   }else{
     Assert(!isAssumption());
-    FarkasProofId p = d_farkasProof;
-    ConstraintCP antecedent = d_database->d_farkasProofs[p];
+    AntecedentId p = getEndAntecedent();
+    ConstraintCP antecedent = d_database->d_antecedents[p];
 
-    for(; antecedent != NullConstraint; antecedent = d_database->d_farkasProofs[--p] ){
+    while(antecedent != NullConstraint){
       antecedent->externalExplain(nb, order);
+      --p;
+      antecedent = d_database->d_antecedents[p];
     }
   }
 }
@@ -1210,22 +1211,24 @@ Node Constraint::externalExplain(AssertionOrder order) const{
     return d_database->eeExplain(this);
   }else{
     Assert(hasFarkasProof());
-    Assert(!debugFarkasProofIsEmpty());
+    Assert(!antecentListIsEmpty());
     //Force the selection of the layer above if the node is
     // assertedToTheTheory()!
-    if(d_database->d_farkasProofs[d_farkasProof-1] == NullConstraint){
-      ConstraintCP antecedent = d_database->d_farkasProofs[d_farkasProof];
+
+    AntecedentId listEnd = getEndAntecedent();
+    if(antecedentListLengthIsOne()){
+      ConstraintCP antecedent = d_database->d_antecedents[listEnd];
       return antecedent->externalExplain(order);
     }else{
       NodeBuilder<> nb(kind::AND);
       Assert(!isAssumption());
 
-      FarkasProofId p = d_farkasProof;
-      ConstraintCP antecedent = d_database->d_farkasProofs[p];
+      AntecedentId p = listEnd;
+      ConstraintCP antecedent = d_database->d_antecedents[p];
       while(antecedent != NullConstraint){
         antecedent->externalExplain(nb, order);
         --p;
-        antecedent = d_database->d_farkasProofs[p];
+        antecedent = d_database->d_antecedents[p];
       }
       return nb;
     }
@@ -1368,7 +1371,7 @@ bool ConstraintDatabase::variableDatabaseIsSetup(ArithVar v) const {
 
 
 ConstraintDatabase::Watches::Watches(context::Context* satContext, context::Context* userContext):
-  d_proofTypeWatches(satContext),
+  d_constraintProofs(satContext),
   d_canBePropagatedWatches(satContext),
   d_assertionOrderWatches(satContext),
   d_splitWatches(userContext)

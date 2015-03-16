@@ -81,7 +81,6 @@
 #include "context/context.h"
 #include "context/cdlist.h"
 #include "context/cdqueue.h"
-#include "context/cdconsequent_tracker.h"
 
 #include "theory/arith/arithvar.h"
 #include "theory/arith/delta_rational.h"
@@ -121,7 +120,8 @@ namespace arith {
  *                    : Consult this for the proof.
  * - IntHoleAP        : This is currently a catch-all for all integer specific reason.
  */
-enum ArithProofType { NoAP, AssumeAP, InternalAssumeAP, FarkasAP, StrictClosureAP, EqualityEngineAP};
+enum ArithProofType { NoAP, AssumeAP, InternalAssumeAP, FarkasAP, StrictClosureAP, EqualityEngineAP,
+                      IntHoleAP};
 
 /**
  * The types of constraints.
@@ -135,16 +135,22 @@ typedef context::CDList<ConstraintCP> CDConstraintList;
 
 typedef __gnu_cxx::hash_map<Node, ConstraintP, NodeHashFunction> NodetoConstraintMap;
 
-typedef size_t FarkasProofId;
-static const FarkasProofId FarkasProofIdSentinel = std::numeric_limits<FarkasProofId>::max();
+typedef size_t ConstraintRuleID;
+static const ConstraintRuleID ConstraintRuleIdSentinel = std::numeric_limits<ConstraintRuleID>::max();
+
+typedef size_t AntecedentId;
+static const AntecedentId AntecedentIdSentinel = std::numeric_limits<AntecedentId>::max();
+
 
 typedef size_t AssertionOrder;
 static const AssertionOrder AssertionOrderSentinel = std::numeric_limits<AssertionOrder>::max();
 
 
 typedef std::vector<Rational> RationalVector;
+typedef RationalVector* RationalVectorP;
 typedef const RationalVector* RationalVectorCP;
 static const RationalVectorCP RationalVectorSentinel = NULL;
+static const RationalVectorP RationalVectorPSentinel = NULL;
 
 
 /**
@@ -238,6 +244,90 @@ struct PerVariableDatabase{
   }
 };
 
+
+/**
+ * If proofs are on, there is a vector of rationals for farkas coefficients.
+ * This is the owner of the memory for the vector, and calls delete upon cleanup.
+ * 
+ */
+struct ConstraintRule {
+  ConstraintP d_constraint;
+  ArithProofType d_proofType;
+  AntecedentId d_antecedentEnd;
+    
+#ifdef CVC4_PROOF
+  /**
+   * In this comment, we abbreviate ConstraintDatabase::d_antecedents
+   * and d_farkasCoefficients as ans and fc.
+   *
+   * This list is always empty if proofs are not enabled.
+   *
+   * If proofs are enabled, the proof of constraint c at p in ans[p] of length n is
+   *  (NullConstraint, ans[p-(n-1)], ... , ans[p-1], ans[p])
+   * 
+   * Farkas' proofs show a contradiction with the negation of c, c_not = c->getNegation().
+   *
+   * We treat the position for NullConstraint (p-n) as the position for the farkas
+   * coefficient for so we pretend c_not is ans[p-n].
+   * So this correlation for the constraints we are going to use:
+   *   (c_not, ans[p-(n-1)], ... , ans[p-1], ans[p])
+   * With the coefficients at positions:
+   *   (fc[0], fc[1)], ... fc[n])
+   *
+   * The index of the constraints in the proof are {i | i <= 0 <= n] } (with c_not being p-n).
+   * Partition the indices into L, U, and E, the lower bounds, the upper bounds and equalities.
+   *
+   * We standardize the proofs to be upper bound oriented following the convention:
+   *   A x <= b
+   * with the proof witness of the form
+   *  (lambda) Ax <= (lambda) b and lambda >= 0.
+   *
+   * To accomplish this cleanly, the fc coefficients must be negative for lower bounds.
+   * The signs of equalities can be either positive or negative.
+   *
+   * Thus the proof corresponds to (with multiplication over inequalities):
+   *    \sum_{u in U} fc[u] ans[p-n+u] + \sum_{e in E} fc[e] ans[p-n+e]
+   *  + \sum_{l in L} fc[l] fp[p-n+l]
+   * |= 0 < 0
+   * where fc[u] > 0, fc[l] < 0, and fc[e] != 0 (i.e. it can be either +/-).
+   * 
+   * There is no requirement that the proof is minimal.
+   * We do however use all of the constraints by requiring non-zero coefficients.
+   */
+  RationalVectorCP d_farkasCoefficients;
+#endif
+  ConstraintRule()
+    : d_constraint(NullConstraint)
+    , d_proofType(NoAP)
+    , d_antecedentEnd(AntecedentIdSentinel)
+  {
+    PROOF( d_farkasCoefficients = RationalVectorSentinel );
+  }
+
+  ConstraintRule(ConstraintP con, ArithProofType pt)
+    : d_constraint(con)
+    , d_proofType(pt)
+    , d_antecedentEnd(AntecedentIdSentinel)
+  {
+    PROOF( d_farkasCoefficients = RationalVectorSentinel );
+  }
+  ConstraintRule(ConstraintP con, ArithProofType pt, AntecedentId antecedentEnd)
+    : d_constraint(con)
+    , d_proofType(pt)
+    , d_antecedentEnd(antecedentEnd)
+  {
+    PROOF( d_farkasCoefficients = RationalVectorSentinel );
+  }
+  ConstraintRule(ConstraintP con, ArithProofType pt, AntecedentId antecedentEnd, RationalVectorCP coeffs)
+    : d_constraint(con)
+    , d_proofType(pt)
+    , d_antecedentEnd(antecedentEnd)
+  {
+    Assert(PROOF_ON() || coeffs == RationalVectorSentinel);
+    PROOF( d_farkasCoefficients = coeffs );
+  }
+}; /* class ConstraintRule */
+
 class Constraint {
 private:
   /** The ArithVar associated with the constraint. */
@@ -296,22 +386,13 @@ private:
   TNode d_witness;
 
   /**
-   * This contains the type of the proof of the constraint.
+   * The position of the constraint in the constraint rule id.
    *
    * Sat Context Dependent.
-   * This is initially NoAP.
+   * This is initially 
    */
-  ArithProofType d_proofType;	
-
-  context::ConsequentID d_cid;
+  ConstraintRuleID d_crid;
   
-  /**
-   * This points at the farkas proof for the constraint in the current context.
-   *
-   * Sat Context Dependent.
-   * This is initially ProofIdSentinel.
-   */
-	FarkasProofId d_farkasProof;
 
   /**
    * True if the equality has been split.
@@ -346,6 +427,7 @@ private:
    */
   ~Constraint();
 
+  /**  Returns true if the constraint has been initialized. */
   bool initialized() const;
 
   /**
@@ -354,65 +436,37 @@ private:
    */
   void initialize(ConstraintDatabase* db, SortedConstraintMapIterator v, ConstraintP negation);
 
-  /**
-   * 
-   *
-   * If proofs are on, there is a vector of rationals for farkas coefficients.
-   * This is the owner of the memory for the vector, and calls delete upon cleanup.
-   */
-  struct ConstraintRule {
-    ConstraintP d_constraint;
-    ArithProofType d_proofType;
-
-#ifdef CVC4_PROOF
-    RationalVectorCP d_farkasCoefficients;
-#endif
-    
-    ConstraintRule(ConstraintP con, ArithProofType pt)
-      : d_constraint(con), d_proofType(pt) {
-      PROOF( d_farkasCoefficients = RationalVectorSentinel );
-    }
-    ConstraintRule(ConstraintP con, ArithProofType pt, RationalVectorCP coeffs)
-      : d_constraint(con), d_proofType(pt)
-    {
-      Assert(PROOF_ON() || coeffs == RationalVectorSentinel);
-      PROOF( d_farkasCoefficients = coeffs );
-    }
-  };
 
   class ConstraintRuleCleanup {
   public:
     inline void operator()(ConstraintRule* crp){
       Assert(crp != NULL);
       ConstraintP constraint = crp->d_constraint;
-      Assert(!constraint->d_cid.isSentinel());
-      Assert(crp->d_proofType == constraint->d_proofType);
-      
-      constraint->d_cid = context::ConsequentID::Sentinel;
-      constraint->d_proofType = NoAP;
+      Assert(constraint->d_crid != ConstraintRuleIdSentinel);
+      constraint->d_crid = ConstraintRuleIdSentinel;
       
       PROOF(if(coeffs != RationalVectorSentinel){ delete coeffs; });
     }
   };
 
   
-  class ProofTypeCleanup {
-  public:
-    inline void operator()(ConstraintP* p){
-      ConstraintP constraint = *p;
-      Assert(constraint->d_proofType != NoAP);
-      Assert(constraint->d_proofType != FarkasAP ||
-             constraint->d_farkasProof == FarkasProofIdSentinel);
+  // class ProofTypeCleanup {
+  // public:
+  //   inline void operator()(ConstraintP* p){
+  //     ConstraintP constraint = *p;
+  //     Assert(constraint->d_proofType != NoAP);
+  //     Assert(constraint->d_proofType != FarkasAP ||
+  //            constraint->d_farkasProof == FarkasProofIdSentinel);
 
-      constraint->d_proofType = NoAP;
-			/* In all cases, d_farkasProof is FarkasProofIdSentinel.
-			 * Instead of checking and setting, we always set this value. */
-			constraint->d_farkasProof = FarkasProofIdSentinel;
+  //     constraint->d_proofType = NoAP;
+  //       		/* In all cases, d_farkasProof is FarkasProofIdSentinel.
+  //       		 * Instead of checking and setting, we always set this value. */
+  //       		constraint->d_farkasProof = FarkasProofIdSentinel;
 
-      Assert(constraint->d_proofType == NoAP);
-      Assert(constraint->d_farkasProof == FarkasProofIdSentinel);
-    }
-  };
+  //     Assert(constraint->d_proofType == NoAP);
+  //     Assert(constraint->d_farkasProof == FarkasProofIdSentinel);
+  //   }
+  // };
 
   class CanBePropagatedCleanup {
   public:
@@ -444,12 +498,15 @@ private:
   };
 
   /**
-	 * Returns true if the node is safe to garbage collect.
-	 * Both it and its negation must have no context dependent data set.
-	 */
+   * Returns true if the node is safe to garbage collect.
+   * Both it and its negation must have no context dependent data set.
+   */
   bool safeToGarbageCollect() const;
 
-	bool contextDependentDataIsSet() const;
+  /**
+   * Returns true if the constraint has no context dependent data set.
+   */
+  bool contextDependentDataIsSet() const;
 
   /**
    * Returns true if the node correctly corresponds to the constraint that is
@@ -466,11 +523,11 @@ private:
 
 public:
 
-  ConstraintType getType() const {
+  inline ConstraintType getType() const {
     return d_type;
   }
 
-  ArithVar getVariable() const {
+  inline ArithVar getVariable() const {
     return d_variable;
   }
 
@@ -478,7 +535,7 @@ public:
     return d_value;
   }
 
-  ConstraintP getNegation() const {
+  inline ConstraintP getNegation() const {
     return d_negation;
   }
 
@@ -543,16 +600,16 @@ public:
   }
 
   /**
-	 * Sets the witness literal for a node being on the assertion stack.
+   * Sets the witness literal for a node being on the assertion stack.
    * The negation of the node cannot be true.
-	 */
+   */
   void setAssertedToTheTheory(TNode witness);
 
   /**
-	 * Sets the witness literal for a node being on the assertion stack.
+   * Sets the witness literal for a node being on the assertion stack.
    * The negation of the node must be true!
    * This is for conflict generation specificially!
-	 */
+   */
   void setAssertedToTheTheoryWithNegationTrue(TNode witness);
 
   bool hasLiteral() const {
@@ -569,22 +626,21 @@ public:
   /**
    * Set the node as having a proof and being an assumption.
    * The node must be assertedToTheTheory().
-	 * The negation cannot be true.
-	 *
-	 * Replaces selfExplaining().
+   * The negation cannot be true.
+   *
+   * Replaces selfExplaining().
    */
   void setAssumption();
 
-	/**
+  /**
    * Set the node as having a proof and being an assumption.
    * The node must be assertedToTheTheory().
-	 * The negation of the constraint must be true!
-	 * This is used for conflict generation.
-	 *
-	 * Replaces selfExplainingWithNegationTrue().
+   * The negation of the constraint must be true!
+   * This is used for conflict generation.
+   *
+   * Replaces selfExplainingWithNegationTrue().
    */
-	void setAssumptionInConflict();
-
+  void setAssumptionInConflict();
 
   /** Returns true if the node is an assumption.*/
   bool isAssumption() const;
@@ -689,12 +745,12 @@ private:
 
 public:
 
-	/** The constraint is known to be true. */
+  /** The constraint is known to be true. */
   inline bool hasProof() const {
-    return d_proofType != NoAP;
+    return d_crid != ConstraintRuleIdSentinel;
   }
 
-	/** The negation of the constraint is known to hold. */
+  /** The negation of the constraint is known to hold. */
   inline bool negationHasProof() const {
     return d_negation->hasProof();
   }
@@ -806,6 +862,20 @@ private:
   void _markAsTrue(ConstraintCP a, ConstraintCP b);
   void _markAsTrue(const ConstraintCPVec& b);
 
+  /** Returns the constraint rule at the position. */
+  const ConstraintRule& getConstraintRule() const;
+  
+  inline ArithProofType getProofType() const {
+    return getConstraintRule().d_proofType;  }
+
+  inline AntecedentId getEndAntecedent() const {
+    return getConstraintRule().d_antecedentEnd;
+  }
+
+  inline RationalVectorCP getFarkasCoefficients() const {
+    return NULLPROOF(getConstraintRule().d_farkasCoefficients);
+  }
+  
   void debugPrint() const;
 
   /**
@@ -814,7 +884,9 @@ private:
    *   isSelfExplaining() or
    *    hasEqualityEngineProof()
    */
-  bool debugFarkasProofIsEmpty() const;
+  bool antecentListIsEmpty() const;
+
+  bool antecedentListLengthIsOne() const;
 
 }; /* class ConstraintValue */
 
@@ -847,69 +919,26 @@ private:
   context::CDQueue<ConstraintCP> d_toPropagate;
 
   /**
-   * Farkas proof lists.
-	 *
-   * Proofs are lists of valid constraints terminated by the first smaller
+   * Proofs are lists of valid constraints terminated by the first null
    * sentinel value in the proof list.
-   * The proof at p in d_farkasProofs[p] of length n is
-   *  (NullConstraint, d_farkasProofs[p-(n-1)], ... , d_farkasProofs[p-1], d_farkasProofs[p])
-	 *
+   * We abbreviate d_antecedents as ans in the comment.
+   *
+   * The proof at p in ans[p] of length n is
+   *  (NullConstraint, ans[p-(n-1)], ... , ans[p-1], ans[p])
+   *
    * The proof at p corresponds to the conjunction:
    *  (and x_i)
    *
    * So the proof of a Constraint c corresponds to the horn clause:
    *  (implies (and x_i) c)
-   * where (and x_i) is the proof at c.d_proofs.
+   * where (and x_i) is the proof at c.d_crid d_antecedentEnd.
    *
-   * Constraints are pointers so this list is designed not to require any
-   * destruction.
+   * Constraints are pointers so this list is designed not to require any destruction.
    */
-  CDConstraintList d_farkasProofs;
-
-	
-  typedef context::CDList<Rational> FarkasCoefficientList;
-
-	/**
-   * A list of Farkas coefficients for the Farkas' proofs.
-	 * In this comment, we abbreviate d_farkasProofs and d_farkasCoefficients as fp and fc.
-	 *
-	 * This list is always empty if proofs are not enabled.
-	 *
-	 * If proofs are enabled, the proof of constraint c at p in fp[p] of length n is
-   *  (NullConstraint, fp[p-(n-1)], ... , fp[p-1], fp[p])
-	 * 
-   * Farkas' proofs show a contradiction with the negation of c, c_not = c->getNegation().
-   *
-	 * We treat the position for NullConstraint (p-n) as the position for the farkas
-	 * coefficient for so we pretend c_not = fp[p-n].
-   *
-	 * So this is the correlation for the constraints we are going to use:
-   *   (c_not, fp[p-(n-1)], ... , fp[p-1], fp[p])
-	 * With the coefficients at positions:
-	 *   (fc[p-n], fc[p - (n-1)], ... fc[p])
-	 *
-	 * The index of the constraints in the proof are {i | i <= 0 <= n] } (with c_not being p-n).
-	 * Partition the indices into L, U, and E, the lower bounds, the upper bounds and equalities.
-   *
-	 * We standardize the proofs to be upper bound oriented following the convention:
-	 *   A x <= b
-	 * with the proof witness of the form
-   *  (lambda) Ax <= (lambda) b and lambda >= 0.
-   *
-	 * To accomplish this cleanly, the fc coefficients must be negative for lower bounds.
-   * The signs of equalities can be either positive or negative.
-	 *
-	 * Thus the proof corresponds to (with multiplication over inequalities):
-	 *   \sum_{u in U} fc[p-u] fp[p-u] + \sum_{e in E} fc[e]fp[e] + \sum_{l in L} fc[p-l] fp[p-l]
-	 * |= 0 < 0
-   * where fc[p-u] > 0, fc[p-l] < 0, and fc[p-e] can be either +/-.
-   * 
-   * There is no requirement that the proof is minimal just that all constraints are used.
-	 */
-	FarkasCoefficientList d_farkasCoefficients;
+  CDConstraintList d_antecedents;
 
 
-	#warning "remove selfExplainingProof, equalityEngineProof, internalDecisionProof"
+#warning "remove selfExplainingProof, equalityEngineProof, internalDecisionProof"
   /**
    * This is a special proof for marking that nodes are their own explanation
    * from the perspective of the theory.
@@ -935,7 +964,7 @@ private:
   /*ProofId d_internalDecisionProof;*/
 
 
-  typedef context::CDList<ConstraintP, Constraint::ProofTypeCleanup> ProofTypeCleanupList;
+  typedef context::CDList<ConstraintRule, Constraint::ConstraintRuleCleanup> ConstraintRuleList;
   typedef context::CDList<ConstraintP, Constraint::CanBePropagatedCleanup> CBPList;
   typedef context::CDList<ConstraintP, Constraint::AssertionOrderCleanup> AOList;
   typedef context::CDList<ConstraintP, Constraint::SplitCleanup> SplitList;
@@ -949,13 +978,14 @@ private:
   struct Watches{
 
     /**
-		 * Contains the exact list of atoms that have a proof.
-		 * Upon pop, this unsets d_proofType to NoAP.
-		 *
-		 * The index in this list is the proper ordering of the proofs.
+     * Contains the exact list of constraints that have a proof.
+     * Upon pop, this unsets d_crid to NoAP.
+     *
+     * The index in this list is the proper ordering of the proofs.
      */
-    ProofTypeCleanupList d_proofTypeWatches;
-
+    ConstraintRuleList d_constraintProofs;
+    
+    
     /**
      * Contains the exact list of constraints that can be used for propagation.
      */
@@ -980,8 +1010,9 @@ private:
   void pushSplitWatch(ConstraintP c);
   void pushCanBePropagatedWatch(ConstraintP c);
   void pushAssertionOrderWatch(ConstraintP c, TNode witness);
-  void pushProofWatch(ConstraintP c, ArithProofType apt);
-  void pushFarkasProofWatch(ConstraintP c, FarkasProofId pid);
+
+  /** Assumes that antecedents have already been pushed. */
+  void pushConstraintRule(const ConstraintRule& crp);
 
   /** Returns true if all of the entries of the vector are empty. */
   static bool emptyDatabase(const std::vector<PerVariableDatabase>& vec);

@@ -2414,7 +2414,7 @@ void TheoryArithPrivate::resolveOutPropagated(std::vector<ConstraintCPVec>& conf
   for(size_t i =0, N = confs.size(); i < N; ++i){
     ConstraintCPVec& conf = confs[i];
     size_t orig = conf.size();
-    Constraint_::assertionFringe(conf);
+    Constraint::assertionFringe(conf);
     Debug("arith::resolveOutPropagated")
       << "  conf["<<i<<"] " << orig << " to " << conf.size() << endl;
   }
@@ -2816,7 +2816,7 @@ bool TheoryArithPrivate::replayLemmas(ApproximateSimplex* approx){
       Node cutConstraint = cutToLiteral(approx, *cut);
       if(!cutConstraint.isNull()){
         const ConstraintCPVec& exp = cut->getExplanation();
-        Node asLemma = Constraint_::externalExplainByAssertions(exp);
+        Node asLemma = Constraint::externalExplainByAssertions(exp);
 
         Node implied = Rewriter::rewrite(cutConstraint);
         anythingnew = anythingnew || !isSatLiteral(implied);
