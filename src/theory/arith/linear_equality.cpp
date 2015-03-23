@@ -505,15 +505,52 @@ void LinearEqualityModule::propagateBasicFromRow(ConstraintP c){
   RowIndex ridx = d_tableau.basicToRowIndex(basic);
 
   ConstraintCPVec bounds;
-  propagateRow(bounds, ridx, upperBound, c);
-  c->_impliedBy(bounds);
+  RationalVectorP basic_coeff = NULLPROOF(new Rational());
+  RationalVectorP coeffs = NULLPROOF(new RationalVector());
+  propagateRow(bounds, ridx, upperBound, c, coeffs);
+  c->impliedByFarkas(bounds, coeffs);
 }
 
-void LinearEqualityModule::propagateRow(ConstraintCPVec& into, RowIndex ridx, bool rowUp, ConstraintP c){
+/* An explanation of the farkas coefficients.
+ *
+ * We are proving c using the other variables on the row.
+ * The proof is in terms of the other constraints and the negation of c, ~c.
+ *
+ * A row has the form:
+ *   sum a_i * x_i  = 0 
+ * or
+ *   sx + sum r y + sum q z = 0 
+ * where r > 0 and q < 0.
+ *
+ * If rowUp, we are proving c
+ *   g = sum r u_y + sum q l_z
+ *   and c is entailed by -sx <= g
+ * If !rowUp, we are proving c
+ *   g = sum r l_y + sum q u_z
+ *   and c is entailed by -sx >= g
+ *
+ *
+ *
+ *             | s     | c         | ~c       | u_i     | l_i
+ *   if  rowUp | s > 0 | x >= -g/s | x < -g/s | a_i > 0 | a_i < 0
+ *   if  rowUp | s < 0 | x <= -g/s | x > -g/s | a_i > 0 | a_i < 0
+ *   if !rowUp | s > 0 | x <= -g/s | x > -g/s | a_i < 0 | a_i > 0
+ *   if !rowUp | s < 0 | x >= -g/s | x < -g/s | a_i < 0 | a_i > 0
+ *
+ *
+ * Thus we treat !rowUp as multiplying the row by -1 and rowUp as 1
+ * for the entire row.
+ */
+void LinearEqualityModule::propagateRow(ConstraintCPVec& into, RowIndex ridx, bool rowUp, ConstraintP c, RationalVectorP farkas){
   Assert(!c->assertedToTheTheory());
   Assert(c->canBePropagated());
   Assert(!c->hasProof());
 
+  if(farkas != RationalVectorPSentinel){
+    Assert(farkas->empty());
+    farkas->push_back(Rational(0));
+  }
+  
   ArithVar v = c->getVariable();
   Debug("arith::explainNonbasics") << "LinearEqualityModule::explainNonbasics("
                                    << v <<") start" << endl;
@@ -522,20 +559,31 @@ void LinearEqualityModule::propagateRow(ConstraintCPVec& into, RowIndex ridx, bo
   for(; !iter.atEnd(); ++iter){
     const Tableau::Entry& entry = *iter;
     ArithVar nonbasic = entry.getColVar();
-    if(nonbasic == v){ continue; }
-
     const Rational& a_ij = entry.getCoefficient();
-
     int sgn = a_ij.sgn();
     Assert(sgn != 0);
     bool selectUb = rowUp ? (sgn > 0) : (sgn < 0);
-    ConstraintCP bound = selectUb
-      ? d_variables.getUpperBoundConstraint(nonbasic)
-      : d_variables.getLowerBoundConstraint(nonbasic);
+    int multiple = selectUb ? 1 : -1;
+      
+    if(nonbasic == v){
+      if(farkas != RationalVectorPSentinel){
+        Assert(farkas->front().isZero());
+        farkas->front() = Rational(multiple) * a_ij;
+      }
+    }else{
 
-    Assert(bound != NullConstraint);
-    Debug("arith::explainNonbasics") << "explainNonbasics" << bound << " for " << c << endl;
-    into.push_back(bound);
+      ConstraintCP bound = selectUb
+        ? d_variables.getUpperBoundConstraint(nonbasic)
+        : d_variables.getLowerBoundConstraint(nonbasic);
+
+      Assert(bound != NullConstraint);
+      Debug("arith::explainNonbasics") << "explainNonbasics" << bound << " for " << c << endl;
+      into.push_back(bound);
+
+      if(farkas != RationalVectorPSentinel){
+        farkas->push_back(Rational(multiple) * a_ij);
+      }
+    }
   }
   Debug("arith::explainNonbasics") << "LinearEqualityModule::explainNonbasics("
                                    << v << ") done" << endl;

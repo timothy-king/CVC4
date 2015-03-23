@@ -120,7 +120,7 @@ namespace arith {
  *                    : Consult this for the proof.
  * - IntHoleAP        : This is currently a catch-all for all integer specific reason.
  */
-enum ArithProofType { NoAP, AssumeAP, InternalAssumeAP, FarkasAP, StrictClosureAP, EqualityEngineAP,
+enum ArithProofType { NoAP, AssumeAP, InternalAssumeAP, FarkasAP, TrichotomyAP, EqualityEngineAP,
                       IntHoleAP};
 
 /**
@@ -146,11 +146,11 @@ typedef size_t AssertionOrder;
 static const AssertionOrder AssertionOrderSentinel = std::numeric_limits<AssertionOrder>::max();
 
 
-typedef std::vector<Rational> RationalVector;
-typedef RationalVector* RationalVectorP;
-typedef const RationalVector* RationalVectorCP;
-static const RationalVectorCP RationalVectorSentinel = NULL;
-static const RationalVectorP RationalVectorPSentinel = NULL;
+// typedef std::vector<Rational> RationalVector;
+// typedef RationalVector* RationalVectorP;
+// typedef const RationalVector* RationalVectorCP;
+// static const RationalVectorCP RationalVectorCPSentinel = NULL;
+// static const RationalVectorP RationalVectorPSentinel = NULL;
 
 
 /**
@@ -287,7 +287,7 @@ struct ConstraintRule {
    *
    * Thus the proof corresponds to (with multiplication over inequalities):
    *    \sum_{u in U} fc[u] ans[p-n+u] + \sum_{e in E} fc[e] ans[p-n+e]
-   *  + \sum_{l in L} fc[l] fp[p-n+l]
+   *  + \sum_{l in L} fc[l] ans[p-n+l]
    * |= 0 < 0
    * where fc[u] > 0, fc[l] < 0, and fc[e] != 0 (i.e. it can be either +/-).
    * 
@@ -323,7 +323,7 @@ struct ConstraintRule {
     , d_proofType(pt)
     , d_antecedentEnd(antecedentEnd)
   {
-    Assert(PROOF_ON() || coeffs == RationalVectorSentinel);
+    Assert(PROOF_ON() || coeffs == RationalVectorCPSentinel);
     PROOF( d_farkasCoefficients = coeffs );
   }
 }; /* class ConstraintRule */
@@ -796,10 +796,10 @@ public:
    * canBePropagated()
    * !assertedToTheTheory()
    */
-  #warning "Need a proof reason."
-  void _propagate(ConstraintCP a);
-  void _propagate(ConstraintCP a, ConstraintCP b);
-  void _propagate(const ConstraintCPVec& b);
+  // #warning "Need a proof reason."
+  // void _propagate(ConstraintCP a);
+  // void _propagate(ConstraintCP a, ConstraintCP b);
+  // void _propagate(const ConstraintCPVec& b);
 
   /**
    * Marks a the constraint c as being entailed by a.
@@ -808,13 +808,30 @@ public:
   void impliedByUnate(ConstraintCP a);
 
   /**
+   * Marks a the constraint c as being entailed by a.
+   * The reason has to do with integer rounding.
+   */
+  void impliedByIntHole(ConstraintCP a);
+  void impliedByIntHole(const ConstraintCPVec& b);
+  
+  /**
    * The only restriction is that this is not known be true.
    * This propagates if there is a node.
    */
-  #warning "Need a proof reason."
-  void _impliedBy(ConstraintCP a, ConstraintCP b);
-  void _impliedBy(const ConstraintCPVec& b);
+  //#warning "Need a proof reason."
+  //void _impliedBy(ConstraintCP a, ConstraintCP b);
+  //void _impliedBy(const ConstraintCPVec& b);
 
+  /**
+   * This is a lemma of the form:
+   *   x < d or x = d or x > d
+   * The current constraint c is one of the above constraints and {a,b}
+   * are the negation of the other two constraints.
+   */
+  void impliedByTrichotomy(ConstraintCP a, ConstraintCP b);
+
+  
+  void impliedByFarkas(const ConstraintCPVec& b, RationalVectorCP coeffs);
 
   /**
    * Generates an implication node, B => getLiteral(),
@@ -859,8 +876,8 @@ private:
   void markFarkasProof(const ConstraintCPVec& a, RationalVectorCP coeffs);
 
 
-  void _markAsTrue(ConstraintCP a, ConstraintCP b);
-  void _markAsTrue(const ConstraintCPVec& b);
+  // void _markAsTrue(ConstraintCP a, ConstraintCP b);
+  // void _markAsTrue(const ConstraintCPVec& b);
 
   /** Returns the constraint rule at the position. */
   const ConstraintRule& getConstraintRule() const;
@@ -887,6 +904,9 @@ private:
   bool antecentListIsEmpty() const;
 
   bool antecedentListLengthIsOne() const;
+
+  /** Return true if every element in b has a proof. */
+  static bool allHaveProof(const ConstraintCPVec& b);
 
 }; /* class ConstraintValue */
 

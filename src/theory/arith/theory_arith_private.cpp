@@ -668,7 +668,7 @@ bool TheoryArithPrivate::AssertLower(ConstraintP constraint){
         return true;
       }else if(!eq->isTrue()){
         Debug("eq") << "lb == ub, propagate eq" << eq << endl;
-        eq->_impliedBy(constraint, d_partialModel.getUpperBoundConstraint(x_i));
+        eq->impliedByTrichotomy(constraint, d_partialModel.getUpperBoundConstraint(x_i));
         // do not need to add to d_learnedBounds
       }
     }
@@ -690,7 +690,7 @@ bool TheoryArithPrivate::AssertLower(ConstraintP constraint){
           // return true;
         }else if(!ub->negationHasProof()){
           ConstraintP negUb = ub->getNegation();
-          negUb->_impliedBy(constraint, diseq);
+          negUb->impliedByTrichotomy(constraint, diseq);
           d_learnedBounds.push_back(negUb);
         }
       }
@@ -796,7 +796,7 @@ bool TheoryArithPrivate::AssertUpper(ConstraintP constraint){
         return true;
       }else if(!eq->isTrue()){
         Debug("eq") << "lb == ub, propagate eq" << eq << endl;
-        eq->_impliedBy(constraint, d_partialModel.getLowerBoundConstraint(x_i));
+        eq->impliedByTrichotomy(constraint, d_partialModel.getLowerBoundConstraint(x_i));
         //do not bother to add to d_learnedBounds
       }
     }
@@ -815,7 +815,7 @@ bool TheoryArithPrivate::AssertUpper(ConstraintP constraint){
           return true;
         }else if(!lb->negationHasProof()){
           ConstraintP negLb = lb->getNegation();
-          negLb->impliedBy(constraint, diseq);
+          negLb->impliedByTrichotomy(constraint, diseq);
           d_learnedBounds.push_back(negLb);
         }
       }
@@ -1008,7 +1008,7 @@ bool TheoryArithPrivate::AssertDisequality(ConstraintP constraint){
       Debug("eq") << "propagate UpperBound " << constraint << lb << ub << endl;
       const ConstraintP negUb = ub->getNegation();
       if(!negUb->isTrue()){
-        negUb->_impliedBy(constraint, lb);
+        negUb->impliedByTrichotomy(constraint, lb);
         d_learnedBounds.push_back(negUb);
       }
     }
@@ -1021,7 +1021,7 @@ bool TheoryArithPrivate::AssertDisequality(ConstraintP constraint){
       Debug("eq") << "propagate LowerBound " << constraint << lb << ub << endl;
       const ConstraintP negLb = lb->getNegation();
       if(!negLb->isTrue()){
-        negLb->_impliedBy(constraint, ub);
+        negLb->impliedByTrichotomy(constraint, ub);
         d_learnedBounds.push_back(negLb);
       }
     }
@@ -1885,10 +1885,8 @@ ConstraintP TheoryArithPrivate::constraintFromFactQueue(){
 
   if(constraint->negationHasProof()){
     ConstraintP negation = constraint->getNegation();
-    if(negation->isSelfExplaining()){
-      if(Debug.isOn("whytheoryenginewhy")){
-        debugPrintFacts();
-      }
+    if(Debug.isOn("arith::negatedassumption") && negation->isAssumption()){
+      debugPrintFacts();
     }
     Debug("arith::eq") << constraint << endl;
     Debug("arith::eq") << negation << endl;
@@ -1896,7 +1894,7 @@ ConstraintP TheoryArithPrivate::constraintFromFactQueue(){
     constraint->setAssertedToTheTheoryWithNegationTrue(assertion);
     if(!constraint->hasProof()){
       Debug("arith::constraint") << "marking as constraint as self explaining " << endl;
-      constraint->selfExplainingWithNegationTrue();
+      constraint->setAssumptionInConflict();
     }else{
       Debug("arith::constraint") << "already has proof: " << constraint->externalExplainByAssertions() << endl;
     }
@@ -1920,8 +1918,8 @@ ConstraintP TheoryArithPrivate::constraintFromFactQueue(){
     constraint->setAssertedToTheTheory(assertion);
 
     if(!constraint->hasProof()){
-      Debug("arith::constraint") << "marking as constraint as self explaining " << endl;
-      constraint->selfExplaining();
+      Debug("arith::constraint") << "marking as constraint as an assumption" << endl;
+      constraint->setAssumption();
     }else{
       Debug("arith::constraint") << "already has proof: " << constraint->externalExplainByAssertions() << endl;
     }
@@ -1945,7 +1943,7 @@ bool TheoryArithPrivate::assertionCases(ConstraintP constraint){
           raiseConflict(constraint, floorConstraint->getNegation());
           return true;
         }else{
-          floorConstraint->impliedBy(constraint);
+          floorConstraint->impliedByIntHole(constraint);
           // Do not need to add to d_learnedBounds
         }
       }
@@ -1959,11 +1957,9 @@ bool TheoryArithPrivate::assertionCases(ConstraintP constraint){
       if(!ceilingConstraint->isTrue()){
         if(ceilingConstraint->negationHasProof()){
           raiseConflict(constraint, ceilingConstraint->getNegation());
-          //Node conf = Constraint_::explainConflict(constraint, ceilingConstraint->getNegation());
-          //raiseConflict(conf);
           return true;
         }
-        ceilingConstraint->impliedBy(constraint);
+        ceilingConstraint->impliedByIntHole(constraint);
         // Do not need to add to learnedBounds
       }
       return AssertLower(ceilingConstraint);
@@ -2032,7 +2028,7 @@ void TheoryArithPrivate::outputConflicts(){
     Assert(!d_conflicts.empty());
     for(size_t i = 0, i_end = d_conflicts.size(); i < i_end; ++i){
       const ConstraintCPVec& vec = d_conflicts[i];
-      Node conflict = Constraint_::externalExplainByAssertions(vec);
+      Node conflict = Constraint::externalExplainByAssertions(vec);
       Debug("arith::conflict") << "d_conflicts[" << i << "] " << conflict << endl;
       (d_containing.d_out)->conflict(conflict);
     }
@@ -2298,7 +2294,7 @@ void TheoryArithPrivate::tryBranchCut(ApproximateSimplex* approx, int nid, Branc
     for(size_t i = 0, N = d_conflicts.size(); i < N; ++i){
       conflicts.push_back(d_conflicts[i]);
       // remove the floor/ceiling contraint implied by bcneg
-      Constraint_::assertionFringe(conflicts.back());
+      Constraint::assertionFringe(conflicts.back());
     }
 
     if(Debug.isOn("approx::branch")){
@@ -2331,7 +2327,7 @@ void TheoryArithPrivate::replayAssert(ConstraintP c) {
       raiseConflict(c, neg);
       Debug("approx::replayAssert") << "replayAssertion conflict " << neg << " : " << c << endl;
     }else if(!c->hasProof()){
-      c->setInternalDecision();
+      c->setInternalAssumption();
       assertionCases(c);
       Debug("approx::replayAssert") << "replayAssert " << c << " set internal" << endl;
     }else{
@@ -2539,7 +2535,7 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
             if(con->isTrue()){
               Debug("approx::replayLogRec") << "not asserted?" << endl;
             }else{
-              con->impliedBy(exp);
+              con->impliedByIntHole(exp);
               replayAssert(con);
               Debug("approx::replayLogRec") << "cut prop" << endl;
             }
@@ -3850,13 +3846,13 @@ Node TheoryArithPrivate::explain(TNode n) {
 
   ConstraintP c = d_constraintDatabase.lookup(n);
   if(c != NullConstraint){
-    Assert(!c->isSelfExplaining());
+    Assert(!c->isAssumption());
     Node exp = c->externalExplainForPropagation();
     Debug("arith::explain") << "constraint explanation" << n << ":" << exp << endl;
     return exp;
   }else if(d_assertionsThatDoNotMatchTheirLiterals.find(n) != d_assertionsThatDoNotMatchTheirLiterals.end()){
     c = d_assertionsThatDoNotMatchTheirLiterals[n];
-    if(!c->isSelfExplaining()){
+    if(!c->isAssumption()){
       Node exp = c->externalExplainForPropagation();
       Debug("arith::explain") << "assertions explanation" << n << ":" << exp << endl;
       return exp;
@@ -4560,6 +4556,7 @@ bool TheoryArithPrivate::tryToPropagate(RowIndex ridx, bool rowUp, ArithVar v, b
 
     ConstraintP implied = d_constraintDatabase.getBestImpliedBound(v, t, bound);
     if(implied != NullConstraint){
+      
       return rowImplicationCanBeApplied(ridx, rowUp, implied);
     }
   }
@@ -4610,15 +4607,19 @@ bool TheoryArithPrivate::rowImplicationCanBeApplied(RowIndex ridx, bool rowUp, C
               << implied->getNegation()->externalExplainByAssertions() << endl;
   }
 
-  if(!assertedToTheTheory && canBePropagated && !hasProof ){
+  if( !assertedToTheTheory && canBePropagated && !hasProof ){
     ConstraintCPVec explain;
-    d_linEq.propagateRow(explain, ridx, rowUp, implied);
+
+    PROOF(d_farkasBuffer.clear());
+    RationalVectorP coeffs = NULLPROOF(&d_farkasBuffer);
+    
+    d_linEq.propagateRow(explain, ridx, rowUp, implied, coeffs);
     if(d_tableau.getRowLength(ridx) <= options::arithPropAsLemmaLength()){
       Node implication = implied->externalImplication(explain);
       Node clause = flattenImplication(implication);
       outputLemma(clause);
     }else{
-      implied->impliedBy(explain);
+      implied->impliedByFarkas(explain, coeffs);
     }
     return true;
   }
@@ -4634,8 +4635,8 @@ bool TheoryArithPrivate::rowImplicationCanBeApplied(RowIndex ridx, bool rowUp, C
 
 double fRand(double fMin, double fMax)
 {
-    double f = (double)rand() / RAND_MAX;
-    return fMin + f * (fMax - fMin);
+  double f = (double)rand() / RAND_MAX;
+  return fMin + f * (fMax - fMin);
 }
 
 bool TheoryArithPrivate::propagateCandidateRow(RowIndex ridx){

@@ -730,6 +730,8 @@ private:
 
   uint32_t d_solveIntMaybeHelp, d_solveIntAttempts;
 
+  RationalVector d_farkasBuffer;
+
   /** These fields are designed to be accessible to TheoryArith methods. */
   class Statistics {
   public:

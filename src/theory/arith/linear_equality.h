@@ -417,10 +417,20 @@ public:
   void propagateBasicFromRow(ConstraintP c);
 
   /**
+   * Let v be the variable for the constraint c.
    * Exports either the explanation of an upperbound or a lower bound
-   * of the basic variable basic, using the non-basic variables in the row.
+   * of v using the other variables in the row.
+   *
+   * If farkas != RationalVectorPSentinel, this function additionally
+   * stores the farkas coefficients of the constraints stored in into.
+   * Position 0 is the coefficient of v.
+   * Position i > 0, corresponds to the order of the other constraints.
    */
-  void propagateRow(ConstraintCPVec& into, RowIndex ridx, bool rowUp, ConstraintP c);
+  void propagateRow(ConstraintCPVec& into
+                    , RowIndex ridx
+                    , bool rowUp
+                    , ConstraintP c
+                    , RationalVectorP farkas);
 
   /**
    * Computes the value of a basic variable using the assignments

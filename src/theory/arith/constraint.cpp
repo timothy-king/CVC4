@@ -399,6 +399,10 @@ const ConstraintRule& Constraint::getConstraintRule() const {
   return d_database->d_watches->d_constraintProofs[d_crid];
 }
 
+const ValueCollection& Constraint::getValueCollection() const{
+  return d_variablePosition->second;
+}
+
 
 ConstraintP Constraint::getCeiling() {
   Debug("getCeiling") << "Constraint_::getCeiling on " << *this << endl;
@@ -920,29 +924,30 @@ void Constraint::propagate(){
   d_database->d_toPropagate.push(this);
 }
 
-void Constraint::_propagate(ConstraintCP a){
-  Assert(!hasProof());
-  Assert(canBePropagated());
+// void Constraint::_propagate(ConstraintCP a){
+//   Assert(!hasProof());
+//   Assert(canBePropagated());
 
-  markUnateFarkasProof(a);
-  propagate();
-}
+//   markUnateFarkasProof(a);
+//   propagate();
+// }
 
-void Constraint::_propagate(ConstraintCP a, ConstraintCP b){
-  Assert(!hasProof());
-  Assert(canBePropagated());
+// void Constraint::_propagate(ConstraintCP a, ConstraintCP b){
+//   Assert(!hasProof());
+//   Assert(canBePropagated());
 
-  _markAsTrue(a, b);
-  propagate();
-}
+//   _markAsTrue(a, b);
+//   propagate();
+// }
 
-void Constraint::_propagate(const ConstraintCPVec& b){
-  Assert(!hasProof());
-  Assert(canBePropagated());
+// void Constraint::_propagate(const ConstraintCPVec& b){
+//   Assert(!hasProof());
+//   Assert(canBePropagated());
 
-  _markAsTrue(b);
-  propagate();
-}
+//   _markAsTrue(b);
+//   propagate();
+// }
+
 
 void Constraint::impliedByUnate(ConstraintCP a){
   Assert(truthIsUnknown());
@@ -953,23 +958,85 @@ void Constraint::impliedByUnate(ConstraintCP a){
   }
 }
 
-void Constraint::_impliedBy(ConstraintCP a, ConstraintCP b){
+void Constraint::impliedByTrichotomy(ConstraintCP a, ConstraintCP b){
   Assert(truthIsUnknown());
+  Assert(a->hasProof());
+  Assert(b->hasProof());
 
-  _markAsTrue(a, b);
+  d_database->d_antecedents.push_back(NullConstraint);
+  d_database->d_antecedents.push_back(a);
+  d_database->d_antecedents.push_back(b);
+
+  AntecedentId antecedentEnd = d_database->d_antecedents.size() - 1;
+  d_database->pushConstraintRule(ConstraintRule(this, TrichotomyAP, antecedentEnd));
   if(canBePropagated()){
     propagate();
   }
 }
 
-void Constraint::_impliedBy(const ConstraintCPVec& b){
+// void Constraint::_impliedBy(ConstraintCP a, ConstraintCP b){
+//   Assert(truthIsUnknown());
+
+//   _markAsTrue(a, b);
+//   if(canBePropagated()){
+//     propagate();
+//   }
+// }
+
+// void Constraint::_impliedBy(const ConstraintCPVec& b){
+//   Assert(truthIsUnknown());
+
+//   _markAsTrue(b);
+//   if(canBePropagated()){
+//     propagate();
+//   }
+// }
+
+
+bool Constraint::allHaveProof(const ConstraintCPVec& b){
+  for(ConstraintCPVec::const_iterator i=b.begin(), i_end=b.end(); i != i_end; ++i){
+    ConstraintCP cp = *i;
+    if(! (cp->hasProof())){ return false; }
+  }
+  return true;
+}
+
+void Constraint::impliedByIntHole(ConstraintCP a){
+  Assert(truthIsUnknown());
+  Assert(!hasProof());
+  
+  Assert(a->hasProof());
+  d_database->d_antecedents.push_back(NullConstraint);
+  d_database->d_antecedents.push_back(a);
+  AntecedentId antecedentEnd = d_database->d_antecedents.size() - 1;
+  d_database->pushConstraintRule(ConstraintRule(this, IntHoleAP, antecedentEnd));
+}
+
+void Constraint::impliedByIntHole(const ConstraintCPVec& b){
+  Assert(truthIsUnknown());
+  
+  Assert(!hasProof());
+  Assert(allHaveProof(b));
+
+  CDConstraintList& antecedents = d_database->d_antecedents;
+  antecedents.push_back(NullConstraint);
+  for(ConstraintCPVec::const_iterator i=b.begin(), i_end=b.end(); i != i_end; ++i){
+    antecedents.push_back(*i);
+  }
+  AntecedentId antecedentEnd = antecedents.size() - 1;
+
+  d_database->pushConstraintRule(ConstraintRule(this, FarkasAP, antecedentEnd));
+}
+
+void Constraint::impliedByFarkas(const ConstraintCPVec& b, RationalVectorCP coeffs){
   Assert(truthIsUnknown());
 
-  _markAsTrue(b);
+  markFarkasProof(b, coeffs);
   if(canBePropagated()){
     propagate();
   }
 }
+
 
 void Constraint::setInternalAssumption(){
   Assert(truthIsUnknown());
@@ -1011,8 +1078,6 @@ void Constraint::markAssumption(){
 void Constraint::markUnateFarkasProof(ConstraintCP imp){
   Assert(!hasProof());
   Assert(imp->hasProof());
-  Assert(getNegation()->isDisequality());
-  Assert(imp->isDisequality());
 
   d_database->d_antecedents.push_back(NullConstraint);
   d_database->d_antecedents.push_back(imp);
@@ -1034,19 +1099,18 @@ void Constraint::markUnateFarkasProof(ConstraintCP imp){
   d_database->pushConstraintRule(ConstraintRule(this, FarkasAP, antecedentEnd, coeffs));
 }
 
-void Constraint::_markAsTrue(ConstraintCP impA, ConstraintCP impB){
-  Unimplemented();
-  // Assert(truthIsUnknown());
-  // Assert(impA->hasProof());
-  // Assert(impB->hasProof());
+// void Constraint::_markAsTrue(ConstraintCP impA, ConstraintCP impB){
+//   Assert(truthIsUnknown());
+//   Assert(impA->hasProof());
+//   Assert(impB->hasProof());
 
-  // d_database->d_proofs.push_back(NullConstraint);
-  // d_database->d_proofs.push_back(impA);
-  // d_database->d_proofs.push_back(impB);
-  // ProofId proof = d_database->d_proofs.size() - 1;
+//   d_database->d_proofs.push_back(NullConstraint);
+//   d_database->d_proofs.push_back(impA);
+//   d_database->d_proofs.push_back(impB);
+//   ProofId proof = d_database->d_proofs.size() - 1;
 
-  // d_database->pushProofWatch(this, proof);
-}
+//   d_database->pushProofWatch(this, proof);
+// }
 
 /*
  * If proofs are off, coeffs == RationalVectorSentinal.
@@ -1058,7 +1122,7 @@ void Constraint::_markAsTrue(ConstraintCP impA, ConstraintCP impB){
  */
 void Constraint::markFarkasProof(const ConstraintCPVec& a, RationalVectorCP coeffs){
   Assert(!hasProof());
-  Assert( PROOF_ON() == (coeffs != RationalVectorSentinel) );
+  Assert( PROOF_ON() == (coeffs != RationalVectorCPSentinel) );
   Assert( PROOF_ON() || coeffs->size() == a.size() + 1);
   Assert(a.size() >= 1);
 
@@ -1072,30 +1136,28 @@ void Constraint::markFarkasProof(const ConstraintCPVec& a, RationalVectorCP coef
 
   RationalVectorCP coeffsCopy;
   if(PROOF_ON()){
-    Assert(coeffs != RationalVectorSentinel);
+    Assert(coeffs != RationalVectorCPSentinel);
     coeffsCopy = new RationalVector(*coeffs);
   } else {
-    coeffsCopy = RationalVectorSentinel;
+    coeffsCopy = RationalVectorCPSentinel;
   }
   d_database->pushConstraintRule(ConstraintRule(this, FarkasAP, antecedentEnd, coeffsCopy));
 }
 
-void Constraint::_markAsTrue(const ConstraintCPVec& a){
-  Unimplemented();
+// void Constraint::_markAsTrue(const ConstraintCPVec& a){
+//   Assert(truthIsUnknown());
+//   Assert(a.size() >= 1);
+//   d_database->d_proofs.push_back(NullConstraint);
+//   for(ConstraintCPVec::const_iterator i = a.begin(), end = a.end(); i != end; ++i){
+//     ConstraintCP c_i = *i;
+//     Assert(c_i->hasProof());
+//     d_database->d_proofs.push_back(c_i);
+//   }
 
-  // Assert(truthIsUnknown());
-  // Assert(a.size() >= 1);
-  // d_database->d_proofs.push_back(NullConstraint);
-  // for(ConstraintCPVec::const_iterator i = a.begin(), end = a.end(); i != end; ++i){
-  //   ConstraintCP c_i = *i;
-  //   Assert(c_i->hasProof());
-  //   d_database->d_proofs.push_back(c_i);
-  // }
+//   ProofId proof = d_database->d_proofs.size() - 1;
 
-  // ProofId proof = d_database->d_proofs.size() - 1;
-
-  // d_database->pushProofWatch(this, proof);
-}
+//   d_database->pushProofWatch(this, proof);
+// }
 
 SortedConstraintMap& Constraint::constraintSet() const{
   Assert(d_database->variableDatabaseIsSetup(d_variable));
