@@ -97,22 +97,68 @@ public:
   void release(ArithVar v);
 };
 
-class RaiseConflict {
+class _RaiseConflict {
 private:
   TheoryArithPrivate& d_ta;
-  ConstraintCPVec& d_construction;
 public:
-  RaiseConflict(TheoryArithPrivate& ta, ConstraintCPVec& d_construction);
+  _RaiseConflict(TheoryArithPrivate& ta);
 
-  /* Adds a constraint to the constraint under construction. */
-  void addConstraint(ConstraintCP c);
-  /* Turns the vector under construction into a conflict */
-  void commitConflict();
+  /** Calls d_ta.raiseConflict(c) */
+  void raiseConflict(ConstraintCP c);
+};
 
-  void sendConflict(const ConstraintCPVec& vec);
+class FarkasConflictBuilder {
+private:
+  _RaiseConflict d_raiseConflict;
+  bool d_finalCoeffSet;
+  RationalVector d_farkas;
+  ConstraintCPVec d_constraints;
+  
+public:
+
+  /**
+   * Constructs a new FarkasConflictBuilder.
+   */
+  FarkasConflictBuilder(_RaiseConflict& rc);
+
+  /**
+   * Adds a constraint to the conflict under construction
+   * with the farkas coefficient fc.
+   */
+  void addConstraint(ConstraintCP c, const Rational& fc);
+
+  /**
+   * Turns the vector under construction into a proof for the 
+   * negation of c.
+   *
+   * The farkas coefficient for c is fc.
+   *
+   * The buffer is no longer underConstruction afterwards.
+   */
+  void commitConflict(ConstraintCP c, const Rational& fc);
+
+  void setFinalCoefficient( const Rational& fc );
+  
+  void commitConflict(ConstraintCP c);
+
+  /** Returns true if a conflict has been pushed back since the last reset. */
+  bool underConstruction() const;
+  
+private:
+  /** Resets the state of the buffer. */
+  void reset();
+};
+
+
+class RaiseEqualityEngineConflict {
+private:
+  TheoryArithPrivate& d_ta;
+  
+public:
+  RaiseEqualityEngineConflict(TheoryArithPrivate& ta);
 
   /* If you are not an equality engine, don't use this! */
-  void blackBoxConflict(Node n);
+  void raiseEEConflict(Node n);
 };
 
 class BoundCountingLookup {

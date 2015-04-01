@@ -146,13 +146,6 @@ typedef size_t AssertionOrder;
 static const AssertionOrder AssertionOrderSentinel = std::numeric_limits<AssertionOrder>::max();
 
 
-// typedef std::vector<Rational> RationalVector;
-// typedef RationalVector* RationalVectorP;
-// typedef const RationalVector* RationalVectorCP;
-// static const RationalVectorCP RationalVectorCPSentinel = NULL;
-// static const RationalVectorP RationalVectorPSentinel = NULL;
-
-
 /**
  * A ValueCollection binds together convex constraints that have the same
  * DeltaRational value.
@@ -801,6 +794,8 @@ public:
   // void _propagate(ConstraintCP a, ConstraintCP b);
   // void _propagate(const ConstraintCPVec& b);
 
+#warning "Remove implied functions"
+
   /**
    * Marks a the constraint c as being entailed by a.
    * The Farkas proof 1*(a) + -1 (c) |= 0<0
@@ -1047,19 +1042,22 @@ private:
   ArithCongruenceManager& d_congruenceManager;
 
   const context::Context * const d_satContext;
-  const int d_satAllocationLevel;
 
-  RaiseConflict d_raiseConflict;
+  _RaiseConflict d_raiseConflict;
 
+
+  const Rational d_one;
+  const Rational d_negOne;
+  
   friend class Constraint;
-
+  
 public:
 
   ConstraintDatabase( context::Context* satContext,
                       context::Context* userContext,
                       const ArithVariables& variables,
                       ArithCongruenceManager& dm,
-                      RaiseConflict conflictCallBack);
+                      _RaiseConflict conflictCallBack);
 
   ~ConstraintDatabase();
 

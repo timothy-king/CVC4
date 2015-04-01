@@ -609,18 +609,18 @@ public:
   /**
    * Constructs a minimally weak conflict for the basic variable basicVar.
    */
-  void minimallyWeakConflict(bool aboveUpper, ArithVar basicVar, RaiseConflict& rc) const;
+  void minimallyWeakConflict(bool aboveUpper, ArithVar basicVar, FarkasConflictBuilder& rc) const;
 
   /**
-   * Given a non-basic variable that is know to have a conflict on it,
+   * Given a basic variable that is know to have a conflict on it,
    * construct and return a conflict.
    * Follows section 4.2 in the CAV06 paper.
    */
-  inline void generateConflictAboveUpperBound(ArithVar conflictVar, RaiseConflict& rc) const {
+  inline void generateConflictAboveUpperBound(ArithVar conflictVar, FarkasConflictBuilder& rc) const {
     minimallyWeakConflict(true, conflictVar, rc);
   }
 
-  inline void generateConflictBelowLowerBound(ArithVar conflictVar, RaiseConflict& rc) const {
+  inline void generateConflictBelowLowerBound(ArithVar conflictVar, FarkasConflictBuilder& rc) const {
     minimallyWeakConflict(false, conflictVar, rc);
   }
 

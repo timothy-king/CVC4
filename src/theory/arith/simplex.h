@@ -103,7 +103,7 @@ protected:
   ArithVar d_numVariables;
 
   /** This is the call back channel for Simplex to report conflicts. */
-  RaiseConflict d_conflictChannel;
+  FarkasConflictBuilder d_conflictChannel;
 
   /** Used for requesting d_opt, bound and error variables for primal.*/
   TempVarMalloc d_arithVarMalloc;
@@ -125,7 +125,7 @@ protected:
   void shrinkInfeasFunc(TimerStat& timer, ArithVar inf, const ArithVarVec& dropped);
 
 public:
-  SimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc);
+  SimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, _RaiseConflict conflictChannel, TempVarMalloc tvmalloc);
 
   /**
    * Tries to update the assignments of variables such that all of the
@@ -166,7 +166,7 @@ protected:
    * If a basic variable has a conflict on its row,
    * this produces a minimized row on the conflict channel.
    */
-  void generateConflictForBasic(ArithVar basic, RaiseConflict& rc) const;
+  void generateConflictForBasic(ArithVar basic, FarkasConflictBuilder& rc) const;
 
 
   /** Gets a fresh variable from TheoryArith. */

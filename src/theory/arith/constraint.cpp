@@ -558,17 +558,20 @@ ConstraintP Constraint::makeNegation(ArithVar v, ConstraintType t, const DeltaRa
   }
 }
 
-ConstraintDatabase::ConstraintDatabase(context::Context* satContext, context::Context* userContext, const ArithVariables& avars, ArithCongruenceManager& cm, RaiseConflict raiseConflict)
-  : d_varDatabases(),
-    d_toPropagate(satContext),
-    d_antecedents(satContext, false),
-    d_watches(new Watches(satContext, userContext)),
-    d_avariables(avars),
-    d_congruenceManager(cm),
-    d_satContext(satContext),
-    d_satAllocationLevel(d_satContext->getLevel()),
-    d_raiseConflict(raiseConflict)
-{}
+ConstraintDatabase::ConstraintDatabase(context::Context* satContext, context::Context* userContext, const ArithVariables& avars, ArithCongruenceManager& cm, _RaiseConflict raiseConflict)
+  : d_varDatabases()
+  , d_toPropagate(satContext)
+  , d_antecedents(satContext, false)
+  , d_watches(new Watches(satContext, userContext))
+  , d_avariables(avars)
+  , d_congruenceManager(cm)
+  , d_satContext(satContext)
+  , d_raiseConflict(raiseConflict)
+  , d_one(1)
+  , d_negOne(-1)
+{
+  
+}
 
 SortedConstraintMap& ConstraintDatabase::getVariableSCM(ArithVar v) const{
   Assert(variableDatabaseIsSetup(v));
@@ -655,8 +658,6 @@ bool ConstraintDatabase::emptyDatabase(const std::vector<PerVariableDatabase>& v
 }
 
 ConstraintDatabase::~ConstraintDatabase(){
-  Assert(d_satAllocationLevel <= d_satContext->getLevel());
-
   delete d_watches;
 
   std::vector<ConstraintP> constraintList;
@@ -1559,16 +1560,22 @@ void ConstraintDatabase::outputUnateInequalityLemmas(std::vector<Node>& lemmas) 
 }
 
 void ConstraintDatabase::raiseUnateConflict(ConstraintP ant, ConstraintP cons){
-  Assert(ant->hasProof());
-  ConstraintP negCons = cons->getNegation();
-  Assert(negCons->hasProof());
+  Unimplemented();
+  
+  // Assert(ant->hasProof());
+  // ConstraintP negCons = cons->getNegation();
+  // Assert(negCons->hasProof());
 
-  Debug("arith::unate::conf") << ant << "implies " << cons << endl;
-  Debug("arith::unate::conf") << negCons << " is true." << endl;
+  // Debug("arith::unate::conf") << ant << "implies " << cons << endl;
+  // Debug("arith::unate::conf") << negCons << " is true." << endl;
+  
+  // d_raiseConflict.addConstraint(ant, d_one);
+  // d_raiseConflict.commitConflict(cons, d_negOne);
 
-  d_raiseConflict.addConstraint(ant);
-  d_raiseConflict.addConstraint(negCons);
-  d_raiseConflict.commitConflict();
+  Assert(cons->getNegation()->hasProof());
+  // fixed ?
+  cons->markUnateFarkasProof(ant);
+  d_raiseConflict.raiseConflict(cons);
 }
 
 void ConstraintDatabase::unatePropLowerBound(ConstraintP curr, ConstraintP prev){

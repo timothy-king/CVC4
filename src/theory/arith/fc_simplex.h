@@ -63,7 +63,7 @@ namespace arith {
 
 class FCSimplexDecisionProcedure : public SimplexDecisionProcedure{
 public:
-  FCSimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc);
+  FCSimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, _RaiseConflict conflictChannel, TempVarMalloc tvmalloc);
 
   Result::Sat findModel(bool exactResult);
 

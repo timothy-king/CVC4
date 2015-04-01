@@ -63,7 +63,7 @@ namespace arith {
 
 class AttemptSolutionSDP : public SimplexDecisionProcedure {
 public:
-  AttemptSolutionSDP(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc);
+  AttemptSolutionSDP(LinearEqualityModule& linEq, ErrorSet& errors, _RaiseConflict conflictChannel, TempVarMalloc tvmalloc);
 
   Result::Sat attempt(const ApproximateSimplex::Solution& sol);
 

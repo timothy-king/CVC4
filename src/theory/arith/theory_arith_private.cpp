@@ -540,6 +540,16 @@ bool complexityBelow(const DenseMap<Rational>& row, uint32_t cap){
   return true;
 }
 
+void TheoryArithPrivate::raiseConflict(ConstraintCP a){
+  
+}
+
+void TheoryArithPrivate::raiseBlackBoxConflict(Node bb){
+  if(d_blackBoxConflict.get().isNull()){
+    d_blackBoxConflict = bb;
+  }
+}
+
 void TheoryArithPrivate::revertOutOfConflict(){
   d_partialModel.revertAssignmentChanges();
   clearUpdates();

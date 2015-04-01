@@ -24,7 +24,7 @@ namespace CVC4 {
 namespace theory {
 namespace arith {
 
-ArithCongruenceManager::ArithCongruenceManager(context::Context* c, ConstraintDatabase& cd, SetupLiteralCallBack setup, const ArithVariables& avars, RaiseConflict raiseConflict)
+ArithCongruenceManager::ArithCongruenceManager(context::Context* c, ConstraintDatabase& cd, SetupLiteralCallBack setup, const ArithVariables& avars, RaiseEqualityEngineConflict raiseConflict)
   : d_inConflict(c),
     d_raiseConflict(raiseConflict),
     d_notify(*this),
@@ -110,7 +110,7 @@ void ArithCongruenceManager::raiseConflict(Node conflict){
   Assert(!inConflict());
   Debug("arith::conflict") << "difference manager conflict   " << conflict << std::endl;
   d_inConflict.raise();
-  d_raiseConflict.blackBoxConflict(conflict);
+  d_raiseConflict.raiseEEConflict(conflict);
 }
 bool ArithCongruenceManager::inConflict() const{
   return d_inConflict.isRaised();

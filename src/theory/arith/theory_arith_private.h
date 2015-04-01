@@ -327,21 +327,27 @@ private:
 
 
   /** This is only used by simplex at the moment. */
-  context::CDList<ConstraintCPVec> d_conflicts;
+  context::CDList<ConstraintCP> d_conflicts;
+
+  /** This is only used by simplex at the moment. */
   context::CDO<Node> d_blackBoxConflict;
 public:
-  inline void raiseConflict(const ConstraintCPVec& cv){
-    d_conflicts.push_back(cv);
-  }
 
-  void raiseConflict(ConstraintCP a, ConstraintCP b);
-  void raiseConflict(ConstraintCP a, ConstraintCP b, ConstraintCP c);
+  /**
+   * This adds the constraint a to the queue of conflicts in d_conflicts.
+   * Both a and ~a must have a proof.
+   */
+  void raiseConflict(ConstraintCP a);
 
-  inline void blackBoxConflict(Node bb){
-    if(d_blackBoxConflict.get().isNull()){
-      d_blackBoxConflict = bb;
-    }
-  }
+  // inline void raiseConflict(const ConstraintCPVec& cv){
+  //   d_conflicts.push_back(cv);
+  // }
+  
+  // void raiseConflict(ConstraintCP a, ConstraintCP b);
+  // void raiseConflict(ConstraintCP a, ConstraintCP b, ConstraintCP c);
+
+  /** This is a conflict that is magically known to hold. */
+  void raiseBlackBoxConflict(Node bb);
 
 private:
 
@@ -356,7 +362,7 @@ private:
 
   /**
    * Outputs the contents of d_conflicts onto d_out.
-   * Must be inConflict().
+   * The conditions of anyConflict() must hold.
    */
   void outputConflicts();
 

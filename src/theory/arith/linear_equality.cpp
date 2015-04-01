@@ -639,7 +639,7 @@ ConstraintP LinearEqualityModule::weakestExplanation(bool aboveUpper, DeltaRatio
   return c;
 }
 
-void LinearEqualityModule::minimallyWeakConflict(bool aboveUpper, ArithVar basicVar, RaiseConflict& rc) const {
+void LinearEqualityModule::minimallyWeakConflict(bool aboveUpper, ArithVar basicVar, FarkasConflictBuilder& rc) const {
   TimerStat::CodeTimer codeTimer(d_statistics.d_weakenTime);
 
   const DeltaRational& assignment = d_variables.getAssignment(basicVar);
@@ -653,7 +653,8 @@ void LinearEqualityModule::minimallyWeakConflict(bool aboveUpper, ArithVar basic
     Assert(assignment < d_variables.getLowerBound(basicVar));
     surplus = d_variables.getLowerBound(basicVar) - assignment;
   }
-
+  
+  ConstraintP basicConstraint = NullConstraint;
   bool anyWeakenings = false;
   for(Tableau::RowIterator i = d_tableau.basicRowIterator(basicVar); !i.atEnd(); ++i){
     const Tableau::Entry& entry = *i;
@@ -667,8 +668,16 @@ void LinearEqualityModule::minimallyWeakConflict(bool aboveUpper, ArithVar basic
                   << c << endl;
     anyWeakenings = anyWeakenings || weakening;
 
-    rc.addConstraint(c);
+    if(v == basicVar){
+      basicConstraint = c;
+      rc.setFinalCoefficient(coeff);
+    } else {
+      rc.addConstraint(c, coeff);
+    }
   }
+  Assert(basicConstraint != NullConstraint);
+  rc.commitConflict(basicConstraint);
+
   ++d_statistics.d_weakeningAttempts;
   if(anyWeakenings){
     ++d_statistics.d_weakeningSuccesses;

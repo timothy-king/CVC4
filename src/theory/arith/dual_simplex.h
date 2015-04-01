@@ -62,7 +62,7 @@ namespace arith {
 
 class DualSimplexDecisionProcedure : public SimplexDecisionProcedure{
 public:
-  DualSimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc);
+  DualSimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, _RaiseConflict conflictChannel, TempVarMalloc tvmalloc);
 
   Result::Sat findModel(bool exactResult) {
     return dualFindModel(exactResult);
