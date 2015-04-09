@@ -721,8 +721,10 @@ private:
   std::pair<ConstraintP, ArithVar> replayGetConstraint(const DenseMap<Rational>& lhs, Kind k, const Rational& rhs, bool branch);
 
   void replayAssert(ConstraintP c);
-  //ConstConstraintVec toExplanation(Node n) const;
 
+  static ConstraintCP vectorToIntHoleConflict(const ConstraintCPVec& conflict);
+  static void intHoleConflictToVector(ConstraintCP conflicting, ConstraintCPVec& conflict);
+  
   // Returns true if the node contains a literal
   // that is an arithmetic literal and is not a sat literal
   // No caching is done so this should likely only

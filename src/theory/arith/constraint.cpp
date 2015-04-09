@@ -1074,8 +1074,9 @@ void Constraint::impliedByFarkas(const ConstraintCPVec& a, RationalVectorCP coef
 }
 
 
-void Constraint::setInternalAssumption(){
-  Assert(truthIsUnknown());
+void Constraint::setInternalAssumption(bool inConflict){
+  Assert(!hasProof());
+  Assert(negationHasProof() == inConflict);
   Assert(!assertedToTheTheory());
 
   d_database->pushConstraintRule(ConstraintRule(this, InternalAssumeAP));

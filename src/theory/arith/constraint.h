@@ -650,8 +650,9 @@ public:
    * This cannot be converted back into a Node conflict or explanation.
    *
    * This cannot have a proof or be asserted to the theory!
+   *
    */
-  void setInternalAssumption();
+  void setInternalAssumption(bool inConflict);
   bool isInternalAssumption() const;
 
   /**

@@ -558,20 +558,20 @@ void TheoryArithPrivate::clearUpdates(){
   d_updatedBounds.purge();
 }
 
-void TheoryArithPrivate::raiseConflict(ConstraintCP a, ConstraintCP b){
-  ConstraintCPVec v;
-  v.push_back(a);
-  v.push_back(b);
-  d_conflicts.push_back(v);
-}
+// void TheoryArithPrivate::raiseConflict(ConstraintCP a, ConstraintCP b){
+//   ConstraintCPVec v;
+//   v.push_back(a);
+//   v.push_back(b);
+//   d_conflicts.push_back(v);
+// }
 
-void TheoryArithPrivate::raiseConflict(ConstraintCP a, ConstraintCP b, ConstraintCP c){
-  ConstraintCPVec v;
-  v.push_back(a);
-  v.push_back(b);
-  v.push_back(c);
-  d_conflicts.push_back(v);
-}
+// void TheoryArithPrivate::raiseConflict(ConstraintCP a, ConstraintCP b, ConstraintCP c){
+//   ConstraintCPVec v;
+//   v.push_back(a);
+//   v.push_back(b);
+//   v.push_back(c);
+//   d_conflicts.push_back(v);
+// }
 
 void TheoryArithPrivate::zeroDifferenceDetected(ArithVar x){
   if(d_cmEnabled){
@@ -621,6 +621,9 @@ bool TheoryArithPrivate::getDioCuttingResource(){
 bool TheoryArithPrivate::AssertLower(ConstraintP constraint){
   Assert(constraint != NullConstraint);
   Assert(constraint->isLowerBound());
+  Assert(constraint->isTrue());
+  Assert(!constraint->negationHasProof());
+  
 
   ArithVar x_i = constraint->getVariable();
   const DeltaRational& c_i = constraint->getValue();
@@ -638,7 +641,7 @@ bool TheoryArithPrivate::AssertLower(ConstraintP constraint){
   if(cmpToUB > 0){ //  c_i < \lowerbound(x_i)
     ConstraintP ubc = d_partialModel.getUpperBoundConstraint(x_i);
     ConstraintP negation = constraint->getNegation();
-    negation->impliedByUnate(ubs, true);
+    negation->impliedByUnate(ubc, true);
     
     raiseConflict(constraint);
 
@@ -661,26 +664,26 @@ bool TheoryArithPrivate::AssertLower(ConstraintP constraint){
     }
 
     const ValueCollection& vc = constraint->getValueCollection();
-    if(vc.hasDisequality()){
-      Assert(vc.hasEquality());
+    if(vc.hasEquality()){
+      
+      Assert(vc.hasDisequality());
       ConstraintP eq = vc.getEquality();
       ConstraintP diseq = vc.getDisequality();
-      if(diseq->isTrue()){
-        //const ConstraintP ub = vc.getUpperBound();
-        raiseConflict(diseq, ub, constraint);
-        //Node conflict = ConstraintValue::explainConflict(diseq, ub, constraint);
-
+      // x <= b, x >= b |= x = b
+      // (x > b or x < b or x = b)
+      Debug("arith::eq") << "lb == ub, propagate eq" << eq << endl;
+      bool triConflict = diseq->isTrue();
+      if(!eq->isTrue()){
+        eq->impliedByTrichotomy(constraint, ub, triConflict);
+      }
+      if(triConflict){
         ++(d_statistics.d_statDisequalityConflicts);
-        //Debug("eq") << " assert lower conflict " << conflict << endl;
-        //raiseConflict(conflict);
+        raiseConflict(eq);
         return true;
-      }else if(!eq->isTrue()){
-        Debug("eq") << "lb == ub, propagate eq" << eq << endl;
-        eq->impliedByTrichotomy(constraint, d_partialModel.getUpperBoundConstraint(x_i));
-        // do not need to add to d_learnedBounds
       }
     }
   }else{
+    // l <= x <= u and l < u
     Assert(cmpToUB < 0);
     const ValueCollection& vc = constraint->getValueCollection();
 
@@ -688,17 +691,19 @@ bool TheoryArithPrivate::AssertLower(ConstraintP constraint){
       const ConstraintP diseq = vc.getDisequality();
       if(diseq->isTrue()){
         const ConstraintP ub = d_constraintDatabase.ensureConstraint(const_cast<ValueCollection&>(vc), UpperBound);
+        ConstraintP negUb = ub->getNegation();
 
-        if(ub->hasProof()){
-          raiseConflict(diseq, ub, constraint);
+        // l <= x, l != x |= l < x
+        // |= not (l >= x)
+        bool ubInConflict = ub->hasProof();
+        bool learnNegUb = !(negUb->hasProof());
+        if(learnNegUb){
+          negUb->impliedByTrichotomy(constraint, diseq, ubInConflict);
+        }
+        if(ubInConflict){
+          raiseConflict(ub);
           return true;
-          // Node conflict = ConstraintValue::explainConflict(diseq, ub, constraint);
-          // Debug("eq") << " assert upper conflict " << conflict << endl;
-          // raiseConflict(conflict);
-          // return true;
-        }else if(!ub->negationHasProof()){
-          ConstraintP negUb = ub->getNegation();
-          negUb->impliedByTrichotomy(constraint, diseq);
+        }else if(learnNegUb){
           d_learnedBounds.push_back(negUb);
         }
       }
@@ -748,13 +753,16 @@ bool TheoryArithPrivate::AssertLower(ConstraintP constraint){
 
 /* procedure AssertUpper( x_i <= c_i) */
 bool TheoryArithPrivate::AssertUpper(ConstraintP constraint){
+  Assert(constraint != NullConstraint);
+  Assert(constraint->isUpperBound());
+  Assert(constraint->isTrue());
+  Assert(!constraint->negationHasProof());
+  
   ArithVar x_i = constraint->getVariable();
   const DeltaRational& c_i = constraint->getValue();
 
   Debug("arith") << "AssertUpper(" << x_i << " " << c_i << ")"<< std::endl;
-  AssertArgument(constraint != NullConstraint,
-                 "AssertUpper() called on a NullConstraint.");
-  Assert(constraint->isUpperBound());
+
 
   //Too strong because of rounding with integers
   //Assert(!constraint->hasLiteral() || original == constraint->getLiteral());
@@ -765,65 +773,75 @@ bool TheoryArithPrivate::AssertUpper(ConstraintP constraint){
   if(d_partialModel.greaterThanUpperBound(x_i, c_i) ){ // \upperbound(x_i) <= c_i
     return false; //sat
   }
-
+  
   // cmpToLb =  \lowerbound(x_i).cmp(c_i)
   int cmpToLB = d_partialModel.cmpToLowerBound(x_i, c_i);
   if( cmpToLB < 0 ){ //  \upperbound(x_i) < \lowerbound(x_i)
+    // l_i <= x_i and c_i < l_i |= c_i < x_i
+    // or ... |= not (x_i <= c_i)
     ConstraintP lbc = d_partialModel.getLowerBoundConstraint(x_i);
-    raiseConflict(lbc, constraint);
-    //Node conflict =  ConstraintValue::explainConflict(lbc, constraint);
-    //Debug("arith") << "AssertUpper conflict " << conflict << endl;
+    ConstraintP negConstraint = constraint->getNegation();
+    negConstraint->impliedByUnate(lbc, true);
+    raiseConflict(constraint);
     ++(d_statistics.d_statAssertUpperConflicts);
-    //raiseConflict(conflict);
     return true;
   }else if(cmpToLB == 0){ // \lowerBound(x_i) == \upperbound(x_i)
-    if(isInteger(x_i)){
-      d_constantIntegerVariables.push_back(x_i);
-      Debug("dio::push") << x_i << endl;
-    }
-    ConstraintP lb = d_partialModel.getLowerBoundConstraint(x_i);
-    if(d_cmEnabled){
-      if(!d_congruenceManager.isWatchedVariable(x_i) || c_i.sgn() != 0){
-        // if it is not a watched variable report it
-        // if it is is a watched variable and c_i == 0,
-        // let zeroDifferenceDetected(x_i) catch this
-        d_congruenceManager.equalsConstant(lb, constraint);
-      }
-    }
 
+    ConstraintP lbc = d_partialModel.getLowerBoundConstraint(x_i);
     const ValueCollection& vc = constraint->getValueCollection();
     if(vc.hasDisequality()){
-      Assert(vc.hasEquality());
-      const ConstraintP diseq = vc.getDisequality();
-      const ConstraintP eq = vc.getEquality();
-      if(diseq->isTrue()){
-        raiseConflict(diseq, lb, constraint);
-        //Node conflict = ConstraintValue::explainConflict(diseq, lb, constraint);
-        //Debug("eq") << " assert upper conflict " << conflict << endl;
-        //raiseConflict(conflict);
+      Assert(vc.hasDisequality());
+      ConstraintP eq = vc.getEquality();
+      ConstraintP diseq = vc.getDisequality();
+      // x <= b, x >= b |= x = b
+      // (x > b or x < b or x = b)
+      Debug("arith::eq") << "lb == ub, propagate eq" << eq << endl;
+      bool triConflict = diseq->isTrue();
+        
+      if(!eq->isTrue()){
+        eq->impliedByTrichotomy(constraint, lbc, triConflict);
+      }
+      if(triConflict){
+        ++(d_statistics.d_statDisequalityConflicts);
+        raiseConflict(eq);
         return true;
-      }else if(!eq->isTrue()){
-        Debug("eq") << "lb == ub, propagate eq" << eq << endl;
-        eq->impliedByTrichotomy(constraint, d_partialModel.getLowerBoundConstraint(x_i));
-        //do not bother to add to d_learnedBounds
+      }
+      if(isInteger(x_i)){
+        d_constantIntegerVariables.push_back(x_i);
+        Debug("dio::push") << x_i << endl;
+      }
+      ConstraintP lb = d_partialModel.getLowerBoundConstraint(x_i);
+      if(d_cmEnabled){
+        if(!d_congruenceManager.isWatchedVariable(x_i) || c_i.sgn() != 0){
+          // if it is not a watched variable report it
+          // if it is is a watched variable and c_i == 0,
+          // let zeroDifferenceDetected(x_i) catch this
+          d_congruenceManager.equalsConstant(lb, constraint);
+        }
       }
     }
   }else if(cmpToLB > 0){
+    // l <= x <= u and l < u
+    Assert(cmpToLB > 0);
     const ValueCollection& vc = constraint->getValueCollection();
+
     if(vc.hasDisequality()){
       const ConstraintP diseq = vc.getDisequality();
       if(diseq->isTrue()){
-        const ConstraintP lb =
-          d_constraintDatabase.ensureConstraint(const_cast<ValueCollection&>(vc), LowerBound);
-        if(lb->hasProof()){
-          raiseConflict(diseq, lb, constraint);
-          //Node conflict = ConstraintValue::explainConflict(diseq, lb, constraint);
-          //Debug("eq") << " assert upper conflict " << conflict << endl;
-          //raiseConflict(conflict);
+        const ConstraintP lb = d_constraintDatabase.ensureConstraint(const_cast<ValueCollection&>(vc), LowerBound);
+        ConstraintP negLb = lb->getNegation();
+
+        // x <= u, u != x |= u < x
+        // |= not (u >= x)
+        bool lbInConflict = lb->hasProof();
+        bool learnNegLb = !(negLb->hasProof());
+        if(learnNegLb){
+          negLb->impliedByTrichotomy(constraint, diseq, lbInConflict);
+        }
+        if(lbInConflict){
+          raiseConflict(lb);
           return true;
-        }else if(!lb->negationHasProof()){
-          ConstraintP negLb = lb->getNegation();
-          negLb->impliedByTrichotomy(constraint, diseq);
+        }else if(learnNegLb){
           d_learnedBounds.push_back(negLb);
         }
       }
@@ -875,8 +893,10 @@ bool TheoryArithPrivate::AssertUpper(ConstraintP constraint){
 
 /* procedure AssertEquality( x_i == c_i ) */
 bool TheoryArithPrivate::AssertEquality(ConstraintP constraint){
-  AssertArgument(constraint != NullConstraint,
-                 "AssertUpper() called on a NullConstraint.");
+  Assert(constraint != NullConstraint);
+  Assert(constraint->isEquality());
+  Assert(constraint->isTrue());
+  Assert(!constraint->negationHasProof());
 
   ArithVar x_i = constraint->getVariable();
   const DeltaRational& c_i = constraint->getValue();
@@ -895,22 +915,13 @@ bool TheoryArithPrivate::AssertEquality(ConstraintP constraint){
     return false; //sat
   }
 
-  if(cmpToUB > 0){
-    ConstraintP ubc = d_partialModel.getUpperBoundConstraint(x_i);
-    raiseConflict(ubc, constraint);
-    //Node conflict = ConstraintValue::explainConflict(ubc, constraint);
-    //Debug("arith") << "AssertEquality conflicts with upper bound " << conflict << endl;
-    //raiseConflict(conflict);
-    return true;
-  }
-
-  if(cmpToLB < 0){
-    ConstraintP lbc = d_partialModel.getLowerBoundConstraint(x_i);
-    raiseConflict(lbc, constraint);
-
-    // Node conflict = ConstraintValue::explainConflict(lbc, constraint);
-    // Debug("arith") << "AssertEquality conflicts with lower bound" << conflict << endl;
-    // raiseConflict(conflict);
+  if(cmpToUB > 0 || cmpToLB < 0){
+    ConstraintP cb = (cmpToUB > 0) ?  d_partialModel.getUpperBoundConstraint(x_i) :
+      d_partialModel.getLowerBoundConstraint(x_i);
+    ConstraintP diseq = constraint->getNegation();
+    Assert(!diseq->isTrue());
+    diseq->impliedByUnate(cb, true);
+    raiseConflict(constraint);
     return true;
   }
 
@@ -975,12 +986,13 @@ bool TheoryArithPrivate::AssertEquality(ConstraintP constraint){
 
 /* procedure AssertDisequality( x_i != c_i ) */
 bool TheoryArithPrivate::AssertDisequality(ConstraintP constraint){
+  Assert(constraint != NullConstraint);
+  Assert(constraint->isDisequality());
+  Assert(constraint->isTrue());
+  Assert(!constraint->negationHasProof());
 
-  AssertArgument(constraint != NullConstraint,
-                 "AssertUpper() called on a NullConstraint.");
   ArithVar x_i = constraint->getVariable();
   const DeltaRational& c_i = constraint->getValue();
-
   Debug("arith") << "AssertDisequality(" << x_i << " " << c_i << ")"<< std::endl;
 
   //Should be fine in integers
@@ -1000,12 +1012,11 @@ bool TheoryArithPrivate::AssertDisequality(ConstraintP constraint){
     const ConstraintP lb = vc.getLowerBound();
     const ConstraintP ub = vc.getUpperBound();
     if(lb->isTrue() && ub->isTrue()){
+      ConstraintP eq = constraint->getNegation();
+      eq->impliedByTrichotomy(lb, ub, true);
+      raiseConflict(constraint);
       //in conflict
-      Debug("eq") << "explaining" << endl;
       ++(d_statistics.d_statDisequalityConflicts);
-      raiseConflict(constraint, lb, ub);
-      //Node conflict = ConstraintValue::explainConflict(constraint, lb, ub);
-      //raiseConflict(conflict);
       return true;
     }
   }
@@ -1013,10 +1024,11 @@ bool TheoryArithPrivate::AssertDisequality(ConstraintP constraint){
     const ConstraintP lb = vc.getLowerBound();
     if(lb->isTrue()){
       const ConstraintP ub = d_constraintDatabase.ensureConstraint(const_cast<ValueCollection&>(vc), UpperBound);
-      Debug("eq") << "propagate UpperBound " << constraint << lb << ub << endl;
+      Assert(!ub->isTrue());
+      Debug("arith::eq") << "propagate UpperBound " << constraint << lb << ub << endl;
       const ConstraintP negUb = ub->getNegation();
       if(!negUb->isTrue()){
-        negUb->impliedByTrichotomy(constraint, lb);
+        negUb->impliedByTrichotomy(constraint, lb, false);
         d_learnedBounds.push_back(negUb);
       }
     }
@@ -1025,11 +1037,12 @@ bool TheoryArithPrivate::AssertDisequality(ConstraintP constraint){
     const ConstraintP ub = vc.getUpperBound();
     if(ub->isTrue()){
       const ConstraintP lb = d_constraintDatabase.ensureConstraint(const_cast<ValueCollection&>(vc), LowerBound);
+      Assert(!lb->isTrue());
 
-      Debug("eq") << "propagate LowerBound " << constraint << lb << ub << endl;
+      Debug("arith::eq") << "propagate LowerBound " << constraint << lb << ub << endl;
       const ConstraintP negLb = lb->getNegation();
       if(!negLb->isTrue()){
-        negLb->impliedByTrichotomy(constraint, ub);
+        negLb->impliedByTrichotomy(constraint, ub, false);
         d_learnedBounds.push_back(negLb);
       }
     }
@@ -1038,19 +1051,19 @@ bool TheoryArithPrivate::AssertDisequality(ConstraintP constraint){
   bool split = constraint->isSplit();
 
   if(!split && c_i == d_partialModel.getAssignment(x_i)){
-    Debug("eq") << "lemma now! " << constraint << endl;
+    Debug("arith::eq") << "lemma now! " << constraint << endl;
     outputLemma(constraint->split());
     return false;
   }else if(d_partialModel.strictlyLessThanLowerBound(x_i, c_i)){
-    Debug("eq") << "can drop as less than lb" << constraint << endl;
+    Debug("arith::eq") << "can drop as less than lb" << constraint << endl;
   }else if(d_partialModel.strictlyGreaterThanUpperBound(x_i, c_i)){
-    Debug("eq") << "can drop as less than ub" << constraint << endl;
+    Debug("arith::eq") << "can drop as less than ub" << constraint << endl;
   }else if(!split){
-    Debug("eq") << "push back" << constraint << endl;
+    Debug("arith::eq") << "push back" << constraint << endl;
     d_diseqQueue.push(constraint);
     d_partialModel.invalidateDelta();
   }else{
-    Debug("eq") << "skipping already split " << constraint << endl;
+    Debug("arith::eq") << "skipping already split " << constraint << endl;
   }
   return false;
 }
@@ -1871,7 +1884,7 @@ ConstraintP TheoryArithPrivate::constraintFromFactQueue(){
         // if is (not true), or false
         Assert((reEq.getConst<bool>() && isDistinct) ||
                (!reEq.getConst<bool>() && !isDistinct));
-        blackBoxConflict(assertion);
+        raiseBlackBoxConflict(assertion);
       }
       return NullConstraint;
     }
@@ -1891,47 +1904,43 @@ ConstraintP TheoryArithPrivate::constraintFromFactQueue(){
 
   Assert(constraint != NullConstraint);
 
-  if(constraint->negationHasProof()){
+  if(constraint->assertedToTheTheory()){
+    //Do nothing
+    return NullConstraint;
+  }
+  Assert(!constraint->assertedToTheTheory());
+  bool inConflict = constraint->negationHasProof();
+  constraint->setAssertedToTheTheory(assertion, inConflict);
+
+  if(!constraint->hasProof()){
+    Debug("arith::constraint") << "marking as constraint as self explaining " << endl;
+    constraint->setAssumption(inConflict);
+  } else {
+    Debug("arith::constraint") << "already has proof: " << constraint->externalExplainByAssertions() << endl;
+  }
+  
+
+  if(Debug.isOn("arith::negatedassumption") && inConflict){
     ConstraintP negation = constraint->getNegation();
     if(Debug.isOn("arith::negatedassumption") && negation->isAssumption()){
       debugPrintFacts();
     }
+    Debug("arith::eq") << "negation has proof" << endl;
     Debug("arith::eq") << constraint << endl;
     Debug("arith::eq") << negation << endl;
-
-    constraint->setAssertedToTheTheoryWithNegationTrue(assertion);
-    if(!constraint->hasProof()){
-      Debug("arith::constraint") << "marking as constraint as self explaining " << endl;
-      constraint->setAssumptionInConflict();
-    }else{
-      Debug("arith::constraint") << "already has proof: " << constraint->externalExplainByAssertions() << endl;
-    }
-
-    raiseConflict(constraint, negation);
-    // NodeBuilder<> nb(kind::AND);
-    // nb << assertion;
-    // negation->explainForConflict(nb);
-    // Node conflict = nb;
-    // Debug("arith::eq") << "conflict" << conflict << endl;
-    // raiseConflict(conflict);
-    return NullConstraint;
   }
-  Assert(!constraint->negationHasProof());
 
-  if(constraint->assertedToTheTheory()){
-    //Do nothing
+  if(inConflict){
+    ConstraintP negation = constraint->getNegation();
+    if(Debug.isOn("arith::negatedassumption") && negation->isAssumption()){
+      debugPrintFacts();
+    }
+    Debug("arith::eq") << "negation has proof" << endl;
+    Debug("arith::eq") << constraint << endl;
+    Debug("arith::eq") << negation << endl;
+    raiseConflict(negation);
     return NullConstraint;
   }else{
-    Debug("arith::constraint") << "arith constraint " << constraint << std::endl;
-    constraint->setAssertedToTheTheory(assertion);
-
-    if(!constraint->hasProof()){
-      Debug("arith::constraint") << "marking as constraint as an assumption" << endl;
-      constraint->setAssumption();
-    }else{
-      Debug("arith::constraint") << "already has proof: " << constraint->externalExplainByAssertions() << endl;
-    }
-
     return constraint;
   }
 }
@@ -1947,12 +1956,11 @@ bool TheoryArithPrivate::assertionCases(ConstraintP constraint){
     if(isInteger(x_i) && constraint->isStrictUpperBound()){
       ConstraintP floorConstraint = constraint->getFloor();
       if(!floorConstraint->isTrue()){
-        if(floorConstraint->negationHasProof()){
-          raiseConflict(constraint, floorConstraint->getNegation());
+        bool inConflict = floorConstraint->negationHasProof();
+        floorConstraint->impliedByIntHole(constraint, inConflict);
+        if(inConflict){
+          raiseConflict(floorConstraint);
           return true;
-        }else{
-          floorConstraint->impliedByIntHole(constraint);
-          // Do not need to add to d_learnedBounds
         }
       }
       return AssertUpper(floorConstraint);
@@ -1962,13 +1970,11 @@ bool TheoryArithPrivate::assertionCases(ConstraintP constraint){
   case LowerBound:
     if(isInteger(x_i) && constraint->isStrictLowerBound()){
       ConstraintP ceilingConstraint = constraint->getCeiling();
-      if(!ceilingConstraint->isTrue()){
-        if(ceilingConstraint->negationHasProof()){
-          raiseConflict(constraint, ceilingConstraint->getNegation());
-          return true;
-        }
-        ceilingConstraint->impliedByIntHole(constraint);
-        // Do not need to add to learnedBounds
+      bool inConflict = ceilingConstraint->negationHasProof();
+      ceilingConstraint->impliedByIntHole(constraint, inConflict);
+      if(inConflict){
+        raiseConflict(ceilingConstraint);
+        return true;
       }
       return AssertLower(ceilingConstraint);
     }else{
@@ -2035,8 +2041,10 @@ void TheoryArithPrivate::outputConflicts(){
   if(!conflictQueueEmpty()){
     Assert(!d_conflicts.empty());
     for(size_t i = 0, i_end = d_conflicts.size(); i < i_end; ++i){
-      const ConstraintCPVec& vec = d_conflicts[i];
-      Node conflict = Constraint::externalExplainByAssertions(vec);
+      ConstraintCP confConstraint = d_conflicts[i];
+      Assert(confConstraint->inConflict());
+      Node conflict = confConstraint->externalExplainConflict();
+
       Debug("arith::conflict") << "d_conflicts[" << i << "] " << conflict << endl;
       (d_containing.d_out)->conflict(conflict);
     }
@@ -2136,13 +2144,22 @@ bool TheoryArithPrivate::replayLog(ApproximateSimplex* approx){
     turnOffApproxFor(options::replayNumericFailurePenalty());
   }
 
-  for(size_t i =0, N = res.size(); i < N; ++i){
-    raiseConflict(res[i]);
-  }
+
+  
   if(res.empty()){
     ++d_statistics.d_replayAttemptFailed;
   }else{
     ++d_statistics.d_mipProofsSuccessful;
+    for(size_t i =0, N = res.size(); i < N; ++i){
+      ConstraintCPVec& vec = res[i];
+      Assert(vec.size() >= 2);
+      ConstraintCP back = vec.back();
+      Assert(back->isTrue());
+      vec.pop_back();
+      ConstraintP neg_back = back->getNegation();
+      neg_back->impliedByIntHole(vec, true);
+      raiseConflict(back);
+    }
   }
 
   if(d_currentPropagationList.size() > enteringPropN){
@@ -2262,6 +2279,25 @@ Node toSumNode(const ArithVariables& vars, const DenseMap<Rational>& sum){
   return safeConstructNary(nb);
 }
 
+ConstraintCP TheoryArithPrivate::vectorToIntHoleConflict(const ConstraintCPVec& conflict){
+  Assert(conflict.size() >= 2);
+  ConstraintCPVec exp(conflict.begin(), conflict.end()-1);
+  ConstraintCP back = conflict.back();
+  ConstraintP negBack = back->getNegation();
+  negBack->impliedByIntHole(exp, true);
+  return back;
+}
+
+void TheoryArithPrivate::intHoleConflictToVector(ConstraintCP conflicting, ConstraintCPVec& conflict){
+  ConstraintCP negConflicting = conflicting->getNegation();
+  Assert(conflicting->hasProof());
+  Assert(negConflicting->hasProof());
+
+  conflict.push_back(conflicting);
+  conflict.push_back(negConflicting);
+
+  Constraint::assertionFringe(conflict);
+}
 
 void TheoryArithPrivate::tryBranchCut(ApproximateSimplex* approx, int nid, BranchCutInfo& bci){
   Assert(conflictQueueEmpty());
@@ -2300,9 +2336,23 @@ void TheoryArithPrivate::tryBranchCut(ApproximateSimplex* approx, int nid, Branc
       d_partialModel.startQueueingBoundCounts();
     }
     for(size_t i = 0, N = d_conflicts.size(); i < N; ++i){
-      conflicts.push_back(d_conflicts[i]);
-      // remove the floor/ceiling contraint implied by bcneg
+
+      conflicts.push_back(ConstraintCPVec());
+      intHoleConflictToVector(d_conflicts[i], conflicts.back());
       Constraint::assertionFringe(conflicts.back());
+        
+      // ConstraintCP conflicting = d_conflicts[i];
+      // ConstraintCP negConflicting = conflicting->getNegation();
+      // Assert(conflicting->hasProof());
+      // Assert(negConflicting->hasProof());
+
+      // conflicts.push_back(ConstraintCPVec());
+      // ConstraintCPVec& back = conflicts.back();
+      // back.push_back(conflicting);
+      // back.push_back(negConflicting);
+      
+      // // remove the floor/ceiling contraint implied by bcneg
+      // Constraint::assertionFringe(back);
     }
 
     if(Debug.isOn("approx::branch")){
@@ -2319,7 +2369,8 @@ void TheoryArithPrivate::tryBranchCut(ApproximateSimplex* approx, int nid, Branc
     // make sure to be working on the assertion fringe!
     if(!contains(conf, bcneg)){
       Debug("approx::branch") << "reraise " << conf  << endl;
-      raiseConflict(conf);
+      ConstraintCP conflicting = vectorToIntHoleConflict(conf);
+      raiseConflict(conflicting);
     }else if(!bci.proven()){
       drop(conf, bcneg);
       bci.setExplanation(conf);
@@ -2330,87 +2381,24 @@ void TheoryArithPrivate::tryBranchCut(ApproximateSimplex* approx, int nid, Branc
 
 void TheoryArithPrivate::replayAssert(ConstraintP c) {
   if(!c->assertedToTheTheory()){
-    if(c->negationHasProof()){
-      ConstraintP neg = c->getNegation();
-      raiseConflict(c, neg);
-      Debug("approx::replayAssert") << "replayAssertion conflict " << neg << " : " << c << endl;
-    }else if(!c->hasProof()){
-      c->setInternalAssumption();
-      assertionCases(c);
+    bool inConflict = c->negationHasProof();
+    if(!c->hasProof()){
+      c->setInternalAssumption(inConflict);
       Debug("approx::replayAssert") << "replayAssert " << c << " set internal" << endl;
     }else{
-      assertionCases(c);
       Debug("approx::replayAssert") << "replayAssert " << c << " has explanation" << endl;
     }
+    Debug("approx::replayAssert") << "replayAssertion " << c << endl;    
+    if(inConflict){
+      raiseConflict(c);
+    }else{
+      assertionCases(c);
+    }
   }else{
-    Debug("approx::replayAssert") << "replayAssert " << c << " already asserted" << endl;
+    Debug("approx::replayAssert") << "replayAssert " << c << " already asserted" << endl;    
   }
 }
 
-// ConstraintCPVec TheoryArithPrivate::toExplanation(Node n) const {
-//   ConstraintCPVec res;
-//   cout << "toExplanation" << endl;
-//   if(n.getKind() == kind::AND){
-//     for(unsigned i = 0; i < n.getNumChildren(); ++i){
-//       ConstraintP c = d_constraintDatabase.lookup(n[i]);
-//       if(c == NullConstraint){ return std::vector<Constraint>(); }
-//       res.push_back(c);
-//       cout << "\t"<<c << endl;
-//     }
-//   }else{
-//     ConstraintP c = d_constraintDatabase.lookup(n);
-//     if(c == NullConstraint){ return std::vector<Constraint>(); }
-//     res.push_back(c);
-//   }
-//   return res;
-// }
-
-// void TheoryArithPrivate::enqueueConstraints(std::vector<Constraint>& out, Node n) const{
-//   if(n.getKind() == kind::AND){
-//     for(unsigned i = 0, N = n.getNumChildren(); i < N; ++i){
-//       enqueueConstraints(out, n[i]);
-//     }
-//   }else{
-//     ConstraintP c = d_constraintDatabase.lookup(n);
-//     if(c == NullConstraint){
-//       cout << "failing on " << n << endl;
-//     }
-//     Assert(c != NullConstraint);
-//     out.push_back(c);
-//   }
-// }
-
-// ConstraintCPVec TheoryArithPrivate::resolveOutPropagated(const ConstraintCPVec& v, const std::set<ConstraintCP>& propagated) const {
-//   cout << "resolveOutPropagated()" << conf << endl;
-//   std::set<ConstraintCP> final;
-//   std::set<ConstraintCP> processed;
-//   std::vector<ConstraintCP> to_process;
-//   enqueueConstraints(to_process, conf);
-//   while(!to_process.empty()){
-//     ConstraintP c = to_process.back(); to_process.pop_back();
-//     if(processed.find(c) != processed.end()){
-//       continue;
-//     }else{
-//       if(propagated.find(c) == propagated.end()){
-//         final.insert(c);
-//       }else{
-//         Node exp = c->explainForPropagation();
-//         enqueueConstraints(to_process, exp);
-//       }
-//       processed.insert(c);
-//     }
-//   }
-//   cout << "final size: " << final.size() << std::endl;
-//   NodeBuilder<> nb(kind::AND);
-//   std::set<Constraint>::const_iterator iter = final.begin(), end = final.end();
-//   for(; iter != end; ++iter){
-//     ConstraintP c = *iter;
-//     c->explainForConflict(nb);
-//   }
-//   Node newConf = safeConstructNary(nb);
-//   cout << "resolveOutPropagated("<<conf<<", ...) ->" << newConf << endl;
-//   return newConf;
-// }
 
 void TheoryArithPrivate::resolveOutPropagated(std::vector<ConstraintCPVec>& confs, const std::set<ConstraintCP>& propagated) const {
   Debug("arith::resolveOutPropagated")
@@ -2543,7 +2531,7 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
             if(con->isTrue()){
               Debug("approx::replayLogRec") << "not asserted?" << endl;
             }else{
-              con->impliedByIntHole(exp);
+              con->impliedByIntHole(exp, false);
               replayAssert(con);
               Debug("approx::replayLogRec") << "cut prop" << endl;
             }
@@ -2582,7 +2570,8 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
     if(!conflictQueueEmpty()){
       /* if a conflict has been found stop */
       for(size_t i = 0, N = d_conflicts.size(); i < N; ++i){
-        res.push_back(d_conflicts[i]);
+        res.push_back(ConstraintCPVec());
+        intHoleConflictToVector(d_conflicts[i], res.back());
       }
       ++d_statistics.d_replayLogRecEarlyExit;
     }else if(nl.isBranch()){
@@ -3625,7 +3614,7 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
       if(possibleConflict != Node::null()){
         revertOutOfConflict();
         Debug("arith::conflict") << "dio conflict   " << possibleConflict << endl;
-        blackBoxConflict(possibleConflict);
+        raiseBlackBoxConflict(possibleConflict);
         outputConflicts();
         emmittedConflictOrSplit = true;
       }
@@ -3770,9 +3759,9 @@ bool TheoryArithPrivate::splitDisequalities(){
     d_diseqQueue.pop();
 
     if(front->isSplit()){
-      Debug("eq") << "split already" << endl;
+      Debug("arith::eq") << "split already" << endl;
     }else{
-      Debug("eq") << "not split already" << endl;
+      Debug("arith::eq") << "not split already" << endl;
 
       ArithVar lhsVar = front->getVariable();
 
@@ -3790,11 +3779,11 @@ bool TheoryArithPrivate::splitDisequalities(){
         //cout << "Now " << Rewriter::rewrite(lemma) << endl;
         splitSomething = true;
       }else if(d_partialModel.strictlyLessThanLowerBound(lhsVar, rhsValue)){
-        Debug("eq") << "can drop as less than lb" << front << endl;
+        Debug("arith::eq") << "can drop as less than lb" << front << endl;
       }else if(d_partialModel.strictlyGreaterThanUpperBound(lhsVar, rhsValue)){
-        Debug("eq") << "can drop as greater than ub" << front << endl;
+        Debug("arith::eq") << "can drop as greater than ub" << front << endl;
       }else{
-        Debug("eq") << "save" << front << ": " <<lhsValue << " != " << rhsValue << endl;
+        Debug("arith::eq") << "save" << front << ": " <<lhsValue << " != " << rhsValue << endl;
         save.push_back(front);
       }
     }
@@ -3932,7 +3921,7 @@ void TheoryArithPrivate::propagate(Theory::Effort e) {
         normalized[0] : normalized.notNode();
       Node lp = flattenAnd(exp.andNode(notNormalized));
       Debug("arith::prop") << "propagate conflict" <<  lp << endl;
-      blackBoxConflict(lp);
+      raiseBlackBoxConflict(lp);
       outputConflicts();
       return;
     }else{
@@ -4609,11 +4598,6 @@ bool TheoryArithPrivate::rowImplicationCanBeApplied(RowIndex ridx, bool rowUp, C
                        << " " << hasProof
                        << endl;
 
-  if(implied->negationHasProof()){
-    Warning() << "the negation of " <<  implied << " : " << endl
-              << "has proof " << implied->getNegation() << endl
-              << implied->getNegation()->externalExplainByAssertions() << endl;
-  }
 
   if( !assertedToTheTheory && canBePropagated && !hasProof ){
     ConstraintCPVec explain;
@@ -4627,7 +4611,8 @@ bool TheoryArithPrivate::rowImplicationCanBeApplied(RowIndex ridx, bool rowUp, C
       Node clause = flattenImplication(implication);
       outputLemma(clause);
     }else{
-      implied->impliedByFarkas(explain, coeffs);
+      Assert(!implied->negationHasProof());
+      implied->impliedByFarkas(explain, coeffs, false);
     }
     return true;
   }
