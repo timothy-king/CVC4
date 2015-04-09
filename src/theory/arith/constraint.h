@@ -246,9 +246,8 @@ struct PerVariableDatabase{
 struct ConstraintRule {
   ConstraintP d_constraint;
   ArithProofType d_proofType;
-  AntecedentId d_antecedentEnd;
-    
-#ifdef CVC4_PROOF
+  AntecedentId d_antecedentEnd;    
+
   /**
    * In this comment, we abbreviate ConstraintDatabase::d_antecedents
    * and d_farkasCoefficients as ans and fc.
@@ -287,6 +286,7 @@ struct ConstraintRule {
    * There is no requirement that the proof is minimal.
    * We do however use all of the constraints by requiring non-zero coefficients.
    */
+#ifdef CVC4_PROOF
   RationalVectorCP d_farkasCoefficients;
 #endif
   ConstraintRule()
@@ -311,6 +311,7 @@ struct ConstraintRule {
   {
     PROOF( d_farkasCoefficients = RationalVectorSentinel );
   }
+
   ConstraintRule(ConstraintP con, ArithProofType pt, AntecedentId antecedentEnd, RationalVectorCP coeffs)
     : d_constraint(con)
     , d_proofType(pt)
@@ -438,7 +439,9 @@ private:
       Assert(constraint->d_crid != ConstraintRuleIdSentinel);
       constraint->d_crid = ConstraintRuleIdSentinel;
       
-      PROOF(if(coeffs != RationalVectorSentinel){ delete coeffs; });
+      PROOF(if(crp->d_farkasCoefficients != RationalVectorSentinel){
+              delete crp->d_farkasCoefficients;
+            });
     }
   };
 
@@ -594,16 +597,16 @@ public:
 
   /**
    * Sets the witness literal for a node being on the assertion stack.
-   * The negation of the node cannot be true.
+   *
+   * If the negation of the node is true, inConflict must be true.
+   * If the negation of the node is false, inConflict must be false.
+   * Hence, negationHasProof() == inConflict.
+   *
+   * This replaces:
+   *   void setAssertedToTheTheory(TNode witness);
+   *   void setAssertedToTheTheoryWithNegationTrue(TNode witness);
    */
-  void setAssertedToTheTheory(TNode witness);
-
-  /**
-   * Sets the witness literal for a node being on the assertion stack.
-   * The negation of the node must be true!
-   * This is for conflict generation specificially!
-   */
-  void setAssertedToTheTheoryWithNegationTrue(TNode witness);
+  void setAssertedToTheTheory(TNode witness, bool inConflict);
 
   bool hasLiteral() const {
     return !d_literal.isNull();
@@ -619,28 +622,19 @@ public:
   /**
    * Set the node as having a proof and being an assumption.
    * The node must be assertedToTheTheory().
-   * The negation cannot be true.
    *
-   * Replaces selfExplaining().
-   */
-  void setAssumption();
-
-  /**
-   * Set the node as having a proof and being an assumption.
-   * The node must be assertedToTheTheory().
-   * The negation of the constraint must be true!
-   * This is used for conflict generation.
+   * Precondition: negationHasProof() == inConflict.
    *
-   * Replaces selfExplainingWithNegationTrue().
+   * Replaces:
+   *  selfExplaining().
+   *  selfExplainingWithNegationTrue().
    */
-  void setAssumptionInConflict();
+  void setAssumption(bool inConflict);
 
   /** Returns true if the node is an assumption.*/
   bool isAssumption() const;
 
-  /**
-   * Set the constraint to be a EqualityEngine proof.
-   */
+  /** Set the constraint to have an EqualityEngine proof. */
   void setEqualityEngineProof();
   bool hasEqualityEngineProof() const;
 
@@ -721,6 +715,12 @@ public:
     return externalExplain(d_assertionOrder);
   }
 
+  /**
+   * Explain the constraint and its negation in terms of assertions.
+   * The constraint must be in conflict.
+   */
+  Node externalExplainConflict() const;
+
 private:
   Node externalExplain(AssertionOrder order) const;
 
@@ -754,8 +754,13 @@ public:
   }
 
   /** This is a synonym for hasProof(). */
-  bool isTrue() const {
+  inline bool isTrue() const {
     return hasProof();
+  }
+
+  /** Both the constraint and its negation are true. */
+  inline bool inConflict() const {
+    return hasProof() && negationHasProof();
   }
 
   /**
@@ -781,6 +786,7 @@ public:
   ConstraintP getStrictlyWeakerUpperBound(bool hasLiteral, bool mustBeAsserted) const;
   ConstraintP getStrictlyWeakerLowerBound(bool hasLiteral, bool mustBeAsserted) const;
 
+
   /**
    * Marks the node as having a proof a.
    * Adds the node the database's propagation queue.
@@ -800,14 +806,19 @@ public:
    * Marks a the constraint c as being entailed by a.
    * The Farkas proof 1*(a) + -1 (c) |= 0<0
    */
-  void impliedByUnate(ConstraintCP a);
+  void impliedByUnate(ConstraintCP a, bool inConflict);
 
   /**
    * Marks a the constraint c as being entailed by a.
    * The reason has to do with integer rounding.
    */
-  void impliedByIntHole(ConstraintCP a);
-  void impliedByIntHole(const ConstraintCPVec& b);
+  void impliedByIntHole(ConstraintCP a, bool inConflict);
+
+  /**
+   * Marks a the constraint c as being entailed by a.
+   * The reason has to do with integer rounding.
+   */
+  void impliedByIntHole(const ConstraintCPVec& b, bool inConflict);
   
   /**
    * The only restriction is that this is not known be true.
@@ -823,10 +834,10 @@ public:
    * The current constraint c is one of the above constraints and {a,b}
    * are the negation of the other two constraints.
    */
-  void impliedByTrichotomy(ConstraintCP a, ConstraintCP b);
+  void impliedByTrichotomy(ConstraintCP a, ConstraintCP b, bool inConflict);
 
   
-  void impliedByFarkas(const ConstraintCPVec& b, RationalVectorCP coeffs);
+  void impliedByFarkas(const ConstraintCPVec& b, RationalVectorCP coeffs, bool inConflict);
 
   /**
    * Generates an implication node, B => getLiteral(),
@@ -834,6 +845,11 @@ public:
    * Does not guarantee b is the explanation of the constraint.
    */
   Node externalImplication(const ConstraintCPVec& b) const;
+
+  /**
+   * Generates the conjunction node, (and B),
+   * where B is the result of externalExplainByAssertions(b).
+   */
   static Node _externalConjunction(const ConstraintCPVec& b);
 
   /**
@@ -842,8 +858,26 @@ public:
    */
   bool satisfiedBy(const DeltaRational& dr) const;
 
-  /** The node must have a proof already and be eligible for propagation! */
+  /**
+   * The node must have a proof already and be eligible for propagation!
+   *
+   * Preconditions:
+   * - hasProof()
+   * - canBePropagated()
+   * - !assertedToTheTheory()
+   */
   void propagate();
+
+  /**
+   * If the constraint
+   *   canBePropagated() and 
+   *   !assertedToTheTheory(),
+   * the constraint is added to the database's propagation queue.
+   *
+   * Precondition:
+   * - hasProof()
+   */
+  void tryToPropagate();
 
 private:
   /**
@@ -851,12 +885,12 @@ private:
    * Neither the node nor its negation can have a proof.
    * This is internal!
    */
-  void markAssumption();
+  //void markAssumption();
 
   /**
    * Marks the node as having a unate farkas proof.
    */
-  void markUnateFarkasProof(ConstraintCP a);
+  //void markUnateFarkasProof(ConstraintCP a);
 
   /**
    * Marks the node as having an arbitrary farkas proof.
@@ -868,7 +902,7 @@ private:
    *   for i in [0,a.size) : coeff[i] corresponds to a[i], and
    *   coeff.back() corresponds to the current constraint. 
    */
-  void markFarkasProof(const ConstraintCPVec& a, RationalVectorCP coeffs);
+  //void markFarkasProof(const ConstraintCPVec& a, RationalVectorCP coeffs);
 
 
   // void _markAsTrue(ConstraintCP a, ConstraintCP b);
@@ -1156,7 +1190,8 @@ public:
   void unatePropEquality(ConstraintP curr, ConstraintP prevLB, ConstraintP prevUB);
 
 private:
-  void raiseUnateConflict(ConstraintP ant, ConstraintP cons);
+  /** returns true if cons is now in conflict. */
+  bool handleUnateProp(ConstraintP ant, ConstraintP cons);
 
   DenseSet d_reclaimable;
 

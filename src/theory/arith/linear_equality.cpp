@@ -505,10 +505,9 @@ void LinearEqualityModule::propagateBasicFromRow(ConstraintP c){
   RowIndex ridx = d_tableau.basicToRowIndex(basic);
 
   ConstraintCPVec bounds;
-  RationalVectorP basic_coeff = NULLPROOF(new Rational());
   RationalVectorP coeffs = NULLPROOF(new RationalVector());
   propagateRow(bounds, ridx, upperBound, c, coeffs);
-  c->impliedByFarkas(bounds, coeffs);
+  c->impliedByFarkas(bounds, coeffs, false);
 }
 
 /* An explanation of the farkas coefficients.
@@ -639,7 +638,8 @@ ConstraintP LinearEqualityModule::weakestExplanation(bool aboveUpper, DeltaRatio
   return c;
 }
 
-void LinearEqualityModule::minimallyWeakConflict(bool aboveUpper, ArithVar basicVar, FarkasConflictBuilder& rc) const {
+ConstraintCP LinearEqualityModule::minimallyWeakConflict(bool aboveUpper, ArithVar basicVar, FarkasConflictBuilder& fcs) const {
+  Assert(!fcs.underConstruction());
   TimerStat::CodeTimer codeTimer(d_statistics.d_weakenTime);
 
   const DeltaRational& assignment = d_variables.getAssignment(basicVar);
@@ -654,7 +654,6 @@ void LinearEqualityModule::minimallyWeakConflict(bool aboveUpper, ArithVar basic
     surplus = d_variables.getLowerBound(basicVar) - assignment;
   }
   
-  ConstraintP basicConstraint = NullConstraint;
   bool anyWeakenings = false;
   for(Tableau::RowIterator i = d_tableau.basicRowIterator(basicVar); !i.atEnd(); ++i){
     const Tableau::Entry& entry = *i;
@@ -668,20 +667,16 @@ void LinearEqualityModule::minimallyWeakConflict(bool aboveUpper, ArithVar basic
                   << c << endl;
     anyWeakenings = anyWeakenings || weakening;
 
-    if(v == basicVar){
-      basicConstraint = c;
-      rc.setFinalCoefficient(coeff);
-    } else {
-      rc.addConstraint(c, coeff);
-    }
+    fcs.addConstraint(c, coeff);
   }
-  Assert(basicConstraint != NullConstraint);
-  rc.commitConflict(basicConstraint);
+
+  ConstraintCP conflicted = fcs.commitConflict();
 
   ++d_statistics.d_weakeningAttempts;
   if(anyWeakenings){
     ++d_statistics.d_weakeningSuccesses;
   }
+  return conflicted;
 }
 
 ArithVar LinearEqualityModule::minVarOrder(ArithVar x, ArithVar y) const {

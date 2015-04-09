@@ -119,8 +119,6 @@ private:
 
   BoundInfoMap d_rowTracking;
 
-  ConstraintCPVec d_conflictBuffer;
-
   /**
    * The constraint database associated with the theory.
    * This must be declared before ArithPartialModel.

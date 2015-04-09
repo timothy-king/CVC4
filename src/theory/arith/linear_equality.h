@@ -608,20 +608,22 @@ private:
 public:
   /**
    * Constructs a minimally weak conflict for the basic variable basicVar.
+   *
+   * Returns a constraint that is now in conflict.
    */
-  void minimallyWeakConflict(bool aboveUpper, ArithVar basicVar, FarkasConflictBuilder& rc) const;
+  ConstraintCP minimallyWeakConflict(bool aboveUpper, ArithVar basicVar, FarkasConflictBuilder& rc) const;
 
   /**
    * Given a basic variable that is know to have a conflict on it,
    * construct and return a conflict.
    * Follows section 4.2 in the CAV06 paper.
    */
-  inline void generateConflictAboveUpperBound(ArithVar conflictVar, FarkasConflictBuilder& rc) const {
-    minimallyWeakConflict(true, conflictVar, rc);
+  inline ConstraintCP generateConflictAboveUpperBound(ArithVar conflictVar, FarkasConflictBuilder& rc) const {
+    return minimallyWeakConflict(true, conflictVar, rc);
   }
 
-  inline void generateConflictBelowLowerBound(ArithVar conflictVar, FarkasConflictBuilder& rc) const {
-    minimallyWeakConflict(false, conflictVar, rc);
+  inline ConstraintCP generateConflictBelowLowerBound(ArithVar conflictVar, FarkasConflictBuilder& rc) const {
+    return minimallyWeakConflict(false, conflictVar, rc);
   }
 
   /**

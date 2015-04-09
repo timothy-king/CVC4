@@ -428,17 +428,10 @@ void Constraint::setCanBePropagated() {
   d_database->pushCanBePropagatedWatch(this);
 }
 
-void Constraint::setAssertedToTheTheoryWithNegationTrue(TNode witness) {
+void Constraint::setAssertedToTheTheory(TNode witness, bool inConflict) {
   Assert(hasLiteral());
   Assert(!assertedToTheTheory());
-  Assert(d_negation->hasProof());
-  d_database->pushAssertionOrderWatch(this, witness);
-}
-
-void Constraint::setAssertedToTheTheory(TNode witness) {
-  Assert(hasLiteral());
-  Assert(!assertedToTheTheory());
-  Assert(!d_negation->assertedToTheTheory());
+  Assert(negationHasProof() == inConflict);
   d_database->pushAssertionOrderWatch(this, witness);
 }
 
@@ -902,17 +895,13 @@ ConstraintP ConstraintDatabase::lookup(TNode literal) const{
   }
 }
 
-void Constraint::setAssumptionInConflict(){
+void Constraint::setAssumption(bool inConflict){
   Assert(!hasProof());
-  Assert(getNegation()->hasProof());
+  Assert(negationHasProof() == inConflict);
   Assert(hasLiteral());
   Assert(assertedToTheTheory());
 
   d_database->pushConstraintRule(ConstraintRule(this, AssumeAP));
-}
-
-void Constraint::setAssumption(){
-  markAssumption();
 }
 
 void Constraint::propagate(){
@@ -950,17 +939,41 @@ void Constraint::propagate(){
 // }
 
 
-void Constraint::impliedByUnate(ConstraintCP a){
-  Assert(truthIsUnknown());
+/*
+ * Example:
+ *    x <= a and a < b
+ * |= x <= b
+ * ---
+ *  1*(x <= a) + (-1)*(x > b) => (0 <= a-b)
+ */
+void Constraint::impliedByUnate(ConstraintCP imp, bool inConflict){
+  Assert(!hasProof());
+  Assert(imp->hasProof());
+  Assert(negationHasProof() == inConflict);
 
-  markUnateFarkasProof(a);
-  if(canBePropagated()){
-    propagate();
+
+  d_database->d_antecedents.push_back(NullConstraint);
+  d_database->d_antecedents.push_back(imp);
+
+  AntecedentId antecedentEnd = d_database->d_antecedents.size() - 1;
+
+  RationalVectorP coeffs;
+  if(PROOF_ON()){
+    std::pair<int, int> sgns = unateFarkasSigns(getNegation()->getType(), imp->getType());
+
+    coeffs = new RationalVector(2);
+    coeffs->push_back(Rational(sgns.first));
+    coeffs->push_back(Rational(sgns.second));
+  } else {
+    coeffs = RationalVectorPSentinel;
   }
+
+  d_database->pushConstraintRule(ConstraintRule(this, FarkasAP, antecedentEnd, coeffs));
 }
 
-void Constraint::impliedByTrichotomy(ConstraintCP a, ConstraintCP b){
-  Assert(truthIsUnknown());
+void Constraint::impliedByTrichotomy(ConstraintCP a, ConstraintCP b, bool inConflict){
+  Assert(!hasProof());
+  Assert(negationHasProof() == inConflict);
   Assert(a->hasProof());
   Assert(b->hasProof());
 
@@ -970,9 +983,6 @@ void Constraint::impliedByTrichotomy(ConstraintCP a, ConstraintCP b){
 
   AntecedentId antecedentEnd = d_database->d_antecedents.size() - 1;
   d_database->pushConstraintRule(ConstraintRule(this, TrichotomyAP, antecedentEnd));
-  if(canBePropagated()){
-    propagate();
-  }
 }
 
 // void Constraint::_impliedBy(ConstraintCP a, ConstraintCP b){
@@ -1002,21 +1012,20 @@ bool Constraint::allHaveProof(const ConstraintCPVec& b){
   return true;
 }
 
-void Constraint::impliedByIntHole(ConstraintCP a){
-  Assert(truthIsUnknown());
+void Constraint::impliedByIntHole(ConstraintCP a, bool inConflict){
   Assert(!hasProof());
-  
+  Assert(negationHasProof() == inConflict);
   Assert(a->hasProof());
+
   d_database->d_antecedents.push_back(NullConstraint);
   d_database->d_antecedents.push_back(a);
   AntecedentId antecedentEnd = d_database->d_antecedents.size() - 1;
   d_database->pushConstraintRule(ConstraintRule(this, IntHoleAP, antecedentEnd));
 }
 
-void Constraint::impliedByIntHole(const ConstraintCPVec& b){
-  Assert(truthIsUnknown());
-  
+void Constraint::impliedByIntHole(const ConstraintCPVec& b, bool inConflict){
   Assert(!hasProof());
+  Assert(negationHasProof() == inConflict);
   Assert(allHaveProof(b));
 
   CDConstraintList& antecedents = d_database->d_antecedents;
@@ -1026,92 +1035,8 @@ void Constraint::impliedByIntHole(const ConstraintCPVec& b){
   }
   AntecedentId antecedentEnd = antecedents.size() - 1;
 
-  d_database->pushConstraintRule(ConstraintRule(this, FarkasAP, antecedentEnd));
+  d_database->pushConstraintRule(ConstraintRule(this, IntHoleAP, antecedentEnd));
 }
-
-void Constraint::impliedByFarkas(const ConstraintCPVec& b, RationalVectorCP coeffs){
-  Assert(truthIsUnknown());
-
-  markFarkasProof(b, coeffs);
-  if(canBePropagated()){
-    propagate();
-  }
-}
-
-
-void Constraint::setInternalAssumption(){
-  Assert(truthIsUnknown());
-  Assert(!assertedToTheTheory());
-
-  d_database->pushConstraintRule(ConstraintRule(this, InternalAssumeAP));
-}
-
-void Constraint::setEqualityEngineProof(){
-  Assert(truthIsUnknown());
-  Assert(hasLiteral());
-  d_database->pushConstraintRule(ConstraintRule(this, EqualityEngineAP));
-}
-
-void Constraint::markAssumption(){
-  Assert(truthIsUnknown());
-  Assert(hasLiteral());
-  Assert(assertedToTheTheory());
-  d_database->pushConstraintRule(ConstraintRule(this, AssumeAP));
-}
-
-// void Constraint::_markAsTrue(ConstraintCP imp){
-//   Unimplemented();
-  // Assert(truthIsUnknown());
-  // Assert(imp->hasProof());
-  // d_database->d_proofs.push_back(NullConstraint);
-  // d_database->d_proofs.push_back(imp);
-  // ProofId proof = d_database->d_proofs.size() - 1;
-  // d_database->pushProofWatch(this, proof);
-//}
-
-/**
- * Example:
- *    x <= a and a < b
- * |= x <= b
- * ---
- *  1*(x <= a) + (-1)*(x > b) => (0 <= a-b)
- */
-void Constraint::markUnateFarkasProof(ConstraintCP imp){
-  Assert(!hasProof());
-  Assert(imp->hasProof());
-
-  d_database->d_antecedents.push_back(NullConstraint);
-  d_database->d_antecedents.push_back(imp);
-
-  AntecedentId antecedentEnd = d_database->d_antecedents.size() - 1;
-
-  RationalVectorP coeffs;
-  if(PROOF_ON()){
-    
-    std::pair<int, int> sgns = unateFarkasSigns(getNegation()->getType(), imp->getType());
-
-    coeffs = new RationalVector(2);
-    coeffs->push_back(Rational(sgns.first));
-    coeffs->push_back(Rational(sgns.second));
-  } else {
-    coeffs = RationalVectorPSentinel;
-  }
-
-  d_database->pushConstraintRule(ConstraintRule(this, FarkasAP, antecedentEnd, coeffs));
-}
-
-// void Constraint::_markAsTrue(ConstraintCP impA, ConstraintCP impB){
-//   Assert(truthIsUnknown());
-//   Assert(impA->hasProof());
-//   Assert(impB->hasProof());
-
-//   d_database->d_proofs.push_back(NullConstraint);
-//   d_database->d_proofs.push_back(impA);
-//   d_database->d_proofs.push_back(impB);
-//   ProofId proof = d_database->d_proofs.size() - 1;
-
-//   d_database->pushProofWatch(this, proof);
-// }
 
 /*
  * If proofs are off, coeffs == RationalVectorSentinal.
@@ -1121,8 +1046,11 @@ void Constraint::markUnateFarkasProof(ConstraintCP imp){
  *   for i in [0,a.size) : coeff[i] corresponds to a[i], and
  *   coeff.back() corresponds to the current constraint. 
  */
-void Constraint::markFarkasProof(const ConstraintCPVec& a, RationalVectorCP coeffs){
+void Constraint::impliedByFarkas(const ConstraintCPVec& a, RationalVectorCP coeffs, bool inConflict){
   Assert(!hasProof());
+  Assert(negationHasProof() == inConflict);
+  Assert(allHaveProof(a));
+
   Assert( PROOF_ON() == (coeffs != RationalVectorCPSentinel) );
   Assert( PROOF_ON() || coeffs->size() == a.size() + 1);
   Assert(a.size() >= 1);
@@ -1144,6 +1072,46 @@ void Constraint::markFarkasProof(const ConstraintCPVec& a, RationalVectorCP coef
   }
   d_database->pushConstraintRule(ConstraintRule(this, FarkasAP, antecedentEnd, coeffsCopy));
 }
+
+
+void Constraint::setInternalAssumption(){
+  Assert(truthIsUnknown());
+  Assert(!assertedToTheTheory());
+
+  d_database->pushConstraintRule(ConstraintRule(this, InternalAssumeAP));
+}
+
+void Constraint::setEqualityEngineProof(){
+  Assert(truthIsUnknown());
+  Assert(hasLiteral());
+  d_database->pushConstraintRule(ConstraintRule(this, EqualityEngineAP));
+}
+
+
+// void Constraint::_markAsTrue(ConstraintCP imp){
+//   Unimplemented();
+  // Assert(truthIsUnknown());
+  // Assert(imp->hasProof());
+  // d_database->d_proofs.push_back(NullConstraint);
+  // d_database->d_proofs.push_back(imp);
+  // ProofId proof = d_database->d_proofs.size() - 1;
+  // d_database->pushProofWatch(this, proof);
+//}
+
+
+// void Constraint::_markAsTrue(ConstraintCP impA, ConstraintCP impB){
+//   Assert(truthIsUnknown());
+//   Assert(impA->hasProof());
+//   Assert(impB->hasProof());
+
+//   d_database->d_proofs.push_back(NullConstraint);
+//   d_database->d_proofs.push_back(impA);
+//   d_database->d_proofs.push_back(impB);
+//   ProofId proof = d_database->d_proofs.size() - 1;
+
+//   d_database->pushProofWatch(this, proof);
+// }
+
 
 // void Constraint::_markAsTrue(const ConstraintCPVec& a){
 //   Assert(truthIsUnknown());
@@ -1559,23 +1527,20 @@ void ConstraintDatabase::outputUnateInequalityLemmas(std::vector<Node>& lemmas) 
   }
 }
 
-void ConstraintDatabase::raiseUnateConflict(ConstraintP ant, ConstraintP cons){
-  Unimplemented();
-  
-  // Assert(ant->hasProof());
-  // ConstraintP negCons = cons->getNegation();
-  // Assert(negCons->hasProof());
-
-  // Debug("arith::unate::conf") << ant << "implies " << cons << endl;
-  // Debug("arith::unate::conf") << negCons << " is true." << endl;
-  
-  // d_raiseConflict.addConstraint(ant, d_one);
-  // d_raiseConflict.commitConflict(cons, d_negOne);
-
-  Assert(cons->getNegation()->hasProof());
-  // fixed ?
-  cons->markUnateFarkasProof(ant);
-  d_raiseConflict.raiseConflict(cons);
+bool ConstraintDatabase::handleUnateProp(ConstraintP ant, ConstraintP cons){
+  if(cons->negationHasProof()){
+    cons->impliedByUnate(ant, true);
+    d_raiseConflict.raiseConflict(cons);
+    return true;
+  }else if(!cons->isTrue()){
+    ++d_statistics.d_unatePropagateImplications;
+    Debug("arith::unate") << "handleUnate: " << ant << " implies " << cons << endl;
+    cons->impliedByUnate(ant, false);
+    cons->tryToPropagate();
+    return false;
+  } else {
+    return false;
+  }
 }
 
 void ConstraintDatabase::unatePropLowerBound(ConstraintP curr, ConstraintP prev){
@@ -1611,27 +1576,11 @@ void ConstraintDatabase::unatePropLowerBound(ConstraintP curr, ConstraintP prev)
     //These should all be handled by propagating the LowerBounds!
     if(vc.hasLowerBound()){
       ConstraintP lb = vc.getLowerBound();
-      if(lb->negationHasProof()){
-        raiseUnateConflict(curr, lb);
-        return;
-      }else if(!lb->isTrue()){
-        ++d_statistics.d_unatePropagateImplications;
-        Debug("arith::unate") << "unatePropLowerBound " << curr << " implies " << lb << endl;
-
-        lb->impliedByUnate(curr);
-      }
+      if(handleUnateProp(curr, lb)){ return; }
     }
     if(vc.hasDisequality()){
       ConstraintP dis = vc.getDisequality();
-      if(dis->negationHasProof()){
-        raiseUnateConflict(curr, dis);
-        return;
-      }else if(!dis->isTrue()){
-        ++d_statistics.d_unatePropagateImplications;
-        Debug("arith::unate") << "unatePropLowerBound " << curr << " implies " << dis << endl;
-
-        dis->impliedByUnate(curr);
-      }
+      if(handleUnateProp(curr, dis)){ return; }
     }
   }
 }
@@ -1662,26 +1611,11 @@ void ConstraintDatabase::unatePropUpperBound(ConstraintP curr, ConstraintP prev)
     //These should all be handled by propagating the UpperBounds!
     if(vc.hasUpperBound()){
       ConstraintP ub = vc.getUpperBound();
-      if(ub->negationHasProof()){
-        raiseUnateConflict(curr, ub);
-        return;
-      }else if(!ub->isTrue()){
-        ++d_statistics.d_unatePropagateImplications;
-        Debug("arith::unate") << "unatePropUpperBound " << curr << " implies " << ub << endl;
-        ub->impliedByUnate(curr);
-      }
+      if(handleUnateProp(curr, ub)){ return; }
     }
     if(vc.hasDisequality()){
       ConstraintP dis = vc.getDisequality();
-      if(dis->negationHasProof()){
-        raiseUnateConflict(curr, dis);
-        return;
-      }else if(!dis->isTrue()){
-        Debug("arith::unate") << "unatePropUpperBound " << curr << " implies " << dis << endl;
-        ++d_statistics.d_unatePropagateImplications;
-
-        dis->impliedByUnate(curr);
-      }
+      if(handleUnateProp(curr, dis)){ return; }
     }
   }
 }
@@ -1719,26 +1653,11 @@ void ConstraintDatabase::unatePropEquality(ConstraintP curr, ConstraintP prevLB,
     //These should all be handled by propagating the LowerBounds!
     if(vc.hasLowerBound()){
       ConstraintP lb = vc.getLowerBound();
-      if(lb->negationHasProof()){
-        raiseUnateConflict(curr, lb);
-        return;
-      }else if(!lb->isTrue()){
-        ++d_statistics.d_unatePropagateImplications;
-        Debug("arith::unate") << "unatePropUpperBound " << curr << " implies " << lb << endl;
-        lb->impliedByUnate(curr);
-      }
+      if(handleUnateProp(curr, lb)){ return; }
     }
     if(vc.hasDisequality()){
       ConstraintP dis = vc.getDisequality();
-      if(dis->negationHasProof()){
-        raiseUnateConflict(curr, dis);
-        return;
-      }else if(!dis->isTrue()){
-        ++d_statistics.d_unatePropagateImplications;
-        Debug("arith::unate") << "unatePropUpperBound " << curr << " implies " << dis << endl;
-
-        dis->impliedByUnate(curr);
-      }
+      if(handleUnateProp(curr, dis)){ return; }
     }
   }
   Assert(scm_i == scm_curr);
@@ -1754,26 +1673,11 @@ void ConstraintDatabase::unatePropEquality(ConstraintP curr, ConstraintP prevLB,
     //These should all be handled by propagating the UpperBounds!
     if(vc.hasUpperBound()){
       ConstraintP ub = vc.getUpperBound();
-      if(ub->negationHasProof()){
-        raiseUnateConflict(curr, ub);
-        return;
-      }else if(!ub->isTrue()){
-        ++d_statistics.d_unatePropagateImplications;
-        Debug("arith::unate") << "unateProp " << curr << " implies " << ub << endl;
-
-        ub->impliedByUnate(curr);
-      }
+      if(handleUnateProp(curr, ub)){ return; }
     }
     if(vc.hasDisequality()){
       ConstraintP dis = vc.getDisequality();
-      if(dis->negationHasProof()){
-        raiseUnateConflict(curr, dis);
-        return;
-      }else if(!dis->isTrue()){
-        ++d_statistics.d_unatePropagateImplications;
-        Debug("arith::unate") << "unateProp " << curr << " implies " << dis << endl;
-        dis->impliedByUnate(curr);
-      }
+      if(handleUnateProp(curr, dis)){ return; }
     }
   }
 }

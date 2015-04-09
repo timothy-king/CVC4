@@ -104,47 +104,42 @@ public:
   _RaiseConflict(TheoryArithPrivate& ta);
 
   /** Calls d_ta.raiseConflict(c) */
-  void raiseConflict(ConstraintCP c);
+  void raiseConflict(ConstraintCP c) const;
 };
 
 class FarkasConflictBuilder {
 private:
-  _RaiseConflict d_raiseConflict;
-  bool d_finalCoeffSet;
   RationalVector d_farkas;
   ConstraintCPVec d_constraints;
-  
+  ConstraintCP d_firstConstraint;
+
 public:
 
   /**
    * Constructs a new FarkasConflictBuilder.
    */
-  FarkasConflictBuilder(_RaiseConflict& rc);
+  FarkasConflictBuilder();
 
   /**
-   * Adds a constraint to the conflict under construction
+   * Adds an antecedent constraint to the conflict under construction
    * with the farkas coefficient fc.
    */
   void addConstraint(ConstraintCP c, const Rational& fc);
 
   /**
-   * Turns the vector under construction into a proof for the 
-   * negation of c.
-   *
-   * The farkas coefficient for c is fc.
+   * Turns the antecendents into a proof of the negation of one of the
+   * antecedents.
    *
    * The buffer is no longer underConstruction afterwards.
+   *
+   * precondition: At least two constraints have been asserted.
+   * postcondition: The returned constraint is in conflict.
    */
-  void commitConflict(ConstraintCP c, const Rational& fc);
-
-  void setFinalCoefficient( const Rational& fc );
-  
-  void commitConflict(ConstraintCP c);
+  ConstraintCP commitConflict();
 
   /** Returns true if a conflict has been pushed back since the last reset. */
   bool underConstruction() const;
   
-private:
   /** Resets the state of the buffer. */
   void reset();
 };
@@ -158,7 +153,7 @@ public:
   RaiseEqualityEngineConflict(TheoryArithPrivate& ta);
 
   /* If you are not an equality engine, don't use this! */
-  void raiseEEConflict(Node n);
+  void raiseEEConflict(Node n) const;
 };
 
 class BoundCountingLookup {

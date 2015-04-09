@@ -26,7 +26,7 @@ namespace CVC4 {
 namespace theory {
 namespace arith {
 
-SimplexDecisionProcedure::SimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc)
+SimplexDecisionProcedure::SimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, _RaiseConflict conflictChannel, TempVarMalloc tvmalloc)
   : d_conflictVariables()
   , d_linEq(linEq)
   , d_variables(d_linEq.getVariables())
@@ -34,13 +34,22 @@ SimplexDecisionProcedure::SimplexDecisionProcedure(LinearEqualityModule& linEq, 
   , d_errorSet(errors)
   , d_numVariables(0)
   , d_conflictChannel(conflictChannel)
+  , d_conflictBuilder(NULL)
   , d_arithVarMalloc(tvmalloc)
   , d_errorSize(0)
   , d_zero(0)
+  , d_posOne(1)
+  , d_negOne(-1)
 {
   d_heuristicRule = options::arithErrorSelectionRule();
   d_errorSet.setSelectionRule(d_heuristicRule);
+  d_conflictBuilder = new FarkasConflictBuilder();
 }
+
+SimplexDecisionProcedure::~SimplexDecisionProcedure(){
+  delete d_conflictBuilder;
+}
+
 
 bool SimplexDecisionProcedure::standardProcessSignals(TimerStat &timer, IntStat& conflicts) {
   TimerStat::CodeTimer codeTimer(timer);
@@ -77,37 +86,34 @@ bool SimplexDecisionProcedure::standardProcessSignals(TimerStat &timer, IntStat&
 void SimplexDecisionProcedure::reportConflict(ArithVar basic){
   Assert(!d_conflictVariables.isMember(basic));
   Assert(checkBasicForConflict(basic));
-  RaiseConflict rc( d_conflictChannel);
 
-  generateConflictForBasic(basic, rc);
+  ConstraintCP conflicted = generateConflictForBasic(basic);
+  Assert(conflicted != NullConstraint);
+  d_conflictChannel.raiseConflict(conflicted);
 
-  // static bool verbose = false;
-  // if(verbose) { Message() << "conflict " << basic << " " << conflict << endl; }
-  // Assert(!conflict.isNull());
-  //d_conflictChannel(conflict);
-  rc.commitConflict();
   d_conflictVariables.add(basic);
 }
 
-void SimplexDecisionProcedure::generateConflictForBasic(ArithVar basic, RaiseConflict& rc) const {
+ConstraintCP SimplexDecisionProcedure::generateConflictForBasic(ArithVar basic) const {
 
   Assert(d_tableau.isBasic(basic));
   Assert(checkBasicForConflict(basic));
 
   if(d_variables.cmpAssignmentLowerBound(basic) < 0){
     Assert(d_linEq.nonbasicsAtUpperBounds(basic));
-    return d_linEq.generateConflictBelowLowerBound(basic, rc);
+    return d_linEq.generateConflictBelowLowerBound(basic, *d_conflictBuilder);
   }else if(d_variables.cmpAssignmentUpperBound(basic) > 0){
     Assert(d_linEq.nonbasicsAtLowerBounds(basic));
-    return d_linEq.generateConflictAboveUpperBound(basic, rc);
+    return d_linEq.generateConflictAboveUpperBound(basic, *d_conflictBuilder);
   }else{
     Unreachable();
+    return NullConstraint;
   }
 }
 bool SimplexDecisionProcedure::maybeGenerateConflictForBasic(ArithVar basic) const {
   if(checkBasicForConflict(basic)){
-    RaiseConflict rc(d_conflictChannel);
-    generateConflictForBasic(basic, rc);
+    ConstraintCP conflicted = generateConflictForBasic(basic);
+    d_conflictChannel.raiseConflict(conflicted);
     return true;
   }else{
     return false;
@@ -199,7 +205,9 @@ ArithVar SimplexDecisionProcedure::constructInfeasiblityFunction(TimerStat& time
     Assert(!d_variables.assignmentIsConsistent(e));
 
     int sgn = d_errorSet.getSgn(e);
-    coeffs.push_back(Rational(sgn));
+    Assert(sgn == -1 || sgn == 1);
+    const Rational& violatedCoeff = sgn < 0 ? d_negOne : d_posOne;
+    coeffs.push_back(violatedCoeff);
     variables.push_back(e);
   }
   d_tableau.addRow(inf, coeffs, variables);

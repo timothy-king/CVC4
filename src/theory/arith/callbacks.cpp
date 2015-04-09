@@ -61,70 +61,61 @@ _RaiseConflict::_RaiseConflict(TheoryArithPrivate& ta)
   : d_ta(ta)
 {}
 
-void _RaiseConflict::raiseConflict(ConstraintCP c){
+void _RaiseConflict::raiseConflict(ConstraintCP c) const{
   Assert(c->inConflict());
   d_ta.raiseConflict(c);
 }
 
-FarkasConflictBuilder::FarkasConflictBuilder(_RaiseConflict& rc)
-  : d_raiseConflict(d_raiseConflict)
-  , d_finalCoeffSet(false)
-  , d_farkas()
+FarkasConflictBuilder::FarkasConflictBuilder()
+  : d_farkas()
   , d_constraints()
+  , d_firstConstraint(NullConstraint)
 {
   reset();
 }
 
-bool RaiseFarkasConflict::underConstruction() const{
-  return !d_constraints.empty() || d_finalCoeffSet;
+bool FarkasConflictBuilder::underConstruction() const{
+  return d_firstConstraint != NullConstraint;
 }
 
 
-RaiseFarkasConflict::reset(){
+void FarkasConflictBuilder::reset(){
+  d_firstConstraint = NullConstraint;
   d_constraints.clear();
-  d_finalCoeffSet = false;
   PROOF(d_farkas.clear());
   PROOF(d_farkas.push_back(Rational(0)));
   Assert(!underConstruction());
 }
 
 /* Adds a constraint to the constraint under construction. */
-void RaiseFarkasConflict::addConstraint(ConstraintCP c, const Rational& fc){
+void FarkasConflictBuilder::addConstraint(ConstraintCP c, const Rational& fc){
   Assert(!PROOF_ON() || d_constraints.size() + 1 == d_farkas.size());
   Assert(PROOF_ON() || d_farkas.empty());
+  Assert(c->isTrue());
   
-  d_constraints.push_back(c);
+  if(d_firstConstraint == NullConstraint){
+    d_firstConstraint = c;
+  } else {
+    d_constraints.push_back(c);
+  }
   PROOF(d_farkas.push_back(fc));
 }
 
-
-void FarkasConflictBuilder::setFinalCoefficient( const Rational& fc ){
-  Assert(!d_finalCoeffSet);
-  d_finalCoeffSet = true;
-  PROOF(d_farkas.front() == fc);
-}
-
-void RaiseFarkasConflict::commitConflict(ConstraintCP c, const Rational& fc){
-  setFinalCoefficient(fc);
-  commitConflict(c);
-}
-
 /* Turns the vector under construction into a conflict */
-void RaiseFarkasConflict::commitConflict(ConstraintCP c){
+ConstraintCP FarkasConflictBuilder::commitConflict(){
   Assert(underConstruction());
   Assert(!d_constraints.empty());
-  Assert(d_finalCoeffSet);
   Assert(!PROOF_ON() || d_constraints.size() + 1 == d_farkas.size());
   Assert(PROOF_ON() || d_farkas.empty());
-  Assert(c->hasProof());
 
-  ConstraintP not_c = c->getNegation();
+  ConstraintP not_c = d_firstConstraint->getNegation();
   RationalVectorCP coeffs = NULLPROOF(&d_farkas);
-  not_c->_impliedByFarkas(&d_constraints, coeffs );
-  d_ta.raiseConflict(not_c);
+  not_c->impliedByFarkas(d_constraints, coeffs, true );
 
   reset();
   Assert(!underConstruction());
+  Assert( not_c->inConflict() );
+  return not_c;
 }
 
 RaiseEqualityEngineConflict::RaiseEqualityEngineConflict(TheoryArithPrivate& ta)
@@ -132,7 +123,7 @@ RaiseEqualityEngineConflict::RaiseEqualityEngineConflict(TheoryArithPrivate& ta)
 {}
 
 /* If you are not an equality engine, don't use this! */
-void RaiseEqualityEngineConflict::blackBoxConflict(Node n){
+void RaiseEqualityEngineConflict::raiseEEConflict(Node n) const{
   d_ta.raiseBlackBoxConflict(n);
 }
 

@@ -31,7 +31,7 @@ namespace theory {
 namespace arith {
 
 
-SumOfInfeasibilitiesSPD::SumOfInfeasibilitiesSPD(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc)
+SumOfInfeasibilitiesSPD::SumOfInfeasibilitiesSPD(LinearEqualityModule& linEq, ErrorSet& errors, _RaiseConflict conflictChannel, TempVarMalloc tvmalloc)
   : SimplexDecisionProcedure(linEq, errors, conflictChannel, tvmalloc)
   , d_soiVar(ARITHVAR_SENTINEL)
   , d_pivotBudget(0)
@@ -774,11 +774,11 @@ void SumOfInfeasibilitiesSPD::generateSOIConflict(const ArithVarVec& subset){
     ArithVar e = *iter;
     ConstraintP violated = d_errorSet.getViolated(e);
     //cout << "basic error var: " << violated << endl;
-    d_conflictChannel.addConstraint(violated);
-    //violated->explainForConflict(conflict);
 
-    //d_tableau.debugPrintIsBasic(e);
-    //d_tableau.printBasicRow(e, cout);
+    int sgn = d_errorSet.getSgn(e);
+    const Rational& violatedCoeff = sgn < 0 ? d_negOne : d_posOne;
+
+    d_conflictBuilder->addConstraint(violated, violatedCoeff);
   }
   for(Tableau::RowIterator i = d_tableau.basicRowIterator(d_soiVar); !i.atEnd(); ++i){
     const Tableau::Entry& entry = *i;
@@ -790,15 +790,13 @@ void SumOfInfeasibilitiesSPD::generateSOIConflict(const ArithVarVec& subset){
       d_variables.getUpperBoundConstraint(v) :
       d_variables.getLowerBoundConstraint(v);
 
-    //cout << "nb : " << c << endl;
-    d_conflictChannel.addConstraint(c);
+    d_conflictBuilder->addConstraint(c, coeff);
   }
 
-  //Node conf = conflict;
   tearDownInfeasiblityFunction(d_statistics.d_soiConflictMinimization, d_soiVar);
   d_soiVar = ARITHVAR_SENTINEL;
-  d_conflictChannel.commitConflict();
-  //return conf;
+  ConstraintCP conflicted = d_conflictBuilder->commitConflict();
+  d_conflictChannel.raiseConflict(conflicted);
 }
 
 

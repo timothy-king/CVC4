@@ -99,8 +99,7 @@ TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context
   d_containing(containing),
   d_nlIncomplete( false),
   d_rowTracking(),
-  d_conflictBuffer(),
-  d_constraintDatabase(c, u, d_partialModel, d_congruenceManager, RaiseConflict(*this, d_conflictBuffer)),
+  d_constraintDatabase(c, u, d_partialModel, d_congruenceManager, _RaiseConflict(*this)),
   d_qflraStatus(Result::SAT_UNKNOWN),
   d_unknownsInARow(0),
   d_hasDoneWorkSinceCut(false),
@@ -122,15 +121,14 @@ TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context
   d_tableauResetDensity(1.6),
   d_tableauResetPeriod(10),
   d_conflicts(c),
-
   d_blackBoxConflict(c, Node::null()),
-  d_congruenceManager(c, d_constraintDatabase, SetupLiteralCallBack(*this), d_partialModel, RaiseConflict(*this, d_conflictBuffer)),
+  d_congruenceManager(c, d_constraintDatabase, SetupLiteralCallBack(*this), d_partialModel, RaiseEqualityEngineConflict(*this)),
   d_cmEnabled(c, true),
 
-  d_dualSimplex(d_linEq, d_errorSet, RaiseConflict(*this, d_conflictBuffer), TempVarMalloc(*this)),
-  d_fcSimplex(d_linEq, d_errorSet, RaiseConflict(*this, d_conflictBuffer), TempVarMalloc(*this)),
-  d_soiSimplex(d_linEq, d_errorSet, RaiseConflict(*this, d_conflictBuffer), TempVarMalloc(*this)),
-  d_attemptSolSimplex(d_linEq, d_errorSet, RaiseConflict(*this, d_conflictBuffer), TempVarMalloc(*this)),
+  d_dualSimplex(d_linEq, d_errorSet, _RaiseConflict(*this), TempVarMalloc(*this)),
+  d_fcSimplex(d_linEq, d_errorSet, _RaiseConflict(*this), TempVarMalloc(*this)),
+  d_soiSimplex(d_linEq, d_errorSet, _RaiseConflict(*this), TempVarMalloc(*this)),
+  d_attemptSolSimplex(d_linEq, d_errorSet, _RaiseConflict(*this), TempVarMalloc(*this)),
 
   d_pass1SDP(NULL),
   d_otherSDP(NULL),
@@ -639,11 +637,11 @@ bool TheoryArithPrivate::AssertLower(ConstraintP constraint){
   int cmpToUB = d_partialModel.cmpToUpperBound(x_i, c_i);
   if(cmpToUB > 0){ //  c_i < \lowerbound(x_i)
     ConstraintP ubc = d_partialModel.getUpperBoundConstraint(x_i);
-    raiseConflict(ubc, constraint);
+    ConstraintP negation = constraint->getNegation();
+    negation->impliedByUnate(ubs, true);
+    
+    raiseConflict(constraint);
 
-    // Node conflict = ConstraintValue::explainConflict(ubc, constraint);
-    // Debug("arith") << "AssertLower conflict " << conflict << endl;
-    // raiseConflict(conflict);
     ++(d_statistics.d_statAssertLowerConflicts);
     return true;
   }else if(cmpToUB == 0){
