@@ -768,7 +768,8 @@ std::vector< ArithVarVec > SumOfInfeasibilitiesSPD::greedyConflictSubsets(){
 void SumOfInfeasibilitiesSPD::generateSOIConflict(const ArithVarVec& subset){
   Assert(d_soiVar == ARITHVAR_SENTINEL);
   d_soiVar = constructInfeasiblityFunction(d_statistics.d_soiConflictMinimization, subset);
-
+  Assert(!subset.empty());
+  
   //NodeBuilder<> conflict(kind::AND);
   for(ArithVarVec::const_iterator iter = subset.begin(), end = subset.end(); iter != end; ++iter){
     ArithVar e = *iter;
@@ -778,8 +779,15 @@ void SumOfInfeasibilitiesSPD::generateSOIConflict(const ArithVarVec& subset){
     int sgn = d_errorSet.getSgn(e);
     const Rational& violatedCoeff = sgn < 0 ? d_negOne : d_posOne;
 
+    Assert(violated->hasProof());
+    Assert(!violated->negationHasProof());
+    
     d_conflictBuilder->addConstraint(violated, violatedCoeff);
   }
+  // pick a violated constraint arbitrarily. any of them may be selected for the conflict
+  Assert(d_conflictBuilder->underConstruction());
+  d_conflictBuilder->makeLastConsequent();
+  
   for(Tableau::RowIterator i = d_tableau.basicRowIterator(d_soiVar); !i.atEnd(); ++i){
     const Tableau::Entry& entry = *i;
     ArithVar v = entry.getColVar();

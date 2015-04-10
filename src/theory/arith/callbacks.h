@@ -111,8 +111,9 @@ class FarkasConflictBuilder {
 private:
   RationalVector d_farkas;
   ConstraintCPVec d_constraints;
-  ConstraintCP d_firstConstraint;
-
+  ConstraintCP d_consequent;
+  bool d_consequentSet;
+  
 public:
 
   /**
@@ -127,18 +128,28 @@ public:
   void addConstraint(ConstraintCP c, const Rational& fc);
 
   /**
+   * Makes the last constraint added the consequent.
+   * Can be done exactly once per reset().
+   */
+  void makeLastConsequent();
+  
+  /**
    * Turns the antecendents into a proof of the negation of one of the
    * antecedents.
    *
    * The buffer is no longer underConstruction afterwards.
    *
-   * precondition: At least two constraints have been asserted.
+   * precondition:
+   * - At least two constraints have been asserted.
+   * - makeLastConsequent() has been called.
+   *
    * postcondition: The returned constraint is in conflict.
    */
   ConstraintCP commitConflict();
 
   /** Returns true if a conflict has been pushed back since the last reset. */
   bool underConstruction() const;
+
   
   /** Resets the state of the buffer. */
   void reset();

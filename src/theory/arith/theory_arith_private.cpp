@@ -539,7 +539,8 @@ bool complexityBelow(const DenseMap<Rational>& row, uint32_t cap){
 }
 
 void TheoryArithPrivate::raiseConflict(ConstraintCP a){
-  
+  Assert(a->inConflict());
+  d_conflicts.push_back(a);
 }
 
 void TheoryArithPrivate::raiseBlackBoxConflict(Node bb){
@@ -1970,11 +1971,13 @@ bool TheoryArithPrivate::assertionCases(ConstraintP constraint){
   case LowerBound:
     if(isInteger(x_i) && constraint->isStrictLowerBound()){
       ConstraintP ceilingConstraint = constraint->getCeiling();
-      bool inConflict = ceilingConstraint->negationHasProof();
-      ceilingConstraint->impliedByIntHole(constraint, inConflict);
-      if(inConflict){
-        raiseConflict(ceilingConstraint);
-        return true;
+      if(!ceilingConstraint->isTrue()){
+        bool inConflict = ceilingConstraint->negationHasProof();
+        ceilingConstraint->impliedByIntHole(constraint, inConflict);
+        if(inConflict){
+          raiseConflict(ceilingConstraint);
+          return true;
+        }
       }
       return AssertLower(ceilingConstraint);
     }else{
@@ -3475,21 +3478,15 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
     break;
   case Result::UNSAT:
     d_unknownsInARow = 0;
-    if(false && previous == Result::SAT){
-      ++d_statistics.d_revertsOnConflicts;
-      Debug("arith::bt") << "clearing on conflict" << " " << newFacts << " " << previous << " " << d_qflraStatus  << endl;
-      revertOutOfConflict();
-      d_errorSet.clear();
-    }else{
-      ++d_statistics.d_commitsOnConflicts;
 
-      Debug("arith::bt") << "committing on conflict" << " " << newFacts << " " << previous << " " << d_qflraStatus  << endl;
-      d_partialModel.commitAssignmentChanges();
-      revertOutOfConflict();
+    ++d_statistics.d_commitsOnConflicts;
 
-      if(Debug.isOn("arith::consistency::comitonconflict")){
-        entireStateIsConsistent("commit on conflict");
-      }
+    Debug("arith::bt") << "committing on conflict" << " " << newFacts << " " << previous << " " << d_qflraStatus  << endl;
+    d_partialModel.commitAssignmentChanges();
+    revertOutOfConflict();
+
+    if(Debug.isOn("arith::consistency::comitonconflict")){
+      entireStateIsConsistent("commit on conflict");
     }
     outputConflicts();
     emmittedConflictOrSplit = true;

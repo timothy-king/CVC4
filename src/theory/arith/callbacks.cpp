@@ -17,6 +17,7 @@
 
 #include "theory/arith/callbacks.h"
 #include "theory/arith/theory_arith_private.h"
+#include <algorithm>
 
 namespace CVC4 {
 namespace theory {
@@ -69,19 +70,21 @@ void _RaiseConflict::raiseConflict(ConstraintCP c) const{
 FarkasConflictBuilder::FarkasConflictBuilder()
   : d_farkas()
   , d_constraints()
-  , d_firstConstraint(NullConstraint)
+  , d_consequent(NullConstraint)
+  , d_consequentSet(false)
 {
   reset();
 }
 
 bool FarkasConflictBuilder::underConstruction() const{
-  return d_firstConstraint != NullConstraint;
+  return d_consequent != NullConstraint;
 }
 
 
 void FarkasConflictBuilder::reset(){
-  d_firstConstraint = NullConstraint;
+  d_consequent = NullConstraint;
   d_constraints.clear();
+  d_consequentSet = false;
   PROOF(d_farkas.clear());
   PROOF(d_farkas.push_back(Rational(0)));
   Assert(!underConstruction());
@@ -93,12 +96,32 @@ void FarkasConflictBuilder::addConstraint(ConstraintCP c, const Rational& fc){
   Assert(PROOF_ON() || d_farkas.empty());
   Assert(c->isTrue());
   
-  if(d_firstConstraint == NullConstraint){
-    d_firstConstraint = c;
+  if(d_consequent == NullConstraint){
+    d_consequent = c;
   } else {
     d_constraints.push_back(c);
   }
   PROOF(d_farkas.push_back(fc));
+}
+
+void FarkasConflictBuilder::makeLastConsequent(){
+  Assert(!d_consequentSet);
+  Assert(underConstruction());
+
+  if(d_constraints.empty()){
+    // no-op
+    d_consequentSet = true;
+  } else {
+    Assert(d_consequent != NullConstraint);
+    ConstraintCP last = d_constraints.back();
+    d_constraints.back() = d_consequent;
+    d_consequent = last;
+    PROOF( std::swap( d_farkas.front(), d_farkas.back() ) );
+    d_consequentSet = true;
+  }
+
+  Assert(! d_consequent->negationHasProof() );
+  Assert(d_consequentSet);
 }
 
 /* Turns the vector under construction into a conflict */
@@ -107,14 +130,16 @@ ConstraintCP FarkasConflictBuilder::commitConflict(){
   Assert(!d_constraints.empty());
   Assert(!PROOF_ON() || d_constraints.size() + 1 == d_farkas.size());
   Assert(PROOF_ON() || d_farkas.empty());
+  Assert(d_consequentSet);
 
-  ConstraintP not_c = d_firstConstraint->getNegation();
+  ConstraintP not_c = d_consequent->getNegation();
   RationalVectorCP coeffs = NULLPROOF(&d_farkas);
   not_c->impliedByFarkas(d_constraints, coeffs, true );
 
   reset();
   Assert(!underConstruction());
   Assert( not_c->inConflict() );
+  Assert(!d_consequentSet);
   return not_c;
 }
 

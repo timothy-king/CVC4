@@ -120,8 +120,14 @@ namespace arith {
  *                    : Consult this for the proof.
  * - IntHoleAP        : This is currently a catch-all for all integer specific reason.
  */
-enum ArithProofType { NoAP, AssumeAP, InternalAssumeAP, FarkasAP, TrichotomyAP, EqualityEngineAP,
-                      IntHoleAP};
+enum ArithProofType
+  { NoAP,
+    AssumeAP,
+    InternalAssumeAP,
+    FarkasAP,
+    TrichotomyAP,
+    EqualityEngineAP,
+    IntHoleAP};
 
 /**
  * The types of constraints.
@@ -640,6 +646,12 @@ public:
 
   /** Returns true if the node has a Farkas' proof. */
   bool hasFarkasProof() const;
+
+  /** Returns true if the node has a int hole proof. */
+  bool hasIntHoleProof() const;
+
+  /** Returns true if the node has a trichotomy proof. */
+  bool hasTrichotomyProof() const;
 
   /**
    * A sets the constraint to be an internal assumption.

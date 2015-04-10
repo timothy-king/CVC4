@@ -668,6 +668,10 @@ ConstraintCP LinearEqualityModule::minimallyWeakConflict(bool aboveUpper, ArithV
     anyWeakenings = anyWeakenings || weakening;
 
     fcs.addConstraint(c, coeff);
+    if(basicVar == v){
+      Assert(! c->negationHasProof() );
+      fcs.makeLastConsequent();
+    }
   }
 
   ConstraintCP conflicted = fcs.commitConflict();

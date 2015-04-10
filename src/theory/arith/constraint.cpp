@@ -428,11 +428,19 @@ void Constraint::setCanBePropagated() {
   d_database->pushCanBePropagatedWatch(this);
 }
 
-void Constraint::setAssertedToTheTheory(TNode witness, bool inConflict) {
+void Constraint::setAssertedToTheTheory(TNode witness, bool nowInConflict) {
   Assert(hasLiteral());
   Assert(!assertedToTheTheory());
-  Assert(negationHasProof() == inConflict);
+  Assert(negationHasProof() == nowInConflict);
   d_database->pushAssertionOrderWatch(this, witness);
+
+  if(Debug.isOn("constraint::conflictCommit") && nowInConflict ){
+    Debug("constraint::conflictCommit") << "inConflict@setAssertedToTheTheory";
+    Debug("constraint::conflictCommit") << "\t" << this << std::endl;
+    Debug("constraint::conflictCommit") << "\t" << getNegation() << std::endl;
+    Debug("constraint::conflictCommit") << "\t" << getNegation()->externalExplainByAssertions() << std::endl;
+
+  }
 }
 
 bool Constraint::satisfiedBy(const DeltaRational& dr) const {
@@ -463,6 +471,14 @@ bool Constraint::hasEqualityEngineProof() const {
 
 bool Constraint::hasFarkasProof() const {
   return getProofType() == FarkasAP;
+}
+
+bool Constraint::hasIntHoleProof() const {
+  return getProofType() == IntHoleAP;
+}
+
+bool Constraint::hasTrichotomyProof() const {
+  return getProofType() == TrichotomyAP;
 }
 
 bool Constraint::sanityChecking(Node n) const {
@@ -732,10 +748,7 @@ bool Constraint::safeToGarbageCollect() const{
 }
 
 bool Constraint::contextDependentDataIsSet() const{
-  return !isSplit()
-    && !canBePropagated()
-    && !hasProof()
-    && !assertedToTheTheory();
+  return hasProof() || isSplit() || canBePropagated() || assertedToTheTheory();
 }
 
 Node Constraint::split(){
@@ -895,13 +908,18 @@ ConstraintP ConstraintDatabase::lookup(TNode literal) const{
   }
 }
 
-void Constraint::setAssumption(bool inConflict){
+void Constraint::setAssumption(bool nowInConflict){
   Assert(!hasProof());
-  Assert(negationHasProof() == inConflict);
+  Assert(negationHasProof() == nowInConflict);
   Assert(hasLiteral());
   Assert(assertedToTheTheory());
 
   d_database->pushConstraintRule(ConstraintRule(this, AssumeAP));
+  
+  Assert(inConflict() == nowInConflict);
+  if(Debug.isOn("constraint::conflictCommit") && inConflict()){
+    Debug("constraint::conflictCommit") << "inConflict@setAssumption " << this << std::endl;
+  }
 }
 
 void Constraint::tryToPropagate(){
@@ -956,10 +974,10 @@ void Constraint::propagate(){
  * ---
  *  1*(x <= a) + (-1)*(x > b) => (0 <= a-b)
  */
-void Constraint::impliedByUnate(ConstraintCP imp, bool inConflict){
+void Constraint::impliedByUnate(ConstraintCP imp, bool nowInConflict){
   Assert(!hasProof());
   Assert(imp->hasProof());
-  Assert(negationHasProof() == inConflict);
+  Assert(negationHasProof() == nowInConflict);
 
 
   d_database->d_antecedents.push_back(NullConstraint);
@@ -979,11 +997,16 @@ void Constraint::impliedByUnate(ConstraintCP imp, bool inConflict){
   }
 
   d_database->pushConstraintRule(ConstraintRule(this, FarkasAP, antecedentEnd, coeffs));
+
+  Assert(inConflict() == nowInConflict);
+  if(Debug.isOn("constraint::conflictCommit") && inConflict()){
+    Debug("constraint::conflictCommit") << "inConflict@impliedByUnate " << this << std::endl;
+  }
 }
 
-void Constraint::impliedByTrichotomy(ConstraintCP a, ConstraintCP b, bool inConflict){
+void Constraint::impliedByTrichotomy(ConstraintCP a, ConstraintCP b, bool nowInConflict){
   Assert(!hasProof());
-  Assert(negationHasProof() == inConflict);
+  Assert(negationHasProof() == nowInConflict);
   Assert(a->hasProof());
   Assert(b->hasProof());
 
@@ -993,6 +1016,11 @@ void Constraint::impliedByTrichotomy(ConstraintCP a, ConstraintCP b, bool inConf
 
   AntecedentId antecedentEnd = d_database->d_antecedents.size() - 1;
   d_database->pushConstraintRule(ConstraintRule(this, TrichotomyAP, antecedentEnd));
+
+  Assert(inConflict() == nowInConflict);
+  if(Debug.isOn("constraint::conflictCommit") && inConflict()){
+    Debug("constraint::conflictCommit") << "inConflict@impliedByTrichotomy " << this << std::endl;
+  }
 }
 
 // void Constraint::_impliedBy(ConstraintCP a, ConstraintCP b){
@@ -1022,20 +1050,25 @@ bool Constraint::allHaveProof(const ConstraintCPVec& b){
   return true;
 }
 
-void Constraint::impliedByIntHole(ConstraintCP a, bool inConflict){
+void Constraint::impliedByIntHole(ConstraintCP a, bool nowInConflict){
   Assert(!hasProof());
-  Assert(negationHasProof() == inConflict);
+  Assert(negationHasProof() == nowInConflict);
   Assert(a->hasProof());
 
   d_database->d_antecedents.push_back(NullConstraint);
   d_database->d_antecedents.push_back(a);
   AntecedentId antecedentEnd = d_database->d_antecedents.size() - 1;
   d_database->pushConstraintRule(ConstraintRule(this, IntHoleAP, antecedentEnd));
+
+  Assert(inConflict() == nowInConflict);
+  if(Debug.isOn("constraint::conflictCommit") && inConflict()){
+    Debug("constraint::conflictCommit") << "inConflict impliedByIntHole" << this << std::endl;
+  }
 }
 
-void Constraint::impliedByIntHole(const ConstraintCPVec& b, bool inConflict){
+void Constraint::impliedByIntHole(const ConstraintCPVec& b, bool nowInConflict){
   Assert(!hasProof());
-  Assert(negationHasProof() == inConflict);
+  Assert(negationHasProof() == nowInConflict);
   Assert(allHaveProof(b));
 
   CDConstraintList& antecedents = d_database->d_antecedents;
@@ -1046,6 +1079,11 @@ void Constraint::impliedByIntHole(const ConstraintCPVec& b, bool inConflict){
   AntecedentId antecedentEnd = antecedents.size() - 1;
 
   d_database->pushConstraintRule(ConstraintRule(this, IntHoleAP, antecedentEnd));
+
+  Assert(inConflict() == nowInConflict);
+  if(Debug.isOn("constraint::conflictCommit") && inConflict()){
+    Debug("constraint::conflictCommit") << "inConflict@impliedByIntHole[vec] " << this << std::endl;
+  }
 }
 
 /*
@@ -1056,13 +1094,15 @@ void Constraint::impliedByIntHole(const ConstraintCPVec& b, bool inConflict){
  *   for i in [0,a.size) : coeff[i] corresponds to a[i], and
  *   coeff.back() corresponds to the current constraint. 
  */
-void Constraint::impliedByFarkas(const ConstraintCPVec& a, RationalVectorCP coeffs, bool inConflict){
+void Constraint::impliedByFarkas(const ConstraintCPVec& a, RationalVectorCP coeffs, bool nowInConflict){
   Assert(!hasProof());
-  Assert(negationHasProof() == inConflict);
+  Assert(negationHasProof() == nowInConflict);
   Assert(allHaveProof(a));
 
   Assert( PROOF_ON() == (coeffs != RationalVectorCPSentinel) );
-  Assert( PROOF_ON() || coeffs->size() == a.size() + 1);
+  // !PROOF_ON() => coeffs == RationalVectorCPSentinel
+  //  PROOF_ON() => coeffs->size() == a.size() + 1
+  Assert(!PROOF_ON() || coeffs->size() == a.size() + 1);
   Assert(a.size() >= 1);
 
   d_database->d_antecedents.push_back(NullConstraint);
@@ -1081,16 +1121,27 @@ void Constraint::impliedByFarkas(const ConstraintCPVec& a, RationalVectorCP coef
     coeffsCopy = RationalVectorCPSentinel;
   }
   d_database->pushConstraintRule(ConstraintRule(this, FarkasAP, antecedentEnd, coeffsCopy));
+
+  Assert(inConflict() == nowInConflict);
+  if(Debug.isOn("constraint::conflictCommit") && inConflict()){
+    Debug("constraint::conflictCommit") << "inConflict@impliedByFarkas " << this << std::endl;
+  }
 }
 
 
-void Constraint::setInternalAssumption(bool inConflict){
+void Constraint::setInternalAssumption(bool nowInConflict){
   Assert(!hasProof());
-  Assert(negationHasProof() == inConflict);
+  Assert(negationHasProof() == nowInConflict);
   Assert(!assertedToTheTheory());
 
   d_database->pushConstraintRule(ConstraintRule(this, InternalAssumeAP));
+
+  Assert(inConflict() == nowInConflict);
+  if(Debug.isOn("constraint::conflictCommit") && inConflict()){
+    Debug("constraint::conflictCommit") << "inConflict@setInternalAssumption " << this << std::endl;
+  }
 }
+
 
 void Constraint::setEqualityEngineProof(){
   Assert(truthIsUnknown());
@@ -1261,7 +1312,7 @@ Node Constraint::externalExplain(AssertionOrder order) const{
   }else if(hasEqualityEngineProof()){
     return d_database->eeExplain(this);
   }else{
-    Assert(hasFarkasProof());
+    Assert(hasFarkasProof() || hasIntHoleProof() || hasTrichotomyProof());
     Assert(!antecentListIsEmpty());
     //Force the selection of the layer above if the node is
     // assertedToTheTheory()!
