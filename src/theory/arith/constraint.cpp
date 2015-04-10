@@ -904,6 +904,16 @@ void Constraint::setAssumption(bool inConflict){
   d_database->pushConstraintRule(ConstraintRule(this, AssumeAP));
 }
 
+void Constraint::tryToPropagate(){
+  Assert(hasProof());
+  Assert(!isAssumption());
+  Assert(!isInternalAssumption());
+
+  if(canBePropagated() && !assertedToTheTheory() && !isAssumption() && !isInternalAssumption()){
+    propagate();
+  }
+}
+
 void Constraint::propagate(){
   Assert(hasProof());
   Assert(canBePropagated());
@@ -1155,6 +1165,15 @@ Node Constraint::externalImplication(const ConstraintCPVec& b) const{
 
 Node Constraint::externalExplainByAssertions(const ConstraintCPVec& b){
   return externalExplain(b, AssertionOrderSentinel);
+}
+
+Node Constraint::externalExplainConflict() const{
+  Assert(inConflict());
+  NodeBuilder<> nb(kind::AND);
+  externalExplainByAssertions(nb);
+  getNegation()->externalExplainByAssertions(nb);
+
+  return safeConstructNary(nb);
 }
 
 struct ConstraintCPHash {
