@@ -294,7 +294,7 @@ struct ConstraintRule {
     , d_proofType(NoAP)
     , d_antecedentEnd(AntecedentIdSentinel)
   {
-    PROOF( d_farkasCoefficients = RationalVectorSentinel );
+    PROOF( d_farkasCoefficients = RationalVectorCPSentinel );
   }
 
   ConstraintRule(ConstraintP con, ArithProofType pt)
@@ -302,14 +302,14 @@ struct ConstraintRule {
     , d_proofType(pt)
     , d_antecedentEnd(AntecedentIdSentinel)
   {
-    PROOF( d_farkasCoefficients = RationalVectorSentinel );
+    PROOF( d_farkasCoefficients = RationalVectorCPSentinel );
   }
   ConstraintRule(ConstraintP con, ArithProofType pt, AntecedentId antecedentEnd)
     : d_constraint(con)
     , d_proofType(pt)
     , d_antecedentEnd(antecedentEnd)
   {
-    PROOF( d_farkasCoefficients = RationalVectorSentinel );
+    PROOF( d_farkasCoefficients = RationalVectorCPSentinel );
   }
 
   ConstraintRule(ConstraintP con, ArithProofType pt, AntecedentId antecedentEnd, RationalVectorCP coeffs)
@@ -439,7 +439,7 @@ private:
       Assert(constraint->d_crid != ConstraintRuleIdSentinel);
       constraint->d_crid = ConstraintRuleIdSentinel;
       
-      PROOF(if(crp->d_farkasCoefficients != RationalVectorSentinel){
+      PROOF(if(crp->d_farkasCoefficients != RationalVectorCPSentinel){
               delete crp->d_farkasCoefficients;
             });
     }
