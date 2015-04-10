@@ -374,7 +374,8 @@ void Constraint::initialize(ConstraintDatabase* db, SortedConstraintMapIterator 
 }
 
 Constraint::~Constraint() {
-  Assert(safeToGarbageCollect());
+  // Call this instead of safeToGarbageCollect()
+  Assert(!contextDependentDataIsSet());
 
   if(initialized()){
     ValueCollection& vc =  d_variablePosition->second;
@@ -744,6 +745,8 @@ void ConstraintDatabase::removeVariable(ArithVar v){
 }
 
 bool Constraint::safeToGarbageCollect() const{
+  // Do not call during destructor as getNegation() may be Null by this point
+  Assert(getNegation() != NullConstraint);
   return !contextDependentDataIsSet() && ! getNegation()->contextDependentDataIsSet();
 }
 
