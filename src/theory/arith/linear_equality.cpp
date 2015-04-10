@@ -55,6 +55,10 @@ LinearEqualityModule::LinearEqualityModule(ArithVariables& vars, Tableau& t, Bou
   d_basicVariableUpdates(f),
   d_increasing(1),
   d_decreasing(-1),
+  d_upperBoundDifference(),
+  d_lowerBoundDifference(),
+  d_one(1),
+  d_negOne(-1),
   d_btracking(boundsTracking),
   d_areTracking(false),
   d_trackCallback(this)
@@ -508,6 +512,7 @@ void LinearEqualityModule::propagateBasicFromRow(ConstraintP c){
   RationalVectorP coeffs = NULLPROOF(new RationalVector());
   propagateRow(bounds, ridx, upperBound, c, coeffs);
   c->impliedByFarkas(bounds, coeffs, false);
+  if(coeffs != RationalVectorPSentinel) { delete coeffs; }
 }
 
 /* An explanation of the farkas coefficients.
@@ -551,9 +556,12 @@ void LinearEqualityModule::propagateRow(ConstraintCPVec& into, RowIndex ridx, bo
   }
   
   ArithVar v = c->getVariable();
-  Debug("arith::explainNonbasics") << "LinearEqualityModule::explainNonbasics("
-                                   << v <<") start" << endl;
+  Debug("arith::propagateRow") << "LinearEqualityModule::propagateRow("
+                                   << ridx << ", " << rowUp << ", " << v << ") start" << endl;
 
+#warning "Something is wrong with multiple"
+  const Rational& multiple = rowUp ? d_one : d_negOne;
+  
   Tableau::RowIterator iter = d_tableau.ridRowIterator(ridx);
   for(; !iter.atEnd(); ++iter){
     const Tableau::Entry& entry = *iter;
@@ -562,13 +570,21 @@ void LinearEqualityModule::propagateRow(ConstraintCPVec& into, RowIndex ridx, bo
     int sgn = a_ij.sgn();
     Assert(sgn != 0);
     bool selectUb = rowUp ? (sgn > 0) : (sgn < 0);
-    int multiple = selectUb ? 1 : -1;
-      
+
+    Debug("arith::propagateRow") << "propagateRow " << a_ij << " * " << nonbasic << " ";
+    if(Debug.isOn("arith::propagateRow") && nonbasic == v){
+      Debug("arith::propagateRow") << "(target)";
+    }
+    Debug("arith::propagateRow") << ", ";
+    
+
     if(nonbasic == v){
       if(farkas != RationalVectorPSentinel){
         Assert(farkas->front().isZero());
-        farkas->front() = Rational(multiple) * a_ij;
+        farkas->front() = multiple * a_ij;
       }
+
+      Debug("arith::propagateRow") << c << endl;
     }else{
 
       ConstraintCP bound = selectUb
@@ -576,16 +592,17 @@ void LinearEqualityModule::propagateRow(ConstraintCPVec& into, RowIndex ridx, bo
         : d_variables.getLowerBoundConstraint(nonbasic);
 
       Assert(bound != NullConstraint);
-      Debug("arith::explainNonbasics") << "explainNonbasics" << bound << " for " << c << endl;
+      Debug("arith::propagateRow") << bound << " for " << c << endl;
       into.push_back(bound);
 
       if(farkas != RationalVectorPSentinel){
-        farkas->push_back(Rational(multiple) * a_ij);
+        farkas->push_back(multiple * a_ij);
       }
     }
   }
-  Debug("arith::explainNonbasics") << "LinearEqualityModule::explainNonbasics("
-                                   << v << ") done" << endl;
+  Debug("arith::propagateRow") << "LinearEqualityModule::propagateRow("
+                                   << ridx << ", " << rowUp << ", " << v << ") done" << endl;
+
 }
 
 ConstraintP LinearEqualityModule::weakestExplanation(bool aboveUpper, DeltaRational& surplus, ArithVar v, const Rational& coeff, bool& anyWeakening, ArithVar basic) const {

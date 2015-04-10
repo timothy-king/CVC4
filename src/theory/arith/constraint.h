@@ -326,6 +326,9 @@ struct ConstraintRule {
     Assert(PROOF_ON() || coeffs == RationalVectorCPSentinel);
     PROOF( d_farkasCoefficients = coeffs );
   }
+  
+  void print(std::ostream& out) const;
+  void debugPrint() const;
 }; /* class ConstraintRule */
 
 class Constraint {
@@ -892,6 +895,12 @@ public:
    */
   void tryToPropagate();
 
+  /**
+   * Returns a reference to the containing database.
+   * Precondition: the constraint must be initialized.
+   */
+  const ConstraintDatabase& getDatabase() const;
+
 private:
   /**
    * Marks the node as having a proof and being selfExplaining.
@@ -925,7 +934,8 @@ private:
   const ConstraintRule& getConstraintRule() const;
   
   inline ArithProofType getProofType() const {
-    return getConstraintRule().d_proofType;  }
+    return getConstraintRule().d_proofType;
+  }
 
   inline AntecedentId getEndAntecedent() const {
     return getConstraintRule().d_antecedentEnd;
@@ -950,13 +960,18 @@ private:
   /** Return true if every element in b has a proof. */
   static bool allHaveProof(const ConstraintCPVec& b);
 
+  /** Precondition: hasFarkasProof() */
+  bool wellFormedFarkasProof() const;
+  
 }; /* class ConstraintValue */
 
 std::ostream& operator<<(std::ostream& o, const Constraint& c);
 std::ostream& operator<<(std::ostream& o, const ConstraintP c);
+std::ostream& operator<<(std::ostream& o, const ConstraintCP c);
 std::ostream& operator<<(std::ostream& o, const ConstraintType t);
 std::ostream& operator<<(std::ostream& o, const ValueCollection& c);
 std::ostream& operator<<(std::ostream& o, const ConstraintCPVec& v);
+std::ostream& operator<<(std::ostream& o, const ArithProofType);
 
 
 class ConstraintDatabase {
@@ -1202,6 +1217,9 @@ public:
   void unatePropUpperBound(ConstraintP curr, ConstraintP prev);
   void unatePropEquality(ConstraintP curr, ConstraintP prevLB, ConstraintP prevUB);
 
+  /** AntecendentID must be in range. */
+  ConstraintCP getAntecedent(AntecedentId p) const;
+  
 private:
   /** returns true if cons is now in conflict. */
   bool handleUnateProp(ConstraintP ant, ConstraintP cons);

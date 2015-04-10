@@ -199,6 +199,7 @@ public:
 
   typedef bool (LinearEqualityModule::*UpdatePreferenceFunction)(const UpdateInfo&, const UpdateInfo&) const;
 
+  
 private:
   /**
    * Manages information about the assignment and upper and lower bounds on the
@@ -217,6 +218,8 @@ private:
   Maybe<DeltaRational> d_upperBoundDifference;
   Maybe<DeltaRational> d_lowerBoundDifference;
 
+  Rational d_one;
+  Rational d_negOne;
 public:
 
   /**

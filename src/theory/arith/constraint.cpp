@@ -84,6 +84,28 @@ Constraint::Constraint(ArithVar x,  ConstraintType t, const DeltaRational& v)
 }
 
 
+std::ostream& operator<<(std::ostream& o, const ArithProofType apt){
+  switch(apt){
+  case NoAP:  o << "NoAP"; break;
+  case AssumeAP:  o << "AssumeAP"; break;
+  case InternalAssumeAP:  o << "InternalAssumeAP"; break;
+  case FarkasAP:  o << "FarkasAP"; break;
+  case TrichotomyAP:  o << "TrichotomyAP"; break;
+  case EqualityEngineAP:  o << "EqualityEngineAP"; break;
+  case IntHoleAP: o << "IntHoleAP"; break;
+  default: break;
+  }
+  return o;
+}
+
+std::ostream& operator<<(std::ostream& o, const ConstraintCP c){
+  if(c == NullConstraint){
+    return o << "NullConstraint";
+  }else{
+    return o << *c;
+  }
+}
+
 std::ostream& operator<<(std::ostream& o, const ConstraintP c){
   if(c == NullConstraint){
     return o << "NullConstraint";
@@ -366,6 +388,11 @@ bool Constraint::initialized() const {
   return d_database != NULL;
 }
 
+const ConstraintDatabase& Constraint::getDatabase() const{
+  Assert(initialized());
+  return *d_database;
+}
+
 void Constraint::initialize(ConstraintDatabase* db, SortedConstraintMapIterator v, ConstraintP negation){
   Assert(!initialized());
   d_database = db;
@@ -524,6 +551,130 @@ bool Constraint::sanityChecking(Node n) const {
   }else{
     return false;
   }
+}
+
+void ConstraintRule::debugPrint() const {
+  print(std::cerr);
+}
+
+ConstraintCP ConstraintDatabase::getAntecedent (AntecedentId p) const {
+  Assert(p < d_antecedents.size());
+  return d_antecedents[p];
+}
+
+
+void ConstraintRule::print(std::ostream& out) const {
+  
+  RationalVectorCP coeffs = NULLPROOF(d_farkasCoefficients);
+  out << "{ConstraintRule, ";
+  out << d_constraint << std::endl;
+  out << "d_proofType= " << d_proofType << ", " << std::endl;
+  out << "d_antecedentEnd= "<< d_antecedentEnd << std::endl;
+  
+  if(d_constraint != NullConstraint){
+    const ConstraintDatabase& database = d_constraint->getDatabase();
+    
+    size_t coeffIterator = (coeffs != RationalVectorCPSentinel) ? coeffs->size()-1 : 0;
+    AntecedentId p = d_antecedentEnd;
+    // must have at least one antecedent
+    ConstraintCP antecedent = database.getAntecedent(p);
+    while(antecedent != NullConstraint){
+      if(coeffs != RationalVectorCPSentinel){
+        out << coeffs->at(coeffIterator);
+      } else {
+        out << "_";
+      }
+      out << " * (" << *antecedent << ")" << std::endl;
+      
+      Assert((coeffs == RationalVectorCPSentinel) || coeffIterator > 0);
+      --p;
+      coeffIterator = (coeffs != RationalVectorCPSentinel) ? coeffIterator-1 : 0;
+      antecedent = database.getAntecedent(p);
+    }
+    if(coeffs != RationalVectorCPSentinel){
+      out << coeffs->front();
+    } else {
+      out << "_";
+    }
+    out << " * (" << *(d_constraint->getNegation()) << ")";
+    out << " [not d_constraint] " << endl;
+  }
+  out << "}";  
+}
+
+bool Constraint::wellFormedFarkasProof() const {
+  Assert(hasProof());
+  
+  const ConstraintRule& cr = getConstraintRule();
+  if(cr.d_constraint != this){ return false; }
+  if(cr.d_proofType != FarkasAP){ return false; }
+
+  AntecedentId p = cr.d_antecedentEnd;
+
+  // must have at least one antecedent
+  ConstraintCP antecedent = d_database->d_antecedents[p];
+  if(antecedent  == NullConstraint) { return false; }
+
+#ifdef CVC4_PROOF
+  if(!PROOF_ON()){ return cr.d_farkasCoefficients == RationalVectorCPSentinel; }
+  Assert(PROOF_ON());
+  
+  if(cr.d_farkasCoefficients == RationalVectorCPSentinel){ return false; }
+  if(cr.d_farkasCoefficients->size() < 2){ return false; }
+  
+
+  RationalVector::const_iterator coeffIterator = cr.d_farkasCoefficients->end()-1;
+  RationalVector::const_iterator coeffBegin = cr.d_farkasCoefficients->begin();
+
+  while(antecedent != NullConstraint){
+    int coeffSgn = (*coeffIterator).sgn();
+
+    switch( antecedent->getType() ){
+    case LowerBound:
+      // fc[l] < 0, therefore return false if coeffSgn >= 0
+      if(coeffSgn >= 0){ return false; }
+      break;
+    case UpperBound:
+      // fc[u] > 0, therefore return false if coeffSgn <= 0
+      if(coeffSgn <= 0){ return false; }
+      break;
+    case Equality:
+      if(coeffSgn == 0) { return false; }
+      break;
+    case Disequality:
+    default:
+      return false;
+    }
+    
+    if(coeffIterator == coeffBegin){ return false; }
+    --coeffIterator;
+    --p;
+    antecedent = d_database->d_antecedents[p];
+  }
+  if(coeffIterator != coeffBegin){ return false; }
+
+  int firstCoeffSgn = (*coeffBegin).sgn();
+  switch( getNegation()->getType() ){
+  case LowerBound:
+    // fc[l] < 0, therefore return false if coeffSgn >= 0
+    if(firstCoeffSgn >= 0){ return false; }
+    break;
+  case UpperBound:
+    // fc[u] > 0, therefore return false if coeffSgn <= 0
+    if(firstCoeffSgn <= 0){ return false; }
+    break;
+  case Equality:
+    if(firstCoeffSgn == 0) { return false; }
+    break;
+  case Disequality:
+  default:
+    return false;
+  }
+  return true;
+
+#else
+  return true;
+#endif
 }
 
 ConstraintP Constraint::makeNegation(ArithVar v, ConstraintType t, const DeltaRational& r){
@@ -1005,6 +1156,11 @@ void Constraint::impliedByUnate(ConstraintCP imp, bool nowInConflict){
   if(Debug.isOn("constraint::conflictCommit") && inConflict()){
     Debug("constraint::conflictCommit") << "inConflict@impliedByUnate " << this << std::endl;
   }
+
+  if(Debug.isOn("constraints::wffp") && !wellFormedFarkasProof()){
+    getConstraintRule().print(Debug("constraints::wffp"));
+  }
+  Assert(wellFormedFarkasProof());
 }
 
 void Constraint::impliedByTrichotomy(ConstraintCP a, ConstraintCP b, bool nowInConflict){
@@ -1129,6 +1285,10 @@ void Constraint::impliedByFarkas(const ConstraintCPVec& a, RationalVectorCP coef
   if(Debug.isOn("constraint::conflictCommit") && inConflict()){
     Debug("constraint::conflictCommit") << "inConflict@impliedByFarkas " << this << std::endl;
   }
+  if(Debug.isOn("constraints::wffp") && !wellFormedFarkasProof()){
+    getConstraintRule().print(Debug("constraints::wffp"));
+  }
+  Assert(wellFormedFarkasProof());
 }
 
 
