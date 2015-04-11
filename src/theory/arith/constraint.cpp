@@ -1143,20 +1143,24 @@ void Constraint::impliedByUnate(ConstraintCP imp, bool nowInConflict){
   if(PROOF_ON()){
     std::pair<int, int> sgns = unateFarkasSigns(getNegation()->getType(), imp->getType());
 
-    coeffs = new RationalVector(2);
-    coeffs->push_back(Rational(sgns.first));
-    coeffs->push_back(Rational(sgns.second));
+    Rational first(sgns.first);
+    Rational second(sgns.second);
+
+    coeffs = new RationalVector();
+    coeffs->push_back(first);
+    coeffs->push_back(second);
   } else {
     coeffs = RationalVectorPSentinel;
   }
 
+  // no need to delete coeffs the memory is owned by ConstraintRule
   d_database->pushConstraintRule(ConstraintRule(this, FarkasAP, antecedentEnd, coeffs));
 
   Assert(inConflict() == nowInConflict);
   if(Debug.isOn("constraint::conflictCommit") && inConflict()){
     Debug("constraint::conflictCommit") << "inConflict@impliedByUnate " << this << std::endl;
   }
-
+  
   if(Debug.isOn("constraints::wffp") && !wellFormedFarkasProof()){
     getConstraintRule().print(Debug("constraints::wffp"));
   }
@@ -1763,6 +1767,7 @@ void ConstraintDatabase::outputUnateInequalityLemmas(std::vector<Node>& lemmas) 
 
 bool ConstraintDatabase::handleUnateProp(ConstraintP ant, ConstraintP cons){
   if(cons->negationHasProof()){
+    Debug("arith::unate") << "handleUnate: " << ant << " implies " << cons << endl;
     cons->impliedByUnate(ant, true);
     d_raiseConflict.raiseConflict(cons);
     return true;
@@ -1937,7 +1942,11 @@ std::pair<int, int> Constraint::unateFarkasSigns(ConstraintType a, ConstraintTyp
     Assert(b == Equality);
     b_sgn = -a_sgn;
   }
+  Assert(a_sgn != 0);
+  Assert(b_sgn != 0);
 
+  Debug("arith::unateFarkasSigns") << "Constraint::unateFarkasSigns("<<a <<", " << b << ") -> "
+                                   << "("<<a_sgn<<", "<< b_sgn <<")"<< endl;
   return make_pair(a_sgn, b_sgn);
 }
 
