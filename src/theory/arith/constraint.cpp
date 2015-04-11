@@ -621,13 +621,17 @@ bool Constraint::wellFormedFarkasProof() const {
   
   if(cr.d_farkasCoefficients == RationalVectorCPSentinel){ return false; }
   if(cr.d_farkasCoefficients->size() < 2){ return false; }
-  
+
+  DeltaRational sum(0);
 
   RationalVector::const_iterator coeffIterator = cr.d_farkasCoefficients->end()-1;
   RationalVector::const_iterator coeffBegin = cr.d_farkasCoefficients->begin();
 
   while(antecedent != NullConstraint){
-    int coeffSgn = (*coeffIterator).sgn();
+    const Rational& coeff = *coeffIterator;
+    int coeffSgn = coeff.sgn();
+
+    sum += antecedent->getValue() * coeff;
 
     switch( antecedent->getType() ){
     case LowerBound:
@@ -654,6 +658,7 @@ bool Constraint::wellFormedFarkasProof() const {
   if(coeffIterator != coeffBegin){ return false; }
 
   int firstCoeffSgn = (*coeffBegin).sgn();
+  sum += (getNegation()->getValue()) * (*coeffBegin);
   switch( getNegation()->getType() ){
   case LowerBound:
     // fc[l] < 0, therefore return false if coeffSgn >= 0
@@ -670,7 +675,9 @@ bool Constraint::wellFormedFarkasProof() const {
   default:
     return false;
   }
-  return true;
+  Debug("constraints::wffp") << "final sum " << sum << endl;
+  // 0 <= sum < 0
+  return sum.sgn() < 0;
 
 #else
   return true;
