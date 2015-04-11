@@ -96,15 +96,26 @@ void FarkasConflictBuilder::addConstraint(ConstraintCP c, const Rational& fc){
          (underConstruction() && d_constraints.size() + 1 == d_farkas.size()));
   Assert(PROOF_ON() || d_farkas.empty());
   Assert(c->isTrue());
+
   
   if(d_consequent == NullConstraint){
     d_consequent = c;
   } else {
     d_constraints.push_back(c);
   }
-  PROOF(d_farkas.push_back(fc));
+  PROOF(d_farkas.push_back(fc););
   Assert(!PROOF_ON() || d_constraints.size() + 1 == d_farkas.size());
   Assert(PROOF_ON() || d_farkas.empty());
+}
+
+void FarkasConflictBuilder::addConstraint(ConstraintCP c, const Rational& fc, const Rational& mult){
+  Assert(!mult.isZero());
+  if(PROOF_ON() && !mult.isOne()){
+    Rational prod = fc * mult;
+    addConstraint(c, prod);
+  }else{
+    addConstraint(c, fc);
+  }
 }
 
 void FarkasConflictBuilder::makeLastConsequent(){

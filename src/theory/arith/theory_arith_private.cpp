@@ -4601,7 +4601,7 @@ bool TheoryArithPrivate::rowImplicationCanBeApplied(RowIndex ridx, bool rowUp, C
 
     PROOF(d_farkasBuffer.clear());
     RationalVectorP coeffs = NULLPROOF(&d_farkasBuffer);
-    
+ 
     d_linEq.propagateRow(explain, ridx, rowUp, implied, coeffs);
     if(d_tableau.getRowLength(ridx) <= options::arithPropAsLemmaLength()){
       Node implication = implied->externalImplication(explain);

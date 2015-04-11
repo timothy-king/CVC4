@@ -533,8 +533,6 @@ void LinearEqualityModule::propagateBasicFromRow(ConstraintP c){
  *   g = sum r l_y + sum q u_z
  *   and c is entailed by -sx >= g
  *
- *
- *
  *             | s     | c         | ~c       | u_i     | l_i
  *   if  rowUp | s > 0 | x >= -g/s | x < -g/s | a_i > 0 | a_i < 0
  *   if  rowUp | s < 0 | x <= -g/s | x > -g/s | a_i > 0 | a_i < 0
@@ -561,6 +559,8 @@ void LinearEqualityModule::propagateRow(ConstraintCPVec& into, RowIndex ridx, bo
 
 #warning "Something is wrong with multiple"
   const Rational& multiple = rowUp ? d_one : d_negOne;
+
+  Debug("arith::propagateRow") << "multiple: " << multiple << endl;
   
   Tableau::RowIterator iter = d_tableau.ridRowIterator(ridx);
   for(; !iter.atEnd(); ++iter){
@@ -571,17 +571,32 @@ void LinearEqualityModule::propagateRow(ConstraintCPVec& into, RowIndex ridx, bo
     Assert(sgn != 0);
     bool selectUb = rowUp ? (sgn > 0) : (sgn < 0);
 
-    Debug("arith::propagateRow") << "propagateRow " << a_ij << " * " << nonbasic << " ";
-    if(Debug.isOn("arith::propagateRow") && nonbasic == v){
-      Debug("arith::propagateRow") << "(target)";
+    Assert( nonbasic != v ||
+            ( rowUp && a_ij.sgn() > 0 && c->isLowerBound()) ||
+            ( rowUp && a_ij.sgn() < 0 && c->isUpperBound()) ||
+            (!rowUp && a_ij.sgn() > 0 && c->isUpperBound()) ||
+            (!rowUp && a_ij.sgn() < 0 && c->isLowerBound())
+            );
+
+    if(Debug.isOn("arith::propagateRow")){
+      if(nonbasic == v){
+        Debug("arith::propagateRow") << "(target) "
+                                     << rowUp << " "
+                                     << a_ij.sgn() << " "
+                                     << c->isLowerBound() << " "
+                                     << c->isUpperBound() << endl;
+
+        Debug("arith::propagateRow") << "(target) ";
+      }
+      Debug("arith::propagateRow") << "propagateRow " << a_ij << " * " << nonbasic ;
     }
-    Debug("arith::propagateRow") << ", ";
-    
 
     if(nonbasic == v){
       if(farkas != RationalVectorPSentinel){
         Assert(farkas->front().isZero());
-        farkas->front() = multiple * a_ij;
+        Rational multAij = multiple * a_ij;
+        Debug("arith::propagateRow") << "("<<multAij<<") ";        
+        farkas->front() = multAij;      
       }
 
       Debug("arith::propagateRow") << c << endl;
@@ -590,14 +605,15 @@ void LinearEqualityModule::propagateRow(ConstraintCPVec& into, RowIndex ridx, bo
       ConstraintCP bound = selectUb
         ? d_variables.getUpperBoundConstraint(nonbasic)
         : d_variables.getLowerBoundConstraint(nonbasic);
-
-      Assert(bound != NullConstraint);
-      Debug("arith::propagateRow") << bound << " for " << c << endl;
-      into.push_back(bound);
-
+      
       if(farkas != RationalVectorPSentinel){
-        farkas->push_back(multiple * a_ij);
+        Rational multAij = multiple * a_ij;
+        Debug("arith::propagateRow") << "("<<multAij<<") ";        
+        farkas->push_back(multAij);
       }
+      Assert(bound != NullConstraint);
+      Debug("arith::propagateRow") << bound << endl;
+      into.push_back(bound);
     }
   }
   Debug("arith::propagateRow") << "LinearEqualityModule::propagateRow("
@@ -638,13 +654,13 @@ ConstraintP LinearEqualityModule::weakestExplanation(bool aboveUpper, DeltaRatio
         anyWeakening = true;
         surplus = surplus - diff;
 
-        Debug("weak") << "found:" << endl;
+        Debug("arith::weak") << "found:" << endl;
         if(v == basic){
-          Debug("weak") << "  basic: ";
+          Debug("arith::weak") << "  basic: ";
         }
-        Debug("weak") << "  " << surplus << " "<< diff  << endl
-                      << "  " << bound << c << endl
-                      << "  " << weakerBound << weaker << endl;
+        Debug("arith::weak") << "  " << surplus << " "<< diff  << endl
+                             << "  " << bound << c << endl
+                             << "  " << weakerBound << weaker << endl;
 
         Assert(diff.sgn() > 0);
         c = weaker;
@@ -655,10 +671,48 @@ ConstraintP LinearEqualityModule::weakestExplanation(bool aboveUpper, DeltaRatio
   return c;
 }
 
+/* An explanation of the farkas coefficients.
+ *
+ * We are proving a conflict on the basic variable x_b.
+ * If aboveUpper, then the conflict is with the constraint c : x_b <= u_b.
+ * If !aboveUpper, then the conflict is with the constraint c : x_b >= l_b.
+ *
+ * A row has the form:
+ *   -x_b sum a_i * x_i  = 0 
+ * or
+ *   -x_b + sum r y + sum q z = 0,
+ *    x_b = sum r y + sum q z
+ * where r > 0 and q < 0.
+ *
+ *
+ * If !aboveUp, we are proving ~c: x_b < l_b
+ *   g = sum r u_y + sum q l_z
+ *   x_b <= g < l_b
+ *   and ~c is entailed by x_b <= g
+ *
+ * If aboveUp, we are proving ~c : x_b > u_b
+ *   g = sum r l_y + sum q u_z
+ *   x_b >= g > u_b
+ *   and ~c is entailed by x_b >= g
+ *
+ *
+ *               | s     | c         | ~c       | u_i     | l_i
+ *   if !aboveUp | s > 0 | x >= -g/s | x < -g/s | a_i > 0 | a_i < 0
+ *   if !aboveUp | s < 0 | x <= -g/s | x > -g/s | a_i > 0 | a_i < 0
+ *   if  aboveUp | s > 0 | x <= -g/s | x > -g/s | a_i < 0 | a_i > 0
+ *   if  aboveUp | s < 0 | x >= -g/s | x < -g/s | a_i < 0 | a_i > 0
+ *
+ * Thus we treat aboveUp as multiplying the row by -1 and !aboveUp as 1
+ * for the entire row.
+ */
 ConstraintCP LinearEqualityModule::minimallyWeakConflict(bool aboveUpper, ArithVar basicVar, FarkasConflictBuilder& fcs) const {
   Assert(!fcs.underConstruction());
   TimerStat::CodeTimer codeTimer(d_statistics.d_weakenTime);
 
+  Debug("arith::weak") << "LinearEqualityModule::minimallyWeakConflict("
+                       << aboveUpper <<", "<< basicVar << ", ...) start" << endl;
+
+  const Rational& adjustSgn = aboveUpper ? d_negOne : d_one;
   const DeltaRational& assignment = d_variables.getAssignment(basicVar);
   DeltaRational surplus;
   if(aboveUpper){
@@ -678,13 +732,13 @@ ConstraintCP LinearEqualityModule::minimallyWeakConflict(bool aboveUpper, ArithV
     const Rational& coeff = entry.getCoefficient();
     bool weakening = false;
     ConstraintP c = weakestExplanation(aboveUpper, surplus, v, coeff, weakening, basicVar);
-    Debug("weak") << "weak : " << weakening << " "
-                  << c->assertedToTheTheory() << " "
-                  << d_variables.getAssignment(v) << " "
-                  << c << endl;
+    Debug("arith::weak") << "weak : " << weakening << " "
+                         << c->assertedToTheTheory() << " "
+                         << d_variables.getAssignment(v) << " "
+                         << c << endl;
     anyWeakenings = anyWeakenings || weakening;
 
-    fcs.addConstraint(c, coeff);
+    fcs.addConstraint(c, coeff, adjustSgn);
     if(basicVar == v){
       Assert(! c->negationHasProof() );
       fcs.makeLastConsequent();
@@ -697,6 +751,8 @@ ConstraintCP LinearEqualityModule::minimallyWeakConflict(bool aboveUpper, ArithV
   if(anyWeakenings){
     ++d_statistics.d_weakeningSuccesses;
   }
+  Debug("arith::weak") << "LinearEqualityModule::minimallyWeakConflict("
+                       << aboveUpper <<", "<< basicVar << ", ...) done" << endl;
   return conflicted;
 }
 

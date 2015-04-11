@@ -781,7 +781,8 @@ void SumOfInfeasibilitiesSPD::generateSOIConflict(const ArithVarVec& subset){
 
     Assert(violated->hasProof());
     Assert(!violated->negationHasProof());
-    
+
+    // The sgn is already adjusted
     d_conflictBuilder->addConstraint(violated, violatedCoeff);
   }
   // pick a violated constraint arbitrarily. any of them may be selected for the conflict

@@ -113,7 +113,6 @@ private:
   ConstraintCPVec d_constraints;
   ConstraintCP d_consequent;
   bool d_consequentSet;
-  
 public:
 
   /**
@@ -123,10 +122,18 @@ public:
 
   /**
    * Adds an antecedent constraint to the conflict under construction
+   * with the farkas coefficient fc * mult.
+   *
+   * The value mult is either 1 or -1.
+   */
+  void addConstraint(ConstraintCP c, const Rational& fc, const Rational& mult);
+
+  /**
+   * Adds an antecedent constraint to the conflict under construction
    * with the farkas coefficient fc.
    */
   void addConstraint(ConstraintCP c, const Rational& fc);
-
+  
   /**
    * Makes the last constraint added the consequent.
    * Can be done exactly once per reset().
