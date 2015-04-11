@@ -531,7 +531,7 @@ private:
   SortedConstraintMap& constraintSet() const;
 
   /** Returns coefficients for the proofs for farkas cancellation. */
-  static std::pair<int, int> unateFarkasSigns(ConstraintType a, ConstraintType b);
+  static std::pair<int, int> unateFarkasSigns(ConstraintCP a, ConstraintCP b);
 
 
 public:

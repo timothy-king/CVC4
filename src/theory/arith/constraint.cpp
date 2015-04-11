@@ -1148,7 +1148,7 @@ void Constraint::impliedByUnate(ConstraintCP imp, bool nowInConflict){
 
   RationalVectorP coeffs;
   if(PROOF_ON()){
-    std::pair<int, int> sgns = unateFarkasSigns(getNegation()->getType(), imp->getType());
+    std::pair<int, int> sgns = unateFarkasSigns(getNegation(), imp);
 
     Rational first(sgns.first);
     Rational second(sgns.second);
@@ -1928,7 +1928,10 @@ void ConstraintDatabase::unatePropEquality(ConstraintP curr, ConstraintP prevLB,
   }
 }
 
-std::pair<int, int> Constraint::unateFarkasSigns(ConstraintType a, ConstraintType b){
+std::pair<int, int> Constraint::unateFarkasSigns(ConstraintCP ca, ConstraintCP cb){
+  ConstraintType a = ca->getType();
+  ConstraintType b = cb->getType();
+
   Assert(a != Disequality);
   Assert(b != Disequality);
 
@@ -1938,8 +1941,14 @@ std::pair<int, int> Constraint::unateFarkasSigns(ConstraintType a, ConstraintTyp
   if(a_sgn == 0 && b_sgn == 0){
     Assert(a == Equality);
     Assert(b == Equality);
-    a_sgn = 1;
-    b_sgn = -1;
+    Assert(ca->getValue() != cb->getValue());
+    if(ca->getValue() < cb->getValue()){
+      a_sgn = 1;
+      b_sgn = -1;
+    }else{
+      a_sgn = -1;
+      b_sgn = 1;
+    }
   }else if(a_sgn == 0){
     Assert(b_sgn != 0);
     Assert(a == Equality);
