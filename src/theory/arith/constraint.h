@@ -300,7 +300,9 @@ struct ConstraintRule {
     , d_proofType(NoAP)
     , d_antecedentEnd(AntecedentIdSentinel)
   {
-    PROOF( d_farkasCoefficients = RationalVectorCPSentinel );
+#ifdef CVC4_PROOF
+    d_farkasCoefficients = RationalVectorCPSentinel;
+#endif
   }
 
   ConstraintRule(ConstraintP con, ArithProofType pt)
@@ -308,14 +310,18 @@ struct ConstraintRule {
     , d_proofType(pt)
     , d_antecedentEnd(AntecedentIdSentinel)
   {
-    PROOF( d_farkasCoefficients = RationalVectorCPSentinel );
+#ifdef CVC4_PROOF
+    d_farkasCoefficients = RationalVectorCPSentinel;
+#endif
   }
   ConstraintRule(ConstraintP con, ArithProofType pt, AntecedentId antecedentEnd)
     : d_constraint(con)
     , d_proofType(pt)
     , d_antecedentEnd(antecedentEnd)
   {
-    PROOF( d_farkasCoefficients = RationalVectorCPSentinel );
+#ifdef CVC4_PROOF
+    d_farkasCoefficients = RationalVectorCPSentinel;
+#endif
   }
 
   ConstraintRule(ConstraintP con, ArithProofType pt, AntecedentId antecedentEnd, RationalVectorCP coeffs)
@@ -324,7 +330,9 @@ struct ConstraintRule {
     , d_antecedentEnd(antecedentEnd)
   {
     Assert(PROOF_ON() || coeffs == RationalVectorCPSentinel);
-    PROOF( d_farkasCoefficients = coeffs );
+#ifdef CVC4_PROOF
+    d_farkasCoefficients = coeffs;
+#endif
   }
   
   void print(std::ostream& out) const;
