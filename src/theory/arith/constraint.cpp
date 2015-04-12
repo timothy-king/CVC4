@@ -622,16 +622,37 @@ bool Constraint::wellFormedFarkasProof() const {
   if(cr.d_farkasCoefficients == RationalVectorCPSentinel){ return false; }
   if(cr.d_farkasCoefficients->size() < 2){ return false; }
 
-  DeltaRational sum(0);
+  const ArithVariables& vars = d_database->getArithVariables();
+
+  DeltaRational rhs(0);
+  Node lhs = Polynomial::mkZero().getNode();
 
   RationalVector::const_iterator coeffIterator = cr.d_farkasCoefficients->end()-1;
   RationalVector::const_iterator coeffBegin = cr.d_farkasCoefficients->begin();
 
   while(antecedent != NullConstraint){
+    Assert(lhs.isNull() || Polynomial::isMember(lhs));
+
     const Rational& coeff = *coeffIterator;
     int coeffSgn = coeff.sgn();
 
-    sum += antecedent->getValue() * coeff;
+    rhs += antecedent->getValue() * coeff;
+
+    ArithVar antVar = antecedent->getVariable();
+    if(!lhs.isNull() && vars.hasNode(antVar)){
+      Node antAsNode = vars.asNode(antVar);
+      if(Polynomial::isMember(antAsNode)){
+        Polynomial lhsPoly = Polynomial::parsePolynomial(lhs);
+        Polynomial antPoly = Polynomial::parsePolynomial(antAsNode);
+        Polynomial sum = lhsPoly + (antPoly * coeff);
+        lhs = sum.getNode();
+      }else{
+        lhs = Node::null();
+      }
+    } else {
+      lhs = Node::null();
+    }
+    Debug("constraints::wffp") << "running sum: " << lhs << " <= " << rhs << endl;
 
     switch( antecedent->getType() ){
     case LowerBound:
@@ -657,8 +678,23 @@ bool Constraint::wellFormedFarkasProof() const {
   }
   if(coeffIterator != coeffBegin){ return false; }
 
-  int firstCoeffSgn = (*coeffBegin).sgn();
-  sum += (getNegation()->getValue()) * (*coeffBegin);
+  const Rational& firstCoeff = (*coeffBegin);
+  int firstCoeffSgn = firstCoeff.sgn();
+  rhs += (getNegation()->getValue()) * firstCoeff;
+  if(!lhs.isNull() && vars.hasNode(getVariable())){
+    Node firstAsNode = vars.asNode(getVariable());
+    if(Polynomial::isMember(firstAsNode)){
+      Polynomial lhsPoly = Polynomial::parsePolynomial(lhs);
+      Polynomial firstPoly = Polynomial::parsePolynomial(firstAsNode);
+      Polynomial sum = lhsPoly + (firstPoly * firstCoeff);
+      lhs = sum.getNode();
+    }else{
+      lhs = Node::null();
+    }
+  }else{
+    lhs = Node::null();
+  }
+
   switch( getNegation()->getType() ){
   case LowerBound:
     // fc[l] < 0, therefore return false if coeffSgn >= 0
@@ -675,9 +711,11 @@ bool Constraint::wellFormedFarkasProof() const {
   default:
     return false;
   }
-  Debug("constraints::wffp") << "final sum " << sum << endl;
-  // 0 <= sum < 0
-  return sum.sgn() < 0;
+  Debug("constraints::wffp") << "final sum: " << lhs << " <= " << rhs << endl;
+  // 0 = lhs <= rhs < 0
+  return
+    (lhs.isNull() || Constant::isMember(lhs) && Constant(lhs).isZero() ) &&
+    rhs.sgn() < 0;
 
 #else
   return true;
