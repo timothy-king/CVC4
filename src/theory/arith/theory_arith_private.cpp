@@ -2152,16 +2152,30 @@ bool TheoryArithPrivate::replayLog(ApproximateSimplex* approx){
   if(res.empty()){
     ++d_statistics.d_replayAttemptFailed;
   }else{
-    ++d_statistics.d_mipProofsSuccessful;
+    unsigned successes = 0;
     for(size_t i =0, N = res.size(); i < N; ++i){
       ConstraintCPVec& vec = res[i];
       Assert(vec.size() >= 2);
-      ConstraintCP back = vec.back();
-      Assert(back->isTrue());
-      vec.pop_back();
-      ConstraintP neg_back = back->getNegation();
-      neg_back->impliedByIntHole(vec, true);
-      raiseConflict(back);
+      for(size_t j=0, M = vec.size(); j < M; ++j){
+        ConstraintCP at_j = vec[j];
+        Assert(at_j->isTrue());
+        if(!at_j->negationHasProof()){
+          successes++;
+          vec[j] = vec.back();
+          vec.pop_back();
+          ConstraintP neg_at_j = at_j->getNegation();
+
+          Debug("approx::replayLog") << "Setting the proof for the replayLog conflict on:" << endl
+                                     << "  (" << neg_at_j->isTrue() <<") " << neg_at_j << endl
+                                     << "  (" << at_j->isTrue() <<") " << at_j << endl;
+          neg_at_j->impliedByIntHole(vec, true);
+          raiseConflict(at_j);
+          break;
+        }
+      }
+    }
+    if(successes > 0){
+      ++d_statistics.d_mipProofsSuccessful;
     }
   }
 
