@@ -769,20 +769,26 @@ void SumOfInfeasibilitiesSPD::generateSOIConflict(const ArithVarVec& subset){
   Assert(d_soiVar == ARITHVAR_SENTINEL);
   d_soiVar = constructInfeasiblityFunction(d_statistics.d_soiConflictMinimization, subset);
   Assert(!subset.empty());
+
+  Debug("arith::generateSOIConflict") << "SumOfInfeasibilitiesSPD::generateSOIConflict(...) start" << endl;
   
-  //NodeBuilder<> conflict(kind::AND);
+  
   for(ArithVarVec::const_iterator iter = subset.begin(), end = subset.end(); iter != end; ++iter){
     ArithVar e = *iter;
     ConstraintP violated = d_errorSet.getViolated(e);
-    //cout << "basic error var: " << violated << endl;
+
+
 
     int sgn = d_errorSet.getSgn(e);
-    const Rational& violatedCoeff = sgn < 0 ? d_negOne : d_posOne;
+    const Rational& violatedCoeff = sgn > 0 ? d_negOne : d_posOne;
+    Debug("arith::generateSOIConflict") << "basic error var: "
+                                        << "(" <<  violatedCoeff << ")"
+                                        << " " << violated
+                                        << endl;
 
     Assert(violated->hasProof());
     Assert(!violated->negationHasProof());
 
-    // The sgn is already adjusted
     d_conflictBuilder->addConstraint(violated, violatedCoeff);
   }
   // pick a violated constraint arbitrarily. any of them may be selected for the conflict
@@ -799,6 +805,10 @@ void SumOfInfeasibilitiesSPD::generateSOIConflict(const ArithVarVec& subset){
       d_variables.getUpperBoundConstraint(v) :
       d_variables.getLowerBoundConstraint(v);
 
+    Debug("arith::generateSOIConflict") << "non-basic var: "
+                                        << "(" <<  coeff << ")"
+                                        << " " << c
+                                        << endl;
     d_conflictBuilder->addConstraint(c, coeff);
   }
 
@@ -806,6 +816,7 @@ void SumOfInfeasibilitiesSPD::generateSOIConflict(const ArithVarVec& subset){
   d_soiVar = ARITHVAR_SENTINEL;
   ConstraintCP conflicted = d_conflictBuilder->commitConflict();
   d_conflictChannel.raiseConflict(conflicted);
+  Debug("arith::generateSOIConflict") << "SumOfInfeasibilitiesSPD::generateSOIConflict(...) done" << endl;
 }
 
 
