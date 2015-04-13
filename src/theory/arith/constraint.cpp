@@ -1453,7 +1453,7 @@ void Constraint::assertionFringe(ConstraintCPVec& v){
 
   if(!v.empty()){
     const ConstraintDatabase* db = v.back()->d_database;
-    const CDConstraintList& proofs = db->d_antecedents;
+    const CDConstraintList& antecedents = db->d_antecedents;
     for(size_t i = 0; i < v.size(); ++i){
       ConstraintCP vi = v[i];
       if(visited.find(vi) == visited.end()){
@@ -1463,13 +1463,14 @@ void Constraint::assertionFringe(ConstraintCPVec& v){
           v[writePos] = vi;
           writePos++;
         }else{
-          Assert(vi->hasFarkasProof());
-          AntecedentId p = vi->d_crid;
-          ConstraintCP antecedent = proofs[p];
+          Assert(vi->hasFarkasProof() || vi->hasIntHoleProof() );
+          AntecedentId p = vi->getEndAntecedent();
+
+          ConstraintCP antecedent = antecedents[p];
           while(antecedent != NullConstraint){
             v.push_back(antecedent);
             --p;
-            antecedent = proofs[p];
+            antecedent = antecedents[p];
           }
         }
       }

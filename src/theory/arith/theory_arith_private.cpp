@@ -3107,9 +3107,20 @@ bool TheoryArithPrivate::solveRealRelaxation(Theory::Effort effortLevel){
 
   bool useApprox = options::useApprox() && ApproximateSimplex::enabled() && getSolveIntegerResource();
 
+  Debug("TheoryArithPrivate::solveRealRelaxation")
+    << "solveRealRelaxation() approx"
+    << " " <<  options::useApprox()
+    << " " << ApproximateSimplex::enabled()
+    << " " << useApprox
+    << " " << safeToCallApprox()
+    << endl;
+  
   bool noPivotLimitPass1 = noPivotLimit && !useApprox;
   d_qflraStatus = simplex.findModel(noPivotLimitPass1);
 
+  Debug("TheoryArithPrivate::solveRealRelaxation")
+    << "solveRealRelaxation()" << " pass1 " << d_qflraStatus << endl;
+  
   if(d_qflraStatus == Result::SAT_UNKNOWN && useApprox && safeToCallApprox()){
     // pass2: fancy-final
     static const int32_t relaxationLimit = 10000;
