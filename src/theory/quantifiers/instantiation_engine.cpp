@@ -31,7 +31,7 @@ using namespace CVC4::theory::quantifiers;
 using namespace CVC4::theory::inst;
 
 InstantiationEngine::InstantiationEngine( QuantifiersEngine* qe, bool setIncomplete ) :
-QuantifiersModule( qe ), d_isup(NULL), d_i_ag(NULL), d_i_lte(NULL), d_i_fs(NULL), d_i_splx(NULL), d_setIncomplete( setIncomplete ){
+QuantifiersModule( qe ), d_isup(NULL), d_i_ag(NULL), d_i_lte(NULL), d_i_fs(NULL), d_i_splx(NULL), d_i_cegqi( NULL ), d_setIncomplete( setIncomplete ){
 
 }
 
@@ -41,6 +41,7 @@ InstantiationEngine::~InstantiationEngine() {
   delete d_i_lte;
   delete d_i_fs;
   delete d_i_splx;
+  delete d_i_cegqi;
 }
 
 void InstantiationEngine::finishInit(){
@@ -72,8 +73,14 @@ void InstantiationEngine::finishInit(){
 
   //counterexample-based quantifier instantiation
   if( options::cbqi() ){
-    d_i_splx = new InstStrategySimplex( (arith::TheoryArith*)d_quantEngine->getTheoryEngine()->theoryOf( THEORY_ARITH ), d_quantEngine );
-    d_instStrategies.push_back( d_i_splx );
+    if( !options::cbqi2() || options::cbqi.wasSetByUser() ){
+      d_i_splx = new InstStrategySimplex( (arith::TheoryArith*)d_quantEngine->getTheoryEngine()->theoryOf( THEORY_ARITH ), d_quantEngine );
+      d_instStrategies.push_back( d_i_splx );
+    }
+    if( options::cbqi2() ){
+      d_i_cegqi = new InstStrategyCegqi( d_quantEngine );
+      d_instStrategies.push_back( d_i_cegqi );
+    }
   }
 }
 
@@ -133,12 +140,13 @@ bool InstantiationEngine::doInstantiationRound( Theory::Effort effort ){
         //int e_use = d_quantEngine->getRelevance( f )==-1 ? e - 1 : e;
         int e_use = e;
         if( e_use>=0 ){
+          Trace("inst-engine-debug") << "inst-engine : " << f << std::endl;
           //check each instantiation strategy
           for( size_t i=0; i<d_instStrategies.size(); ++i ){
             InstStrategy* is = d_instStrategies[i];
-            Debug("inst-engine-debug") << "Do " << is->identify() << " " << e_use << std::endl;
+            Trace("inst-engine-debug") << "Do " << is->identify() << " " << e_use << std::endl;
             int quantStatus = is->process( f, effort, e_use );
-            Debug("inst-engine-debug") << " -> status is " << quantStatus << std::endl;
+            Trace("inst-engine-debug") << " -> status is " << quantStatus << std::endl;
             if( quantStatus==InstStrategy::STATUS_UNFINISHED ){
               finished = false;
             }
@@ -178,11 +186,14 @@ void InstantiationEngine::check( Theory::Effort e, unsigned quant_e ){
                           << d_quantEngine->getModel()->getNumAssertedQuantifiers() << std::endl;
     for( int i=0; i<(int)d_quantEngine->getModel()->getNumAssertedQuantifiers(); i++ ){
       Node n = d_quantEngine->getModel()->getAssertedQuantifier( i );
+      Debug("quantifiers") << "Process " << n << "..." << std::endl;
       //it is not active if it corresponds to a rewrite rule: we will process in rewrite engine
       if( !d_quantEngine->hasOwnership( n, this ) ){
         d_quant_active[n] = false;
+        Debug("quantifiers") << "  Quantifier has owner." << std::endl;
       }else if( !d_quantEngine->getModel()->isQuantifierActive( n ) ){
         d_quant_active[n] = false;
+        Debug("quantifiers") << "  Quantifier is not active (from model)." << std::endl;
       //it is not active if we have found the skolemized negation is unsat
       }else if( options::cbqi() && hasAddedCbqiLemma( n ) ){
         Node cel = d_quantEngine->getTermDatabase()->getCounterexampleLiteral( n );
@@ -318,7 +329,7 @@ bool InstantiationEngine::hasNonArithmeticVariable( Node f ){
 }
 
 bool InstantiationEngine::doCbqi( Node f ){
-  if( options::cbqi.wasSetByUser() ){
+  if( options::cbqi.wasSetByUser() || options::cbqi2.wasSetByUser() ){
     return options::cbqi();
   }else if( options::cbqi() ){
     //if quantifier has a non-arithmetic variable, then do not use cbqi

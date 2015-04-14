@@ -22,6 +22,7 @@
 #include "theory/arith/arithvar.h"
 
 #include "util/statistics_registry.h"
+#include "theory/quantifiers/ce_guided_single_inv.h"
 
 namespace CVC4 {
 namespace theory {
@@ -79,6 +80,41 @@ public:
   std::string identify() const { return std::string("Simplex"); }
 };
 
+
+//generalized counterexample guided quantifier instantiation
+
+class InstStrategyCegqi;
+
+class CegqiOutputInstStrategy : public CegqiOutput
+{
+public:
+  CegqiOutputInstStrategy( InstStrategyCegqi * out ) : d_out( out ){}
+  InstStrategyCegqi * d_out;
+  bool addInstantiation( std::vector< Node >& subs, std::vector< int >& subs_typ );
+  bool isEligibleForInstantiation( Node n );
+  bool addLemma( Node lem );
+};
+
+class InstStrategyCegqi : public InstStrategy {
+private:
+  CegqiOutputInstStrategy * d_out;
+  std::map< Node, CegInstantiator * > d_cinst;
+  Node d_n_delta;
+  Node d_curr_quant;
+  bool d_check_delta_lemma;
+  /** process functions */
+  void processResetInstantiationRound( Theory::Effort effort );
+  int process( Node f, Theory::Effort effort, int e );
+public:
+  InstStrategyCegqi( QuantifiersEngine * qe );
+  ~InstStrategyCegqi(){}
+  
+  bool addInstantiation( std::vector< Node >& subs, std::vector< int >& subs_typ );
+  bool isEligibleForInstantiation( Node n );  
+  bool addLemma( Node lem );
+  /** identify */
+  std::string identify() const { return std::string("Cegqi"); }
+};
 
 }
 }

@@ -417,7 +417,7 @@ bool QuantifiersEngine::registerQuantifier( Node f ){
     Trace("quant") << " : " << f << std::endl;
     ++(d_statistics.d_num_quant);
     Assert( f.getKind()==FORALL );
-    
+
     //check whether we should apply a reduction
     bool reduced = false;
     if( d_lte_part_inst && !f.getAttribute(LtePartialInstAttribute()) ){
@@ -567,7 +567,7 @@ bool QuantifiersEngine::addInstantiation( Node f, std::vector< Node >& vars, std
       Trace("inst") << std::endl;
       Assert( terms[i].getType().isSubtypeOf( f[0][i].getType() ) );
     }
-    if( options::cbqi() ){
+    if( options::cbqi() && !options::cbqi2() ){
       for( int i=0; i<(int)terms.size(); i++ ){
         if( quantifiers::TermDb::hasInstConstAttr(terms[i]) ){
           Debug("inst")<< "***& Bad Instantiate " << f << " with " << std::endl;
@@ -589,7 +589,6 @@ bool QuantifiersEngine::addInstantiation( Node f, std::vector< Node >& vars, std
       }
       setInstantiationLevelAttr( body, f[1], maxInstLevel+1 );
     }
-    Trace("inst-debug") << "*** Lemma is " << lem << std::endl;
     ++(d_statistics.d_instantiations);
     return true;
   }else{
@@ -673,13 +672,17 @@ Node QuantifiersEngine::getInstantiation( Node f, std::vector< Node >& vars, std
     Trace("partial-inst") << "Partial instantiation : " << f << std::endl;
     Trace("partial-inst") << "                      : " << body << std::endl;
   }else{
-    //do optimized version
-    Node icb = d_term_db->getInstConstantBody( f );
-    body = getSubstitute( icb, terms );
-    if( Debug.isOn("check-inst") ){
-      Node body2 = f[ 1 ].substitute( vars.begin(), vars.end(), terms.begin(), terms.end() );
-      if( body!=body2 ){
-        Debug("check-inst") << "Substitution is wrong : " << body << " " << body2 << std::endl;
+    if( options::cbqi() ){
+      body = f[ 1 ].substitute( vars.begin(), vars.end(), terms.begin(), terms.end() );
+    }else{
+      //do optimized version
+      Node icb = d_term_db->getInstConstantBody( f );
+      body = getSubstitute( icb, terms );
+      if( Debug.isOn("check-inst") ){
+        Node body2 = f[ 1 ].substitute( vars.begin(), vars.end(), terms.begin(), terms.end() );
+        if( body!=body2 ){
+          Debug("check-inst") << "Substitution is wrong : " << body << " " << body2 << std::endl;
+        }
       }
     }
   }
@@ -722,16 +725,16 @@ bool QuantifiersEngine::existsInstantiation( Node f, InstMatch& m, bool modEq, b
 
 bool QuantifiersEngine::addLemma( Node lem, bool doCache ){
   if( doCache ){
-    Debug("inst-engine-debug") << "Adding lemma : " << lem << std::endl;
     lem = Rewriter::rewrite(lem);
+    Trace("inst-add-debug2") << "Adding lemma : " << lem << std::endl;
     if( d_lemmas_produced_c.find( lem )==d_lemmas_produced_c.end() ){
       //d_curr_out->lemma( lem, false, true );
       d_lemmas_produced_c[ lem ] = true;
       d_lemmas_waiting.push_back( lem );
-      Debug("inst-engine-debug") << "Added lemma : " << lem << std::endl;
+      Trace("inst-add-debug2") << "Added lemma : " << lem << std::endl;
       return true;
     }else{
-      Debug("inst-engine-debug") << "Duplicate." << std::endl;
+      Trace("inst-add-debug2") << "Duplicate." << std::endl;
       return false;
     }
   }else{
@@ -899,25 +902,15 @@ void QuantifiersEngine::getPhaseReqTerms( Node f, std::vector< Node >& nodes ){
     // doing literal-based matching (consider polarity of literals)
     for( int i=0; i<(int)nodes.size(); i++ ){
       Node prev = nodes[i];
-      bool nodeChanged = false;
       if( d_phase_reqs[f]->isPhaseReq( nodes[i] ) ){
         bool preq = d_phase_reqs[f]->getPhaseReq( nodes[i] );
         nodes[i] = NodeManager::currentNM()->mkNode( IFF, nodes[i], NodeManager::currentNM()->mkConst<bool>(preq) );
-        nodeChanged = true;
       }
       //else if( qe->isPhaseReqEquality( f, trNodes[i] ) ){
       //  Node req = qe->getPhaseReqEquality( f, trNodes[i] );
       //  trNodes[i] = NodeManager::currentNM()->mkNode( EQUAL, trNodes[i], req );
       //}
-      if( nodeChanged ){
-        Debug("literal-matching") << "  Make " << prev << " -> " << nodes[i] << std::endl;
-        ++(d_statistics.d_lit_phase_req);
-      }else{
-        ++(d_statistics.d_lit_phase_nreq);
-      }
     }
-  }else{
-    d_statistics.d_lit_phase_nreq += (int)nodes.size();
   }
 }
 
@@ -953,7 +946,7 @@ void QuantifiersEngine::printSynthSolution( std::ostream& out ) {
     out << "Internal error : module for synth solution not found." << std::endl;
   }
 }
-  
+
 QuantifiersEngine::Statistics::Statistics():
   d_num_quant("QuantifiersEngine::Num_Quantifiers", 0),
   d_instantiation_rounds("QuantifiersEngine::Rounds_Instantiation_Full", 0),
@@ -961,8 +954,6 @@ QuantifiersEngine::Statistics::Statistics():
   d_instantiations("QuantifiersEngine::Instantiations_Total", 0),
   d_inst_duplicate("QuantifiersEngine::Duplicate_Inst", 0),
   d_inst_duplicate_eq("QuantifiersEngine::Duplicate_Inst_Eq", 0),
-  d_lit_phase_req("QuantifiersEngine::lit_phase_req", 0),
-  d_lit_phase_nreq("QuantifiersEngine::lit_phase_nreq", 0),
   d_triggers("QuantifiersEngine::Triggers", 0),
   d_simple_triggers("QuantifiersEngine::Triggers_Simple", 0),
   d_multi_triggers("QuantifiersEngine::Triggers_Multi", 0),
@@ -974,8 +965,6 @@ QuantifiersEngine::Statistics::Statistics():
   StatisticsRegistry::registerStat(&d_instantiations);
   StatisticsRegistry::registerStat(&d_inst_duplicate);
   StatisticsRegistry::registerStat(&d_inst_duplicate_eq);
-  StatisticsRegistry::registerStat(&d_lit_phase_req);
-  StatisticsRegistry::registerStat(&d_lit_phase_nreq);
   StatisticsRegistry::registerStat(&d_triggers);
   StatisticsRegistry::registerStat(&d_simple_triggers);
   StatisticsRegistry::registerStat(&d_multi_triggers);
@@ -989,8 +978,6 @@ QuantifiersEngine::Statistics::~Statistics(){
   StatisticsRegistry::unregisterStat(&d_instantiations);
   StatisticsRegistry::unregisterStat(&d_inst_duplicate);
   StatisticsRegistry::unregisterStat(&d_inst_duplicate_eq);
-  StatisticsRegistry::unregisterStat(&d_lit_phase_req);
-  StatisticsRegistry::unregisterStat(&d_lit_phase_nreq);
   StatisticsRegistry::unregisterStat(&d_triggers);
   StatisticsRegistry::unregisterStat(&d_simple_triggers);
   StatisticsRegistry::unregisterStat(&d_multi_triggers);
@@ -1004,8 +991,14 @@ eq::EqualityEngine* QuantifiersEngine::getMasterEqualityEngine(){
 void QuantifiersEngine::debugPrintEqualityEngine( const char * c ) {
   eq::EqualityEngine* ee = getMasterEqualityEngine();
   eq::EqClassesIterator eqcs_i = eq::EqClassesIterator( ee );
+  std::map< TypeNode, int > typ_num;
   while( !eqcs_i.isFinished() ){
     TNode r = (*eqcs_i);
+    TypeNode tr = r.getType();
+    if( typ_num.find( tr )==typ_num.end() ){
+      typ_num[tr] = 0;
+    }
+    typ_num[tr]++;
     bool firstTime = true;
     Trace(c) << "  " << r;
     Trace(c) << " : { ";
@@ -1026,6 +1019,9 @@ void QuantifiersEngine::debugPrintEqualityEngine( const char * c ) {
     ++eqcs_i;
   }
   Trace(c) << std::endl;
+  for( std::map< TypeNode, int >::iterator it = typ_num.begin(); it != typ_num.end(); ++it ){
+    Trace(c) << "# eqc for " << it->first << " : " << it->second << std::endl;    
+  }
 }
 
 void EqualityQueryQuantifiersEngine::reset(){

@@ -162,7 +162,6 @@ public:
     PROOF( ProofManager::currentPM()->addDependence(n, d_nodes[i]); );
     d_nodes[i] = n;
   }
-
 };/* class AssertionPipeline */
 
 struct SmtEngineStatistics {
@@ -572,8 +571,9 @@ public:
    * formula might be pushed out to the propositional layer
    * immediately, or it might be simplified and kept, or it might not
    * even be simplified.
+   * the 2nd and 3rd arguments added for bookkeeping for proofs
    */
-  void addFormula(TNode n)
+  void addFormula(TNode n, bool inUnsatCore, bool inInput = true)
     throw(TypeCheckingException, LogicException);
 
   /**
@@ -863,6 +863,9 @@ SmtEngine::~SmtEngine() throw() {
     d_propEngine = NULL;
     delete d_decisionEngine;
     d_decisionEngine = NULL;
+
+    PROOF(delete d_proofManager;);
+    PROOF(d_proofManager = NULL;);
 
     delete d_stats;
     d_stats = NULL;
@@ -1339,12 +1342,15 @@ void SmtEngine::setDefaults() {
       if( !options::preSkolemQuant.wasSetByUser() ){
         options::preSkolemQuant.set( true );
       }
+      if( !options::preSkolemQuantNested.wasSetByUser() ){
+        options::preSkolemQuantNested.set( true );
+      }
       if( !options::fmfOneInstPerRound.wasSetByUser() ){
         options::fmfOneInstPerRound.set( true );
       }
     }
   }
-  
+
   //apply counterexample guided instantiation options
   if( options::cegqiSingleInv() ){
     options::ceGuidedInst.set( true );
@@ -1373,10 +1379,17 @@ void SmtEngine::setDefaults() {
     }
   }
 
-  //implied options...
-  if( options::recurseCbqi() ){
+  //cbqi options
+  if( options::recurseCbqi() || options::cbqi2() ){
     options::cbqi.set( true );
   }
+  if( options::cbqi() ){
+    if( !options::quantConflictFind.wasSetByUser() ){
+      options::quantConflictFind.set( false );
+    }
+  }
+
+  //implied options...
   if( options::qcfMode.wasSetByUser() || options::qcfTConstraint() ){
     options::quantConflictFind.set( true );
   }
@@ -1930,7 +1943,7 @@ bool SmtEnginePrivate::nonClausalSimplify() {
     Node falseNode = NodeManager::currentNM()->mkConst<bool>(false);
     Assert(!options::unsatCores());
     d_assertions.clear();
-    d_assertions.push_back(falseNode);
+    addFormula(falseNode, false, false);
     d_propagatorNeedsFinish = true;
     return false;
   }
@@ -1969,7 +1982,7 @@ bool SmtEnginePrivate::nonClausalSimplify() {
                           << d_nonClausalLearnedLiterals[i] << endl;
         Assert(!options::unsatCores());
         d_assertions.clear();
-        d_assertions.push_back(NodeManager::currentNM()->mkConst<bool>(false));
+        addFormula(NodeManager::currentNM()->mkConst<bool>(false), false, false);
         d_propagatorNeedsFinish = true;
         return false;
       }
@@ -2005,7 +2018,7 @@ bool SmtEnginePrivate::nonClausalSimplify() {
                           << learnedLiteral << endl;
         Assert(!options::unsatCores());
         d_assertions.clear();
-        d_assertions.push_back(NodeManager::currentNM()->mkConst<bool>(false));
+        addFormula(NodeManager::currentNM()->mkConst<bool>(false), false, false);
         d_propagatorNeedsFinish = true;
         return false;
       default:
@@ -2031,7 +2044,7 @@ bool SmtEnginePrivate::nonClausalSimplify() {
           // if (!equations.empty()) {
           //   Assert(equations[0].first.isConst() && equations[0].second.isConst() && equations[0].first != equations[0].second);
           //   d_assertions.clear();
-          //   d_assertions.push_back(NodeManager::currentNM()->mkConst<bool>(false));
+          //   addFormula(NodeManager::currentNM()->mkConst<bool>(false), false, false);
           //   return;
           // }
           // d_topLevelSubstitutions.simplifyRHS(constantPropagations);
@@ -2642,7 +2655,7 @@ void SmtEnginePrivate::doMiplibTrick() {
               Node newVar = nm->mkSkolem(ss.str(), nm->integerType(), "a variable introduced due to scrubbing a miplib encoding", NodeManager::SKOLEM_EXACT_NAME);
               Node geq = Rewriter::rewrite(nm->mkNode(kind::GEQ, newVar, zero));
               Node leq = Rewriter::rewrite(nm->mkNode(kind::LEQ, newVar, one));
-              d_assertions.push_back(Rewriter::rewrite(geq.andNode(leq)));
+              addFormula(Rewriter::rewrite(geq.andNode(leq)), false, false);
               SubstitutionMap nullMap(&d_fakeContext);
               Theory::PPAssertStatus status CVC4_UNUSED; // just for assertions
               status = d_smt.d_theoryEngine->solve(geq, nullMap);
@@ -2693,7 +2706,7 @@ void SmtEnginePrivate::doMiplibTrick() {
           }
           newAssertion = Rewriter::rewrite(newAssertion);
           Debug("miplib") << "  " << newAssertion << endl;
-          d_assertions.push_back(newAssertion);
+          addFormula(newAssertion, false, false);
           Debug("miplib") << "  assertions to remove: " << endl;
           for(vector<TNode>::const_iterator k = asserts[pos_var].begin(), k_end = asserts[pos_var].end(); k != k_end; ++k) {
             Debug("miplib") << "    " << *k << endl;
@@ -3152,15 +3165,10 @@ void SmtEnginePrivate::processAssertions() {
   if( d_smt.d_logic.isTheoryEnabled(THEORY_STRINGS) ) {
     dumpAssertions("pre-strings-pp", d_assertions);
     CVC4::theory::strings::StringsPreprocess sp;
-    std::vector<Node> newNodes;
-    newNodes.push_back(d_assertions[d_realAssertionsEnd - 1]);
-    sp.simplify( d_assertions.ref(), newNodes );
-    if(newNodes.size() > 1) {
-      d_assertions[d_realAssertionsEnd - 1] = NodeManager::currentNM()->mkNode(kind::AND, newNodes);
-    }
-    for (unsigned i = 0; i < d_assertions.size(); ++ i) {
-      d_assertions[i] = Rewriter::rewrite( d_assertions[i] );
-    }
+    sp.simplify( d_assertions.ref() );
+    //for (unsigned i = 0; i < d_assertions.size(); ++ i) {
+    //  d_assertions.replace( i, Rewriter::rewrite( d_assertions[i] ) );
+    //}
     dumpAssertions("post-strings-pp", d_assertions);
   }
   if( d_smt.d_logic.isQuantified() ){
@@ -3169,7 +3177,7 @@ void SmtEnginePrivate::processAssertions() {
       if( d_assertions[i].getKind() == kind::REWRITE_RULE ){
         Node prev = d_assertions[i];
         Trace("quantifiers-rewrite-debug") << "Rewrite rewrite rule " << prev << "..." << std::endl;
-        d_assertions[i] = Rewriter::rewrite( quantifiers::QuantifiersRewriter::rewriteRewriteRule( d_assertions[i] ) );
+        d_assertions.replace(i, Rewriter::rewrite( quantifiers::QuantifiersRewriter::rewriteRewriteRule( d_assertions[i] ) ) );
         Trace("quantifiers-rewrite") << "*** rr-rewrite " << prev << endl;
         Trace("quantifiers-rewrite") << "   ...got " << d_assertions[i] << endl;
       }
@@ -3221,10 +3229,6 @@ void SmtEnginePrivate::processAssertions() {
       d_smt.setPrintFuncInModel( it->second.toExpr(), true );
     }
   }
-
-  //if( options::quantConflictFind() ){
-  //  d_smt.d_theoryEngine->getQuantConflictFind()->registerAssertions( d_assertions );
-  //}
 
   if( options::pbRewrites() ){
     d_pbsProcessor.learn(d_assertions.ref());
@@ -3417,7 +3421,7 @@ void SmtEnginePrivate::processAssertions() {
   d_iteSkolemMap.clear();
 }
 
-void SmtEnginePrivate::addFormula(TNode n)
+void SmtEnginePrivate::addFormula(TNode n, bool inUnsatCore, bool inInput)
   throw(TypeCheckingException, LogicException) {
 
   if (n == d_true) {
@@ -3425,7 +3429,17 @@ void SmtEnginePrivate::addFormula(TNode n)
     return;
   }
 
-  Trace("smt") << "SmtEnginePrivate::addFormula(" << n << ")" << endl;
+  Trace("smt") << "SmtEnginePrivate::addFormula(" << n << "), inUnsatCore = " << inUnsatCore << ", inInput = " << inInput << endl;
+  // Give it to proof manager
+  PROOF(
+    if( inInput ){
+      // n is an input assertion
+      ProofManager::currentPM()->addAssertion(n.toExpr(), inUnsatCore);
+    }else{
+      // n is the result of an unknown preprocessing step, add it to dependency map to null
+      ProofManager::currentPM()->addDependence(n, Node::null());
+    }
+  );
 
   // Add the normalized formula to the queue
   d_assertions.push_back(n);
@@ -3465,8 +3479,6 @@ Result SmtEngine::checkSat(const Expr& ex, bool inUnsatCore) throw(TypeCheckingE
       e = d_private->substituteAbstractValues(Node::fromExpr(ex)).toExpr();
       // Ensure expr is type-checked at this point.
       ensureBoolean(e);
-      // Give it to proof manager
-      PROOF( ProofManager::currentPM()->addAssertion(e, inUnsatCore); );
     }
 
     // check to see if a postsolve() is pending
@@ -3487,7 +3499,7 @@ Result SmtEngine::checkSat(const Expr& ex, bool inUnsatCore) throw(TypeCheckingE
       if(d_assertionList != NULL) {
         d_assertionList->push_back(e);
       }
-      d_private->addFormula(e.getNode());
+      d_private->addFormula(e.getNode(), inUnsatCore);
     }
 
     Result r(Result::SAT_UNKNOWN, Result::UNKNOWN_REASON);
@@ -3553,8 +3565,6 @@ Result SmtEngine::query(const Expr& ex, bool inUnsatCore) throw(TypeCheckingExce
   Expr e = d_private->substituteAbstractValues(Node::fromExpr(ex)).toExpr();
   // Ensure that the expression is type-checked at this point, and Boolean
   ensureBoolean(e);
-  // Give it to proof manager
-  PROOF( ProofManager::currentPM()->addAssertion(e.notExpr(), inUnsatCore); );
 
   // check to see if a postsolve() is pending
   if(d_needPostsolve) {
@@ -3573,7 +3583,7 @@ Result SmtEngine::query(const Expr& ex, bool inUnsatCore) throw(TypeCheckingExce
   if(d_assertionList != NULL) {
     d_assertionList->push_back(e.notExpr());
   }
-  d_private->addFormula(e.getNode().notNode());
+  d_private->addFormula(e.getNode().notNode(), inUnsatCore);
 
   // Run the check
   Result r(Result::SAT_UNKNOWN, Result::UNKNOWN_REASON);
@@ -3626,8 +3636,6 @@ Result SmtEngine::assertFormula(const Expr& ex, bool inUnsatCore) throw(TypeChec
   finalOptionsAreSet();
   doPendingPops();
 
-  PROOF( ProofManager::currentPM()->addAssertion(ex, inUnsatCore); );
-
   Trace("smt") << "SmtEngine::assertFormula(" << ex << ")" << endl;
 
   // Substitute out any abstract values in ex
@@ -3637,7 +3645,7 @@ Result SmtEngine::assertFormula(const Expr& ex, bool inUnsatCore) throw(TypeChec
   if(d_assertionList != NULL) {
     d_assertionList->push_back(e);
   }
-  d_private->addFormula(e.getNode());
+  d_private->addFormula(e.getNode(), inUnsatCore);
   return quickCheck().asValidityResult();
 }/* SmtEngine::assertFormula() */
 

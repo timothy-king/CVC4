@@ -44,6 +44,10 @@ option clauseSplit --clause-split bool :default false
 #   forall x. P( x ) => f( S( x ) ) = x
 option preSkolemQuant --pre-skolem-quant bool :read-write :default false
  apply skolemization eagerly to bodies of quantified formulas
+option preSkolemQuantNested --pre-skolem-quant-nested bool :read-write :default true
+ apply skolemization to nested quantified formulass
+option preSkolemQuantAgg --pre-skolem-quant-agg bool :read-write :default true
+ apply skolemization to quantified formulas aggressively
 # Whether to perform agressive miniscoping
 option aggressiveMiniscopeQuant --ag-miniscope-quant bool :default false
  perform aggressive miniscoping for quantifiers
@@ -220,8 +224,10 @@ option sygusNormalFormGlobalContent --sygus-nf-sym-content bool :default true
   generalize based on content in global search space narrowing
   
 # older implementation
-option cbqi --enable-cbqi bool :read-write :default false
+option cbqi --cbqi bool :read-write :default false
  turns on counterexample-based quantifier instantiation
+option cbqi2 --cbqi2 bool :read-write :default false
+ turns on new implementation of counterexample-based quantifier instantiation
 option recurseCbqi --cbqi-recurse bool :default false
  turns on recursive counterexample-based quantifier instantiation
  
