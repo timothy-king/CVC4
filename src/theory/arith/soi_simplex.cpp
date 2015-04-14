@@ -765,18 +765,20 @@ std::vector< ArithVarVec > SumOfInfeasibilitiesSPD::greedyConflictSubsets(){
   return subsets;
 }
 
-void SumOfInfeasibilitiesSPD::generateSOIConflict(const ArithVarVec& subset){
+bool SumOfInfeasibilitiesSPD::generateSOIConflict(const ArithVarVec& subset){
   Assert(d_soiVar == ARITHVAR_SENTINEL);
   d_soiVar = constructInfeasiblityFunction(d_statistics.d_soiConflictMinimization, subset);
   Assert(!subset.empty());
-
+  Assert(!d_conflictBuilder->underConstruction());
+    
   Debug("arith::generateSOIConflict") << "SumOfInfeasibilitiesSPD::generateSOIConflict(...) start" << endl;
-  
-  
+
+  bool success = false;
+    
   for(ArithVarVec::const_iterator iter = subset.begin(), end = subset.end(); iter != end; ++iter){
     ArithVar e = *iter;
     ConstraintP violated = d_errorSet.getViolated(e);
-
+    Assert(violated != NullConstraint);
 
 
     int sgn = d_errorSet.getSgn(e);
@@ -786,46 +788,62 @@ void SumOfInfeasibilitiesSPD::generateSOIConflict(const ArithVarVec& subset){
                                         << " " << violated
                                         << endl;
 
-    Assert(violated->hasProof());
-    Assert(!violated->negationHasProof());
 
     d_conflictBuilder->addConstraint(violated, violatedCoeff);
+    Assert(violated->hasProof());
+    if(!success && !violated->negationHasProof()){
+      success = true;
+      d_conflictBuilder->makeLastConsequent();
+    }
   }
-  // pick a violated constraint arbitrarily. any of them may be selected for the conflict
-  Assert(d_conflictBuilder->underConstruction());
-  d_conflictBuilder->makeLastConsequent();
   
-  for(Tableau::RowIterator i = d_tableau.basicRowIterator(d_soiVar); !i.atEnd(); ++i){
-    const Tableau::Entry& entry = *i;
-    ArithVar v = entry.getColVar();
-    if(v == d_soiVar){ continue; }
-    const Rational& coeff = entry.getCoefficient();
+  if(!success){
+    // failure
+    d_conflictBuilder->reset();
+  } else {
+    // pick a violated constraint arbitrarily. any of them may be selected for the conflict
+    Assert(d_conflictBuilder->underConstruction());
+    Assert(d_conflictBuilder->consequentIsSet());
+    
+    for(Tableau::RowIterator i = d_tableau.basicRowIterator(d_soiVar); !i.atEnd(); ++i){
+      const Tableau::Entry& entry = *i;
+      ArithVar v = entry.getColVar();
+      if(v == d_soiVar){ continue; }
+      const Rational& coeff = entry.getCoefficient();
 
-    ConstraintP c = (coeff.sgn() > 0) ?
-      d_variables.getUpperBoundConstraint(v) :
-      d_variables.getLowerBoundConstraint(v);
-
-    Debug("arith::generateSOIConflict") << "non-basic var: "
-                                        << "(" <<  coeff << ")"
-                                        << " " << c
-                                        << endl;
-    d_conflictBuilder->addConstraint(c, coeff);
+      ConstraintP c = (coeff.sgn() > 0) ?
+        d_variables.getUpperBoundConstraint(v) :
+        d_variables.getLowerBoundConstraint(v);
+      
+      Debug("arith::generateSOIConflict") << "non-basic var: "
+                                          << "(" <<  coeff << ")"
+                                          << " " << c
+                                          << endl;
+      d_conflictBuilder->addConstraint(c, coeff);
+    }
+    ConstraintCP conflicted = d_conflictBuilder->commitConflict();
+    d_conflictChannel.raiseConflict(conflicted);
   }
 
   tearDownInfeasiblityFunction(d_statistics.d_soiConflictMinimization, d_soiVar);
   d_soiVar = ARITHVAR_SENTINEL;
-  ConstraintCP conflicted = d_conflictBuilder->commitConflict();
-  d_conflictChannel.raiseConflict(conflicted);
   Debug("arith::generateSOIConflict") << "SumOfInfeasibilitiesSPD::generateSOIConflict(...) done" << endl;
+  Assert(d_soiVar == ARITHVAR_SENTINEL);
+  Assert(!d_conflictBuilder->underConstruction());
+  return success;
 }
 
 
 WitnessImprovement SumOfInfeasibilitiesSPD::SOIConflict(){
   static int instance = 0;
   instance++;
-  //cout << "SOI conflict " << instance << ": |E| = " << d_errorSize << endl;
-  //d_errorSet.debugPrint(cout);
-  //cout << endl;
+  
+  Debug("arith::SOIConflict") << "SumOfInfeasibilitiesSPD::SOIConflict() start "
+                              << instance << ": |E| = " << d_errorSize << endl;
+  if(Debug.isOn("arith::SOIConflict")){
+    d_errorSet.debugPrint(cout);
+  }
+  Debug("arith::SOIConflict") << endl;
 
   tearDownInfeasiblityFunction(d_statistics.d_soiConflictMinimization, d_soiVar);
   d_soiVar = ARITHVAR_SENTINEL;
@@ -833,24 +851,21 @@ WitnessImprovement SumOfInfeasibilitiesSPD::SOIConflict(){
   if(options::soiQuickExplain()){
     quickExplain();
     generateSOIConflict(d_qeConflict);
-    //Node conflict = generateSOIConflict(d_qeConflict);
-    //cout << conflict << endl;
-    //d_conflictChannel(conflict);
   }else{
-
     vector<ArithVarVec> subsets = greedyConflictSubsets();
     Assert(  d_soiVar == ARITHVAR_SENTINEL);
-
+    bool anySuccess = false;
     Assert(!subsets.empty());
     for(vector<ArithVarVec>::const_iterator i = subsets.begin(), end = subsets.end(); i != end; ++i){
       const ArithVarVec& subset = *i;
-      generateSOIConflict(subset);
+      anySuccess = generateSOIConflict(subset) || anySuccess;
       //Node conflict = generateSOIConflict(subset);
       //cout << conflict << endl;
 
       //reportConflict(conf); do not do this. We need a custom explanations!
       //d_conflictChannel(conflict);
     }
+    Assert(anySuccess);
   }
   Assert(  d_soiVar == ARITHVAR_SENTINEL);
   d_soiVar = constructInfeasiblityFunction(d_statistics.d_soiConflictMinimization);
@@ -858,7 +873,8 @@ WitnessImprovement SumOfInfeasibilitiesSPD::SOIConflict(){
   //reportConflict(conf); do not do this. We need a custom explanations!
   d_conflictVariables.add(d_soiVar);
 
-  //cout << "SOI conflict " << instance << "end" << endl;
+  Debug("arith::SOIConflict") << "SumOfInfeasibilitiesSPD::SOIConflict() done "
+                              << instance << "end" << endl;
   return ConflictFound;
 }
 

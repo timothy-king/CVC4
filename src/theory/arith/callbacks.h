@@ -156,8 +156,10 @@ public:
 
   /** Returns true if a conflict has been pushed back since the last reset. */
   bool underConstruction() const;
-
   
+  /** Returns true if the consequent has been set since the last reset. */
+  bool consequentIsSet() const;
+
   /** Resets the state of the buffer. */
   void reset();
 };

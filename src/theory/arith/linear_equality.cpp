@@ -744,6 +744,7 @@ ConstraintCP LinearEqualityModule::minimallyWeakConflict(bool aboveUpper, ArithV
       fcs.makeLastConsequent();
     }
   }
+  Assert(fcs.consequentIsSet());
 
   ConstraintCP conflicted = fcs.commitConflict();
 

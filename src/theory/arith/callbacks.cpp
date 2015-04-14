@@ -80,6 +80,9 @@ bool FarkasConflictBuilder::underConstruction() const{
   return d_consequent != NullConstraint;
 }
 
+bool FarkasConflictBuilder::consequentIsSet() const{
+  return d_consequentSet;
+}
 
 void FarkasConflictBuilder::reset(){
   d_consequent = NullConstraint;
