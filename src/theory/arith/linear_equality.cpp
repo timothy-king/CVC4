@@ -512,6 +512,8 @@ void LinearEqualityModule::propagateBasicFromRow(ConstraintP c){
   RationalVectorP coeffs = NULLPROOF(new RationalVector());
   propagateRow(bounds, ridx, upperBound, c, coeffs);
   c->impliedByFarkas(bounds, coeffs, false);
+  c->tryToPropagate();
+  
   if(coeffs != RationalVectorPSentinel) { delete coeffs; }
 }
 
