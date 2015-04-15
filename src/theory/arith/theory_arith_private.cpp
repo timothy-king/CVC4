@@ -1777,7 +1777,7 @@ Comparison TheoryArithPrivate::mkIntegerEqualityFromAssignment(ArithVar v){
   const DeltaRational& beta = d_partialModel.getAssignment(v);
 
   Assert(beta.isIntegral());
-  Polynomial betaAsPolynomial( Constant::mkConstant(beta.floor()) );
+  Polynomial betaAsPolynomial = Polynomial::mkPolynomial( Constant::mkConstant(beta.floor()) );
 
   TNode var = d_partialModel.asNode(v);
   Polynomial varAsPolynomial = Polynomial::parsePolynomial(var);
@@ -1812,7 +1812,7 @@ Node TheoryArithPrivate::dioCutting(){
     return Node::null();
   }else{
     Polynomial p = plane.getPolynomial();
-    Polynomial c(plane.getConstant() * Constant::mkConstant(-1));
+    Polynomial c = Polynomial::mkPolynomial(plane.getConstant() * Constant::mkConstant(-1));
     Integer gcd = p.gcd();
     Assert(p.isIntegral());
     Assert(c.isIntegral());

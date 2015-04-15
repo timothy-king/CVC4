@@ -155,7 +155,7 @@ void DioSolver::pushInputConstraint(const Comparison& eq, Node reason){
   //Variable proofVariable(makeIntegerVariable());
 
   TrailIndex posInTrail = d_trail.size();
-  d_trail.push_back(Constraint(sp,Polynomial(Monomial(VarList(proofVariable)))));
+  d_trail.push_back(Constraint(sp,Polynomial::mkPolynomial(proofVariable)));
 
   size_t posInConstraintList = d_inputConstraints.size();
   d_inputConstraints.push_back(InputConstraint(reason, posInTrail));
