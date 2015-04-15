@@ -20,11 +20,13 @@
 #include "theory/arith/options.h"
 #include "theory/arith/constraint.h"
 
+
 using namespace std;
 
 namespace CVC4 {
 namespace theory {
 namespace arith {
+
 
 SimplexDecisionProcedure::SimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, _RaiseConflict conflictChannel, TempVarMalloc tvmalloc)
   : d_conflictVariables()
@@ -189,9 +191,12 @@ void SimplexDecisionProcedure::removeFromInfeasFunc(TimerStat& timer, ArithVar i
 }
 
 ArithVar SimplexDecisionProcedure::constructInfeasiblityFunction(TimerStat& timer, const ArithVarVec& set){
+  Debug("constructInfeasiblityFunction") << "constructInfeasiblityFunction start" << endl;
+
   TimerStat::CodeTimer codeTimer(timer);
   Assert(!d_errorSet.focusEmpty());
-
+  Assert(debugIsASet(set));
+  
   ArithVar inf = requestVariable();
   Assert(inf != ARITHVAR_SENTINEL);
 
@@ -209,6 +214,9 @@ ArithVar SimplexDecisionProcedure::constructInfeasiblityFunction(TimerStat& time
     const Rational& violatedCoeff = sgn < 0 ? d_negOne : d_posOne;
     coeffs.push_back(violatedCoeff);
     variables.push_back(e);
+
+    Debug("constructInfeasiblityFunction") << violatedCoeff << " " << e << endl;
+
   }
   d_tableau.addRow(inf, coeffs, variables);
   DeltaRational newAssignment = d_linEq.computeRowValue(inf, false);
@@ -218,7 +226,7 @@ ArithVar SimplexDecisionProcedure::constructInfeasiblityFunction(TimerStat& time
   d_linEq.trackRowIndex(d_tableau.basicToRowIndex(inf));
 
   Debug("constructInfeasiblityFunction") << inf << " " << newAssignment << endl;
-
+  Debug("constructInfeasiblityFunction") << "constructInfeasiblityFunction done" << endl;
   return inf;
 }
 

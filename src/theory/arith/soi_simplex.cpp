@@ -634,12 +634,16 @@ unsigned SumOfInfeasibilitiesSPD::trySet(const ArithVarVec& set){
 }
 
 std::vector< ArithVarVec > SumOfInfeasibilitiesSPD::greedyConflictSubsets(){
+  Debug("arith::greedyConflictSubsets") << "greedyConflictSubsets start" << endl;
+
   std::vector< ArithVarVec > subsets;
   Assert(d_soiVar == ARITHVAR_SENTINEL);
 
   if(d_errorSize <= 2){
     ArithVarVec inError;
     d_errorSet.pushFocusInto(inError);
+    
+    Assert(debugIsASet(inError));
     subsets.push_back(inError);
     return subsets;
   }
@@ -653,9 +657,11 @@ std::vector< ArithVarVec > SumOfInfeasibilitiesSPD::greedyConflictSubsets(){
     ArithVar e = *iter;
     addRowSgns(sgns, e, d_errorSet.getSgn(e));
 
-    //cout << "basic error var: " << e << endl;
-    //d_tableau.debugPrintIsBasic(e);
-    //d_tableau.printBasicRow(e, cout);
+    Debug("arith::greedyConflictSubsets") << "basic error var: " << e << endl;
+    if(Debug.isOn("arith::greedyConflictSubsets")){
+      d_tableau.debugPrintIsBasic(e);
+      d_tableau.printBasicRow(e, Debug("arith::greedyConflictSubsets"));
+    }
   }
 
   // Phase 1: Try to find at least 1 pair for every element
@@ -683,9 +689,10 @@ std::vector< ArithVarVec > SumOfInfeasibilitiesSPD::greedyConflictSubsets(){
       tmp[0] = e;
       tmp[1] = b;
       if(trySet(tmp) == 2){
-        //cout << "found a pair" << endl;
+        Debug("arith::greedyConflictSubsets")  << "found a pair " << b << " " << e << endl;
         hasParticipated.softAdd(b);
         hasParticipated.softAdd(e);
+        Assert(debugIsASet(tmp));
         subsets.push_back(tmp);
         ++(d_statistics.d_soiConflicts);
         ++(d_statistics.d_hasToBeMinimal);
@@ -704,13 +711,15 @@ std::vector< ArithVarVec > SumOfInfeasibilitiesSPD::greedyConflictSubsets(){
     possibleStarts.pop_back();
     if(hasParticipated.isMember(v)){ continue; }
 
+    hasParticipated.add(v);
+    
     Assert(d_soiVar == ARITHVAR_SENTINEL);
     //d_soiVar's row =  \sumofinfeasibilites underConstruction
     ArithVarVec underConstruction;
     underConstruction.push_back(v);
     d_soiVar = constructInfeasiblityFunction(d_statistics.d_soiConflictMinimization, v);
 
-    //cout << "trying " << v << endl;
+    Debug("arith::greedyConflictSubsets") << "trying " << v << endl;
 
     const Tableau::Entry* spoiler = NULL;
     while( (spoiler = d_linEq.selectSlackEntry(d_soiVar, false)) != NULL){
@@ -718,16 +727,16 @@ std::vector< ArithVarVec > SumOfInfeasibilitiesSPD::greedyConflictSubsets(){
       int oppositeSgn = -(spoiler->getCoefficient().sgn());
       Assert(oppositeSgn != 0);
 
-      //cout << "looking for " << nb << " " << oppositeSgn << endl;
+      Debug("arith::greedyConflictSubsets") << "looking for " << nb << " " << oppositeSgn << endl;
 
       ArithVar basicWithOp = find_basic_in_sgns(sgns, nb, oppositeSgn, hasParticipated, false);
 
       if(basicWithOp == ARITHVAR_SENTINEL){
-        //cout << "search did not work  for " << nb << endl;
+        Debug("arith::greedyConflictSubsets") << "search did not work  for " << nb << endl;
         // greedy construction has failed
         break;
       }else{
-        //cout << "found  " << basicWithOp << endl;
+        Debug("arith::greedyConflictSubsets") << "found  " << basicWithOp << endl;
 
         addToInfeasFunc(d_statistics.d_soiConflictMinimization, d_soiVar, basicWithOp);
         hasParticipated.softAdd(basicWithOp);
@@ -735,8 +744,9 @@ std::vector< ArithVarVec > SumOfInfeasibilitiesSPD::greedyConflictSubsets(){
       }
     }
     if(spoiler == NULL){
-      //cout << "success" << endl;
+      Debug("arith::greedyConflictSubsets") << "success" << endl;
       //then underConstruction contains a conflicting subset
+      Assert(debugIsASet(underConstruction));
       subsets.push_back(underConstruction);
       ++d_statistics.d_soiConflicts;
       if(underConstruction.size() == 3){
@@ -745,7 +755,7 @@ std::vector< ArithVarVec > SumOfInfeasibilitiesSPD::greedyConflictSubsets(){
         ++d_statistics.d_maybeNotMinimal;
       }
     }else{
-      //cout << "failure" << endl;
+      Debug("arith::greedyConflictSubsets") << "failure" << endl;
     }
     tearDownInfeasiblityFunction(d_statistics.d_soiConflictMinimization, d_soiVar);
     d_soiVar = ARITHVAR_SENTINEL;
@@ -762,6 +772,7 @@ std::vector< ArithVarVec > SumOfInfeasibilitiesSPD::greedyConflictSubsets(){
 
 
   Assert(d_soiVar == ARITHVAR_SENTINEL);
+  Debug("arith::greedyConflictSubsets") << "greedyConflictSubsets done" << endl;
   return subsets;
 }
 
@@ -858,6 +869,7 @@ WitnessImprovement SumOfInfeasibilitiesSPD::SOIConflict(){
     Assert(!subsets.empty());
     for(vector<ArithVarVec>::const_iterator i = subsets.begin(), end = subsets.end(); i != end; ++i){
       const ArithVarVec& subset = *i;
+      Assert(debugIsASet(subset));
       anySuccess = generateSOIConflict(subset) || anySuccess;
       //Node conflict = generateSOIConflict(subset);
       //cout << conflict << endl;
