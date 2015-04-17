@@ -145,6 +145,8 @@ void DioSolver::pushInputConstraint(const Comparison& eq, Node reason){
     return;
   }
 
+
+
   uint32_t length = sp.maxLength();
   if(length > d_maxInputCoefficientLength){
     d_maxInputCoefficientLength = length;
@@ -155,6 +157,9 @@ void DioSolver::pushInputConstraint(const Comparison& eq, Node reason){
   //Variable proofVariable(makeIntegerVariable());
 
   TrailIndex posInTrail = d_trail.size();
+  Debug("dio::pushInputConstraint") << "pushInputConstraint @ " << posInTrail
+                                    << " " << eq.getNode()
+                                    << " " << reason << endl;
   d_trail.push_back(Constraint(sp,Polynomial::mkPolynomial(proofVariable)));
 
   size_t posInConstraintList = d_inputConstraints.size();

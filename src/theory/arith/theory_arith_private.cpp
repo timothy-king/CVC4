@@ -651,7 +651,7 @@ bool TheoryArithPrivate::AssertLower(ConstraintP constraint){
   }else if(cmpToUB == 0){
     if(isInteger(x_i)){
       d_constantIntegerVariables.push_back(x_i);
-      Debug("dio::push") << x_i << endl;
+      Debug("dio::push") << "dio::push " << x_i << endl;
     }
     ConstraintP ub = d_partialModel.getUpperBoundConstraint(x_i);
 
@@ -790,6 +790,10 @@ bool TheoryArithPrivate::AssertUpper(ConstraintP constraint){
     ++(d_statistics.d_statAssertUpperConflicts);
     return true;
   }else if(cmpToLB == 0){ // \lowerBound(x_i) == \upperbound(x_i)
+    if(isInteger(x_i)){
+      d_constantIntegerVariables.push_back(x_i);
+      Debug("dio::push") << "dio::push " << x_i << endl;
+    }
 
     const ValueCollection& vc = constraint->getValueCollection();
     ConstraintP lb = d_partialModel.getLowerBoundConstraint(x_i);
@@ -818,12 +822,7 @@ bool TheoryArithPrivate::AssertUpper(ConstraintP constraint){
         ++(d_statistics.d_statDisequalityConflicts);
         raiseConflict(eq);
         return true;
-      }
-      if(isInteger(x_i)){
-        d_constantIntegerVariables.push_back(x_i);
-        Debug("dio::push") << x_i << endl;
-      }
-      
+      }      
     }
   }else if(cmpToLB > 0){
     // l <= x <= u and l < u
@@ -938,7 +937,7 @@ bool TheoryArithPrivate::AssertEquality(ConstraintP constraint){
 
   if(isInteger(x_i)){
     d_constantIntegerVariables.push_back(x_i);
-    Debug("dio::push") << x_i << endl;
+    Debug("dio::push") << "dio::push " << x_i << endl;
   }
 
   // Don't bother to check whether x_i != c_i is in d_diseq
@@ -1797,7 +1796,7 @@ Node TheoryArithPrivate::dioCutting(){
           // If the bounds are equal this is already in the dioSolver
           //Add v = dr as a speculation.
           Comparison eq = mkIntegerEqualityFromAssignment(v);
-          Debug("dio::push") <<v << " " <<  eq.getNode() << endl;
+          Debug("dio::push") << "dio::push " << v << " " <<  eq.getNode() << endl;
           Assert(!eq.isBoolean());
           d_diosolver.pushInputConstraint(eq, eq.getNode());
           // It does not matter what the explanation of eq is.
@@ -1837,7 +1836,7 @@ Node TheoryArithPrivate::callDioSolver(){
     ArithVar v = d_constantIntegerVariables.front();
     d_constantIntegerVariables.pop();
 
-    Debug("arith::dio")  << v << endl;
+    Debug("arith::dio")  << "callDioSolver " << v << endl;
 
     Assert(isInteger(v));
     Assert(d_partialModel.boundsAreEqual(v));
@@ -1867,7 +1866,7 @@ Node TheoryArithPrivate::callDioSolver(){
       Assert(orig.getKind() != EQUAL);
       return orig;
     }else{
-      Debug("dio::push") << v << " " << eq.getNode() << " with reason " << orig << endl;
+      Debug("dio::push") << "dio::push " << v << " " << eq.getNode() << " with reason " << orig << endl;
       d_diosolver.pushInputConstraint(eq, orig);
     }
   }
@@ -2047,6 +2046,40 @@ bool TheoryArithPrivate::hasIntegerModel(){
   }
 }
 
+
+Node flattenAndSort(Node n){
+  Kind k = n.getKind();
+  switch(k){
+  case kind::OR:
+  case kind::AND:
+  case kind::PLUS:
+  case kind::MULT:
+    break;
+  default:
+    return n;
+  }
+
+  std::vector<Node> out;
+  std::vector<Node> process;
+  process.push_back(n);
+  while(!process.empty()){
+    Node b = process.back();
+    process.pop_back();
+    if(b.getKind() == k){
+      for(Node::iterator i=b.begin(), end=b.end(); i!=end; ++i){
+        process.push_back(*i);
+      }
+    } else {
+      out.push_back(b);
+    }
+  }
+  Assert(out.size() >= 2);
+  std::sort(out.begin(), out.end());
+  return NodeManager::currentNM()->mkNode(k, out);
+}
+
+
+
 /** Outputs conflicts to the output channel. */
 void TheoryArithPrivate::outputConflicts(){
   Assert(anyConflict());
@@ -2058,10 +2091,16 @@ void TheoryArithPrivate::outputConflicts(){
       ConstraintCP confConstraint = d_conflicts[i];
       Assert(confConstraint->inConflict());
       Node conflict = confConstraint->externalExplainConflict();
+
       ++conflicts;
       Debug("arith::conflict") << "d_conflicts[" << i << "] " << conflict
         //                               << "("<<conflicts<<")"
                                << endl;
+      if(Debug.isOn("arith::normalize::external")){
+        conflict = flattenAndSort(conflict);
+        Debug("arith::conflict") << "(normalized to) " << conflict << endl;
+      }
+
       (d_containing.d_out)->conflict(conflict);
     }
   }
@@ -2071,6 +2110,11 @@ void TheoryArithPrivate::outputConflicts(){
     Debug("arith::conflict") << "black box conflict" << bb
       //<< "("<<conflicts<<")"
                              << endl;
+    if(Debug.isOn("arith::normalize::external")){
+      bb = flattenAndSort(bb);
+      Debug("arith::conflict") << "(normalized to) " << bb << endl;
+    }
+
     (d_containing.d_out)->conflict(bb);
   }
 }
