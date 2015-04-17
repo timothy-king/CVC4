@@ -97,11 +97,11 @@ public:
   void release(ArithVar v);
 };
 
-class _RaiseConflict {
+class RaiseConflict {
 private:
   TheoryArithPrivate& d_ta;
 public:
-  _RaiseConflict(TheoryArithPrivate& ta);
+  RaiseConflict(TheoryArithPrivate& ta);
 
   /** Calls d_ta.raiseConflict(c) */
   void raiseConflict(ConstraintCP c) const;

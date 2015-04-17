@@ -764,7 +764,7 @@ ConstraintP Constraint::makeNegation(ArithVar v, ConstraintType t, const DeltaRa
   }
 }
 
-ConstraintDatabase::ConstraintDatabase(context::Context* satContext, context::Context* userContext, const ArithVariables& avars, ArithCongruenceManager& cm, _RaiseConflict raiseConflict)
+ConstraintDatabase::ConstraintDatabase(context::Context* satContext, context::Context* userContext, const ArithVariables& avars, ArithCongruenceManager& cm, RaiseConflict raiseConflict)
   : d_varDatabases()
   , d_toPropagate(satContext)
   , d_antecedents(satContext, false)
@@ -979,25 +979,6 @@ bool ConstraintDatabase::hasLiteral(TNode literal) const {
   return lookup(literal) != NullConstraint;
 }
 
-// ConstraintP ConstraintDatabase::addLiteral(TNode literal){
-//   Assert(!hasLiteral(literal));
-//   bool isNot = (literal.getKind() == NOT);
-//   TNode atom = isNot ? literal[0] : literal;
-
-//   ConstraintP atomC = addAtom(atom);
-
-//   return isNot ? atomC->d_negation : atomC;
-// }
-
-// ConstraintP ConstraintDatabase::allocateConstraintForComparison(ArithVar v, const Comparison cmp){
-//   Debug("arith::constraint") << "allocateConstraintForLiteral(" << v << ", "<< cmp <<")" << endl;
-//   Kind kind = cmp.comparisonKind();
-//   ConstraintType type = constraintTypeOfLiteral(kind);
-  
-//   DeltaRational dr = cmp.getDeltaRational();
-//   return new Constraint_(v, type, dr);
-// }
-
 ConstraintP ConstraintDatabase::addLiteral(TNode literal){
   Assert(!hasLiteral(literal));
   bool isNot = (literal.getKind() == NOT);
@@ -1081,22 +1062,6 @@ ConstraintP ConstraintDatabase::addLiteral(TNode literal){
   }
 }
 
-// ConstraintType constraintTypeOfLiteral(Kind k){
-//   switch(k){
-//   case LT:
-//   case LEQ:
-//     return UpperBound;
-//   case GT:
-//   case GEQ:
-//     return LowerBound;
-//   case EQUAL:
-//     return Equality;
-//   case DISTINCT:
-//     return Disequality;
-//   default:
-//     Unreachable();
-//   }
-// }
 
 ConstraintP ConstraintDatabase::lookup(TNode literal) const{
   NodetoConstraintMap::const_iterator iter = d_nodetoConstraintMap.find(literal);
@@ -1140,30 +1105,6 @@ void Constraint::propagate(){
 
   d_database->d_toPropagate.push(this);
 }
-
-// void Constraint::_propagate(ConstraintCP a){
-//   Assert(!hasProof());
-//   Assert(canBePropagated());
-
-//   markUnateFarkasProof(a);
-//   propagate();
-// }
-
-// void Constraint::_propagate(ConstraintCP a, ConstraintCP b){
-//   Assert(!hasProof());
-//   Assert(canBePropagated());
-
-//   _markAsTrue(a, b);
-//   propagate();
-// }
-
-// void Constraint::_propagate(const ConstraintCPVec& b){
-//   Assert(!hasProof());
-//   Assert(canBePropagated());
-
-//   _markAsTrue(b);
-//   propagate();
-// }
 
 
 /*
@@ -1230,24 +1171,6 @@ void Constraint::impliedByTrichotomy(ConstraintCP a, ConstraintCP b, bool nowInC
     Debug("constraint::conflictCommit") << "inConflict@impliedByTrichotomy " << this << std::endl;
   }
 }
-
-// void Constraint::_impliedBy(ConstraintCP a, ConstraintCP b){
-//   Assert(truthIsUnknown());
-
-//   _markAsTrue(a, b);
-//   if(canBePropagated()){
-//     propagate();
-//   }
-// }
-
-// void Constraint::_impliedBy(const ConstraintCPVec& b){
-//   Assert(truthIsUnknown());
-
-//   _markAsTrue(b);
-//   if(canBePropagated()){
-//     propagate();
-//   }
-// }
 
 
 bool Constraint::allHaveProof(const ConstraintCPVec& b){
@@ -1361,46 +1284,6 @@ void Constraint::setEqualityEngineProof(){
   d_database->pushConstraintRule(ConstraintRule(this, EqualityEngineAP));
 }
 
-
-// void Constraint::_markAsTrue(ConstraintCP imp){
-//   Unimplemented();
-  // Assert(truthIsUnknown());
-  // Assert(imp->hasProof());
-  // d_database->d_proofs.push_back(NullConstraint);
-  // d_database->d_proofs.push_back(imp);
-  // ProofId proof = d_database->d_proofs.size() - 1;
-  // d_database->pushProofWatch(this, proof);
-//}
-
-
-// void Constraint::_markAsTrue(ConstraintCP impA, ConstraintCP impB){
-//   Assert(truthIsUnknown());
-//   Assert(impA->hasProof());
-//   Assert(impB->hasProof());
-
-//   d_database->d_proofs.push_back(NullConstraint);
-//   d_database->d_proofs.push_back(impA);
-//   d_database->d_proofs.push_back(impB);
-//   ProofId proof = d_database->d_proofs.size() - 1;
-
-//   d_database->pushProofWatch(this, proof);
-// }
-
-
-// void Constraint::_markAsTrue(const ConstraintCPVec& a){
-//   Assert(truthIsUnknown());
-//   Assert(a.size() >= 1);
-//   d_database->d_proofs.push_back(NullConstraint);
-//   for(ConstraintCPVec::const_iterator i = a.begin(), end = a.end(); i != end; ++i){
-//     ConstraintCP c_i = *i;
-//     Assert(c_i->hasProof());
-//     d_database->d_proofs.push_back(c_i);
-//   }
-
-//   ProofId proof = d_database->d_proofs.size() - 1;
-
-//   d_database->pushProofWatch(this, proof);
-// }
 
 SortedConstraintMap& Constraint::constraintSet() const{
   Assert(d_database->variableDatabaseIsSetup(d_variable));

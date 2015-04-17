@@ -462,25 +462,6 @@ private:
     }
   };
 
-  
-  // class ProofTypeCleanup {
-  // public:
-  //   inline void operator()(ConstraintP* p){
-  //     ConstraintP constraint = *p;
-  //     Assert(constraint->d_proofType != NoAP);
-  //     Assert(constraint->d_proofType != FarkasAP ||
-  //            constraint->d_farkasProof == FarkasProofIdSentinel);
-
-  //     constraint->d_proofType = NoAP;
-  //       		/* In all cases, d_farkasProof is FarkasProofIdSentinel.
-  //       		 * Instead of checking and setting, we always set this value. */
-  //       		constraint->d_farkasProof = FarkasProofIdSentinel;
-
-  //     Assert(constraint->d_proofType == NoAP);
-  //     Assert(constraint->d_farkasProof == FarkasProofIdSentinel);
-  //   }
-  // };
-
   class CanBePropagatedCleanup {
   public:
     inline void operator()(ConstraintP* p){
@@ -810,57 +791,59 @@ public:
   ConstraintP getStrictlyWeakerUpperBound(bool hasLiteral, bool mustBeAsserted) const;
   ConstraintP getStrictlyWeakerLowerBound(bool hasLiteral, bool mustBeAsserted) const;
 
-
-  /**
-   * Marks the node as having a proof a.
-   * Adds the node the database's propagation queue.
-   *
-   * Preconditions:
-   * canBePropagated()
-   * !assertedToTheTheory()
-   */
-  // #warning "Need a proof reason."
-  // void _propagate(ConstraintCP a);
-  // void _propagate(ConstraintCP a, ConstraintCP b);
-  // void _propagate(const ConstraintCPVec& b);
-
-#warning "Remove implied functions"
-
   /**
    * Marks a the constraint c as being entailed by a.
    * The Farkas proof 1*(a) + -1 (c) |= 0<0
+   *
+   * After calling impliedByUnate(), the caller should either raise a conflict
+   * or try call tryToPropagate().
    */
   void impliedByUnate(ConstraintCP a, bool inConflict);
 
   /**
    * Marks a the constraint c as being entailed by a.
    * The reason has to do with integer rounding.
+   *
+   * After calling impliedByIntHole(), the caller should either raise a conflict
+   * or try call tryToPropagate().
    */
   void impliedByIntHole(ConstraintCP a, bool inConflict);
 
   /**
    * Marks a the constraint c as being entailed by a.
    * The reason has to do with integer rounding.
+   *
+   * After calling impliedByIntHole(), the caller should either raise a conflict
+   * or try call tryToPropagate().
    */
   void impliedByIntHole(const ConstraintCPVec& b, bool inConflict);
-  
-  /**
-   * The only restriction is that this is not known be true.
-   * This propagates if there is a node.
-   */
-  //#warning "Need a proof reason."
-  //void _impliedBy(ConstraintCP a, ConstraintCP b);
-  //void _impliedBy(const ConstraintCPVec& b);
 
   /**
    * This is a lemma of the form:
    *   x < d or x = d or x > d
    * The current constraint c is one of the above constraints and {a,b}
    * are the negation of the other two constraints.
+   *
+   * Preconditions:
+   * - negationHasProof() == inConflict.
+   *
+   * After calling impliedByTrichotomy(), the caller should either raise a conflict
+   * or try call tryToPropagate().
    */
   void impliedByTrichotomy(ConstraintCP a, ConstraintCP b, bool inConflict);
 
-  
+  /**
+   * Marks the node as having a Farkas proof.
+   *
+   * Preconditions:
+   * - coeffs == NULL if proofs are off.
+   * - See the comments for ConstraintRule for the form of coeffs when
+   *   proofs are on.
+   * - negationHasProof() == inConflict.
+   *
+   * After calling impliedByFarkas(), the caller should either raise a conflict
+   * or try call tryToPropagate().
+   */
   void impliedByFarkas(const ConstraintCPVec& b, RationalVectorCP coeffs, bool inConflict);
 
   /**
@@ -871,12 +854,6 @@ public:
   Node externalImplication(const ConstraintCPVec& b) const;
 
   /**
-   * Generates the conjunction node, (and B),
-   * where B is the result of externalExplainByAssertions(b).
-   */
-  static Node _externalConjunction(const ConstraintCPVec& b);
-
-  /**
    * Returns true if the variable is assigned the value dr,
    * the constraint would be satisfied.
    */
@@ -884,6 +861,7 @@ public:
 
   /**
    * The node must have a proof already and be eligible for propagation!
+   * You probably want to call tryToPropagate() instead.
    *
    * Preconditions:
    * - hasProof()
@@ -910,33 +888,6 @@ public:
   const ConstraintDatabase& getDatabase() const;
 
 private:
-  /**
-   * Marks the node as having a proof and being selfExplaining.
-   * Neither the node nor its negation can have a proof.
-   * This is internal!
-   */
-  //void markAssumption();
-
-  /**
-   * Marks the node as having a unate farkas proof.
-   */
-  //void markUnateFarkasProof(ConstraintCP a);
-
-  /**
-   * Marks the node as having an arbitrary farkas proof.
-   *
-   * If proofs are off, coeffs == RationalVectorSentinal.
-   * If proofs are on,
-   *   coeffs != RationalVectorSentinal,
-   *   coeffs->size() = a.size() + 1,
-   *   for i in [0,a.size) : coeff[i] corresponds to a[i], and
-   *   coeff.back() corresponds to the current constraint. 
-   */
-  //void markFarkasProof(const ConstraintCPVec& a, RationalVectorCP coeffs);
-
-
-  // void _markAsTrue(ConstraintCP a, ConstraintCP b);
-  // void _markAsTrue(const ConstraintCPVec& b);
 
   /** Returns the constraint rule at the position. */
   const ConstraintRule& getConstraintRule() const;
@@ -1022,33 +973,6 @@ private:
    */
   CDConstraintList d_antecedents;
 
-
-#warning "remove selfExplainingProof, equalityEngineProof, internalDecisionProof"
-  /**
-   * This is a special proof for marking that nodes are their own explanation
-   * from the perspective of the theory.
-   * These must always be asserted to the theory.
-   *
-   * This proof is always a member of the list.
-   */
-  /* ProofId d_selfExplainingProof; */
-
-  /**
-   * Marks a node as being proved by the equality engine.
-   * The equality engine will be asked for the explanation of such nodes.
-   *
-   * This is a special proof that is always a member of the list.
-   */
-  /* ProofId d_equalityEngineProof; */
-
-  /**
-   * Marks a constraint as being proved by making an internal
-   * decision. Such nodes cannot be used in external explanations
-   * but can be used internally.
-   */
-  /*ProofId d_internalDecisionProof;*/
-
-
   typedef context::CDList<ConstraintRule, Constraint::ConstraintRuleCleanup> ConstraintRuleList;
   typedef context::CDList<ConstraintP, Constraint::CanBePropagatedCleanup> CBPList;
   typedef context::CDList<ConstraintP, Constraint::AssertionOrderCleanup> AOList;
@@ -1113,7 +1037,7 @@ private:
 
   const context::Context * const d_satContext;
 
-  _RaiseConflict d_raiseConflict;
+  RaiseConflict d_raiseConflict;
 
 
   const Rational d_one;
@@ -1127,7 +1051,7 @@ public:
                       context::Context* userContext,
                       const ArithVariables& variables,
                       ArithCongruenceManager& dm,
-                      _RaiseConflict conflictCallBack);
+                      RaiseConflict conflictCallBack);
 
   ~ConstraintDatabase();
 

@@ -28,7 +28,7 @@ namespace theory {
 namespace arith {
 
 
-SimplexDecisionProcedure::SimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, _RaiseConflict conflictChannel, TempVarMalloc tvmalloc)
+SimplexDecisionProcedure::SimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc)
   : d_conflictVariables()
   , d_linEq(linEq)
   , d_variables(d_linEq.getVariables())

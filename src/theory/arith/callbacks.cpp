@@ -58,11 +58,11 @@ void BasicVarModelUpdateCallBack::operator()(ArithVar x){
   d_ta.signal(x);
 }
 
-_RaiseConflict::_RaiseConflict(TheoryArithPrivate& ta)
+RaiseConflict::RaiseConflict(TheoryArithPrivate& ta)
   : d_ta(ta)
 {}
 
-void _RaiseConflict::raiseConflict(ConstraintCP c) const{
+void RaiseConflict::raiseConflict(ConstraintCP c) const{
   Assert(c->inConflict());
   d_ta.raiseConflict(c);
 }

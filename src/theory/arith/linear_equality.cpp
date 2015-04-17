@@ -559,7 +559,6 @@ void LinearEqualityModule::propagateRow(ConstraintCPVec& into, RowIndex ridx, bo
   Debug("arith::propagateRow") << "LinearEqualityModule::propagateRow("
                                    << ridx << ", " << rowUp << ", " << v << ") start" << endl;
 
-#warning "Something is wrong with multiple"
   const Rational& multiple = rowUp ? d_one : d_negOne;
 
   Debug("arith::propagateRow") << "multiple: " << multiple << endl;

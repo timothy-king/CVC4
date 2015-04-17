@@ -31,7 +31,7 @@ namespace theory {
 namespace arith {
 
 
-SumOfInfeasibilitiesSPD::SumOfInfeasibilitiesSPD(LinearEqualityModule& linEq, ErrorSet& errors, _RaiseConflict conflictChannel, TempVarMalloc tvmalloc)
+SumOfInfeasibilitiesSPD::SumOfInfeasibilitiesSPD(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc)
   : SimplexDecisionProcedure(linEq, errors, conflictChannel, tvmalloc)
   , d_soiVar(ARITHVAR_SENTINEL)
   , d_pivotBudget(0)
@@ -923,7 +923,6 @@ WitnessImprovement SumOfInfeasibilitiesSPD::soiRound() {
 }
 
 bool SumOfInfeasibilitiesSPD::debugSOI(WitnessImprovement w, ostream& out, int instance) const{
-//#warning "Redo SOI"
   return true;
   // out << "DLV("<<instance<<") ";
   // switch(w){

@@ -99,7 +99,7 @@ TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context
   d_containing(containing),
   d_nlIncomplete( false),
   d_rowTracking(),
-  d_constraintDatabase(c, u, d_partialModel, d_congruenceManager, _RaiseConflict(*this)),
+  d_constraintDatabase(c, u, d_partialModel, d_congruenceManager, RaiseConflict(*this)),
   d_qflraStatus(Result::SAT_UNKNOWN),
   d_unknownsInARow(0),
   d_hasDoneWorkSinceCut(false),
@@ -125,10 +125,10 @@ TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context
   d_congruenceManager(c, d_constraintDatabase, SetupLiteralCallBack(*this), d_partialModel, RaiseEqualityEngineConflict(*this)),
   d_cmEnabled(c, true),
 
-  d_dualSimplex(d_linEq, d_errorSet, _RaiseConflict(*this), TempVarMalloc(*this)),
-  d_fcSimplex(d_linEq, d_errorSet, _RaiseConflict(*this), TempVarMalloc(*this)),
-  d_soiSimplex(d_linEq, d_errorSet, _RaiseConflict(*this), TempVarMalloc(*this)),
-  d_attemptSolSimplex(d_linEq, d_errorSet, _RaiseConflict(*this), TempVarMalloc(*this)),
+  d_dualSimplex(d_linEq, d_errorSet, RaiseConflict(*this), TempVarMalloc(*this)),
+  d_fcSimplex(d_linEq, d_errorSet, RaiseConflict(*this), TempVarMalloc(*this)),
+  d_soiSimplex(d_linEq, d_errorSet, RaiseConflict(*this), TempVarMalloc(*this)),
+  d_attemptSolSimplex(d_linEq, d_errorSet, RaiseConflict(*this), TempVarMalloc(*this)),
 
   d_pass1SDP(NULL),
   d_otherSDP(NULL),

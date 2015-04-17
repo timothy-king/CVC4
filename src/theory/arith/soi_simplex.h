@@ -63,7 +63,7 @@ namespace arith {
 
 class SumOfInfeasibilitiesSPD : public SimplexDecisionProcedure {
 public:
-  SumOfInfeasibilitiesSPD(LinearEqualityModule& linEq, ErrorSet& errors, _RaiseConflict conflictChannel, TempVarMalloc tvmalloc);
+  SumOfInfeasibilitiesSPD(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc);
 
   Result::Sat findModel(bool exactResult);
 

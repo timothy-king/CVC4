@@ -103,7 +103,7 @@ protected:
   ArithVar d_numVariables;
 
   /** This is the call back channel for Simplex to report conflicts. */
-  _RaiseConflict d_conflictChannel;
+  RaiseConflict d_conflictChannel;
 
   /** This is the call back channel for Simplex to report conflicts. */
   FarkasConflictBuilder* d_conflictBuilder;
@@ -134,7 +134,7 @@ protected:
   void shrinkInfeasFunc(TimerStat& timer, ArithVar inf, const ArithVarVec& dropped);
 
 public:
-  SimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, _RaiseConflict conflictChannel, TempVarMalloc tvmalloc);
+  SimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc);
   ~SimplexDecisionProcedure();
 
   /**

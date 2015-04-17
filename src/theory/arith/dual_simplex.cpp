@@ -26,7 +26,7 @@ namespace CVC4 {
 namespace theory {
 namespace arith {
 
-DualSimplexDecisionProcedure::DualSimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, _RaiseConflict conflictChannel, TempVarMalloc tvmalloc)
+DualSimplexDecisionProcedure::DualSimplexDecisionProcedure(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc)
   : SimplexDecisionProcedure(linEq, errors, conflictChannel, tvmalloc)
   , d_pivotsInRound()
   , d_statistics(d_pivots)
