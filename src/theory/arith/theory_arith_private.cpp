@@ -4230,6 +4230,10 @@ void TheoryArithPrivate::notifyRestart(){
 
   if(Debug.isOn("paranoid:check_tableau")){ d_linEq.debugCheckTableau(); }
 
+  if(options::gcArithOnRestart()){
+    d_constraintDatabase.garbageCollect();
+  }
+
   ++d_restartsCounter;
   d_solveIntMaybeHelp = 0;
   d_solveIntAttempts = 0;

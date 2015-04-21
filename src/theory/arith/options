@@ -161,4 +161,7 @@ option pbRewrites --pb-rewrites bool :default false
 option pbRewriteThreshold --pb-rewrite-threshold int :default 256
  threshold of number of pseudoboolean variables to have before doing rewrites
 
+option gcArithOnRestart --gc-arith-on-restart bool :default false
+ garbage collects the arithmetic constraint database on restarts
+
 endmodule

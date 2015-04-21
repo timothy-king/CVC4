@@ -1124,7 +1124,17 @@ public:
   ConstraintP ensureConstraint(ValueCollection& vc, ConstraintType t);
 
 
+  /**
+   * Deletes both the constraint and the negation.
+   * The node and the negation must be safe to garbage collect.
+   */
   void deleteConstraintAndNegation(ConstraintP c);
+
+  /**
+   * Iterates over all constraints, and garbage collects those that are
+   * safe to garbage collect.
+   */
+  void garbageCollect();
 
   /**
    * Outputs a minimal set of unate implications onto the vector for the variable.
@@ -1152,6 +1162,8 @@ public:
   /** AntecendentID must be in range. */
   ConstraintCP getAntecedent(AntecedentId p) const;
   
+  bool hasAnyConstraints(ArithVar v) const;
+
 private:
   /** returns true if cons is now in conflict. */
   bool handleUnateProp(ConstraintP ant, ConstraintP cons);

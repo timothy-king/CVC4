@@ -404,6 +404,8 @@ Constraint::~Constraint() {
   // Call this instead of safeToGarbageCollect()
   Assert(!contextDependentDataIsSet());
 
+  Debug("arith::constraint") << "deleting " << this << endl;
+
   if(initialized()){
     ValueCollection& vc =  d_variablePosition->second;
     Debug("arith::constraint") << "removing" << vc << endl;
@@ -784,6 +786,13 @@ SortedConstraintMap& ConstraintDatabase::getVariableSCM(ArithVar v) const{
   return d_varDatabases[v]->d_constraints;
 }
 
+bool ConstraintDatabase::hasAnyConstraints(ArithVar v) const{
+  Assert(variableDatabaseIsSetup(v));
+  const SortedConstraintMap& scm = getVariableSCM(v);
+  return !scm.empty();
+}
+
+
 void ConstraintDatabase::pushSplitWatch(ConstraintP c){
   Assert(!c->d_split);
   c->d_split = true;
@@ -849,6 +858,8 @@ ConstraintP ConstraintDatabase::getConstraint(ArithVar v, ConstraintType t, cons
   }
 }
 
+
+
 ConstraintP ConstraintDatabase::ensureConstraint(ValueCollection& vc, ConstraintType t){
   if(vc.hasConstraintOfType(t)){
     return vc.getConstraintOfType(t);
@@ -910,6 +921,63 @@ void ConstraintDatabase::deleteConstraintAndNegation(ConstraintP c){
   delete neg;
 }
 
+bool debugGarbageCollectionList(const std::vector<ConstraintP>& togc){
+  std::set<ConstraintP> asSet(togc.begin(), togc.end());
+  if(asSet.size() != togc.size()) { return false; }
+  for(size_t i=0; i < togc.size(); ++i){
+    ConstraintP at_i = togc[i];
+    ConstraintP neg_at_i = at_i->getNegation();
+    if(asSet.find(neg_at_i) != asSet.end() ){
+      return false;
+    }
+  }
+  return true;
+}
+
+void ConstraintDatabase::garbageCollect(){
+  Debug("arith::constraint") << "ConstraintDatabase::garbageCollect() started" << endl;
+  std::vector<ConstraintP> safeToGC;
+  for(ArithVar v = 0, N = d_varDatabases.size(); v < N; ++v){
+    SortedConstraintMap& scm = getVariableSCM(v);
+    for(SortedConstraintMapIterator i = scm.begin(), i_end = scm.end(); i != i_end; ++i){
+      ValueCollection& vc = (*i).second;
+      // to avoid adding both the constraint and it's negation to list add only lower bounds
+      // and equalities
+      if(vc.hasEquality()){
+        ConstraintP eq = vc.getEquality();
+        if(eq->safeToGarbageCollect()){
+          safeToGC.push_back(eq);
+        } else {
+          Debug("arith::constraint") << "Not garbage collecting " << eq << endl;
+        }
+      }
+      if(vc.hasLowerBound()){
+        ConstraintP lb = vc.getLowerBound();
+        if(lb->safeToGarbageCollect()){
+          safeToGC.push_back(lb);
+        } else {
+          Debug("arith::constraint") << "Not garbage collecting " << lb << endl;
+        }
+      }
+    }
+  }
+  
+  Assert( debugGarbageCollectionList(safeToGC));
+
+  // iterate over safeToGC and delete the constraints
+  std::vector<ConstraintP>::iterator to_gc_iter = safeToGC.begin(), to_gc_end=safeToGC.end();
+  for(; to_gc_iter != to_gc_end; ++to_gc_iter){
+    ConstraintP togc = *to_gc_iter;
+    Debug("arith::constraint") << "Garbage collecting " << togc << endl;
+    Assert(togc->safeToGarbageCollect());
+    delete togc;
+  }
+
+  Debug("arith::constraint") << "Garbage collected "<< safeToGC.size()<< " constraints." << endl;
+  Debug("arith::constraint") << "ConstraintDatabase::garbageCollect() done" << endl;
+}
+
+
 void ConstraintDatabase::addVariable(ArithVar v){
   if(d_reclaimable.isMember(v)){
     SortedConstraintMap& scm = getVariableSCM(v);
@@ -943,10 +1011,23 @@ void ConstraintDatabase::removeVariable(ArithVar v){
 bool Constraint::safeToGarbageCollect() const{
   // Do not call during destructor as getNegation() may be Null by this point
   Assert(getNegation() != NullConstraint);
+  Debug("safeToGarbageCollect")
+    << "Constraint::safeToGarbageCollect() on" << endl
+    << "  this: " << this << endl
+    << "  neg: " << getNegation() << endl
+    << "  hasProof() " << hasProof()
+    << "  neg->hasProof() " << getNegation()->hasProof() << endl
+    << "  isSplit() " << isSplit()
+    << "  neg->isSplit() " << getNegation()->isSplit() << endl
+    << "  canBePropagated() " << canBePropagated()
+    << "  neg->canBePropagated() " << getNegation()->canBePropagated() << endl
+    << "  assertedToTheTheory() " << assertedToTheTheory()
+    << "  neg->assertedToTheTheory() " << getNegation()->assertedToTheTheory() << endl;
   return !contextDependentDataIsSet() && ! getNegation()->contextDependentDataIsSet();
 }
 
 bool Constraint::contextDependentDataIsSet() const{
+
   return hasProof() || isSplit() || canBePropagated() || assertedToTheTheory();
 }
 
