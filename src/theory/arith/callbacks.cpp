@@ -25,11 +25,26 @@ namespace arith {
 SetupLiteralCallBack::SetupLiteralCallBack(TheoryArithPrivate& ta)
   : d_arith(ta)
 {}
+
 void SetupLiteralCallBack::operator()(TNode lit){
   TNode atom = (lit.getKind() == kind::NOT) ? lit[0] : lit;
   if(!d_arith.isSetup(atom)){
     d_arith.setupAtom(atom);
   }
+}
+
+UnmarkLiteralCallBack::UnmarkLiteralCallBack(TheoryArithPrivate& ta)
+  : d_arith(ta)
+{}
+
+void UnmarkLiteralCallBack::operator()(TNode lit){
+  // when deleting both the constraint and its negation
+  // it is the case that at least 1 isSetup()
+  // hence we must always check
+  if(d_arith.isSetup(lit)){
+    d_arith.unmarkSetup(lit);
+  }
+
 }
 
 DeltaComputeCallback::DeltaComputeCallback(const TheoryArithPrivate& ta)

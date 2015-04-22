@@ -99,7 +99,8 @@ TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context
   d_containing(containing),
   d_nlIncomplete( false),
   d_rowTracking(),
-  d_constraintDatabase(c, u, d_partialModel, d_congruenceManager, RaiseConflict(*this)),
+  d_constraintDatabase(c, u, d_partialModel, d_congruenceManager,
+                       RaiseConflict(*this), UnmarkLiteralCallBack(*this)),
   d_qflraStatus(Result::SAT_UNKNOWN),
   d_unknownsInARow(0),
   d_hasDoneWorkSinceCut(false),
@@ -1093,6 +1094,22 @@ void TheoryArithPrivate::addSharedTerm(TNode n){
       }
     }
   }
+}
+
+bool TheoryArithPrivate::isSetup(Node n) const {
+  return d_setupNodes.find(n) != d_setupNodes.end();
+}
+
+void TheoryArithPrivate::markSetup(Node n){
+  Assert(!isSetup(n));
+  Debug("arith::setup") << "setting up " << n << endl;
+  d_setupNodes.insert(n);
+}
+
+void TheoryArithPrivate::unmarkSetup(Node n){
+  Assert(isSetup(n));
+  Debug("arith::setup") << "unmark " << n << endl;
+  d_setupNodes.erase(n);
 }
 
 Node TheoryArithPrivate::getModelValue(TNode term) {

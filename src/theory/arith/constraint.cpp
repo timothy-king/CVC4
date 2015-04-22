@@ -419,7 +419,9 @@ Constraint::~Constraint() {
     }
 
     if(hasLiteral()){
-      d_database->d_nodetoConstraintMap.erase(getLiteral());
+      Node lit = getLiteral();
+      d_database->d_nodetoConstraintMap.erase(lit);
+      d_database->d_unmarkLit(lit);
     }
   }
 }
@@ -766,7 +768,7 @@ ConstraintP Constraint::makeNegation(ArithVar v, ConstraintType t, const DeltaRa
   }
 }
 
-ConstraintDatabase::ConstraintDatabase(context::Context* satContext, context::Context* userContext, const ArithVariables& avars, ArithCongruenceManager& cm, RaiseConflict raiseConflict)
+ConstraintDatabase::ConstraintDatabase(context::Context* satContext, context::Context* userContext, const ArithVariables& avars, ArithCongruenceManager& cm, RaiseConflict raiseConflict, UnmarkLiteralCallBack unmark)
   : d_varDatabases()
   , d_toPropagate(satContext)
   , d_antecedents(satContext, false)
@@ -775,6 +777,7 @@ ConstraintDatabase::ConstraintDatabase(context::Context* satContext, context::Co
   , d_congruenceManager(cm)
   , d_satContext(satContext)
   , d_raiseConflict(raiseConflict)
+  , d_unmarkLit(unmark)
   , d_one(1)
   , d_negOne(-1)
 {
@@ -967,10 +970,17 @@ void ConstraintDatabase::garbageCollect(){
   // iterate over safeToGC and delete the constraints
   std::vector<ConstraintP>::iterator to_gc_iter = safeToGC.begin(), to_gc_end=safeToGC.end();
   for(; to_gc_iter != to_gc_end; ++to_gc_iter){
-    ConstraintP togc = *to_gc_iter;
-    Debug("arith::constraint") << "Garbage collecting " << togc << endl;
-    Assert(togc->safeToGarbageCollect());
-    delete togc;
+    ConstraintP toGc = *to_gc_iter;
+
+    ConstraintP negToGc = toGc->getNegation();
+
+    Debug("arith::constraint") << "Garbage collecting " << toGc << endl;
+    Debug("arith::constraint") << "  and its negation " << negToGc << endl;
+    Assert(toGc->safeToGarbageCollect());
+    Assert(negToGc->safeToGarbageCollect());
+
+    delete toGc;
+    delete negToGc;
   }
 
   Debug("arith::constraint") << "Garbage collected "<< safeToGC.size()<< " constraints." << endl;

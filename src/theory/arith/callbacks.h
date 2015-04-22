@@ -72,6 +72,14 @@ public:
   void operator()(TNode lit);
 };
 
+class UnmarkLiteralCallBack : public TNodeCallBack {
+private:
+  TheoryArithPrivate& d_arith;
+public:
+  UnmarkLiteralCallBack(TheoryArithPrivate& ta);
+  void operator()(TNode lit);
+};
+
 class DeltaComputeCallback : public RationalCallBack {
 private:
   const TheoryArithPrivate& d_ta;

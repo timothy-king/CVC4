@@ -119,6 +119,14 @@ private:
 
   BoundInfoMap d_rowTracking;
 
+
+  /* This must come before the constraint database
+   * in the declaration order to be deleted after d_constraintDatabase.
+   * The deletion of constraints can call isSetup
+   * and remove nodes from this set.
+   */
+  NodeSet d_setupNodes;
+
   /**
    * The constraint database associated with the theory.
    * This must be declared before ArithPartialModel.
@@ -197,16 +205,16 @@ private:
   var_iterator var_begin() const { return d_partialModel.var_begin(); }
   var_iterator var_end() const { return d_partialModel.var_end(); }
 
-  NodeSet d_setupNodes;
 public:
-  bool isSetup(Node n) const {
-    return d_setupNodes.find(n) != d_setupNodes.end();
-  }
-  void markSetup(Node n){
-    Assert(!isSetup(n));
-    d_setupNodes.insert(n);
-  }
+  bool isSetup(Node n) const;
+
+  void markSetup(Node n);
+
+  void unmarkSetup(Node n);
+
 private:
+
+  
 
   void setupDivLike(const Variable& x);
 
