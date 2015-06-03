@@ -155,7 +155,7 @@ private:
 
   /** quantifiers engine */
   QuantifiersEngine * d_quantEngine;
-  //std::vector<ArithVar> d_pool;
+
 public:
   void releaseArithVar(ArithVar v);
   void signal(ArithVar v){ d_errorSet.signalVariable(v); }
@@ -221,10 +221,34 @@ private:
   void setupVariable(const Variable& x);
   void setupVariableList(const VarList& vl);
   void setupPolynomial(const Polynomial& poly);
+
+
+  void teardownDivLike(const Variable& x);
+  void teardownVariable(const Variable& x);
+  void teardownVariableList(const VarList& vl);
+  void teardownPolynomial(const Polynomial& poly);
+  void addOccurence(TNode x);
+  void removeOccurence(TNode x);
+
+  void garbageCollectVariables();
+
+  /* Returns true if the polynomial is the standard form for difference
+   * polynomials: x - y
+   * If true, <vl0,vl1> is guaranteed to be <x,y>.
+   */
+  bool decomposeDifferences(const Polynomial& poly, VarList& vl0, VarList& vl1) const;
+  void forceToBeBasic(ArithVar v);
+
+  /**
+   * A cache of variables whose #occurences has recently become 0.
+   * This is not a complete set of variables with 0 occurences.
+   */
+  ArithVarVec d_zeroOccurenceCache;
+  
 public:
   void setupAtom(TNode atom);
 private:
-  void cautiousSetupPolynomial(const Polynomial& p);
+  //void cautiousSetupPolynomial(const Polynomial& p);
 
   /**
    * A superset of all of the assertions that currently are not the literal for

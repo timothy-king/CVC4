@@ -48,21 +48,37 @@ private:
 
   class VarInfo {
     friend class ArithVariables;
+    /** The variable itself. */
     ArithVar d_var;
 
+    /** The current assignment. */
     DeltaRational d_assignment;
+    /** The current lowerbound. */
     ConstraintP d_lb;
+    /** The current upper bound. */
     ConstraintP d_ub;
+    /** A cache of the comparison of the lower bound and the assignment. */
     int d_cmpAssignmentLB;
+    /** A cache of the comparison of the upper bound and the assignment. */
     int d_cmpAssignmentUB;
 
+    /** Number of other arith variables that rely on this variable being defined. */
+    unsigned d_occurenceCount;
+    /** Number of context dependent bounds that have been set on this variable.*/
     unsigned d_pushCount;
+
+    /** Real or Int */
     ArithType d_type;
+
+    /** Node associated with the variable (if one exists) */
     Node d_node;
+
+    /** This is true if the variable is equal to some x = \sum c_i*(\prod y_i). */
     bool d_auxiliary;
 
   public:
     VarInfo();
+    ~VarInfo();
 
     bool setAssignment(const DeltaRational& r, BoundsInfo& prev);
     bool setLowerBound(ConstraintP c, BoundsInfo& prev);
@@ -81,10 +97,25 @@ private:
     /** Uninitializes the VarInfo. */
     void uninitialize();
 
-    bool canBeReclaimed() const;
+    /** Increases the occurence count.*/
+    void addOccurence();
 
-    /** Indicator variables for if the assignment is equal to the upper
-     * and lower bounds. */
+    /** Decrements the occurence count.*/
+    void removeOccurence();
+    
+    /** Returns true if this variable occurs in other terms (d_occurenceCount > 0).*/
+    bool occursInOtherTerms() const;
+    
+    /** Returns true if bounds are pushed on this variable (d_pushCount > 0). */
+    bool hasPushedConstraints() const;
+
+    /** Return true if [hasPushedConstraints() or occursInOtherTerms()] is false.*/
+    bool canBeGarbageCollected() const;
+
+    /**
+     * Indicator variables for if the assignment is equal to the upper
+     * and lower bounds.
+     */
     BoundCounts atBoundCounts() const;
 
     /** Combination of indicator variables for whether it has upper and
@@ -149,6 +180,14 @@ private:
   /** Allocates a freshly allocated variables. */
   ArithVar allocateVariable();
 
+  /** Increases the occurence count of the variable.*/
+  void addOccurence(ArithVar a); 
+
+  /** Decrements the occurence count of the variable.*/
+  void removeOccurence(ArithVar a);
+
+  bool occursInOtherTerms(ArithVar a) const;
+
   class var_iterator {
   private:
     const VarInfoVec* d_vars;
@@ -170,7 +209,9 @@ private:
   var_iterator var_end() const;
 
 
-  bool canBeReleased(ArithVar v) const;
+  bool hasPushedConstraints(ArithVar v) const;
+  bool canBeGarbageCollected(ArithVar v) const;
+
   void releaseArithVar(ArithVar v);
   void attemptToReclaimReleased();
 
@@ -370,6 +411,7 @@ public:
 
   void setDelta(const Rational& d);
 
+  bool debugIsQueueingBoundCounts() const;
   void startQueueingBoundCounts();
   void stopQueueingBoundCounts();
   void addToBoundQueue(ArithVar v, const BoundsInfo& prev);
@@ -381,6 +423,7 @@ public:
 
   void printEntireModel(std::ostream& out) const;
 
+  unsigned numberOfActiveVariables() const;
 
   /**
    * Precondition: assumes boundsAreEqual(x).

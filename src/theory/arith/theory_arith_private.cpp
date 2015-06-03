@@ -106,6 +106,8 @@ TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context
   d_hasDoneWorkSinceCut(false),
   d_learner(u),
   d_quantEngine(NULL),
+  d_setupNodes(),
+  d_zeroOccurenceCache(),
   d_assertionsThatDoNotMatchTheirLiterals(c),
   d_nextIntegerCheckVar(0),
   d_constantIntegerVariables(c),
@@ -161,6 +163,10 @@ TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context
 TheoryArithPrivate::~TheoryArithPrivate(){
   if(d_treeLog != NULL){ delete d_treeLog; }
   if(d_approxStats != NULL) { delete d_approxStats; }
+
+  garbageCollectVariables();
+
+  Assert(d_partialModel.numberOfActiveVariables() == 0);
 }
 
 static bool contains(const ConstraintCPVec& v, ConstraintP con){
@@ -1376,8 +1382,6 @@ void TheoryArithPrivate::setupVariable(const Variable& x){
 
   ++(d_statistics.d_statUserVariables);
   requestArithVar(n, false,  false);
-  //ArithVar varN = requestArithVar(n,false);
-  //setupInitialValue(varN);
 
   markSetup(n);
 
@@ -1385,7 +1389,132 @@ void TheoryArithPrivate::setupVariable(const Variable& x){
   if(x.isDivLike()){
     setupDivLike(x);
   }
+}
 
+void TheoryArithPrivate::garbageCollectVariables(){
+  ArithVarVec queue;
+  int instance = 0;
+  ++instance;
+  Debug("arith::gc") << "TheoryArithPrivate::garbageCollectVariables() " << (instance) << endl;
+
+  {
+    ArithVariables::var_iterator vi=d_partialModel.var_begin(), vend=d_partialModel.var_end();
+    for(; vi != vend; ++vi){
+      ArithVar v = *vi;
+      if(!d_partialModel.hasPushedConstraints(v)){
+        if(!d_partialModel.occursInOtherTerms(v)){
+          queue.push_back(v);
+        }
+      }
+    }
+  }
+  
+  // Ignore the current contents. We just looked at all of the ArithVars set.
+  d_zeroOccurenceCache.clear();
+
+  Assert(d_partialModel.debugIsQueueingBoundCounts());
+  d_partialModel.stopQueueingBoundCounts();
+  UpdateTrackingCallback utcb(&d_linEq);
+  d_partialModel.processBoundsQueue(utcb);
+  d_linEq.startTrackingBoundCounts();
+  
+  while(!queue.empty()){
+    Assert(!queue.empty());
+    Assert(d_zeroOccurenceCache.empty());
+
+    ArithVar v = queue.back();
+    queue.pop_back();
+    Assert(!d_partialModel.occursInOtherTerms(v));
+
+    Debug("arith::gc") << "  visiting " << v << endl;
+    if(d_partialModel.hasPushedConstraints(v)){
+      // do nothing
+      Debug("arith::gc") << "  has pushed constraints " << v << endl;
+    }else {
+      Assert(d_partialModel.canBeGarbageCollected(v));
+      if(d_partialModel.hasNode(v)){
+        Node n = d_partialModel.asNode(v);
+        if(isSetup(n)){
+          Debug("arith::gc") << "  is setup " << v << endl;
+          Assert(Polynomial::isMember(n));
+          Polynomial poly = Polynomial::parsePolynomial(n);
+          teardownPolynomial(poly);
+          Debug("arith::gc") << "  torn down " << v << endl;
+        } else {
+          // What does this mean?
+          Debug("arith::gc") << "  is not setup " << v << endl;
+        }
+      }else {
+        // What does this mean?
+        Debug("arith::gc") << "  has no node " << v << endl;
+      }
+      
+      queue.insert(queue.end(), d_zeroOccurenceCache.begin(), d_zeroOccurenceCache.end());
+      d_zeroOccurenceCache.clear();
+    }      
+  }
+  d_linEq.stopTrackingBoundCounts();
+  d_partialModel.startQueueingBoundCounts();
+  
+  Assert(d_partialModel.debugIsQueueingBoundCounts());
+}
+
+void TheoryArithPrivate::teardownVariable(const Variable& x){
+  Node n = x.getNode();
+  Assert(isSetup(n));
+
+  Debug("arith::gc") << "::teardownVariable() " << n << endl;
+  if(x.isDivLike()){
+    teardownDivLike(x);
+  }
+
+  ArithVar v = d_partialModel.asArithVar(n);
+  releaseArithVar(v);
+  unmarkSetup(n);
+}
+
+void TheoryArithPrivate::addOccurence(TNode x){
+  Assert(isSetup(x));
+  Assert(d_partialModel.hasArithVar(x));
+  ArithVar v = d_partialModel.asArithVar(x);
+  d_partialModel.addOccurence(v);
+}
+
+void TheoryArithPrivate::removeOccurence(TNode x){
+  Assert(isSetup(x));
+  Assert(d_partialModel.hasArithVar(x));
+  ArithVar v = d_partialModel.asArithVar(x);
+  d_partialModel.removeOccurence(v);
+
+  if(!d_partialModel.occursInOtherTerms(v)){
+    d_zeroOccurenceCache.push_back(v);
+  }
+}
+
+void TheoryArithPrivate::teardownVariableList(const VarList& vl){
+  Assert(!vl.empty());
+  TNode vlNode = vl.getNode();
+  Assert(isSetup(vlNode));
+  Assert(d_partialModel.hasArithVar(vlNode));
+
+  if(vl.singleton()){
+    Variable v = vl.getHead();
+    teardownVariable(v);
+  } else {
+    for(VarList::iterator i = vl.begin(), end = vl.end(); i != end; ++i){
+      Variable var = *i;
+      TNode varAsNode = var.getNode();
+      Assert(isSetup(varAsNode));
+      Assert(d_partialModel.hasArithVar(varAsNode));
+      removeOccurence(varAsNode);
+    }
+    // TODO maybe unset  setIncomplete() and d_nlIncomplete?
+
+    ArithVar vlAsArithVar = d_partialModel.asArithVar(vlNode);
+    releaseArithVar(vlAsArithVar);
+    
+    unmarkSetup(vlNode);
+  }
 }
 
 void TheoryArithPrivate::setupVariableList(const VarList& vl){
@@ -1394,49 +1523,44 @@ void TheoryArithPrivate::setupVariableList(const VarList& vl){
   TNode vlNode = vl.getNode();
   Assert(!isSetup(vlNode));
   Assert(!d_partialModel.hasArithVar(vlNode));
-
+  
   for(VarList::iterator i = vl.begin(), end = vl.end(); i != end; ++i){
     Variable var = *i;
-
-    if(!isSetup(var.getNode())){
+    TNode varAsNode = var.getNode();
+    
+    if(!isSetup(varAsNode)){
       setupVariable(var);
     }
+    Assert(isSetup(varAsNode));
   }
 
-  if(!vl.singleton()){
+  if(!vl.singleton()) {
     // vl is the product of at least 2 variables
     // vl : (* v1 v2 ...)
     if(getLogicInfo().isLinear()){
       throw LogicException("A non-linear fact was asserted to arithmetic in a linear logic.");
     }
 
+    
     setIncomplete();
     d_nlIncomplete = true;
 
     ++(d_statistics.d_statUserVariables);
     requestArithVar(vlNode, false, false);
-    //ArithVar av = requestArithVar(vlNode, false);
-    //setupInitialValue(av);
 
+    /* Note:
+     * Only call markSetup if the VarList is not a singleton.
+     * See the comment in setupPolynomail for more.
+     */
     markSetup(vlNode);
-  }
 
-  /* Note:
-   * Only call markSetup if the VarList is not a singleton.
-   * See the comment in setupPolynomail for more.
-   */
-}
-
-void TheoryArithPrivate::cautiousSetupPolynomial(const Polynomial& p){
-  if(p.containsConstant()){
-    if(!p.isConstant()){
-      Polynomial noConstant = p.getTail();
-      if(!isSetup(noConstant.getNode())){
-        setupPolynomial(noConstant);
-      }
+    for(VarList::iterator i = vl.begin(), end = vl.end(); i != end; ++i){
+      Variable var = *i;
+      TNode varAsNode = var.getNode();
+      Assert(isSetup(varAsNode));
+      Assert(d_partialModel.hasArithVar(varAsNode));
+      addOccurence(varAsNode);
     }
-  }else if(!isSetup(p.getNode())){
-    setupPolynomial(p);
   }
 }
 
@@ -1452,10 +1576,29 @@ void TheoryArithPrivate::setupDivLike(const Variable& v){
   Polynomial m = Polynomial::parsePolynomial(vnode[0]);
   Polynomial n = Polynomial::parsePolynomial(vnode[1]);
 
-  cautiousSetupPolynomial(m);
-  cautiousSetupPolynomial(n);
+  Polynomial mWithoutOffset = m.removeConstantOffset();
+  Polynomial m_norm = mWithoutOffset.normalizeLeadingCoefficientToBePositive();
 
-  Node lem;
+  Polynomial nWithoutOffset = n.removeConstantOffset();
+  Polynomial n_norm = nWithoutOffset.normalizeLeadingCoefficientToBePositive();
+  
+
+
+  if(!m_norm.isConstant()){
+    if(!isSetup(m_norm.getNode())){
+      setupPolynomial(m_norm);
+    }
+    addOccurence(m_norm.getNode());
+  }
+
+  if(!n_norm.isConstant()){
+    if(!isSetup(n_norm.getNode())){
+      setupPolynomial(n_norm);
+    }
+    addOccurence(n_norm.getNode());
+  }
+  
+  Node lem = Node::null();
   switch(vnode.getKind()){
   case DIVISION:
   case INTS_DIVISION:
@@ -1475,10 +1618,37 @@ void TheoryArithPrivate::setupDivLike(const Variable& v){
   }
 
   if(!lem.isNull()){
-    Debug("arith::div") << lem << endl;
+    Debug("arith::div") << "Lemma defining a division like symbol: " << lem << endl;
     outputLemma(lem);
   }
 }
+
+void TheoryArithPrivate::teardownDivLike(const Variable& v){
+  Assert(v.isDivLike());
+
+  Node vnode = v.getNode();
+  Assert(isSetup(vnode));
+
+  Polynomial m = Polynomial::parsePolynomial(vnode[0]);
+  Polynomial n = Polynomial::parsePolynomial(vnode[1]);
+
+  Polynomial mWithoutOffset = m.removeConstantOffset();
+  Polynomial m_norm = mWithoutOffset.normalizeLeadingCoefficientToBePositive();
+  Polynomial nWithoutOffset = n.removeConstantOffset();
+  Polynomial n_norm = nWithoutOffset.normalizeLeadingCoefficientToBePositive();
+
+  if(!m_norm.isConstant()){
+    Assert(isSetup(m_norm.getNode()));
+    removeOccurence(m_norm.getNode());
+  }
+  if(!n_norm.isConstant()){
+    Assert(isSetup(n_norm.getNode()));
+    removeOccurence(n_norm.getNode());
+  }
+
+  // Just like TheoryArithPrivate::setupDivLike this does not remove the setup for the variable itself!
+}
+
 
 Node TheoryArithPrivate::definingIteForDivLike(Node divLike){
   Kind k = divLike.getKind();
@@ -1585,6 +1755,27 @@ Node TheoryArithPrivate::axiomIteForTotalIntDivision(Node int_div_like){
   return lem;
 }
 
+bool TheoryArithPrivate::decomposeDifferences(const Polynomial& poly, VarList& vl0, VarList& vl1) const {
+  Polynomial::iterator i = poly.begin(), end = poly.end();
+  if(i != end){
+    Monomial first = *i;
+    ++i;
+    if(i != end){
+      Monomial second = *i;
+      ++i;
+      if(i == end){
+        if(first.getConstant().isOne() && second.getConstant().getValue() == -1){
+          vl0 = first.getVarList();
+          vl1 = second.getVarList();
+          if(vl0.singleton() && vl1.singleton()){
+            return true;
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
 
 void TheoryArithPrivate::setupPolynomial(const Polynomial& poly) {
   Assert(!poly.containsConstant());
@@ -1602,7 +1793,13 @@ void TheoryArithPrivate::setupPolynomial(const Polynomial& poly) {
 
   if(polyNode.getKind() == PLUS){
     d_tableauSizeHasBeenModified = true;
-
+    
+    for(Polynomial::iterator i = poly.begin(), end = poly.end(); i != end; ++i){
+      Monomial mono = *i;
+      const VarList& vl = mono.getVarList();
+      addOccurence(vl.getNode());
+    }
+    
     vector<ArithVar> variables;
     vector<Rational> coefficients;
     asVectors(poly, coefficients, variables);
@@ -1613,25 +1810,15 @@ void TheoryArithPrivate::setupPolynomial(const Polynomial& poly) {
     d_linEq.trackRowIndex(d_tableau.basicToRowIndex(varSlack));
 
     //Add differences to the difference manager
-    Polynomial::iterator i = poly.begin(), end = poly.end();
-    if(i != end){
-      Monomial first = *i;
-      ++i;
-      if(i != end){
-        Monomial second = *i;
-        ++i;
-        if(i == end){
-          if(first.getConstant().isOne() && second.getConstant().getValue() == -1){
-            VarList vl0 = first.getVarList();
-            VarList vl1 = second.getVarList();
-            if(vl0.singleton() && vl1.singleton()){
-              d_congruenceManager.addWatchedPair(varSlack, vl0.getNode(), vl1.getNode());
-            }
-          }
-        }
-      }
+    VarList vl0 = VarList::mkEmptyVarList();
+    VarList vl1 = VarList::mkEmptyVarList();
+    bool isDiff = decomposeDifferences(poly, vl0, vl1);
+    if(isDiff){
+      Assert(!vl0.empty());
+      Assert(!vl1.empty());
+      d_congruenceManager.addWatchedPair(varSlack, vl0.getNode(), vl1.getNode());
     }
-
+    
     ++(d_statistics.d_statAuxiliaryVariables);
     markSetup(polyNode);
   }
@@ -1642,6 +1829,68 @@ void TheoryArithPrivate::setupPolynomial(const Polynomial& poly) {
    * Other kinds will be marked as being setup by lower levels of setup
    * specifically setupVariableList.
    */
+}
+
+void TheoryArithPrivate::forceToBeBasic(ArithVar v){
+  // Must know that v can be made to be basic
+
+  if(!d_tableau.isBasic(v)){
+    /* if it is not basic make it basic. */
+    ArithVar b = ARITHVAR_SENTINEL;
+    for(Tableau::ColIterator ci = d_tableau.colIterator(v); !ci.atEnd(); ++ci){
+      const Tableau::Entry& e = *ci;
+      b = d_tableau.rowIndexToBasic(e.getRowIndex());
+      break;
+    }
+    Assert(b != ARITHVAR_SENTINEL);
+    DeltaRational cp = d_partialModel.getAssignment(b);
+    if(d_partialModel.cmpAssignmentLowerBound(b) < 0){
+      cp = d_partialModel.getLowerBound(b);
+    }else if(d_partialModel.cmpAssignmentUpperBound(b) > 0){
+      cp = d_partialModel.getUpperBound(b);
+    }
+    d_linEq.pivotAndUpdate(b, v, cp);
+  }
+  Assert(d_tableau.isBasic(v));     
+}
+
+void TheoryArithPrivate::teardownPolynomial(const Polynomial& poly) {
+  Assert(!poly.containsConstant());
+  Assert(!d_partialModel.debugIsQueueingBoundCounts());
+  
+  if(poly.size() == 1){
+    Monomial m = poly.getHead();
+    const VarList& vl = m.getVarList();
+    teardownVariableList(vl);
+  } else {
+    TNode polyNode = poly.getNode();
+    Assert(isSetup(polyNode));
+    Assert(d_partialModel.hasArithVar(polyNode));
+    ArithVar v = d_partialModel.asArithVar(polyNode);
+        
+    forceToBeBasic(v);
+    Assert(d_tableau.isBasic(v));
+    
+    for(Polynomial::iterator i = poly.begin(), end = poly.end(); i != end; ++i){
+      Monomial mono = *i;
+      const VarList& vl = mono.getVarList();
+      removeOccurence(vl.getNode());
+    }
+
+    d_linEq.stopTrackingRowIndex(d_tableau.basicToRowIndex(v));
+    d_tableau.removeBasicRow(v);
+
+    VarList vl0 = VarList::mkEmptyVarList();
+    VarList vl1 = VarList::mkEmptyVarList();
+    bool isDiff = decomposeDifferences(poly, vl0, vl1);
+    if(isDiff){
+      Assert(!vl0.empty());
+      Assert(!vl1.empty());
+      d_congruenceManager.removeWatchedVariable(v);
+    }
+    releaseArithVar(v);
+    unmarkSetup(polyNode);
+  }
 }
 
 void TheoryArithPrivate::setupAtom(TNode atom) {
@@ -1689,7 +1938,8 @@ void TheoryArithPrivate::preRegisterTerm(TNode n) {
 
 void TheoryArithPrivate::releaseArithVar(ArithVar v){
   //Assert(d_partialModel.hasNode(v));
-
+  Assert(d_tableau.getColLength(v) == 0);
+  
   d_constraintDatabase.removeVariable(v);
   d_partialModel.releaseArithVar(v);
 }
@@ -1783,11 +2033,6 @@ ArithVar TheoryArithPrivate::determineArithVar(TNode assertion) const{
   return determineArithVar(variablePart);
 }
 
-
-bool TheoryArithPrivate::canSafelyAvoidEqualitySetup(TNode equality){
-  Assert(equality.getKind() == EQUAL);
-  return d_partialModel.hasArithVar(equality[0]);
-}
 
 Comparison TheoryArithPrivate::mkIntegerEqualityFromAssignment(ArithVar v){
   const DeltaRational& beta = d_partialModel.getAssignment(v);
@@ -2798,25 +3043,11 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
     while(d_replayVariables.size() > rpvars_size){
       ArithVar v = d_replayVariables.back();
       d_replayVariables.pop_back();
-      Assert(d_partialModel.canBeReleased(v));
-      if(!d_tableau.isBasic(v)){
-        /* if it is not basic make it basic. */
-        ArithVar b = ARITHVAR_SENTINEL;
-        for(Tableau::ColIterator ci = d_tableau.colIterator(v); !ci.atEnd(); ++ci){
-          const Tableau::Entry& e = *ci;
-          b = d_tableau.rowIndexToBasic(e.getRowIndex());
-          break;
-        }
-        Assert(b != ARITHVAR_SENTINEL);
-        DeltaRational cp = d_partialModel.getAssignment(b);
-        if(d_partialModel.cmpAssignmentLowerBound(b) < 0){
-          cp = d_partialModel.getLowerBound(b);
-        }else if(d_partialModel.cmpAssignmentUpperBound(b) > 0){
-          cp = d_partialModel.getUpperBound(b);
-        }
-        d_linEq.pivotAndUpdate(b, v, cp);
-      }
+      Assert(d_partialModel.canBeGarbageCollected(v));
+
+      forceToBeBasic(v);
       Assert(d_tableau.isBasic(v));
+
       d_linEq.stopTrackingRowIndex(d_tableau.basicToRowIndex(v));
       d_tableau.removeBasicRow(v);
 

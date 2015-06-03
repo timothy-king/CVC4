@@ -124,9 +124,13 @@ public:
     d_realType = new TypeNode(d_nm->realType());
     d_intType = new TypeNode(d_nm->integerType());
 
+    
+    d_ctxt->push();
   }
 
   void tearDown() {
+    d_ctxt->pop();
+    
     delete d_intType;
     delete d_realType;
     delete d_booleanType;

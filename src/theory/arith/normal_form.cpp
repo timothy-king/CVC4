@@ -490,6 +490,23 @@ bool Polynomial::leadingCoefficientIsPositive() const {
   return getHead().getConstant().isPositive();
 }
 
+
+Polynomial Polynomial::normalizeLeadingCoefficientToBePositive() const {
+  if(leadingCoefficientIsPositive()){
+    return *this;
+  } else {
+    return -(*this);
+  }
+}
+
+Polynomial Polynomial::removeConstantOffset() const {
+  if(containsConstant()){
+    if(!isConstant()){
+      return getTail();
+    }
+  }
+  return (*this);
+}
 bool Polynomial::denominatorLCMIsOne() const {
   return denominatorLCM().isOne();
 }

@@ -21,12 +21,12 @@
 
 #include "theory/arith/arithvar.h"
 #include "theory/arith/constraint_forward.h"
-#include "theory/arith/partial_model.h"
-
-#include "theory/uf/equality_engine.h"
+#include "theory/arith/arith_utilities.h"
+#include "theory/arith/callbacks.h"
 
 #include "context/cdo.h"
 #include "context/cdlist.h"
+#include "context/cdhashmap.h"
 #include "context/context.h"
 #include "context/cdtrail_queue.h"
 #include "context/cdmaybe.h"
@@ -34,12 +34,28 @@
 #include "util/statistics_registry.h"
 #include "util/dense_map.h"
 
+// forward declarations
+namespace CVC4 {
+namespace theory {
+class RaiseEqualityEngineConflict;
+namespace eq {
+class EqualityEngine;
+class EqualityEngineNotify;
+}/* CVC4::theory::eq namespace */
+namespace arith {
+class ArithVariables;
+class ArithCongruenceNotify;
+}/* CVC4::theory::arith namespace */
+}/* CVC4::theory namespace */
+}/* CVC4 namespace */
+
 namespace CVC4 {
 namespace theory {
 namespace arith {
-
 class ArithCongruenceManager {
 private:
+  friend class ArithCongruenceNotify;
+  
   context::CDRaised d_inConflict;
   RaiseEqualityEngineConflict d_raiseConflict;
 
@@ -52,26 +68,7 @@ private:
   /** d_watchedVariables |-> (= x y) */
   ArithVarToNodeMap d_watchedEqualities;
 
-
-  class ArithCongruenceNotify : public eq::EqualityEngineNotify {
-  private:
-    ArithCongruenceManager& d_acm;
-  public:
-    ArithCongruenceNotify(ArithCongruenceManager& acm);
-
-    bool eqNotifyTriggerEquality(TNode equality, bool value);
-
-    bool eqNotifyTriggerPredicate(TNode predicate, bool value);
-
-    bool eqNotifyTriggerTermEquality(TheoryId tag, TNode t1, TNode t2, bool value);
-
-    void eqNotifyConstantTermMerge(TNode t1, TNode t2);
-    void eqNotifyNewClass(TNode t);
-    void eqNotifyPreMerge(TNode t1, TNode t2);
-    void eqNotifyPostMerge(TNode t1, TNode t2);
-    void eqNotifyDisequal(TNode t1, TNode t2, TNode reason);
-  };
-  ArithCongruenceNotify d_notify;
+  eq::EqualityEngineNotify* d_notify;
 
   context::CDList<Node> d_keepAlive;
 
@@ -91,7 +88,7 @@ private:
 
   const ArithVariables& d_avariables;
 
-  eq::EqualityEngine d_ee;
+  eq::EqualityEngine* d_ee;
 
   void raiseConflict(Node conflict);
 public:
@@ -134,10 +131,13 @@ public:
 
   ArithCongruenceManager(context::Context* satContext, ConstraintDatabase&, SetupLiteralCallBack, const ArithVariables&, RaiseEqualityEngineConflict raiseConflict);
 
+  ~ArithCongruenceManager();
+  
   Node explain(TNode literal);
   void explain(TNode lit, NodeBuilder<>& out);
 
   void addWatchedPair(ArithVar s, TNode x, TNode y);
+  void removeWatchedVariable(ArithVar s);
 
   inline bool isWatchedVariable(ArithVar s) const {
     return d_watchedVariables.isMember(s);

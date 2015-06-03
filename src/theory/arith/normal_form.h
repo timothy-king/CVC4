@@ -1117,6 +1117,10 @@ public:
   /** Returns a node that if asserted ensures v is the abs of p.*/
   static Node makeAbsCondition(Variable v, Polynomial p);
 
+
+  Polynomial removeConstantOffset() const;
+  Polynomial normalizeLeadingCoefficientToBePositive() const;
+  
 };/* class Polynomial */
 
 

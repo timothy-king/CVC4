@@ -108,6 +108,14 @@ ArithVariables::var_iterator ArithVariables::var_begin() const {
 ArithVariables::var_iterator ArithVariables::var_end() const {
   return var_iterator(&d_vars, d_vars.end());
 }
+
+unsigned ArithVariables::numberOfActiveVariables() const{
+  var_iterator vi = var_begin(), vend = var_end();
+  unsigned counter = 0;
+  for(; vi != vend; ++vi, ++counter){}
+  return counter;
+}
+
 bool ArithVariables::isInteger(ArithVar x) const {
   return d_vars[x].d_type >= ATInteger;
 }
@@ -125,16 +133,51 @@ bool ArithVariables::isIntegerInput(ArithVar x) const {
 }
 
 ArithVariables::VarInfo::VarInfo()
-  : d_var(ARITHVAR_SENTINEL),
-    d_assignment(0),
-    d_lb(NullConstraint),
-    d_ub(NullConstraint),
-    d_cmpAssignmentLB(1),
-    d_cmpAssignmentUB(-1),
-    d_pushCount(0),
-    d_node(Node::null()),
-    d_auxiliary(false)
+  : d_var(ARITHVAR_SENTINEL)
+  , d_assignment(0)
+  , d_lb(NullConstraint)
+  , d_ub(NullConstraint)
+  , d_cmpAssignmentLB(1)
+  , d_cmpAssignmentUB(-1)
+  , d_occurenceCount(0)
+  , d_pushCount(0)
+  , d_node(Node::null())
+  , d_auxiliary(false)
 { }
+
+ArithVariables::VarInfo::~VarInfo(){
+  // Cannot Assert(canBeGarbageCollected()); here
+  // VarInfo's Destructor can be call during reallocation of the VarInfo vector
+  // It will be non-zero at this point
+}
+
+bool ArithVariables::VarInfo::occursInOtherTerms() const {
+  return d_occurenceCount > 0;
+}
+
+void ArithVariables::VarInfo::removeOccurence(){
+  Assert(occursInOtherTerms());
+  d_occurenceCount--;
+}
+
+void ArithVariables::VarInfo::addOccurence(){
+  Assert(d_occurenceCount < d_occurenceCount + 1);
+  d_occurenceCount++;
+}
+
+void ArithVariables::addOccurence(ArithVar a){
+  VarInfo& vi = d_vars.get(a);
+  vi.addOccurence();
+}
+
+void ArithVariables::removeOccurence(ArithVar a){
+  VarInfo& vi = d_vars.get(a);
+  vi.removeOccurence();
+}
+
+bool ArithVariables::occursInOtherTerms(ArithVar a) const {
+  return d_vars[a].occursInOtherTerms();
+}
 
 bool ArithVariables::VarInfo::initialized() const {
   return d_var != ARITHVAR_SENTINEL;
@@ -162,7 +205,9 @@ void ArithVariables::VarInfo::initialize(ArithVar v, Node n, bool aux){
 
   Assert(initialized());
 }
+
 void ArithVariables::VarInfo::uninitialize(){
+  Assert(canBeGarbageCollected());
   d_var = ARITHVAR_SENTINEL;
   d_node = Node::null();
 }
@@ -201,7 +246,7 @@ void ArithVariables::releaseArithVar(ArithVar v){
   if(d_safeAssignment.isKey(v)){
     d_safeAssignment.remove(v);
   }
-  if(vi.canBeReclaimed()){
+  if(vi.canBeGarbageCollected()){
     d_pool.push_back(v);
   }else{
     d_released.push_back(v);
@@ -257,19 +302,28 @@ BoundsInfo ArithVariables::VarInfo::boundsInfo() const{
   return BoundsInfo(atBoundCounts(), hasBoundCounts());
 }
 
-bool ArithVariables::VarInfo::canBeReclaimed() const{
-  return d_pushCount == 0;
+bool ArithVariables::VarInfo::hasPushedConstraints() const{
+  return d_pushCount > 0;
 }
 
-bool ArithVariables::canBeReleased(ArithVar v) const{
-  return d_vars[v].canBeReclaimed();
+bool ArithVariables::hasPushedConstraints(ArithVar v) const{
+  return d_vars[v].hasPushedConstraints();
+}
+
+bool ArithVariables::VarInfo::canBeGarbageCollected() const{
+  return !hasPushedConstraints() && !occursInOtherTerms();
+}
+
+
+bool ArithVariables::canBeGarbageCollected(ArithVar v) const{
+  return d_vars[v].canBeGarbageCollected();
 }
 
 void ArithVariables::attemptToReclaimReleased(){
   size_t readPos = 0, writePos = 0, N = d_released.size();
   for(; readPos < N; ++readPos){
     ArithVar v = d_released[readPos];
-    if(canBeReleased(v)){
+    if(canBeGarbageCollected(v)){
       d_pool.push_back(v);
     }else{
       d_released[writePos] = v;
@@ -664,6 +718,10 @@ void ArithVariables::startQueueingBoundCounts(){
 }
 void ArithVariables::stopQueueingBoundCounts(){
   d_enqueueingBoundCounts = false;
+}
+
+bool ArithVariables::debugIsQueueingBoundCounts() const {
+  return d_enqueueingBoundCounts;
 }
 
 bool ArithVariables::inMaps(ArithVar x) const{

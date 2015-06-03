@@ -190,6 +190,7 @@ public:
     d_logicInfo = new LogicInfo();
     d_logicInfo->lock();
 
+    
     // guard against duplicate statistics assertion errors
     delete d_smt->d_theoryEngine->d_theoryTable[THEORY_BUILTIN];
     delete d_smt->d_theoryEngine->d_theoryOut[THEORY_BUILTIN];
@@ -200,9 +201,13 @@ public:
     d_outputChannel.clear();
     atom0 = d_nm->mkConst(true);
     atom1 = d_nm->mkConst(false);
+
+    d_ctxt->push();
   }
 
   void tearDown() {
+    d_ctxt->pop();
+    
     atom1 = Node::null();
     atom0 = Node::null();
     delete d_dummy;
