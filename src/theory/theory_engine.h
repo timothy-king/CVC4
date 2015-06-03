@@ -282,8 +282,8 @@ class TheoryEngine {
     {
     }
 
-      void safePoint() throw(theory::Interrupted, UnsafeInterruptException, AssertionException) {
-      spendResource();
+      void safePoint(uint64_t ammount) throw(theory::Interrupted, UnsafeInterruptException, AssertionException) {
+      spendResource(ammount);
       if (d_engine->d_interrupted) {
         throw theory::Interrupted();
       }
@@ -303,7 +303,7 @@ class TheoryEngine {
       return d_engine->propagate(literal, d_theory);
     }
 
-    theory::LemmaStatus lemma(TNode lemma, bool removable = false, bool preprocess = false) throw(TypeCheckingExceptionPrivate, AssertionException, UnsafeInterruptException) {
+    theory::LemmaStatus lemma(TNode lemma, bool removable = false, bool preprocess = false) throw(TypeCheckingExceptionPrivate, AssertionException, UnsafeInterruptException, LogicException) {
       Trace("theory::lemma") << "EngineOutputChannel<" << d_theory << ">::lemma(" << lemma << ")" << std::endl;
       ++ d_statistics.lemmas;
       d_engine->d_outputChannelUsed = true;
@@ -347,8 +347,8 @@ class TheoryEngine {
       d_engine->setIncomplete(d_theory);
     }
 
-    void spendResource() throw(UnsafeInterruptException) {
-      d_engine->spendResource();
+    void spendResource(unsigned ammount) throw(UnsafeInterruptException) {
+      d_engine->spendResource(ammount);
     }
 
     void handleUserAttribute( const char* attr, theory::Theory* t ){
@@ -488,7 +488,7 @@ public:
   /**
    * "Spend" a resource during a search or preprocessing.
    */
-  void spendResource();
+  void spendResource(unsigned ammount);
 
   /**
    * Adds a theory. Only one theory per TheoryId can be present, so if

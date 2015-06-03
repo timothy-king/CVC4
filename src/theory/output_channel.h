@@ -22,6 +22,7 @@
 #include "util/cvc4_assert.h"
 #include "theory/interrupted.h"
 #include "util/resource_manager.h"
+#include "smt/logic_exception.h"
 
 namespace CVC4 {
 namespace theory {
@@ -85,7 +86,7 @@ public:
    * With safePoint(), the theory signals that it is at a safe point
    * and can be interrupted.
    */
-  virtual void safePoint() throw(Interrupted, UnsafeInterruptException, AssertionException) {
+  virtual void safePoint(uint64_t ammount) throw(Interrupted, UnsafeInterruptException, AssertionException) {
   }
 
   /**
@@ -120,7 +121,7 @@ public:
    */
   virtual LemmaStatus lemma(TNode n, bool removable = false,
                             bool preprocess = false)
-    throw(TypeCheckingExceptionPrivate, AssertionException, UnsafeInterruptException) = 0;
+    throw(TypeCheckingExceptionPrivate, AssertionException, UnsafeInterruptException, LogicException) = 0;
 
   /**
    * Request a split on a new theory atom.  This is equivalent to
@@ -212,7 +213,7 @@ public:
    * long-running operations, they cannot rely on resource() to break
    * out of infinite or intractable computations.
    */
-  virtual void spendResource() throw(UnsafeInterruptException) {}
+  virtual void spendResource(unsigned ammount) throw(UnsafeInterruptException) {}
 
   /**
    * Handle user attribute.

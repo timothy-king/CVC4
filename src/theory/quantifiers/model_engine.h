@@ -48,8 +48,10 @@ public:
   virtual ~ModelEngine();
 public:
   bool needsCheck( Theory::Effort e );
-  bool needsModel( Theory::Effort e );
+  unsigned needsModel( Theory::Effort e );
+  void reset_round( Theory::Effort e );
   void check( Theory::Effort e, unsigned quant_e );
+  bool checkComplete();
   void registerQuantifier( Node f );
   void assertNode( Node f );
   Node explain(TNode n){ return Node::null(); }

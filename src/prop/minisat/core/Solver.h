@@ -44,6 +44,7 @@ namespace CVC4 {
   }/* CVC4::prop namespace */
 }/* CVC4 namespace */
 
+namespace CVC4 {
 namespace Minisat {
 
 //=================================================================================================
@@ -423,7 +424,7 @@ protected:
     int      trail_index      (Var x) const; // Index in the trail
     double   progressEstimate ()      const; // DELETE THIS ?? IT'S NOT VERY USEFUL ...
 public:
-    bool     withinBudget     ()      const;
+    bool     withinBudget     (uint64_t amount)      const;
 protected:
 
     // Static helpers:
@@ -557,5 +558,6 @@ inline void     Solver::toDimacs     (const char* file, Lit p, Lit q, Lit r){ ve
 
 //=================================================================================================
 }/* Minisat namespace */
+}
 
 #endif

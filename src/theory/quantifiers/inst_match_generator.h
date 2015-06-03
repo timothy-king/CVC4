@@ -33,6 +33,7 @@ namespace inst {
 /** base class for producing InstMatch objects */
 class IMGenerator {
 public:
+  virtual ~IMGenerator() {}
   /** reset instantiation round (call this at beginning of instantiation round) */
   virtual void resetInstantiationRound( QuantifiersEngine* qe ) = 0;
   /** reset, eqc is the equivalence class to search in (any if eqc=null) */
@@ -63,10 +64,11 @@ protected:
   InstMatchGenerator* d_next;
   /** eq class */
   Node d_eq_class;
+  bool d_eq_class_rel;
   /** variable numbers */
   std::map< int, int > d_var_num;
   /** initialize pattern */
-  void initialize( QuantifiersEngine* qe, std::vector< InstMatchGenerator * > & gens );
+  void initialize( Node q, QuantifiersEngine* qe, std::vector< InstMatchGenerator * > & gens );
   /** children types 0 : variable, 1 : child term, -1 : ground term */
   std::vector< int > d_children_types;
   /** continue */
@@ -89,7 +91,7 @@ public:
   InstMatchGenerator( Node pat );
   InstMatchGenerator();
   /** destructor */
-  ~InstMatchGenerator(){}
+  ~InstMatchGenerator() throw() {}
   /** The pattern we are producing matches for.
       If null, this is a multi trigger that is merging matches from d_children.
   */
@@ -115,14 +117,15 @@ public:
   bool d_active_add;
   void setActiveAdd( bool val );
 
-  static InstMatchGenerator* mkInstMatchGenerator( Node pat, QuantifiersEngine* qe );
-  static InstMatchGenerator* mkInstMatchGenerator( std::vector< Node >& pats, QuantifiersEngine* qe );
+  static InstMatchGenerator* mkInstMatchGenerator( Node q, Node pat, QuantifiersEngine* qe );
+  static InstMatchGenerator* mkInstMatchGenerator( Node q, std::vector< Node >& pats, QuantifiersEngine* qe );
 };/* class InstMatchGenerator */
 
 //match generator for boolean term ITEs
 class VarMatchGeneratorBooleanTerm : public InstMatchGenerator {
 public:
   VarMatchGeneratorBooleanTerm( Node var, Node comp );
+  ~VarMatchGeneratorBooleanTerm() throw() {}
   Node d_comp;
   bool d_rm_prev;
   /** reset instantiation round (call this at beginning of instantiation round) */
@@ -139,6 +142,7 @@ public:
 class VarMatchGeneratorTermSubs : public InstMatchGenerator {
 public:
   VarMatchGeneratorTermSubs( Node var, Node subs );
+  ~VarMatchGeneratorTermSubs() throw() {}
   TNode d_var;
   Node d_subs;
   bool d_rm_prev;
@@ -186,7 +190,7 @@ public:
   /** constructors */
   InstMatchGeneratorMulti( Node f, std::vector< Node >& pats, QuantifiersEngine* qe );
   /** destructor */
-  ~InstMatchGeneratorMulti(){}
+  ~InstMatchGeneratorMulti() throw() {}
   /** reset instantiation round (call this whenever equivalence classes have changed) */
   void resetInstantiationRound( QuantifiersEngine* qe );
   /** reset, eqc is the equivalence class to search in (any if eqc=null) */
@@ -218,7 +222,7 @@ public:
   /** constructors */
   InstMatchGeneratorSimple( Node f, Node pat );
   /** destructor */
-  ~InstMatchGeneratorSimple(){}
+  ~InstMatchGeneratorSimple() throw() {}
   /** reset instantiation round (call this whenever equivalence classes have changed) */
   void resetInstantiationRound( QuantifiersEngine* qe );
   /** reset, eqc is the equivalence class to search in (any if eqc=null) */

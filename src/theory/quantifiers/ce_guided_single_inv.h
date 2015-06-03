@@ -31,6 +31,7 @@ class CegConjecture;
 class CegqiOutput
 {
 public:
+  virtual ~CegqiOutput() {}
   virtual bool addInstantiation( std::vector< Node >& subs, std::vector< int >& subs_typ ) = 0;
   virtual bool isEligibleForInstantiation( Node n ) = 0;
   virtual bool addLemma( Node lem ) = 0;
@@ -83,6 +84,7 @@ class CegqiOutputSingleInv : public CegqiOutput
 {
 public:
   CegqiOutputSingleInv( CegConjectureSingleInv * out ) : d_out( out ){}
+  ~CegqiOutputSingleInv() {}
   CegConjectureSingleInv * d_out;
   bool addInstantiation( std::vector< Node >& subs, std::vector< int >& subs_typ );
   bool isEligibleForInstantiation( Node n );
@@ -156,6 +158,8 @@ public:
   void check( std::vector< Node >& lems );
   //get solution
   Node getSolution( unsigned sol_index, TypeNode stn, int& reconstructed );
+  // is single invocation
+  bool isSingleInvocation() { return !d_single_inv.isNull(); }
 };
 
 }

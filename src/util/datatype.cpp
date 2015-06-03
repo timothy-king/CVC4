@@ -134,11 +134,13 @@ void Datatype::addConstructor(const DatatypeConstructor& c) {
 }
 
 
-void Datatype::setSygus( Type st, Expr bvl ){
+void Datatype::setSygus( Type st, Expr bvl, bool allow_const, bool allow_all ){
   CheckArgument(!d_resolved, this,
                 "cannot set sygus type to a finalized Datatype");
   d_sygus_type = st;
   d_sygus_bvl = bvl;
+  d_sygus_allow_const = allow_const || allow_all;
+  d_sygus_allow_all = allow_all;
 }
 
 
@@ -468,6 +470,14 @@ Type Datatype::getSygusType() const {
 
 Expr Datatype::getSygusVarList() const {
   return d_sygus_bvl;
+}
+
+bool Datatype::getSygusAllowConst() const {
+  return d_sygus_allow_const;
+}
+
+bool Datatype::getSygusAllowAll() const {
+  return d_sygus_allow_const;
 }
 
 bool Datatype::involvesExternalType() const{

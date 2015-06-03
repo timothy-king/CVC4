@@ -27,12 +27,13 @@
 #include "theory/logic_info.h"
 #include "theory/substitutions.h"
 
+
+namespace CVC4 {
+
 // forward declarations
 namespace Minisat {
   class Solver;
 }/* Minisat namespace */
-
-namespace CVC4 {
 
 namespace prop {
   class CnfStream;
@@ -171,6 +172,7 @@ public:
   void addClause(ClauseId id, const prop::SatClause* clause, ClauseKind kind);
   // note that n depends on dep (for cores)
   void addDependence(TNode n, TNode dep);
+  void addUnsatCore(Expr formula);
 
   assertions_iterator begin_unsat_core() const { return d_outputCoreFormulas.begin(); }
   assertions_iterator end_unsat_core() const { return d_outputCoreFormulas.end(); }

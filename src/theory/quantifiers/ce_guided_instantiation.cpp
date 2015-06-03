@@ -112,7 +112,7 @@ Node CegConjecture::getLiteral( QuantifiersEngine * qe, int i ) {
       qe->getOutputChannel().lemma( lem );
       qe->getOutputChannel().requirePhase( lit, true );
 
-      if( options::ceGuidedInstFair()==CEGQI_FAIR_DT_HEIGHT_PRED ){
+      if( getCegqiFairMode()==CEGQI_FAIR_DT_HEIGHT_PRED ){
         //implies height bounds on each candidate variable
         std::vector< Node > lem_c;
         for( unsigned j=0; j<d_candidates.size(); j++ ){
@@ -129,6 +129,14 @@ Node CegConjecture::getLiteral( QuantifiersEngine * qe, int i ) {
   }
 }
 
+CegqiFairMode CegConjecture::getCegqiFairMode() {
+  return isSingleInvocation() ? CEGQI_FAIR_NONE : options::ceGuidedInstFair();
+}
+
+bool CegConjecture::isSingleInvocation() {
+  return d_ceg_si->isSingleInvocation();
+}
+
 CegInstantiation::CegInstantiation( QuantifiersEngine * qe, context::Context* c ) : QuantifiersModule( qe ){
   d_conj = new CegConjecture( qe->getSatContext() );
   d_last_inst_si = false;
@@ -138,11 +146,8 @@ bool CegInstantiation::needsCheck( Theory::Effort e ) {
   return e>=Theory::EFFORT_LAST_CALL;
 }
 
-bool CegInstantiation::needsModel( Theory::Effort e ) {
-  return true;
-}
-bool CegInstantiation::needsFullModel( Theory::Effort e ) {
-  return true;
+unsigned CegInstantiation::needsModel( Theory::Effort e ) {
+  return QuantifiersEngine::QEFFORT_MODEL;
 }
 
 void CegInstantiation::check( Theory::Effort e, unsigned quant_e ) {
@@ -164,21 +169,21 @@ void CegInstantiation::registerQuantifier( Node q ) {
       d_conj->assign( d_quantEngine, q );
 
       //fairness
-      if( options::ceGuidedInstFair()!=CEGQI_FAIR_NONE ){
+      if( d_conj->getCegqiFairMode()!=CEGQI_FAIR_NONE ){
         std::vector< Node > mc;
         for( unsigned j=0; j<d_conj->d_candidates.size(); j++ ){
           TypeNode tn = d_conj->d_candidates[j].getType();
-          if( options::ceGuidedInstFair()==CEGQI_FAIR_DT_SIZE ){
+          if( d_conj->getCegqiFairMode()==CEGQI_FAIR_DT_SIZE ){
             if( tn.isDatatype() ){
               mc.push_back( NodeManager::currentNM()->mkNode( DT_SIZE, d_conj->d_candidates[j] ) );
             }
-          }else if( options::ceGuidedInstFair()==CEGQI_FAIR_UF_DT_SIZE ){
+          }else if( d_conj->getCegqiFairMode()==CEGQI_FAIR_UF_DT_SIZE ){
             registerMeasuredType( tn );
             std::map< TypeNode, Node >::iterator it = d_uf_measure.find( tn );
             if( it!=d_uf_measure.end() ){
               mc.push_back( NodeManager::currentNM()->mkNode( APPLY_UF, it->second, d_conj->d_candidates[j] ) );
             }
-          }else if( options::ceGuidedInstFair()==CEGQI_FAIR_DT_HEIGHT_PRED ){
+          }else if( d_conj->getCegqiFairMode()==CEGQI_FAIR_DT_HEIGHT_PRED ){
             //measure term is a fresh constant
             mc.push_back( NodeManager::currentNM()->mkSkolem( "K", NodeManager::currentNM()->integerType() ) );
           }
@@ -211,15 +216,15 @@ Node CegInstantiation::getNextDecisionRequest() {
   d_conj->initializeGuard( d_quantEngine );
   bool value;
   if( !d_quantEngine->getValuation().hasSatValue( d_conj->d_guard, value ) ) {
-    if( d_conj->d_guard_split.isNull() ){
-      Node lem = NodeManager::currentNM()->mkNode( OR, d_conj->d_guard.negate(), d_conj->d_guard );
-      d_quantEngine->getOutputChannel().lemma( lem );
-    }
+    //if( d_conj->d_guard_split.isNull() ){
+    //  Node lem = NodeManager::currentNM()->mkNode( OR, d_conj->d_guard.negate(), d_conj->d_guard );
+    //  d_quantEngine->getOutputChannel().lemma( lem );
+    //}
     Trace("cegqi-debug") << "CEGQI : Decide next on : " << d_conj->d_guard << "..." << std::endl;
     return d_conj->d_guard;
   }
   //enforce fairness
-  if( d_conj->isAssigned() && options::ceGuidedInstFair()!=CEGQI_FAIR_NONE ){
+  if( d_conj->isAssigned() && d_conj->getCegqiFairMode()!=CEGQI_FAIR_NONE ){
     Node lit = d_conj->getLiteral( d_quantEngine, d_conj->d_curr_lit.get() );
     if( d_quantEngine->getValuation().hasSatValue( lit, value ) ) {
       if( !value ){
@@ -245,7 +250,7 @@ void CegInstantiation::checkCegConjecture( CegConjecture * conj ) {
     Trace("cegqi-engine-debug") << conj->d_candidates[i] << " ";
   }
   Trace("cegqi-engine-debug") << std::endl;
-  if( options::ceGuidedInstFair()!=CEGQI_FAIR_NONE ){
+  if( conj->getCegqiFairMode()!=CEGQI_FAIR_NONE ){
     Trace("cegqi-engine") << "  * Current term size : " << conj->d_curr_lit.get() << std::endl;
   }
 
@@ -269,7 +274,7 @@ void CegInstantiation::checkCegConjecture( CegConjecture * conj ) {
       std::vector< Node > model_values;
       if( getModelValues( conj, conj->d_candidates, model_values ) ){
         //check if we must apply fairness lemmas
-        if( options::ceGuidedInstFair()==CEGQI_FAIR_UF_DT_SIZE ){
+        if( conj->getCegqiFairMode()==CEGQI_FAIR_UF_DT_SIZE ){
           std::vector< Node > lems;
           for( unsigned j=0; j<conj->d_candidates.size(); j++ ){
             getMeasureLemmas( conj->d_candidates[j], model_values[j], lems );
@@ -479,9 +484,9 @@ void CegInstantiation::getMeasureLemmas( Node n, Node v, std::vector< Node >& le
 
 void CegInstantiation::printSynthSolution( std::ostream& out ) {
   if( d_conj ){
-    if( !(Trace.isOn("cegqi-stats")) ){
-      out << "Solution:" << std::endl;
-    }
+    //if( !(Trace.isOn("cegqi-stats")) ){
+    //  out << "Solution:" << std::endl;
+    //}
     for( unsigned i=0; i<d_conj->d_candidates.size(); i++ ){
       std::stringstream ss;
       ss << d_conj->d_quant[0][i];
@@ -546,8 +551,11 @@ void CegInstantiation::printSygusTerm( std::ostream& out, Node n ) {
       }
       return;
     }
+  }else if( !n.getAttribute(SygusProxyAttribute()).isNull() ){
+    out << n.getAttribute(SygusProxyAttribute());
+  }else{
+    out << n;
   }
-  out << n;
 }
 
 void CegInstantiation::collectDisjuncts( Node n, std::vector< Node >& d ) {

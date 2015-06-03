@@ -21,6 +21,8 @@
 #include "parser/smt2/smt2.h"
 #include "parser/antlr_input.h"
 
+#include "util/bitvector.h"
+
 // ANTLR defines these, which is really bad!
 #undef true
 #undef false
@@ -50,35 +52,36 @@ void Smt2::addArithmeticOperators() {
 }
 
 void Smt2::addBitvectorOperators() {
-  Parser::addOperator(kind::BITVECTOR_CONCAT);
-  Parser::addOperator(kind::BITVECTOR_AND);
-  Parser::addOperator(kind::BITVECTOR_OR);
-  Parser::addOperator(kind::BITVECTOR_XOR);
-  Parser::addOperator(kind::BITVECTOR_NOT);
-  Parser::addOperator(kind::BITVECTOR_NAND);
-  Parser::addOperator(kind::BITVECTOR_NOR);
-  Parser::addOperator(kind::BITVECTOR_XNOR);
-  Parser::addOperator(kind::BITVECTOR_COMP);
-  Parser::addOperator(kind::BITVECTOR_MULT);
-  Parser::addOperator(kind::BITVECTOR_PLUS);
-  Parser::addOperator(kind::BITVECTOR_SUB);
-  Parser::addOperator(kind::BITVECTOR_NEG);
-  Parser::addOperator(kind::BITVECTOR_UDIV);
-  Parser::addOperator(kind::BITVECTOR_UREM);
-  Parser::addOperator(kind::BITVECTOR_SDIV);
-  Parser::addOperator(kind::BITVECTOR_SREM);
-  Parser::addOperator(kind::BITVECTOR_SMOD);
-  Parser::addOperator(kind::BITVECTOR_SHL);
-  Parser::addOperator(kind::BITVECTOR_LSHR);
-  Parser::addOperator(kind::BITVECTOR_ASHR);
-  Parser::addOperator(kind::BITVECTOR_ULT);
-  Parser::addOperator(kind::BITVECTOR_ULE);
-  Parser::addOperator(kind::BITVECTOR_UGT);
-  Parser::addOperator(kind::BITVECTOR_UGE);
-  Parser::addOperator(kind::BITVECTOR_SLT);
-  Parser::addOperator(kind::BITVECTOR_SLE);
-  Parser::addOperator(kind::BITVECTOR_SGT);
-  Parser::addOperator(kind::BITVECTOR_SGE);
+  addOperator(kind::BITVECTOR_CONCAT, "concat");
+  addOperator(kind::BITVECTOR_NOT, "bvnot");
+  addOperator(kind::BITVECTOR_AND, "bvand");
+  addOperator(kind::BITVECTOR_OR, "bvor");
+  addOperator(kind::BITVECTOR_NEG, "bvneg");
+  addOperator(kind::BITVECTOR_PLUS, "bvadd");
+  addOperator(kind::BITVECTOR_MULT, "bvmul");
+  addOperator(kind::BITVECTOR_UDIV, "bvudiv");
+  addOperator(kind::BITVECTOR_UREM, "bvurem");
+  addOperator(kind::BITVECTOR_SHL, "bvshl");
+  addOperator(kind::BITVECTOR_LSHR, "bvlshr");
+  addOperator(kind::BITVECTOR_ULT, "bvult");
+  addOperator(kind::BITVECTOR_NAND, "bvnand");
+  addOperator(kind::BITVECTOR_NOR, "bvnor");
+  addOperator(kind::BITVECTOR_XOR, "bvxor");
+  addOperator(kind::BITVECTOR_XNOR, "bvxnor");
+  addOperator(kind::BITVECTOR_COMP, "bvcomp");
+  addOperator(kind::BITVECTOR_SUB, "bvsub");
+  addOperator(kind::BITVECTOR_SDIV, "bvsdiv");
+  addOperator(kind::BITVECTOR_SREM, "bvsrem");
+  addOperator(kind::BITVECTOR_SMOD, "bvsmod");
+  addOperator(kind::BITVECTOR_ASHR, "bvashr");
+  addOperator(kind::BITVECTOR_ULE, "bvule");
+  addOperator(kind::BITVECTOR_UGT, "bvugt");
+  addOperator(kind::BITVECTOR_UGE, "bvuge");
+  addOperator(kind::BITVECTOR_SLT, "bvslt");
+  addOperator(kind::BITVECTOR_SLE, "bvsle");
+  addOperator(kind::BITVECTOR_SGT, "bvsgt");
+  addOperator(kind::BITVECTOR_SGE, "bvsge");
+
   Parser::addOperator(kind::BITVECTOR_BITOF);
   Parser::addOperator(kind::BITVECTOR_EXTRACT);
   Parser::addOperator(kind::BITVECTOR_REPEAT);
@@ -92,34 +95,61 @@ void Smt2::addBitvectorOperators() {
 }
 
 void Smt2::addStringOperators() {
-  Parser::addOperator(kind::STRING_CONCAT);
-  Parser::addOperator(kind::STRING_LENGTH);
+  addOperator(kind::STRING_CONCAT, "str.++");
+  addOperator(kind::STRING_LENGTH, "str.len");
+  addOperator(kind::STRING_SUBSTR, "str.substr" );
+  addOperator(kind::STRING_STRCTN, "str.contains" );
+  addOperator(kind::STRING_CHARAT, "str.at" );
+  addOperator(kind::STRING_STRIDOF, "str.indexof" );
+  addOperator(kind::STRING_STRREPL, "str.replace" );
+  addOperator(kind::STRING_PREFIX, "str.prefixof" );
+  addOperator(kind::STRING_SUFFIX, "str.suffixof" );
+  addOperator(kind::STRING_ITOS, "int.to.str" );
+  addOperator(kind::STRING_STOI, "str.to.int" );
+  addOperator(kind::STRING_U16TOS, "u16.to.str" );
+  addOperator(kind::STRING_STOU16, "str.to.u16" );
+  addOperator(kind::STRING_U32TOS, "u32.to.str" );
+  addOperator(kind::STRING_STOU32, "str.to.u32" );
+  addOperator(kind::STRING_IN_REGEXP, "str.in.re");
+  addOperator(kind::STRING_TO_REGEXP, "str.to.re");
+  addOperator(kind::REGEXP_CONCAT, "re.++");
+  addOperator(kind::REGEXP_UNION, "re.union");
+  addOperator(kind::REGEXP_INTER, "re.inter");
+  addOperator(kind::REGEXP_STAR, "re.*");
+  addOperator(kind::REGEXP_PLUS, "re.+");
+  addOperator(kind::REGEXP_OPT, "re.opt");
+  addOperator(kind::REGEXP_RANGE, "re.range");
+  addOperator(kind::REGEXP_LOOP, "re.loop");
 }
 
 void Smt2::addFloatingPointOperators() {
-  Parser::addOperator(kind::FLOATINGPOINT_FP);
-  Parser::addOperator(kind::FLOATINGPOINT_EQ);
-  Parser::addOperator(kind::FLOATINGPOINT_ABS);
-  Parser::addOperator(kind::FLOATINGPOINT_NEG);
-  Parser::addOperator(kind::FLOATINGPOINT_PLUS);
-  Parser::addOperator(kind::FLOATINGPOINT_SUB);
-  Parser::addOperator(kind::FLOATINGPOINT_MULT);
-  Parser::addOperator(kind::FLOATINGPOINT_DIV);
-  Parser::addOperator(kind::FLOATINGPOINT_FMA);
-  Parser::addOperator(kind::FLOATINGPOINT_SQRT);
-  Parser::addOperator(kind::FLOATINGPOINT_REM);
-  Parser::addOperator(kind::FLOATINGPOINT_RTI);
-  Parser::addOperator(kind::FLOATINGPOINT_MIN);
-  Parser::addOperator(kind::FLOATINGPOINT_MAX);
-  Parser::addOperator(kind::FLOATINGPOINT_LEQ);
-  Parser::addOperator(kind::FLOATINGPOINT_LT);
-  Parser::addOperator(kind::FLOATINGPOINT_GEQ);
-  Parser::addOperator(kind::FLOATINGPOINT_GT);
-  Parser::addOperator(kind::FLOATINGPOINT_ISN);
-  Parser::addOperator(kind::FLOATINGPOINT_ISSN);
-  Parser::addOperator(kind::FLOATINGPOINT_ISZ);
-  Parser::addOperator(kind::FLOATINGPOINT_ISINF);
-  Parser::addOperator(kind::FLOATINGPOINT_ISNAN);
+  addOperator(kind::FLOATINGPOINT_FP, "fp");
+  addOperator(kind::FLOATINGPOINT_EQ, "fp.eq");
+  addOperator(kind::FLOATINGPOINT_ABS, "fp.abs");
+  addOperator(kind::FLOATINGPOINT_NEG, "fp.neg");
+  addOperator(kind::FLOATINGPOINT_PLUS, "fp.add");
+  addOperator(kind::FLOATINGPOINT_SUB, "fp.sub");
+  addOperator(kind::FLOATINGPOINT_MULT, "fp.mul");
+  addOperator(kind::FLOATINGPOINT_DIV, "fp.div");
+  addOperator(kind::FLOATINGPOINT_FMA, "fp.fma");
+  addOperator(kind::FLOATINGPOINT_SQRT, "fp.sqrt");
+  addOperator(kind::FLOATINGPOINT_REM, "fp.rem");
+  addOperator(kind::FLOATINGPOINT_RTI, "fp.roundToIntegral");
+  addOperator(kind::FLOATINGPOINT_MIN, "fp.min");
+  addOperator(kind::FLOATINGPOINT_MAX, "fp.max");
+  addOperator(kind::FLOATINGPOINT_LEQ, "fp.leq");
+  addOperator(kind::FLOATINGPOINT_LT, "fp.lt");
+  addOperator(kind::FLOATINGPOINT_GEQ, "fp.geq");
+  addOperator(kind::FLOATINGPOINT_GT, "fp.gt");
+  addOperator(kind::FLOATINGPOINT_ISN, "fp.isNormal");
+  addOperator(kind::FLOATINGPOINT_ISSN, "fp.isSubnormal");
+  addOperator(kind::FLOATINGPOINT_ISZ, "fp.isZero");
+  addOperator(kind::FLOATINGPOINT_ISINF, "fp.isInfinite");
+  addOperator(kind::FLOATINGPOINT_ISNAN, "fp.isNaN");
+  addOperator(kind::FLOATINGPOINT_ISNEG, "fp.isNegative");
+  addOperator(kind::FLOATINGPOINT_ISPOS, "fp.isPositive");
+  addOperator(kind::FLOATINGPOINT_TO_REAL, "fp.to_real");
+
   Parser::addOperator(kind::FLOATINGPOINT_TO_FP_IEEE_BITVECTOR);
   Parser::addOperator(kind::FLOATINGPOINT_TO_FP_FLOATINGPOINT);
   Parser::addOperator(kind::FLOATINGPOINT_TO_FP_REAL);
@@ -127,15 +157,14 @@ void Smt2::addFloatingPointOperators() {
   Parser::addOperator(kind::FLOATINGPOINT_TO_FP_UNSIGNED_BITVECTOR);
   Parser::addOperator(kind::FLOATINGPOINT_TO_UBV);
   Parser::addOperator(kind::FLOATINGPOINT_TO_SBV);
-  Parser::addOperator(kind::FLOATINGPOINT_TO_REAL);
 }
 
 
 void Smt2::addTheory(Theory theory) {
   switch(theory) {
   case THEORY_ARRAYS:
-    Parser::addOperator(kind::SELECT);
-    Parser::addOperator(kind::STORE);
+    addOperator(kind::SELECT, "select");
+    addOperator(kind::STORE, "store");
     break;
 
   case THEORY_BITVECTORS:
@@ -160,16 +189,16 @@ void Smt2::addTheory(Theory theory) {
   case THEORY_REALS_INTS:
     defineType("Real", getExprManager()->realType());
     Parser::addOperator(kind::DIVISION);
-    Parser::addOperator(kind::TO_INTEGER);
-    Parser::addOperator(kind::IS_INTEGER);
-    Parser::addOperator(kind::TO_REAL);
+    addOperator(kind::TO_INTEGER, "to_int");
+    addOperator(kind::IS_INTEGER, "is_int");
+    addOperator(kind::TO_REAL, "to_real");
     // falling through on purpose, to add Ints part of Reals_Ints
   case THEORY_INTS:
     defineType("Int", getExprManager()->integerType());
     addArithmeticOperators();
-    Parser::addOperator(kind::INTS_DIVISION);
-    Parser::addOperator(kind::INTS_MODULUS);
-    Parser::addOperator(kind::ABS);
+    addOperator(kind::INTS_DIVISION, "div");
+    addOperator(kind::INTS_MODULUS, "mod");
+    addOperator(kind::ABS, "abs");
     Parser::addOperator(kind::DIVISIBLE);
     break;
 
@@ -201,6 +230,7 @@ void Smt2::addTheory(Theory theory) {
 
   case THEORY_STRINGS:
     defineType("String", getExprManager()->stringType());
+    defineType("Int", getExprManager()->integerType());
     addStringOperators();
     break;
 
@@ -466,9 +496,205 @@ void Smt2::includeFile(const std::string& filename) {
   }
 }
 
+void Smt2::mkSygusDefaultGrammar( const Type& range, Expr& bvl, const std::string& fun, std::vector<CVC4::Datatype>& datatypes,
+                                  std::vector<Type>& sorts, std::vector< std::vector<Expr> >& ops, std::vector<Expr> sygus_vars ) {
+
+  Debug("parser-sygus") << "Construct default grammar for " << fun << " " << range << std::endl;
+
+  std::stringstream ssb;
+  ssb << fun << "_Bool";
+  std::string dbname = ssb.str();
+
+  std::stringstream ss;
+  ss << fun << "_" << range;
+  std::string dname = ss.str();
+  datatypes.push_back(Datatype(dname));
+  ops.push_back(std::vector<Expr>());
+  std::vector<std::string> cnames;
+  std::vector<std::vector<CVC4::Type> > cargs;
+  //variables
+  for( unsigned i=0; i<sygus_vars.size(); i++ ){
+    if( sygus_vars[i].getType()==range ){
+      std::stringstream ss;
+      ss << sygus_vars[i];
+      Debug("parser-sygus") << "...add for variable " << ss.str() << std::endl;
+      ops.back().push_back( sygus_vars[i] );
+      cnames.push_back( ss.str() );
+      cargs.push_back( std::vector< CVC4::Type >() );
+    }
+  }
+  //constants
+  std::vector< Expr > consts;
+  mkSygusConstantsForType( range, consts );
+  for( unsigned i=0; i<consts.size(); i++ ){
+    std::stringstream ss;
+    ss << consts[i];
+    Debug("parser-sygus") << "...add for constant " << ss.str() << std::endl;
+    ops.back().push_back( consts[i] );
+    cnames.push_back( ss.str() );
+    cargs.push_back( std::vector< CVC4::Type >() );
+  }
+  //ITE
+  CVC4::Kind k = kind::ITE;
+  Debug("parser-sygus") << "...add for " << k << std::endl;
+  ops.back().push_back(getExprManager()->operatorOf(k));
+  cnames.push_back( kind::kindToString(k) );
+  cargs.push_back( std::vector< CVC4::Type >() );
+  cargs.back().push_back(mkUnresolvedType(ssb.str()));
+  cargs.back().push_back(mkUnresolvedType(ss.str()));
+  cargs.back().push_back(mkUnresolvedType(ss.str()));
+
+  if( range.isInteger() ){
+    for( unsigned i=0; i<2; i++ ){
+      CVC4::Kind k = i==0 ? kind::PLUS : kind::MINUS;
+      Debug("parser-sygus") << "...add for " << k << std::endl;
+      ops.back().push_back(getExprManager()->operatorOf(k));
+      cnames.push_back(kind::kindToString(k));
+      cargs.push_back( std::vector< CVC4::Type >() );
+      cargs.back().push_back(mkUnresolvedType(ss.str()));
+      cargs.back().push_back(mkUnresolvedType(ss.str()));
+    }
+  }else{
+    std::stringstream sserr;
+    sserr << "Don't know default Sygus grammar for type " << range << std::endl;
+    parseError(sserr.str());
+  }
+  Debug("parser-sygus") << "...make datatype " << datatypes.back() << std::endl;
+  datatypes.back().setSygus( range, bvl, true, true );
+  mkSygusDatatype( datatypes.back(), ops.back(), cnames, cargs );
+  sorts.push_back( range );
+
+  //Boolean type
+  datatypes.push_back(Datatype(dbname));
+  ops.push_back(std::vector<Expr>());
+  cnames.clear();
+  cargs.clear();
+  for( unsigned i=0; i<4; i++ ){
+    CVC4::Kind k = i==0 ? kind::NOT : ( i==1 ? kind::AND : ( i==2 ? kind::OR : kind::EQUAL ) );
+    Debug("parser-sygus") << "...add for " << k << std::endl;
+    ops.back().push_back(getExprManager()->operatorOf(k));
+    cnames.push_back(kind::kindToString(k));
+    cargs.push_back( std::vector< CVC4::Type >() );
+    if( k==kind::NOT ){
+      cargs.back().push_back(mkUnresolvedType(ssb.str()));
+    }else if( k==kind::AND || k==kind::OR ){
+      cargs.back().push_back(mkUnresolvedType(ssb.str()));
+      cargs.back().push_back(mkUnresolvedType(ssb.str()));
+    }else if( k==kind::EQUAL ){
+      cargs.back().push_back(mkUnresolvedType(ss.str()));
+      cargs.back().push_back(mkUnresolvedType(ss.str()));
+    }
+  }
+  if( range.isInteger() ){
+    CVC4::Kind k = kind::LEQ;
+    Debug("parser-sygus") << "...add for " << k << std::endl;
+    ops.back().push_back(getExprManager()->operatorOf(k));
+    cnames.push_back(kind::kindToString(k));
+    cargs.push_back( std::vector< CVC4::Type >() );
+    cargs.back().push_back(mkUnresolvedType(ss.str()));
+    cargs.back().push_back(mkUnresolvedType(ss.str()));
+  }
+  Debug("parser-sygus") << "...make datatype " << datatypes.back() << std::endl;
+  Type btype = getExprManager()->booleanType();
+  datatypes.back().setSygus( btype, bvl, true, true );
+  mkSygusDatatype( datatypes.back(), ops.back(), cnames, cargs );
+  sorts.push_back( btype );
+
+  Debug("parser-sygus") << "...finished make default grammar for " << fun << " " << range << std::endl;
+}
+
+void Smt2::mkSygusConstantsForType( const Type& type, std::vector<CVC4::Expr>& ops ) {
+  if( type.isInteger() ){
+    ops.push_back(getExprManager()->mkConst(Rational(0)));
+    ops.push_back(getExprManager()->mkConst(Rational(1)));
+  }else if( type.isBitVector() ){
+    unsigned sz = ((BitVectorType)type).getSize();
+    BitVector bval0(sz, (unsigned int)0);
+    ops.push_back( getExprManager()->mkConst(bval0) );
+    BitVector bval1(sz, (unsigned int)1);
+    ops.push_back( getExprManager()->mkConst(bval1) );
+  }
+  //TODO : others?
+}
+
+bool Smt2::pushSygusDatatypeDef( Type t, std::string& dname,
+                                  std::vector< CVC4::Datatype >& datatypes,
+                                  std::vector< CVC4::Type>& sorts,
+                                  std::vector< std::vector<CVC4::Expr> >& ops,
+                                  std::vector< std::vector<std::string> >& cnames,
+                                  std::vector< std::vector< std::vector< CVC4::Type > > >& cargs ){
+  sorts.push_back(t);
+  datatypes.push_back(Datatype(dname));
+  ops.push_back(std::vector<Expr>());
+  cnames.push_back(std::vector<std::string>());
+  cargs.push_back(std::vector<std::vector<CVC4::Type> >());
+  return true;
+}
+
+bool Smt2::popSygusDatatypeDef( std::vector< CVC4::Datatype >& datatypes,
+                                 std::vector< CVC4::Type>& sorts,
+                                 std::vector< std::vector<CVC4::Expr> >& ops,
+                                 std::vector< std::vector<std::string> >& cnames,
+                                 std::vector< std::vector< std::vector< CVC4::Type > > >& cargs ){
+  sorts.pop_back();
+  datatypes.pop_back();
+  ops.pop_back();
+  cnames.pop_back();
+  cargs.pop_back();
+  return true;
+}
+
+Type Smt2::processSygusNestedGTerm( int sub_dt_index, std::string& sub_dname, std::vector< CVC4::Datatype >& datatypes,
+                                    std::vector< CVC4::Type>& sorts,
+                                    std::vector< std::vector<CVC4::Expr> >& ops,
+                                    std::vector< std::vector<std::string> >& cnames,
+                                    std::vector< std::vector< std::vector< CVC4::Type > > >& cargs,
+                                    std::map< CVC4::Type, CVC4::Type >& sygus_to_builtin, Type sub_ret ) {
+  Type t = sub_ret;
+  Debug("parser-sygus") << "Argument is ";
+  if( t.isNull() ){
+    //then, it is the datatype we constructed, which should have a single constructor
+    t = mkUnresolvedType(sub_dname);
+    Debug("parser-sygus") << "inline flattening of (auxiliary, local) datatype " << t << std::endl;
+    Debug("parser-sygus") << ": to compute type, construct ground term witnessing the grammar, #cons=" << cargs[sub_dt_index].size() << std::endl;
+    if( cargs[sub_dt_index].empty() ){
+      parseError(std::string("Internal error : datatype for nested gterm does not have a constructor."));
+    }
+    Expr sop = ops[sub_dt_index][0];
+    Type curr_t;
+    if( sop.getKind() != kind::BUILTIN && sop.isConst() ){
+      curr_t = sop.getType();
+      Debug("parser-sygus") << ": it is constant with type " << sop.getType() << std::endl;
+    }else{
+      std::vector< Expr > children;
+      if( sop.getKind() != kind::BUILTIN ){
+        children.push_back( sop );
+      }
+      for( unsigned i=0; i<cargs[sub_dt_index][0].size(); i++ ){
+        Type bt = sygus_to_builtin[cargs[sub_dt_index][0][i]];
+        Debug("parser-sygus") << ":  type elem " << i << " " << cargs[sub_dt_index][0][i] << " " << bt << std::endl;
+        children.push_back( mkVar("x", bt) );
+      }
+      Kind sk = sop.getKind() != kind::BUILTIN ? kind::APPLY : getExprManager()->operatorToKind(sop);
+      Debug("parser-sygus") << ": operator " << sop << " with " << sop.getKind() << " " << sk << std::endl;
+      Expr e = getExprManager()->mkExpr( sk, children );
+      Debug("parser-sygus") << ": constructed " << e << ", which has type " << e.getType() << std::endl;
+      curr_t = e.getType();
+    }
+    sorts[sub_dt_index] = curr_t;
+    sygus_to_builtin[t] = curr_t;
+  }else{
+    Debug("parser-sygus") << "simple argument " << t << std::endl;
+    Debug("parser-sygus") << "...removing " << datatypes.back().getName() << std::endl;
+    //otherwise, datatype was unecessary
+    //pop argument datatype definition
+    popSygusDatatypeDef( datatypes, sorts, ops, cnames, cargs );
+  }
+  return t;
+}
 
 
- void Smt2::defineSygusFuns() {
+void Smt2::defineSygusFuns() {
   // only define each one once
   while(d_nextSygusFun < d_sygusFuns.size()) {
     std::pair<std::string, Expr> p = d_sygusFuns[d_nextSygusFun];
@@ -534,19 +760,48 @@ void Smt2::includeFile(const std::string& filename) {
 
 void Smt2::mkSygusDatatype( CVC4::Datatype& dt, std::vector<CVC4::Expr>& ops,
                             std::vector<std::string>& cnames, std::vector< std::vector< CVC4::Type > >& cargs ) {
-  for( unsigned i=0; i<cnames.size(); i++ ){
-    std::string name = dt.getName() + "_" + cnames[i];
-    std::string testerId("is-");
-    testerId.append(name);
-    checkDeclaration(name, CHECK_UNDECLARED, SYM_VARIABLE);
-    checkDeclaration(testerId, CHECK_UNDECLARED, SYM_VARIABLE);
-    CVC4::DatatypeConstructor c(name, testerId, ops[i] );
-    for( unsigned j=0; j<cargs[i].size(); j++ ){
-      std::stringstream sname;
-      sname << name << "_" << j;
-      c.addArg(sname.str(), cargs[i][j]);
+  for( int i=0; i<(int)cnames.size(); i++ ){
+    bool is_dup = false;
+    //FIXME : should allow multiple operators with different sygus type arguments
+    //        for now, just ignore them (introduces incompleteness).
+    for( int j=0; j<i; j++ ){
+      if( ops[i]==ops[j] ){
+        is_dup = true;
+        break;
+      }
+      /*
+      if( ops[i]==ops[j] && cargs[i].size()==cargs[j].size() ){
+        is_dup = true;
+        for( unsigned k=0; k<cargs[i].size(); k++ ){
+          if( cargs[i][k]!=cargs[j][k] ){
+            is_dup = false;
+            break;
+          }
+        }
+      }
+      */
     }
-    dt.addConstructor(c);
+    if( is_dup ){
+      Debug("parser-sygus") << "--> Duplicate gterm : " << ops[i] << " at " << i << std::endl;
+      ops.erase( ops.begin() + i, ops.begin() + i + 1 );
+      cnames.erase( cnames.begin() + i, cnames.begin() + i + 1 );
+      cargs.erase( cargs.begin() + i, cargs.begin() + i + 1 );
+      i--;
+    }else{
+      std::string name = dt.getName() + "_" + cnames[i];
+      std::string testerId("is-");
+      testerId.append(name);
+      checkDeclaration(name, CHECK_UNDECLARED, SYM_VARIABLE);
+      checkDeclaration(testerId, CHECK_UNDECLARED, SYM_VARIABLE);
+      CVC4::DatatypeConstructor c(name, testerId, ops[i] );
+      for( unsigned j=0; j<cargs[i].size(); j++ ){
+        std::stringstream sname;
+        sname << name << "_" << j;
+        c.addArg(sname.str(), cargs[i][j]);
+      }
+      Debug("parser-sygus") << "--> Add constructor " << cnames[i] << " to " << dt.getName() << std::endl;
+      dt.addConstructor(c);
+    }
   }
 }
 
@@ -582,7 +837,7 @@ Expr Smt2::getSygusAssertion( std::vector<DatatypeType>& datatypeTypes, std::vec
   Expr cpatv = getExprManager()->mkExpr(kind::APPLY_CONSTRUCTOR, applyv);
   Debug("parser-sygus") << "...made eval ctor apply " << cpatv << std::endl;
   patv.push_back(cpatv);
-  if( !terms[0].isNull() ){  
+  if( !terms[0].isNull() ){
     patv.insert(patv.end(), terms[0].begin(), terms[0].end());
   }
   Expr evalApply = getExprManager()->mkExpr(kind::APPLY_UF, patv);

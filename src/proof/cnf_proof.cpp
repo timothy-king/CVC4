@@ -87,6 +87,7 @@ void LFSCCnfProof::printPreprocess(std::ostream& os, std::ostream& paren) {
       os << "(th_let_pf _ ";
 
       //TODO
+      Trace("cnf-pf-debug") << "; preprocess assertion : " << e << std::endl;
       os << "(trust_f ";
       LFSCTheoryProof::printTerm(e, os);
       os << ") ";
@@ -132,7 +133,9 @@ void LFSCCnfProof::printInputClauses(std::ostream& os, std::ostream& paren) {
 
     Expr base_assertion = ProofManager::currentPM()->getFormulaForClauseId( id );
     ProofRule pr = ProofManager::currentPM()->getProofRuleForClauseId( id );
-
+    Trace("cnf-pf") << std::endl;
+    Trace("cnf-pf") << "; formula for clause id " << id << " : " << base_assertion << std::endl;
+    
     //get the assertion for the clause id
     std::map< Expr, unsigned > childIndex;
     std::map< Expr, bool > childPol;
@@ -152,7 +155,6 @@ void LFSCCnfProof::printInputClauses(std::ostream& os, std::ostream& paren) {
     std::map< Expr, unsigned >::iterator itci = childIndex.find( base_assertion );
     bool is_in_clause = itci!=childIndex.end();
     unsigned base_index = is_in_clause ? itci->second : 0;
-    Trace("cnf-pf") << std::endl;
     Trace("cnf-pf") << "; input = " << is_input << ", is_in_clause = " << is_in_clause << ", id = " << id << ", assertion = " << assertion << ", base assertion = " << base_assertion << std::endl;
     if( !is_input ){
       Assert( is_in_clause );
@@ -194,7 +196,7 @@ void LFSCCnfProof::printInputClauses(std::ostream& os, std::ostream& paren) {
           //Assert( child_pol==childPol[child_base] );
           os_main << "(or_elim_1 _ _ ";
           prop::SatLiteral lit = (*clause)[itcic->second];
-          if( childPol[child_base] ){
+          if( childPol[child_base] && base_pol ){
             os_main << ProofManager::getLitName(lit) << " ";
           }else{
             os_main << "(not_not_intro _ " << ProofManager::getLitName(lit) << ") ";
@@ -224,7 +226,7 @@ void LFSCCnfProof::printInputClauses(std::ostream& os, std::ostream& paren) {
         if( itcic!=childIndex.end() ){
           os << "(contra _ ";
           prop::SatLiteral lit = (*clause)[itcic->second];
-          if( childPol[child_base] ){
+          if( childPol[child_base] && base_pol ){
             os << os_main.str() << " " << ProofManager::getLitName(lit);
           }else{
             os << ProofManager::getLitName(lit) << " " << os_main.str();

@@ -18,9 +18,7 @@ MAKEFLAGS = -k
 # These are run for all build profiles.
 # If a test shouldn't be run in e.g. competition mode,
 # put it below in "TESTS +="
-TESTS = hd-01-d1-prog.sy \
-        icfp_28_10.sy \
-        commutative.sy \
+TESTS = commutative.sy \
         constant.sy \
         multi-fun-polynomial2.sy \
         unbdd_inv_gen_winf1.sy \
@@ -28,12 +26,19 @@ TESTS = hd-01-d1-prog.sy \
 	array_sum_2_5.sy \
 	parity-AIG-d0.sy \
 	twolets1.sy \
-	array_search_2.sy
+	array_search_2.sy \        
+	hd-01-d1-prog.sy \
+        icfp_28_10.sy \
+        const-var-test.sy \
+        no-syntax-test.sy \
+        no-syntax-test-no-si.sy \
+        no-flat-simp.sy
 
 # sygus tests currently taking too long for make regress
 EXTRA_DIST = $(TESTS) \
 	max.smt2 \
 	sygus-uf.sl
+
 
 #if CVC4_BUILD_PROFILE_COMPETITION
 #else

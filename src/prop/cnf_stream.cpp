@@ -667,7 +667,7 @@ void TseitinCnfStream::convertAndAssert(TNode node, bool removable, bool negated
     Assert((uint64_t(proof_id) & 0xffffffff00000000llu) == 0 && (assertionTableIndex & 0xffffffff00000000llu) == 0, "proof_id/table_index collision");
     d_proofId = assertionTableIndex | (uint64_t(proof_id) << 32);
     d_assertionTable.push_back(from.isNull() ? node : from);
-    Debug("cores") << "cnf ix " << assertionTableIndex << " asst " << node << "  proof_id " << proof_id << " from " << from << endl;
+    Debug("cores") << "; cnf is " << assertionTableIndex << " asst " << node << "  proof_id " << proof_id << " from " << from << endl;
   } else {
     // We aren't producing proofs or unsat cores; use an invalid proof id.
     d_proofId = uint64_t(-1);
@@ -679,7 +679,7 @@ void TseitinCnfStream::convertAndAssert(TNode node, bool negated, ProofRule proo
   Debug("cnf") << "convertAndAssert(" << node << ", negated = " << (negated ? "true" : "false") << ")" << endl;
 
   if (d_convertAndAssertCounter % ResourceManager::getFrequencyCount() == 0) {
-    NodeManager::currentResourceManager()->spendResource();
+    NodeManager::currentResourceManager()->spendResource(options::cnfStep());
     d_convertAndAssertCounter = 0;
   }
   ++d_convertAndAssertCounter;

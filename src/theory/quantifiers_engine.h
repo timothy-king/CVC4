@@ -55,13 +55,13 @@ public:
   /* whether this module needs to check this round */
   virtual bool needsCheck( Theory::Effort e ) { return e>=Theory::EFFORT_LAST_CALL; }
   /* whether this module needs a model built */
-  virtual bool needsModel( Theory::Effort e ) { return false; }
-  /* whether this module needs a model built */
-  virtual bool needsFullModel( Theory::Effort e ) { return false; }
+  virtual unsigned needsModel( Theory::Effort e );
   /* reset at a round */
   virtual void reset_round( Theory::Effort e ){}
   /* Call during quantifier engine's check */
   virtual void check( Theory::Effort e, unsigned quant_e ) = 0;
+  /* check was complete (e.g. no lemmas implies a model) */
+  virtual bool checkComplete() { return false; }
   /* Called for new quantifiers */
   virtual void registerQuantifier( Node q ) = 0;
   virtual void assertNode( Node n ) = 0;
@@ -143,6 +143,8 @@ public: //effort levels
     QEFFORT_CONFLICT,
     QEFFORT_STANDARD,
     QEFFORT_MODEL,
+    //none
+    QEFFORT_NONE,
   };
 private:
   /** list of all quantifiers seen */
@@ -264,8 +266,6 @@ public:
   Node getInstantiation( Node f, std::vector< Node >& terms );
   /** do substitution */
   Node getSubstitute( Node n, std::vector< Node >& terms );
-  /** exist instantiation ? */
-  //bool existsInstantiation( Node f, InstMatch& m, bool modEq = true, bool modInst = false );
   /** add lemma lem */
   bool addLemma( Node lem, bool doCache = true );
   /** add require phase */

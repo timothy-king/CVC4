@@ -428,7 +428,8 @@ void TheoryEngine::check(Theory::Effort effort) {
       }
     }
 
-    Debug("theory") << "TheoryEngine::check(" << effort << "): done, we are " << (d_inConflict ? "unsat" : "sat") << (d_lemmasAdded ? " with new lemmas" : " with no new lemmas") << endl;
+    Debug("theory") << "TheoryEngine::check(" << effort << "): done, we are " << (d_inConflict ? "unsat" : "sat") << (d_lemmasAdded ? " with new lemmas" : " with no new lemmas");
+    Debug("theory") << ", need check = " << needCheck() << endl;
 
     if(!d_inConflict && Theory::fullEffort(effort) && d_masterEqualityEngine != NULL && !d_lemmasAdded) {
       AlwaysAssert(d_masterEqualityEngine->consistent());
@@ -962,8 +963,8 @@ void TheoryEngine::assertToTheory(TNode assertion, TNode originalAssertion, theo
   Trace("theory::assertToTheory") << "TheoryEngine::assertToTheory(" << assertion << ", " << toTheoryId << ", " << fromTheoryId << ")" << endl;
 
   Assert(toTheoryId != fromTheoryId);
-  if(! d_logicInfo.isTheoryEnabled(toTheoryId) &&
-     toTheoryId != THEORY_SAT_SOLVER) {
+  if(toTheoryId != THEORY_SAT_SOLVER &&
+     ! d_logicInfo.isTheoryEnabled(toTheoryId)) {
     stringstream ss;
     ss << "The logic was specified as " << d_logicInfo.getLogicString()
        << ", which doesn't include " << toTheoryId
@@ -1755,6 +1756,6 @@ std::pair<bool, Node> TheoryEngine::entailmentCheck(theory::TheoryOfMode mode, T
   return th->entailmentCheck(lit, params, seffects);
 }
 
-void TheoryEngine::spendResource() {
-  d_resourceManager->spendResource();
+void TheoryEngine::spendResource(unsigned ammount) {
+  d_resourceManager->spendResource(ammount);
 }
