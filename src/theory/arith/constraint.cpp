@@ -427,6 +427,16 @@ Constraint::~Constraint() {
   }
 }
 
+void Constraint::addOccurence() {
+  Assert(initialized());
+  d_database->addOccurence(d_variable);
+}
+
+void Constraint::removeOccurence() {
+  Assert(initialized());
+  d_database->removeOccurence(d_variable);
+}
+
 const ConstraintRule& Constraint::getConstraintRule() const {
   Assert(hasProof());
   return d_database->d_watches->d_constraintProofs[d_crid];
@@ -567,6 +577,14 @@ ConstraintCP ConstraintDatabase::getAntecedent (AntecedentId p) const {
   return d_antecedents[p];
 }
 
+
+void ConstraintDatabase::addOccurence(ArithVar v){
+  d_avariables.addOccurence(v);
+}
+
+void ConstraintDatabase::removeOccurence(ArithVar v){
+  d_avariables.removeOccurence(v);
+}
 
 void ConstraintRule::print(std::ostream& out) const {
   
@@ -769,7 +787,7 @@ ConstraintP Constraint::makeNegation(ArithVar v, ConstraintType t, const DeltaRa
   }
 }
 
-ConstraintDatabase::ConstraintDatabase(context::Context* satContext, context::Context* userContext, const ArithVariables& avars, ArithCongruenceManager& cm, RaiseConflict raiseConflict, UnmarkLiteralCallBack unmark)
+ConstraintDatabase::ConstraintDatabase(context::Context* satContext, context::Context* userContext, ArithVariables& avars, ArithCongruenceManager& cm, RaiseConflict raiseConflict, UnmarkLiteralCallBack unmark)
   : d_varDatabases()
   , d_toPropagate(satContext)
   , d_antecedents(satContext, false)
@@ -800,6 +818,7 @@ bool ConstraintDatabase::hasAnyConstraints(ArithVar v) const{
 void ConstraintDatabase::pushSplitWatch(ConstraintP c){
   Assert(!c->d_split);
   c->d_split = true;
+  c->addOccurence();
   d_watches->d_splitWatches.push_back(c);
 }
 
@@ -807,6 +826,7 @@ void ConstraintDatabase::pushSplitWatch(ConstraintP c){
 void ConstraintDatabase::pushCanBePropagatedWatch(ConstraintP c){
   Assert(!c->d_canBePropagated);
   c->d_canBePropagated = true;
+  c->addOccurence();
   d_watches->d_canBePropagatedWatches.push_back(c);
 }
 
@@ -814,6 +834,7 @@ void ConstraintDatabase::pushAssertionOrderWatch(ConstraintP c, TNode witness){
   Assert(!c->assertedToTheTheory());
   c->d_assertionOrder = d_watches->d_assertionOrderWatches.size();
   c->d_witness = witness;
+  c->addOccurence();
   d_watches->d_assertionOrderWatches.push_back(c);
 }
 
@@ -823,6 +844,7 @@ void ConstraintDatabase::pushConstraintRule(const ConstraintRule& crp){
   Assert(c->d_crid == ConstraintRuleIdSentinel);
   Assert(!c->hasProof());
   c->d_crid = d_watches->d_constraintProofs.size();
+  c->addOccurence();
   d_watches->d_constraintProofs.push_back(crp);
 }
 
