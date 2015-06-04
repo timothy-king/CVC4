@@ -99,6 +99,7 @@ TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context
   d_containing(containing),
   d_nlIncomplete( false),
   d_rowTracking(),
+  d_setupNodes(),
   d_constraintDatabase(c, u, d_partialModel, d_congruenceManager,
                        RaiseConflict(*this), UnmarkLiteralCallBack(*this)),
   d_qflraStatus(Result::SAT_UNKNOWN),
@@ -106,7 +107,6 @@ TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context
   d_hasDoneWorkSinceCut(false),
   d_learner(u),
   d_quantEngine(NULL),
-  d_setupNodes(),
   d_zeroOccurenceCache(),
   d_assertionsThatDoNotMatchTheirLiterals(c),
   d_nextIntegerCheckVar(0),
@@ -1393,7 +1393,7 @@ void TheoryArithPrivate::setupVariable(const Variable& x){
 
 void TheoryArithPrivate::garbageCollectVariables(){
   ArithVarVec queue;
-  int instance = 0;
+  static int instance = 0;
   ++instance;
   Debug("arith::gc") << "TheoryArithPrivate::garbageCollectVariables() " << (instance) << endl;
 
@@ -4359,11 +4359,15 @@ Rational TheoryArithPrivate::deltaValueForTotalOrder() const{
   context::CDQueue<ConstraintP>::const_iterator qiter = d_diseqQueue.begin();
   context::CDQueue<ConstraintP>::const_iterator qiter_end = d_diseqQueue.end();
 
+  unsigned inserted = 0;
+  unsigned vars = 0;
+  
   for(; qiter != qiter_end; ++qiter){
     ConstraintP curr = *qiter;
 
     const DeltaRational& rhsValue = curr->getValue();
     relevantDeltaValues.insert(rhsValue);
+    ++inserted;
   }
 
   Theory::shared_terms_iterator shared_iter = d_containing.shared_terms_begin();
@@ -4375,22 +4379,34 @@ Rational TheoryArithPrivate::deltaValueForTotalOrder() const{
     // DeltaRationalException is fatal as this point. Don't catch!
     DeltaRational val = getDeltaValue(sharedCurr);
     relevantDeltaValues.insert(val);
+    ++inserted;
   }
 
   for(var_iterator vi = var_begin(), vend = var_end(); vi != vend; ++vi){
     ArithVar v = *vi;
     const DeltaRational& value = d_partialModel.getAssignment(v);
     relevantDeltaValues.insert(value);
+    ++inserted;
+    ++vars;
+    
     if( d_partialModel.hasLowerBound(v)){
       const DeltaRational& lb = d_partialModel.getLowerBound(v);
       relevantDeltaValues.insert(lb);
+      ++inserted;
     }
     if( d_partialModel.hasUpperBound(v)){
       const DeltaRational& ub = d_partialModel.getUpperBound(v);
       relevantDeltaValues.insert(ub);
+      ++inserted;
     }
   }
 
+  Debug("arith::delta") << "deltaValueForTotalOrder()"
+                        << " size " << relevantDeltaValues.size()
+                        << " inserted " << inserted
+                        << " vars " << vars
+                        << endl;
+  
   if(relevantDeltaValues.size() >= 2){
     std::set<DeltaRational>::const_iterator iter = relevantDeltaValues.begin();
     std::set<DeltaRational>::const_iterator iter_end = relevantDeltaValues.end();
@@ -4478,8 +4494,11 @@ void TheoryArithPrivate::notifyRestart(){
 
   if(Debug.isOn("paranoid:check_tableau")){ d_linEq.debugCheckTableau(); }
 
+  //cout << "notifyRestart" << endl;
+  
   if(options::gcArithOnRestart()){
     d_constraintDatabase.garbageCollect();
+    garbageCollectVariables();
   }
 
   ++d_restartsCounter;
@@ -4576,9 +4595,17 @@ void TheoryArithPrivate::presolve(){
   vector<Node>::const_iterator i = lemmas.begin(), i_end = lemmas.end();
   for(; i != i_end; ++i){
     Node lem = *i;
-    Debug("arith::oldprop") << " lemma lemma duck " <<lem << endl;
+    Debug("arith::oldprop") << " dumping unate lemma " << lem << endl;
     outputLemma(lem);
   }
+
+  //cout << "presolving" << endl;
+  
+  if(options::incrementalSolving() && options::gcArithOnRestart()){
+    d_constraintDatabase.garbageCollect();
+    garbageCollectVariables();
+  }
+  
 }
 
 EqualityStatus TheoryArithPrivate::getEqualityStatus(TNode a, TNode b) {
