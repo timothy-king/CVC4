@@ -141,6 +141,8 @@ TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context
   d_cutCount(c, 0),
   d_cutInContext(c),
   d_likelyIntegerInfeasible(c, false),
+  d_unateLemmas(u),
+  
   d_guessedCoeffSet(c, false),
   d_guessedCoeffs(),
   d_treeLog(NULL),
@@ -4268,6 +4270,40 @@ bool TheoryArithPrivate::safeToReset() const {
   return true;
 }
 
+void TheoryArithPrivate::outputUnateLemmas(){
+  vector<Node> lemmas;
+
+  switch(options::arithUnateLemmaMode()){
+  case NO_PRESOLVE_LEMMAS:
+    break;
+  case INEQUALITY_PRESOLVE_LEMMAS:
+    d_constraintDatabase.outputUnateInequalityLemmas(lemmas);
+    break;
+  case EQUALITY_PRESOLVE_LEMMAS:
+    d_constraintDatabase.outputUnateEqualityLemmas(lemmas);
+    break;
+  case ALL_PRESOLVE_LEMMAS:
+    d_constraintDatabase.outputUnateInequalityLemmas(lemmas);
+    d_constraintDatabase.outputUnateEqualityLemmas(lemmas);
+    break;
+  default:
+    Unhandled(options::arithUnateLemmaMode());
+  }
+
+  
+  vector<Node>::const_iterator i = lemmas.begin(), i_end = lemmas.end();
+  for(; i != i_end; ++i){
+    Node lem = *i;
+    if(d_unateLemmas.contains(lem)){
+      Debug("arith::oldprop") << "already output the unate lemma " <<lem << endl;      
+    } else {
+      d_unateLemmas.insert(lem);
+      Debug("arith::oldprop") << "adding the unate lemma " <<lem << endl;      
+      outputLemma(lem);
+    }
+  }
+}
+  
 void TheoryArithPrivate::notifyRestart(){
   TimerStat::CodeTimer codeTimer(d_statistics.d_restartTimer);
 
@@ -4276,6 +4312,10 @@ void TheoryArithPrivate::notifyRestart(){
   ++d_restartsCounter;
   d_solveIntMaybeHelp = 0;
   d_solveIntAttempts = 0;
+
+  if( !options::incrementalSolving() && options::unateLemmasOnRestart()){
+    outputUnateLemmas();
+  }
 }
 
 bool TheoryArithPrivate::entireStateIsConsistent(const string& s){
@@ -4344,31 +4384,8 @@ void TheoryArithPrivate::presolve(){
     callCount = callCount + 1;
   }
 
-  vector<Node> lemmas;
   if(!options::incrementalSolving()) {
-    switch(options::arithUnateLemmaMode()){
-    case NO_PRESOLVE_LEMMAS:
-      break;
-    case INEQUALITY_PRESOLVE_LEMMAS:
-      d_constraintDatabase.outputUnateInequalityLemmas(lemmas);
-      break;
-    case EQUALITY_PRESOLVE_LEMMAS:
-      d_constraintDatabase.outputUnateEqualityLemmas(lemmas);
-      break;
-    case ALL_PRESOLVE_LEMMAS:
-      d_constraintDatabase.outputUnateInequalityLemmas(lemmas);
-      d_constraintDatabase.outputUnateEqualityLemmas(lemmas);
-      break;
-    default:
-      Unhandled(options::arithUnateLemmaMode());
-    }
-  }
-
-  vector<Node>::const_iterator i = lemmas.begin(), i_end = lemmas.end();
-  for(; i != i_end; ++i){
-    Node lem = *i;
-    Debug("arith::oldprop") << " lemma lemma duck " <<lem << endl;
-    outputLemma(lem);
+    outputUnateLemmas();
   }
 }
 

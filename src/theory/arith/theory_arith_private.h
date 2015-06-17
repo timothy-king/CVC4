@@ -693,7 +693,10 @@ private:
 
   context::CDO<bool> d_likelyIntegerInfeasible;
 
+  CDNodeSet d_unateLemmas;
+  void outputUnateLemmas();
 
+  
   context::CDO<bool> d_guessedCoeffSet;
   ArithRatPairVec d_guessedCoeffs;
 

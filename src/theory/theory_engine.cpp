@@ -1765,3 +1765,133 @@ std::pair<bool, Node> TheoryEngine::entailmentCheck(theory::TheoryOfMode mode, T
 void TheoryEngine::spendResource(unsigned ammount) {
   d_resourceManager->spendResource(ammount);
 }
+
+
+TheoryEngine::EngineOutputChannel::EngineOutputChannel(TheoryEngine* engine, theory::TheoryId theory)
+  : d_engine(engine)
+  , d_statistics(theory)
+  , d_theory(theory)
+{
+}
+
+
+void TheoryEngine::EngineOutputChannel::safePoint(uint64_t ammount) throw(theory::Interrupted, UnsafeInterruptException, AssertionException) {
+  spendResource(ammount);
+  if (d_engine->d_interrupted) {
+    throw theory::Interrupted();
+  }
+}
+
+
+std::pair<Node, bool> getPolarity(Node n, bool initial){
+  bool polarity = initial;
+  Node curr = n;
+  while(curr.getKind() == kind::NOT){
+    curr = curr[0];
+    polarity = !polarity;
+  }
+  return std::make_pair(curr, polarity);
+}
+
+Node negateAndNormalize(Node n){
+  Assert(n.getKind() == kind::AND);
+  // map from atoms to normalized literals
+  std::map<Node, Node> children;
+  for(unsigned i=0, N = n.getNumChildren(); i<N; ++i){
+    std::pair<Node, bool> polarity = getPolarity(n[i], true);
+    Node atom = (polarity.first);
+    Node literal = polarity.second ? atom : atom.negate();
+    children.insert(make_pair(atom, literal));
+  }
+  NodeBuilder<> nb(kind::OR);
+  {
+    std::map<Node, Node>::const_iterator ci=children.begin(), cend=children.end();
+    for(; ci != cend; ++ci){
+      Node literal  = ci->second;
+      nb << literal;
+    }
+  }
+  Node normalized = nb;
+  return normalized;
+}
+
+
+void TheoryEngine::EngineOutputChannel::conflict(TNode conflictNode) throw(AssertionException, UnsafeInterruptException) {
+  Trace("theory::conflict") << "EngineOutputChannel<" << d_theory << ">::conflict(" << conflictNode << ")" << std::endl;
+  
+  Trace("theory::normalized") << "EngineOutputChannel<" << d_theory << ">::nmconflict(" <<  negateAndNormalize(conflictNode) << ")" << std::endl;
+  ++ d_statistics.conflicts;
+  d_engine->d_outputChannelUsed = true;
+  d_engine->conflict(conflictNode, d_theory);
+}
+
+
+bool TheoryEngine::EngineOutputChannel::propagate(TNode literal) throw(AssertionException, UnsafeInterruptException) {
+  Trace("theory::propagate") << "EngineOutputChannel<" << d_theory << ">::propagate(" << literal << ")" << std::endl;
+  Trace("theory::normalized") << "EngineOutputChannel<" << d_theory << ">::propagate(" << literal << ")" << std::endl;  
+  ++ d_statistics.propagations;
+  d_engine->d_outputChannelUsed = true;
+  return d_engine->propagate(literal, d_theory);
+}
+
+theory::LemmaStatus TheoryEngine::EngineOutputChannel::lemma(TNode lemma, bool removable, bool preprocess) throw(TypeCheckingExceptionPrivate, AssertionException, UnsafeInterruptException, LogicException) {
+  Trace("theory::lemma") << "EngineOutputChannel<" << d_theory << ">::lemma(" << lemma << ")" << std::endl;
+  Trace("theory::normalized") << "EngineOutputChannel<" << d_theory << ">::lemma(" << lemma << ")" << std::endl;
+  ++ d_statistics.lemmas;
+  d_engine->d_outputChannelUsed = true;
+  return d_engine->lemma(lemma, false, removable, preprocess, theory::THEORY_LAST);
+}
+
+
+theory::LemmaStatus TheoryEngine::EngineOutputChannel::splitLemma(TNode lemma, bool removable) throw(TypeCheckingExceptionPrivate, AssertionException, UnsafeInterruptException) {
+  Trace("theory::lemma") << "EngineOutputChannel<" << d_theory << ">::lemma(" << lemma << ")" << std::endl;
+  ++ d_statistics.lemmas;
+  d_engine->d_outputChannelUsed = true;
+  return d_engine->lemma(lemma, false, removable, false, d_theory);
+}
+
+void TheoryEngine::EngineOutputChannel::demandRestart() throw(TypeCheckingExceptionPrivate, AssertionException, UnsafeInterruptException) {
+  NodeManager* curr = NodeManager::currentNM();
+  Node restartVar =  curr->mkSkolem("restartVar",
+                                    curr->booleanType(),
+                                    "A boolean variable asserted to be true to force a restart");
+  Trace("theory::restart") << "EngineOutputChannel<" << d_theory << ">::restart(" << restartVar << ")" << std::endl;
+  ++ d_statistics.restartDemands;
+  lemma(restartVar, true);
+}
+
+
+void TheoryEngine::EngineOutputChannel::requirePhase(TNode n, bool phase)
+  throw(theory::Interrupted, AssertionException, UnsafeInterruptException) {
+  Debug("theory") << "EngineOutputChannel::requirePhase("
+                  << n << ", " << phase << ")" << std::endl;
+  ++ d_statistics.requirePhase;
+  d_engine->d_propEngine->requirePhase(n, phase);
+}
+
+
+
+bool TheoryEngine::EngineOutputChannel::flipDecision()
+  throw(theory::Interrupted, AssertionException, UnsafeInterruptException)
+{
+  Debug("theory") << "EngineOutputChannel::flipDecision()" << std::endl;
+  ++ d_statistics.flipDecision;
+  return d_engine->d_propEngine->flipDecision();
+}
+
+void TheoryEngine::EngineOutputChannel::setIncomplete()
+  throw(AssertionException, UnsafeInterruptException)
+{
+  Trace("theory") << "TheoryEngine::setIncomplete()" << std::endl;
+  d_engine->setIncomplete(d_theory);
+}
+
+void TheoryEngine::EngineOutputChannel::spendResource(unsigned amount)
+  throw(UnsafeInterruptException)
+{
+  d_engine->spendResource(amount);
+}
+
+void TheoryEngine::EngineOutputChannel::handleUserAttribute( const char* attr, theory::Theory* t ){
+  d_engine->handleUserAttribute( attr, t );
+}

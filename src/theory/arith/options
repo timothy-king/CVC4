@@ -161,4 +161,8 @@ option pbRewrites --pb-rewrites bool :default false
 option pbRewriteThreshold --pb-rewrite-threshold int :default 256
  threshold of number of pseudoboolean variables to have before doing rewrites
 
+
+option unateLemmasOnRestart --unate-lemmas-on-restart bool :default false
+ every restart output all unate lemmas that have not previously been output
+
 endmodule
