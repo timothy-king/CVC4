@@ -97,6 +97,9 @@ class Context {
   Context(const Context&) CVC4_UNDEFINED;
   Context& operator=(const Context&) CVC4_UNDEFINED;
 
+  /** Name for debugging purposes. */
+  std::string d_debuggingName;
+  
 public:
 
   /**
@@ -197,6 +200,11 @@ public:
    */
   void addNotifyObjPost(ContextNotifyObj* pCNO);
 
+  /**
+   * Sets the debugging name for the context.
+   */
+  void setDebuggingName(const std::string& s);
+  
 };/* class Context */
 
 

@@ -57,10 +57,13 @@ Context::~Context() throw(AssertionException) {
   }
 }
 
+void Context::setDebuggingName(const std::string& s){
+  d_debuggingName = s;
+}
 
 void Context::push() {
   Trace("pushpop") << std::string(2 * getLevel(), ' ') << "Push [to "
-                   << getLevel() + 1 << "] { " << this << std::endl;
+                   << getLevel() + 1 << "] { " << d_debuggingName << std::endl;
 
   // Create a new memory region
   d_pCMM->push();
@@ -104,7 +107,7 @@ void Context::pop() {
   }
 
   Trace("pushpop") << std::string(2 * getLevel(), ' ') << "} Pop [to "
-                   << getLevel() << "] " << this << std::endl;
+                   << getLevel() << "] " << d_debuggingName << std::endl;
 }
 
 

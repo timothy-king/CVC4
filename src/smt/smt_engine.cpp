@@ -717,6 +717,11 @@ SmtEngine::SmtEngine(ExprManager* em) throw() :
   d_statisticsRegistry(NULL),
   d_stats(NULL) {
 
+#ifdef CVC4_DEBUG
+  d_context->setDebuggingName("<cxt-sat>");
+  d_userContext->setDebuggingName("<cxt-user>");
+#endif
+
   SmtScope smts(this);
   d_smtAttributes = new expr::attr::SmtAttributes(d_context);
   d_private = new smt::SmtEnginePrivate(*this);

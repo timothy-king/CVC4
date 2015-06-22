@@ -4013,12 +4013,16 @@ void TheoryArithPrivate::propagate(Theory::Effort e) {
       Debug("arith::prop") << c->getNegation()->externalExplainByAssertions()
                            << endl;
     }
-    Assert(!c->negationHasProof(), "A constraint has been propagated on the constraint propagation queue, but the negation has been set to true.  Contact Tim now!");
+    Assert(!c->negationHasProof(), "A constraint has been propagated on the constraint propagation queue, but the negation has been set to true.");
 
     if(!c->assertedToTheTheory()){
       Node literal = c->getLiteral();
       Debug("arith::prop") << "propagating @" << getSatContext()->getLevel() << " " << literal << endl;
 
+      Debug("arith::prop::cdb") << "propagating @" << getSatContext()->getLevel() << " " << literal
+                                << endl
+                                << "\t" << explain(literal)
+                                << endl;
       outputPropagate(literal);
     }else{
       Debug("arith::prop") << "already asserted to the theory " <<  c->getLiteral() << endl;
@@ -4385,7 +4389,7 @@ void TheoryArithPrivate::presolve(){
   }
 
   if(!options::incrementalSolving()) {
-    outputUnateLemmas();
+    //outputUnateLemmas();
   }
 }
 
