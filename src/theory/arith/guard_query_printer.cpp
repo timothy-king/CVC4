@@ -77,32 +77,32 @@ void printTerm(std::ostream& os, Node t, const NameMap& nameMap){
       Node::iterator ti = t.begin(), tend = t.end();
       Assert(ti != tend);
       do{
-
         printTerm(os, *ti, nameMap);
-        
         ++ti;
         if(ti != tend){
           os << ((t.getKind() == kind::PLUS) ? '+' : '*');
         }
       }while(ti != tend);
     }
-    
     break;
   case kind::VARIABLE:
   case kind::SKOLEM:
-    if(nameMap.find(t) != nameMap.end()){
-      os << (*nameMap.find(t)).second;
-    } else {
-      throw std::exception();
+    {
+      NameMap::const_iterator t_iter = nameMap.find(t);
+      if(t_iter != nameMap.end()){
+        os << (*t_iter).second;
+      } else {
+        throw std::exception();
+      }
     }
     break;
   case kind::CONST_RATIONAL:
     {
       const Rational& q = t.getConst<Rational>();
       if(q.isIntegral()){
-        os << q;
+        os << q.getNumerator();
       } else{
-        Unhandled("non-integral rational");
+        os << q.getNumerator() << "/" << q.getDenominator();
       }
     }
     break;
@@ -114,28 +114,25 @@ void printTerm(std::ostream& os, Node t, const NameMap& nameMap){
 }
 
 
-void printGuard(std::ostream& os, Kind k, const Polynomial& p, const NameMap& nameMap){
-  Assert(k == kind::LT || k == kind::LEQ);
+void printGuard(std::ostream& os, const NameMap& nameMap, Kind k, Node term){
+  Assert(k == kind::LT || k == kind::LEQ || k == kind::GEQ || k == kind::LEQ);
   os << "[";
-  if(k == kind::GT){
-    os << "\">\"";
-  }else if(k == kind::GEQ){
-    os << "\">=\"";
-  } else {
-    Unhandled("Unexpected kind in print guard");
+  switch(k){
+  case kind::GT:  os << "\">\"";  break;
+  case kind::GEQ: os << "\">=\""; break;
+  case kind::LEQ: os << "\"<=\""; break;
+  case kind::LT:  os << "\"<\"";  break;
+  default:
+    Unhandled("Unexpected kind in print guard");    
   }
-  os << "\"";
-
-  Integer den = p.denominatorLCM();
-  Polynomial scaled = p*Rational(den);
-
-  printTerm(os, scaled.getNode(), nameMap);
   
+  os << "\"";
+  printTerm(os, term, nameMap);  
   os << "\"";
   os << "]";
 }
 
-void printLiteral(std::ostream& os, Node lit, const NameMap& nameMap){
+void printLiteral(std::ostream& os, const NameMap& nameMap, Node lit){
   Node rw =  Rewriter::rewrite(lit);
   Comparison cmp = Comparison::parseNormalForm(rw);
   Kind k = cmp.comparisonKind();
@@ -150,22 +147,18 @@ void printLiteral(std::ostream& os, Node lit, const NameMap& nameMap){
       Polynomial l = cmp.getLeft();
       Polynomial r = cmp.getRight();
       Polynomial d = l - r;
-      if(k == kind::LT || k == kind::LEQ){
-        d = -d;
-        k = (k == kind::LT) ? kind::GT : kind::GEQ;
-      }
       if(k == kind::EQUAL){
-        printGuard(os, kind::LEQ, d, nameMap);
-        printGuard(os, kind::LEQ, -d, nameMap);
+        printGuard(os, nameMap, kind::LEQ, d.getNode());
+        printGuard(os, nameMap, kind::GEQ, d.getNode());
       }else{
-        printGuard(os, k, d, nameMap);
+        printGuard(os, nameMap, k, d.getNode());
       }
     }
     break;
   case kind::CONST_BOOLEAN:
     if(rw.getConst<bool>()){
       Polynomial one = Polynomial::mkOne();
-      printGuard(os, kind::LEQ, one, nameMap);
+      printGuard(os, nameMap, kind::LEQ, one.getNode());
       break;
     }
     // intentionally fall through on the else case
@@ -181,7 +174,7 @@ void printPolynomials(std::ostream& os, const NameMap& nameMap, NodeVec::const_i
   os << "[";
   for(; li != lend; ++li){
     Node lit = *li;
-    printLiteral(os, lit, nameMap);
+    printLiteral(os, nameMap, lit);
   }
   os << "]";
 }
@@ -212,10 +205,10 @@ void produceGuardedQuery(std::ostream& os, const NodeVec& assertions){
   NodeVec partitionedAssertions(assertions);
   NodeVec::iterator nonlinear_end =  std::partition(partitionedAssertions.begin(), partitionedAssertions.end(), IsNonlinearPred());
 
-  cerr << assertions.size() << " " << partitionedAssertions.size() << " " << (nonlinear_end - partitionedAssertions.begin())
-       << " " << partitionedAssertions.end() - nonlinear_end << endl;
+  // cerr << assertions.size() << " " << partitionedAssertions.size() << " " << (nonlinear_end - partitionedAssertions.begin())
+  //      << " " << partitionedAssertions.end() - nonlinear_end << endl;
   
-  os << "[\"guard\" ";
+  os << "[\"guard\"";
   printPolynomials(os, names, partitionedAssertions.begin(), nonlinear_end);
   printPolynomials(os, names, nonlinear_end, partitionedAssertions.end());
   os << "]" << endl;
