@@ -801,9 +801,16 @@ private:
   /** Prints the assertions to the debug stream */
   void printAssertions(const char* tag);
 
-  /** Dump the assertions to the dump */
-  void dumpAssertions(const char* tag);
+  /**
+   * Dump the assertions into Dump(tag) for the Theories with the ids in theories
+   * in the order of theories.
+   */
+  void dumpAssertions(const char* tag, const std::vector<theory::TheoryId>& theories);
 
+  /** Dump the assertions into Dump(tag) for the Theory with theoryId. */
+  void dumpAssertions(const char* tag, theory::TheoryId theoryId);
+
+  
   /**
    * A collection of ite preprocessing passes.
    */

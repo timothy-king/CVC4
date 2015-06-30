@@ -161,4 +161,7 @@ option pbRewrites --pb-rewrites bool :default false
 option pbRewriteThreshold --pb-rewrite-threshold int :default 256
  threshold of number of pseudoboolean variables to have before doing rewrites
 
+option produceGuardQuery --produce-guard-query bool :default false
+ produce a guarded query
+
 endmodule

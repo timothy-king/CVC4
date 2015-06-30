@@ -17,6 +17,8 @@
 #include <vector>
 #include <list>
 
+#include "theory/arith/options.h"
+#include "theory/arith/guard_query_printer.h"
 #include "theory/arith/arith_ite_utils.h"
 
 #include "decision/decision_engine.h"
@@ -64,6 +66,10 @@ using namespace std;
 
 using namespace CVC4;
 using namespace CVC4::theory;
+
+std::vector<TheoryId> theoryIdRange(theory::TheoryId begin = THEORY_FIRST, theory::TheoryId end = THEORY_LAST);
+
+
 
 void TheoryEngine::finishInit() {
   PROOF (ProofManager::initTheoryProof(); );
@@ -288,46 +294,56 @@ void TheoryEngine::printAssertions(const char* tag) {
   }
 }
 
-void TheoryEngine::dumpAssertions(const char* tag) {
+
+void TheoryEngine::dumpAssertions(const char* tag, const std::vector<TheoryId>& theories) {  
   if (Dump.isOn(tag)) {
-    Dump(tag) << CommentCommand("Starting completeness check");
-    for (TheoryId theoryId = THEORY_FIRST; theoryId < THEORY_LAST; ++theoryId) {
-      Theory* theory = d_theoryTable[theoryId];
-      if (theory && d_logicInfo.isTheoryEnabled(theoryId)) {
-        Dump(tag) << CommentCommand("Completeness check");
-        Dump(tag) << PushCommand();
+    Dump(tag) << CommentCommand("Starting completeness checks");
+    std::vector<TheoryId>::const_iterator thIterator = theories.begin(), thEnd = theories.end();
+    for (; thIterator != thEnd; ++thIterator){
+      TheoryId theoryId = *thIterator;
+      dumpAssertions(tag, theoryId);
+    }
+  }
+}
 
-        // Dump the shared terms
-        if (d_logicInfo.isSharingEnabled()) {
-          Dump(tag) << CommentCommand("Shared terms");
-          context::CDList<TNode>::const_iterator it = theory->shared_terms_begin(), it_end = theory->shared_terms_end();
-          for (unsigned i = 0; it != it_end; ++ it, ++i) {
-              stringstream ss;
-              ss << (*it);
-              Dump(tag) << CommentCommand(ss.str());
-          }
-        }
+void TheoryEngine::dumpAssertions(const char* tag, TheoryId theoryId){
+  stringstream ss;
+  ss << "Completeness check for " << theoryId;
+  Dump(tag) << CommentCommand(ss.str());
+  Theory* theory = d_theoryTable[theoryId];
+  if (theory && d_logicInfo.isTheoryEnabled(theoryId)) {
+    Dump(tag) << CommentCommand("Completeness check");
+    Dump(tag) << PushCommand();
 
-        // Dump the assertions
-        Dump(tag) << CommentCommand("Assertions");
-        context::CDList<Assertion>::const_iterator it = theory->facts_begin(), it_end = theory->facts_end();
-        for (; it != it_end; ++ it) {
-          // Get the assertion
-          Node assertionNode = (*it).assertion;
-          // Purify all the terms
-
-          if ((*it).isPreregistered) {
-            Dump(tag) << CommentCommand("Preregistered");
-          } else {
-            Dump(tag) << CommentCommand("Shared assertion");
-          }
-          Dump(tag) << AssertCommand(assertionNode.toExpr());
-        }
-        Dump(tag) << CheckSatCommand();
-
-        Dump(tag) << PopCommand();
+    // Dump the shared terms
+    if (d_logicInfo.isSharingEnabled()) {
+      Dump(tag) << CommentCommand("Shared terms");
+      context::CDList<TNode>::const_iterator it = theory->shared_terms_begin(), it_end = theory->shared_terms_end();
+      for (unsigned i = 0; it != it_end; ++ it, ++i) {
+        stringstream ss;
+        ss << (*it);
+        Dump(tag) << CommentCommand(ss.str());
       }
     }
+
+    // Dump the assertions
+    Dump(tag) << CommentCommand("Assertions");
+    context::CDList<Assertion>::const_iterator it = theory->facts_begin(), it_end = theory->facts_end();
+    for (; it != it_end; ++ it) {
+      // Get the assertion
+      Node assertionNode = (*it).assertion;
+      // Purify all the terms
+
+      if ((*it).isPreregistered) {
+        Dump(tag) << CommentCommand("Preregistered");
+      } else {
+        Dump(tag) << CommentCommand("Shared assertion");
+      }
+      Dump(tag) << AssertCommand(assertionNode.toExpr());
+    }
+    Dump(tag) << CheckSatCommand();
+    
+    Dump(tag) << PopCommand();
   }
 }
 
@@ -440,8 +456,24 @@ void TheoryEngine::check(Theory::Effort effort) {
   // If fulleffort, check all theories
   if(Dump.isOn("theory::fullcheck") && Theory::fullEffort(effort)) {
     if (!d_inConflict && !needCheck()) {
-      dumpAssertions("theory::fullcheck");
+      dumpAssertions("theory::fullcheck", theoryIdRange() );
     }
+  }
+  
+  // If fulleffort, check all theories
+  if(Theory::fullEffort(effort)
+     && !d_inConflict
+     && !needCheck()
+     && d_logicInfo.isTheoryEnabled(theory::THEORY_ARITH)
+     && options::produceGuardQuery()) {
+    Theory* th = d_theoryTable[theory::THEORY_ARITH];
+
+    std::vector<Node> assertions;
+    for(theory::Theory::assertions_iterator fi = th->facts_begin(), fend = th->facts_end(); fi != fend; ++fi){
+      Node fact = *fi;
+      assertions.push_back(fact);
+    }
+    theory::arith::produceGuardedQuery(std::cout, assertions);
   }
 }
 
@@ -1764,4 +1796,12 @@ std::pair<bool, Node> TheoryEngine::entailmentCheck(theory::TheoryOfMode mode, T
 
 void TheoryEngine::spendResource(unsigned ammount) {
   d_resourceManager->spendResource(ammount);
+}
+
+std::vector<TheoryId> theoryIdRange(theory::TheoryId begin, theory::TheoryId end){
+  std::vector<TheoryId> result;
+  for (TheoryId theoryId = begin; theoryId < end; ++theoryId) {
+    result.push_back(theoryId);
+  }
+  return result;
 }
