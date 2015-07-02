@@ -161,4 +161,9 @@ option pbRewrites --pb-rewrites bool :default false
 option pbRewriteThreshold --pb-rewrite-threshold int :default 256
  threshold of number of pseudoboolean variables to have before doing rewrites
 
+option maxNLSplits --max-nl-splits unsigned :default 128
+ threshold for attempting to refine non-linear terms
+
+
+
 endmodule

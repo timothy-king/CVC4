@@ -44,7 +44,7 @@ TempVarMalloc::TempVarMalloc(TheoryArithPrivate& ta)
 {}
 ArithVar TempVarMalloc::request(){
   Node skolem = mkRealSkolem("tmpVar");
-  return d_ta.requestArithVar(skolem, false, true);
+  return d_ta.requestArithVar(skolem, false, true, false);
 }
 void TempVarMalloc::release(ArithVar v){
   d_ta.releaseArithVar(v);

@@ -97,7 +97,7 @@ static bool complexityBelow(const DenseMap<Rational>& row, uint32_t cap);
 
 TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context* c, context::UserContext* u, OutputChannel& out, Valuation valuation, const LogicInfo& logicInfo) :
   d_containing(containing),
-  d_nlIncomplete( false),
+  d_nlSplits(c, 0),
   d_rowTracking(),
   d_constraintDatabase(c, u, d_partialModel, d_congruenceManager, RaiseConflict(*this)),
   d_qflraStatus(Result::SAT_UNKNOWN),
@@ -339,6 +339,8 @@ TheoryArithPrivate::Statistics::Statistics()
   , d_mipProofsAttempted("theory::arith::z::mip::proofs::attempted", 0)
   , d_mipProofsSuccessful("theory::arith::z::mip::proofs::successful", 0)
   , d_numBranchesFailed("theory::arith::z::mip::branch::proof::failed", 0)
+  , d_totalNLSplits("theory::arith::nl::splits", 0)
+  , d_nlSuccesses("theory::arith::nl::successes", 0)
 {
   StatisticsRegistry::registerStat(&d_statAssertUpperConflicts);
   StatisticsRegistry::registerStat(&d_statAssertLowerConflicts);
@@ -430,6 +432,10 @@ TheoryArithPrivate::Statistics::Statistics()
   StatisticsRegistry::registerStat(&d_mipProofsAttempted);
   StatisticsRegistry::registerStat(&d_mipProofsSuccessful);
   StatisticsRegistry::registerStat(&d_numBranchesFailed);
+
+  StatisticsRegistry::registerStat(&d_totalNLSplits);
+  StatisticsRegistry::registerStat(&d_nlSuccesses);
+  
 }
 
 TheoryArithPrivate::Statistics::~Statistics(){
@@ -524,6 +530,9 @@ TheoryArithPrivate::Statistics::~Statistics(){
   StatisticsRegistry::unregisterStat(&d_mipProofsAttempted);
   StatisticsRegistry::unregisterStat(&d_mipProofsSuccessful);
   StatisticsRegistry::unregisterStat(&d_numBranchesFailed);
+  
+  StatisticsRegistry::unregisterStat(&d_totalNLSplits);
+  StatisticsRegistry::unregisterStat(&d_nlSuccesses);
 }
 
 bool complexityBelow(const DenseMap<Rational>& row, uint32_t cap){
@@ -1358,7 +1367,7 @@ void TheoryArithPrivate::setupVariable(const Variable& x){
   Assert(!isSetup(n));
 
   ++(d_statistics.d_statUserVariables);
-  requestArithVar(n, false,  false);
+  requestArithVar(n, false,  false, false);
   //ArithVar varN = requestArithVar(n,false);
   //setupInitialValue(varN);
 
@@ -1393,11 +1402,8 @@ void TheoryArithPrivate::setupVariableList(const VarList& vl){
       throw LogicException("A non-linear fact was asserted to arithmetic in a linear logic.");
     }
 
-    setIncomplete();
-    d_nlIncomplete = true;
-
     ++(d_statistics.d_statUserVariables);
-    requestArithVar(vlNode, false, false);
+    requestArithVar(vlNode, false, false, true);
     //ArithVar av = requestArithVar(vlNode, false);
     //setupInitialValue(av);
 
@@ -1590,7 +1596,7 @@ void TheoryArithPrivate::setupPolynomial(const Polynomial& poly) {
     vector<Rational> coefficients;
     asVectors(poly, coefficients, variables);
 
-    ArithVar varSlack = requestArithVar(polyNode, true, false);
+    ArithVar varSlack = requestArithVar(polyNode, true, false, false);
     d_tableau.addRow(varSlack, coefficients, variables);
     setupBasicValue(varSlack);
     d_linEq.trackRowIndex(d_tableau.basicToRowIndex(varSlack));
@@ -1677,7 +1683,7 @@ void TheoryArithPrivate::releaseArithVar(ArithVar v){
   d_partialModel.releaseArithVar(v);
 }
 
-ArithVar TheoryArithPrivate::requestArithVar(TNode x, bool aux, bool internal){
+ArithVar TheoryArithPrivate::requestArithVar(TNode x, bool aux, bool internal, bool monomial){
   //TODO : The VarList trick is good enough?
   Assert(isLeaf(x) || VarList::isMember(x) || x.getKind() == PLUS || internal);
   if(getLogicInfo().isLinear() && Variable::isDivMember(x)){
@@ -1690,7 +1696,7 @@ ArithVar TheoryArithPrivate::requestArithVar(TNode x, bool aux, bool internal){
   Assert(x.getType().isReal()); // real or integer
 
   ArithVar max = d_partialModel.getNumberOfVariables();
-  ArithVar varX = d_partialModel.allocate(x, aux);
+  ArithVar varX = d_partialModel.allocate(x, aux, monomial);
 
   bool reclaim =  max >= d_partialModel.getNumberOfVariables();;
 
@@ -2276,6 +2282,7 @@ std::pair<ConstraintP, ArithVar> TheoryArithPrivate::replayGetConstraint(const D
 
   Polynomial nvp =  cmp.normalizedVariablePart();
   if(nvp.isZero()){ return make_pair(NullConstraint, added); }
+  if(nvp.isNonlinear()){ return make_pair(NullConstraint, added); }
 
   Node norm = nvp.getNode();
 
@@ -2294,7 +2301,8 @@ std::pair<ConstraintP, ArithVar> TheoryArithPrivate::replayGetConstraint(const D
                                 << norm << " |-> " << v << " @ " << getSatContext()->getLevel() << endl;
     Assert(!branch || d_partialModel.isIntegerInput(v));
   }else{
-    v = requestArithVar(norm, true, true);
+    Assert(polynomial.size() >= 2);
+    v = requestArithVar(norm, true, true, false);
     d_replayVariables.push_back(v);
 
     added = v;
@@ -3780,9 +3788,45 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
       }
     }
   }//if !emmittedConflictOrSplit && fullEffort(effortLevel) && !hasIntegerModel()
-  if(Theory::fullEffort(effortLevel) && d_nlIncomplete){
-    // TODO this is total paranoia
-    setIncomplete();
+
+  //Note:
+  // At this point either a conflict a split or an integer model should be found in full effort
+  // Theory::fullEffort(effortLevel) && !emmittedConflictOrSplit => hasIntegerModel()
+  // Use nextIntegerViolatation() instead of hasIntegerModel() to avoid side effects
+  Assert(!Theory::fullEffort(effortLevel)
+         || emmittedConflictOrSplit
+         || nextIntegerViolatation(true) == ARITHVAR_SENTINEL);
+
+  if(Theory::fullEffort(effortLevel) && !emmittedConflictOrSplit && d_partialModel.containsNonlinearTerms()){
+    Assert(d_qflraStatus == SAT);
+    Assert(nextIntegerViolatation(true) == ARITHVAR_SENTINEL);
+
+    attemptNonlinearModel();
+
+    if(hasNonlinearModel()){
+      // success      
+      ++(d_statistics.d_nlSuccesses);
+    } else {
+      if(d_nlSplits < options::maxNLSplits()){
+        Assert(!emmittedConflictOrSplit);
+        vector<Node> lemmas = attemptNonlinearSplits();
+        for(size_t i = 0, N = lemmas.size(); i < N; ++i){
+          Node lemma = lemmas[i];
+          Node rewritten = Rewriter::rewrite(lemma);
+          Debug("arith::lemmas") << "non-linear split:" << lemma
+                                 << rewritten
+                                 << endl;
+          outputLemma(lemma);
+          ++(d_statistics.d_totalNLSplits);
+          emmittedConflictOrSplit = true;
+        }
+        if(emmittedConflictOrSplit){
+          d_nlSplits = d_nlSplits + 1;
+        } else {
+          setIncomplete();
+        }
+      }
+    }
   }
 
   if(Theory::fullEffort(effortLevel)){
@@ -4203,7 +4247,6 @@ Rational TheoryArithPrivate::deltaValueForTotalOrder() const{
 
 void TheoryArithPrivate::collectModelInfo( TheoryModel* m, bool fullModel ){
   AlwaysAssert(d_qflraStatus ==  Result::SAT);
-  //AlwaysAssert(!d_nlIncomplete, "Arithmetic solver cannot currently produce models for input with nonlinear arithmetic constraints");
 
   if(Debug.isOn("arith::collectModelInfo")){
     debugPrintFacts();
@@ -5402,7 +5445,7 @@ std::pair<Node, DeltaRational> TheoryArithPrivate::entailmentCheckSimplex(int sg
   }
   // implicitly an upperbound
   Node skolem = mkRealSkolem("tmpVar$$");
-  ArithVar optVar = requestArithVar(skolem, false, true);
+  ArithVar optVar = requestArithVar(skolem, false, true, false);
   d_tableau.addRow(optVar, coefficients, variables);
   RowIndex ridx = d_tableau.basicToRowIndex(optVar);
 
@@ -5773,6 +5816,44 @@ std::pair<Node, DeltaRational> TheoryArithPrivate::entailmentCheckSimplex(int sg
 
 //   return result;
 // }
+
+bool TheoryArithPrivate::hasNonlinearModel() const {
+  for (var_iterator vi = var_begin(), vend = var_end(); vi != vend; ++vi){
+    ArithVar v= *vi;
+    bool success = false;
+    try {
+      if(d_partialModel.hasNode(v)){
+        Node n = d_partialModel.asNode(v);
+        // use getDeltaValue as the function evaluator
+        DeltaRational val = getDeltaValue(n);
+        if(val == d_partialModel.getAssignment(v)){
+          if(val.infinitesimalIsZero()){
+            success = true;
+          }
+        }
+      }
+    } catch (const DeltaRationalException& dre){
+      success = false;
+    } catch (const ModelException& me) {
+      success = false;
+    }
+    if(!success){
+      return false;
+    }
+  }
+  return true;
+}
+
+
+std::vector<Node> TheoryArithPrivate::attemptNonlinearSplits() const {
+  std::vector<Node> lemmas;
+
+
+  return lemmas;
+}
+
+
+
 
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */

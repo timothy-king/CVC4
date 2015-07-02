@@ -113,10 +113,13 @@ private:
 
   TheoryArith& d_containing;
 
-  bool d_nlIncomplete;
+  //bool d_nlIncomplete;
   // TODO A better would be:
   //context::CDO<bool> d_nlIncomplete;
 
+  /** How many nl splits have been done in this context. */
+  context::CDO<uint32_t> d_nlSplits;
+  
   BoundInfoMap d_rowTracking;
 
   /**
@@ -513,6 +516,11 @@ private:
    */
   bool hasIntegerModel();
 
+  // non-linear functions
+  void attemptNonlinearModel();
+  bool hasNonlinearModel() const;
+  std::vector<Node> attemptNonlinearSplits() const;
+  
   /**
    * Looks for through the variables starting at d_nextIntegerCheckVar
    * for the first integer variable that is between its upper and lower bounds
@@ -539,8 +547,9 @@ public:
    *
    * If aux is true, this is an auxiliary variable.
    * If internal is true, x might not be unique up to a constant multiple.
+   * If monomial is true, x must be a product of variables.
    */
-  ArithVar requestArithVar(TNode x, bool aux, bool internal);
+  ArithVar requestArithVar(TNode x, bool aux, bool internal, bool monomial);
 
 public:
   const BoundsInfo& boundsInfo(ArithVar basic) const;
@@ -664,10 +673,7 @@ private:
   inline TheoryId theoryOf(TNode x) const { return d_containing.theoryOf(x); }
   inline void debugPrintFacts() const { d_containing.debugPrintFacts(); }
   inline context::Context* getSatContext() const { return d_containing.getSatContext(); }
-  inline void setIncomplete() {
-    (d_containing.d_out)->setIncomplete();
-    d_nlIncomplete = true;
-  }
+  inline void setIncomplete() { (d_containing.d_out)->setIncomplete(); }
   void outputLemma(TNode lem);
   inline void outputPropagate(TNode lit) { (d_containing.d_out)->propagate(lit); }
   inline void outputRestart() { (d_containing.d_out)->demandRestart(); }
@@ -831,6 +837,9 @@ private:
     IntStat d_mipProofsSuccessful;
 
     IntStat d_numBranchesFailed;
+
+    IntStat d_totalNLSplits,
+      d_nlSuccesses;
 
 
 

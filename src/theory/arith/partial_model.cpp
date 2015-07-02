@@ -36,6 +36,7 @@ ArithVariables::ArithVariables(context::Context* c, DeltaComputeCallback deltaCo
    d_nodeToArithVarMap(),
    d_boundsQueue(),
    d_enqueueingBoundCounts(true),
+   d_numberOfMonomialAbstractions(0),
    d_lbRevertHistory(c, true, LowerBoundCleanUp(this)),
    d_ubRevertHistory(c, true, UpperBoundCleanUp(this)),
    d_deltaIsSafe(false),
@@ -140,16 +141,18 @@ bool ArithVariables::VarInfo::initialized() const {
   return d_var != ARITHVAR_SENTINEL;
 }
 
-void ArithVariables::VarInfo::initialize(ArithVar v, Node n, bool aux){
+void ArithVariables::VarInfo::initialize(ArithVar v, Node n, bool aux, bool monomial){
   Assert(!initialized());
   Assert(d_lb == NullConstraint);
   Assert(d_ub == NullConstraint);
   Assert(d_cmpAssignmentLB > 0);
   Assert(d_cmpAssignmentUB < 0);
+  Assert(!d_monomial);
   d_var = v;
   d_node = n;
   d_auxiliary = aux;
-
+  d_monomial = monomial;
+  
   if(d_auxiliary){
     //The type computation is not quite accurate for Rationals that are
     //integral.
@@ -165,6 +168,7 @@ void ArithVariables::VarInfo::initialize(ArithVar v, Node n, bool aux){
 void ArithVariables::VarInfo::uninitialize(){
   d_var = ARITHVAR_SENTINEL;
   d_node = Node::null();
+  d_monomial = false;
 }
 
 bool ArithVariables::VarInfo::setAssignment(const DeltaRational& a, BoundsInfo& prev){
@@ -196,6 +200,10 @@ void ArithVariables::releaseArithVar(ArithVar v){
   size_t removed CVC4_UNUSED = d_nodeToArithVarMap.erase(vi.d_node);
   Assert(removed == 1);
 
+  if(vi.isMonomial()){
+    Assert(d_numberOfMonomialAbstractions > 0);
+    --d_numberOfMonomialAbstractions;
+  }
   vi.uninitialize();
 
   if(d_safeAssignment.isKey(v)){
@@ -263,6 +271,18 @@ bool ArithVariables::VarInfo::canBeReclaimed() const{
 
 bool ArithVariables::canBeReleased(ArithVar v) const{
   return d_vars[v].canBeReclaimed();
+}
+
+bool ArithVariables::isMonomial(ArithVar v) const{
+  return d_vars[v].isMonomial();
+}
+
+bool ArithVariables::VarInfo::isMonomial() const{
+  return d_monomial;
+}
+
+bool ArithVariables::containsNonlinearTerms() const {
+  return d_numberOfMonomialAbstractions > 0;
 }
 
 void ArithVariables::attemptToReclaimReleased(){
@@ -364,15 +384,20 @@ void ArithVariables::setAssignment(ArithVar x, const DeltaRational& safe, const 
   }
 }
 
-void ArithVariables::initialize(ArithVar x, Node n, bool aux){
+void ArithVariables::initialize(ArithVar x, Node n, bool aux, bool monomial){
   VarInfo& vi = d_vars.get(x);
-  vi.initialize(x, n, aux);
+  vi.initialize(x, n, aux, monomial);
+  if(monomial){
+    AlwaysAssert(d_numberOfMonomialAbstractions + 1 > d_numberOfMonomialAbstractions,
+                 "Up to 2^32 monomials are supported by the theory of arithmetic.");
+    ++d_numberOfMonomialAbstractions;
+  }
   d_nodeToArithVarMap[n] = x;
 }
 
-ArithVar ArithVariables::allocate(Node n, bool aux){
+ArithVar ArithVariables::allocate(Node n, bool aux, bool monomial){
   ArithVar v = allocateVariable();
-  initialize(v, n, aux);
+  initialize(v, n, aux, monomial);
   return v;
 }
 

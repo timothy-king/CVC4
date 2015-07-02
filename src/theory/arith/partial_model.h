@@ -61,6 +61,9 @@ private:
     Node d_node;
     bool d_auxiliary;
 
+    /** This is true iff the node is the abstraction of a monomial. */
+    bool d_monomial;
+    
   public:
     VarInfo();
 
@@ -76,7 +79,7 @@ private:
      * the node that the variable represents, and whether it is an auxillary
      * variable.
      */
-    void initialize(ArithVar v, Node n, bool aux);
+    void initialize(ArithVar v, Node n, bool aux, bool monomial);
 
     /** Uninitializes the VarInfo. */
     void uninitialize();
@@ -93,6 +96,9 @@ private:
 
     /** Stores both atBoundCounts() and hasBoundCounts().  */
     BoundsInfo boundsInfo() const;
+
+    /** Returns true if this represents a monomial. */
+    bool isMonomial() const;
   };
 
   /**Maps from ArithVar -> VarInfo */
@@ -129,6 +135,9 @@ private:
    */
   bool d_enqueueingBoundCounts;
 
+  /** The number of non-linear terms present in the database. */
+  uint32_t d_numberOfMonomialAbstractions;
+  
  public:
 
   /** Returns the number of variables. */
@@ -187,6 +196,12 @@ private:
   /* Is the variable both input and not auxiliary? */
   bool isIntegerInput(ArithVar x) const;
 
+  /** Is the variable the abstraction of a monomial. */
+  bool isMonomial(ArithVar x) const;
+
+  /** Returns true if the ArithVars collection contains any non-linear terms.*/
+  bool containsNonlinearTerms() const;
+  
  private:
 
   typedef std::pair<ArithVar, ConstraintP> AVCPair;
@@ -251,9 +266,9 @@ public:
   }
 
   /* Initializes a variable to a safe value.*/
-  void initialize(ArithVar x, Node n, bool aux);
+  void initialize(ArithVar x, Node n, bool aux, bool monomial);
 
-  ArithVar allocate(Node n, bool aux = false);
+  ArithVar allocate(Node n, bool aux = false, bool monomial = false);
 
   /* Gets the last assignment to a variable that is known to be consistent. */
   const DeltaRational& getSafeAssignment(ArithVar x) const;
