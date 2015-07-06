@@ -134,7 +134,8 @@ ArithVariables::VarInfo::VarInfo()
     d_cmpAssignmentUB(-1),
     d_pushCount(0),
     d_node(Node::null()),
-    d_auxiliary(false)
+    d_auxiliary(false),
+    d_monomial(false)
 { }
 
 bool ArithVariables::VarInfo::initialized() const {
@@ -283,6 +284,19 @@ bool ArithVariables::VarInfo::isMonomial() const{
 
 bool ArithVariables::containsNonlinearTerms() const {
   return d_numberOfMonomialAbstractions > 0;
+}
+
+std::vector<Node> ArithVariables::collectTerms() const {
+  std::vector<Node> terms;
+  for (var_iterator vi = var_begin(), vend = var_end(); vi != vend; ++vi){
+    ArithVar v = *vi;
+    Assert(hasNode(v));
+    if(hasNode(v)){
+      Node n = asNode(v);
+      terms.push_back(n);
+    }
+  }
+  return terms;
 }
 
 void ArithVariables::attemptToReclaimReleased(){

@@ -201,6 +201,9 @@ private:
 
   /** Returns true if the ArithVars collection contains any non-linear terms.*/
   bool containsNonlinearTerms() const;
+
+
+  std::vector<Node> collectTerms() const;
   
  private:
 
