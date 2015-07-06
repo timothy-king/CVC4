@@ -51,6 +51,23 @@ bool AttemptSolutionSDP::matchesNewValue(const DenseMap<DeltaRational>& nv, Arit
   return nv[v] == d_variables.getAssignment(v);
 }
 
+void AttemptSolutionSDP::updateNonbasics(const DenseMap<DeltaRational>& assign){
+  DenseMap<DeltaRational>::const_iterator nvi = assign.begin(), nvi_end = assign.end();
+  for(; nvi != nvi_end; ++nvi){
+    ArithVar currentlyNb = *nvi;
+    if(!d_tableau.isBasic(currentlyNb)){
+      if(!matchesNewValue(assign, currentlyNb)){
+        const DeltaRational& newValue = assign[currentlyNb];
+        Trace("arith::updateMany")
+          << "updateMany:" << currentlyNb << " "
+          << d_variables.getAssignment(currentlyNb) << " to "<< newValue << endl;
+        d_linEq.update(currentlyNb, newValue);
+        Assert(d_variables.assignmentIsConsistent(currentlyNb));
+      }
+    }
+  }
+}
+
 Result::Sat AttemptSolutionSDP::attempt(const ApproximateSimplex::Solution& sol){
   const DenseSet& newBasis = sol.newBasis;
   const DenseMap<DeltaRational>& newValues = sol.newValues;
@@ -62,20 +79,9 @@ Result::Sat AttemptSolutionSDP::attempt(const ApproximateSimplex::Solution& sol)
       needsToBeAdded.add(b);
     }
   }
-  DenseMap<DeltaRational>::const_iterator nvi = newValues.begin(), nvi_end = newValues.end();
-  for(; nvi != nvi_end; ++nvi){
-    ArithVar currentlyNb = *nvi;
-    if(!d_tableau.isBasic(currentlyNb)){
-      if(!matchesNewValue(newValues, currentlyNb)){
-        const DeltaRational& newValue = newValues[currentlyNb];
-        Trace("arith::updateMany")
-          << "updateMany:" << currentlyNb << " "
-          << d_variables.getAssignment(currentlyNb) << " to "<< newValue << endl;
-        d_linEq.update(currentlyNb, newValue);
-        Assert(d_variables.assignmentIsConsistent(currentlyNb));
-      }
-    }
-  }
+
+  updateNonbasics(newValues);
+
   d_errorSet.reduceToSignals();
   d_errorSet.setSelectionRule(VAR_ORDER);
 

@@ -65,6 +65,7 @@ class AttemptSolutionSDP : public SimplexDecisionProcedure {
 public:
   AttemptSolutionSDP(LinearEqualityModule& linEq, ErrorSet& errors, RaiseConflict conflictChannel, TempVarMalloc tvmalloc);
 
+  void updateNonbasics(const DenseMap<DeltaRational>& assign);
   Result::Sat attempt(const ApproximateSimplex::Solution& sol);
 
   Result::Sat findModel(bool exactResult){
