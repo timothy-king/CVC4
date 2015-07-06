@@ -517,10 +517,13 @@ private:
   bool hasIntegerModel();
 
   // non-linear functions
-  void attemptNonlinearModel();
   bool hasNonlinearModel() const;
-  std::vector<Node> attemptNonlinearSplits() const;
-  
+  std::pair<bool, std::vector<Node> > attemptNonlinearModel();
+  void collectModelTerms(const std::vector<Node>& roots, std::set<Node>& terms, std::set<Node>& leaves) const;
+  typedef std::map<Node, std::pair<Rational, Node> > JustifiedValueMap;
+  const std::pair<Rational, Node>& computeJustifiedModel(Node t, JustifiedValueMap& jvs);
+
+
   /**
    * Looks for through the variables starting at d_nextIntegerCheckVar
    * for the first integer variable that is between its upper and lower bounds
@@ -746,8 +749,8 @@ private:
 
   /** These fields are designed to be accessible to TheoryArith methods. */
   class Statistics {
-  public:
-    IntStat d_statAssertUpperConflicts, d_statAssertLowerConflicts;
+  public: 
+   IntStat d_statAssertUpperConflicts, d_statAssertLowerConflicts;
 
     IntStat d_statUserVariables, d_statAuxiliaryVariables;
     IntStat d_statDisequalitySplits;

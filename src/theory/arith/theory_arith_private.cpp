@@ -1677,7 +1677,9 @@ void TheoryArithPrivate::preRegisterTerm(TNode n) {
 }
 
 void TheoryArithPrivate::releaseArithVar(ArithVar v){
-  //Assert(d_partialModel.hasNode(v));
+  Assert(d_partialModel.hasNode(v));
+
+  Debug("arith::arithvar") << "releasing" << v << endl;
 
   d_constraintDatabase.removeVariable(v);
   d_partialModel.releaseArithVar(v);
@@ -1710,7 +1712,8 @@ ArithVar TheoryArithPrivate::requestArithVar(TNode x, bool aux, bool internal, b
 
   Debug("arith::arithvar") << "@" << getSatContext()->getLevel()
                            << " " << x << " |-> " << varX
-                           << "(relaiming " << reclaim << ")" << endl;
+                           << "(relaiming " << reclaim << ")"
+                           << "(monomial " << monomial << ")" << endl;
 
   Assert(!d_partialModel.hasUpperBound(varX));
   Assert(!d_partialModel.hasLowerBound(varX));
@@ -2301,7 +2304,7 @@ std::pair<ConstraintP, ArithVar> TheoryArithPrivate::replayGetConstraint(const D
                                 << norm << " |-> " << v << " @ " << getSatContext()->getLevel() << endl;
     Assert(!branch || d_partialModel.isIntegerInput(v));
   }else{
-    Assert(polynomial.size() >= 2);
+    Assert(nvp.size() >= 2);
     v = requestArithVar(norm, true, true, false);
     d_replayVariables.push_back(v);
 
@@ -3798,18 +3801,27 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
          || nextIntegerViolatation(true) == ARITHVAR_SENTINEL);
 
   if(Theory::fullEffort(effortLevel) && !emmittedConflictOrSplit && d_partialModel.containsNonlinearTerms()){
-    Assert(d_qflraStatus == SAT);
+    Assert(d_qflraStatus == Result::SAT);
     Assert(nextIntegerViolatation(true) == ARITHVAR_SENTINEL);
 
-    attemptNonlinearModel();
+    std::pair<bool, std::vector<Node> > attemptRes;
 
-    if(hasNonlinearModel()){
-      // success      
-      ++(d_statistics.d_nlSuccesses);
+    if(options::attemptNLModel()){
+      attemptRes = attemptNonlinearModel();
     } else {
-      if(d_nlSplits < options::maxNLSplits()){
-        Assert(!emmittedConflictOrSplit);
-        vector<Node> lemmas = attemptNonlinearSplits();
+      attemptRes = make_pair(false, std::vector<Node>());
+    }
+    const std::vector<Node>& lemmas = attemptRes.second;
+
+    if(attemptRes.first){
+      // is sat
+      ++(d_statistics.d_nlSuccesses);
+      Assert(hasNonlinearModel());
+      Assert(hasIntegerModel());
+      Assert(entireStateIsConsistent("nlupdates"));
+    } else {
+      // is unknown
+      if(!lemmas.empty()){
         for(size_t i = 0, N = lemmas.size(); i < N; ++i){
           Node lemma = lemmas[i];
           Node rewritten = Rewriter::rewrite(lemma);
@@ -3820,11 +3832,10 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
           ++(d_statistics.d_totalNLSplits);
           emmittedConflictOrSplit = true;
         }
-        if(emmittedConflictOrSplit){
-          d_nlSplits = d_nlSplits + 1;
-        } else {
-          setIncomplete();
-        }
+        d_nlSplits = d_nlSplits + 1;
+        emmittedConflictOrSplit = true;
+      } else {
+        setIncomplete();
       }
     }
   }
@@ -5844,14 +5855,329 @@ bool TheoryArithPrivate::hasNonlinearModel() const {
   return true;
 }
 
+void TheoryArithPrivate::collectModelTerms(const std::vector<Node>& inputTerms, std::set<Node>& terms, std::set<Node>& leaves) const{
+  NodeSet visited;
+  std::vector<Node> stack(inputTerms);
 
-std::vector<Node> TheoryArithPrivate::attemptNonlinearSplits() const {
-  std::vector<Node> lemmas;
+  while(!stack.empty()){
+    Node elem = stack.back();
+    stack.pop_back();
 
+    if(visited.find(elem) == visited.end()){
+      terms.insert(elem);
+      visited.insert(elem);
 
-  return lemmas;
+      if(Theory::isLeafOf(elem, theory::THEORY_ARITH)){
+        leaves.insert(elem);
+      } else {
+        for(Node::iterator ci = elem.begin(), cend = elem.end(); ci != cend; ++ci){
+          Node child = *ci;
+          stack.push_back(child);
+        }
+      }
+    }
+  }
 }
 
+std::pair<bool, std::vector<Node> > TheoryArithPrivate::attemptNonlinearModel(){
+  // If QF_LIRA sat,
+  // 1. Compute delta
+  // 2. Collect a model for all of the leaves of the theory
+  // 3. Compute a justified model for all terms recursively
+  // ** v[x] = c <- true
+  // ** v[x*y] = c*d <- ( x=c and y=d )
+  // 3.error This can fail if there is no model for a subterm
+  // 4. Compute the set OutOfRange given the justified model v:
+  //     OutOfRange = {x | not (lb[x] <= v[term(x)] <= u[x]) }
+  // 5a. If there is budget for refinements,
+  //    lemmas = { term(x) = v[term(x)] <- justification(x) |  }
+  // 5a. If OutOfRange is empty, return Sat by assign for QF_NIRA.
+  // 5b. If OutOfRange is not empty and there is budget for refinements,
+  //     lemmas = { term(x) = v[term(x)] <- justification(x) }
+  // 5c. If OutOfRange is not empty and there is no budget for refinements,
+  //     lemmas = {}
+  // 6. Return <Unknown, lemmas>
+
+  // Assumes this is QF_LIRA sat
+  AlwaysAssert(d_qflraStatus ==  Result::SAT);
+  AlwaysAssert(hasIntegerModel());
+
+  // Phase 1: Compute delta
+  const Rational& delta = d_partialModel.getDelta();
+
+
+  // Phase 2: Collect a model for all of the leaves of the theory.
+  set<Node> terms, leaves;
+  // terms is all reachable terms up to the leaf relationship of arith
+  // leaves is all leaves
+  collectModelTerms(d_partialModel.collectTerms(), terms, leaves);
+  // jv : map n -> <q, e> where v[q] is a rational model and e is the justification
+  JustifiedValueMap justified_values;
+
+  // assign all leaves using their current assignment with the delta removed.
+  // they are justified by themselves
+  for(set<Node>::const_iterator i = leaves.begin(), iend = leaves.end(); i !=  iend; ++i){
+    Node l = *i;
+    if(d_partialModel.hasArithVar(l)){
+      ArithVar v = d_partialModel.asArithVar(l);
+      const DeltaRational& val = d_partialModel.getAssignment(v);
+      Rational qval = val.substituteDelta(delta);
+      Node justification = l.eqNode(mkRationalNode(qval));
+      justified_values.insert(make_pair(l, make_pair(qval, justification)));
+    }
+  }
+
+  // Phase 3: Compute a  justified model for subterms
+  try {
+    for(set<Node>::const_iterator i = terms.begin(), iend = terms.end(); i !=  iend; ++i){
+      Node t = *i;
+      computeJustifiedModel(t, justified_values);
+    }
+  } catch (const exception& e){
+    return make_pair(false, vector<Node>());
+  }
+
+  // Phase 4: Compute the OutOfRange set
+  vector<ArithVar> outOfRange; 
+  try {
+    for (var_iterator vi = var_begin(), vend = var_end(); vi != vend; ++vi){
+      ArithVar v = *vi;
+      Assert(d_partialModel.hasNode(v));
+      if(!d_partialModel.hasNode(v)){
+        throw std::exception();
+      }
+      Node n = d_partialModel.asNode(v); 
+      JustifiedValueMap::iterator jv_iter = justified_values.find(n);
+      if(jv_iter == justified_values.end()){
+        throw std::exception();
+      } else {
+        const Rational& val = (*jv_iter).second.first;
+
+        if(!(d_partialModel.greaterThanLowerBound(v, val) &&
+             d_partialModel.lessThanUpperBound(v, val))){
+          outOfRange.push_back(v);
+          Debug("nlsplits") << "v" << v << "n" << n
+                            << "value" << val
+                            << std::endl;
+          if(Debug.isOn("nlsplits")){
+            d_partialModel.printModel(v, Debug("nlsplits"));
+          }
+        }
+      }
+    }
+  } catch(const exception& e){
+    cout << "failure here" << endl;
+    return make_pair(false, vector<Node>());    
+  }
+
+  // Phase 5: Determine result
+  if( outOfRange.empty() ){
+    // Update the model.
+    DenseMap<DeltaRational> newAssign;
+    for (var_iterator vi = var_begin(), vend = var_end(); vi != vend; ++vi){
+      ArithVar v = *vi;
+      Assert(d_partialModel.hasNode(v));
+      Node n = d_partialModel.asNode(v);
+      JustifiedValueMap::const_iterator jvi = justified_values.find(n);
+      Assert(jvi != justified_values.end());
+      const Rational& val = (*jvi).second.first;
+      newAssign.set(v, val);
+    }
+
+    d_partialModel.stopQueueingBoundCounts();
+    UpdateTrackingCallback utcb(&d_linEq);
+    d_partialModel.processBoundsQueue(utcb);
+    d_linEq.startTrackingBoundCounts();
+
+    d_attemptSolSimplex.updateNonbasics(newAssign);
+
+    // TODO Save zeroes with no conflicts
+    d_linEq.stopTrackingBoundCounts();
+    d_partialModel.startQueueingBoundCounts();
+
+
+    return make_pair(true, vector<Node>());    
+  } else if( d_nlSplits >= options::maxNLSplits() ){
+    return make_pair(false, vector<Node>());    
+  } else {
+    Assert(outOfRange.size() >= 1);
+    std::vector<Node> lemmas;
+
+    vector<Node> outOfRangeTerms;
+
+    for(size_t i=0, N = outOfRange.size(); i< N; ++i){
+      ArithVar v = outOfRange[i];
+      Assert(d_partialModel.hasNode(v));
+      Node n = d_partialModel.asNode(v);
+      outOfRangeTerms.push_back(n);
+    }
+    Debug("nlsplit::lemma") << "nlsplits" << "|outOfRange|"
+                            << outOfRange.size() << endl;
+    Assert(outOfRangeTerms.size() == outOfRange.size());
+
+    set<Node> subtermsInOutRange, moreLeaves;
+    collectModelTerms(outOfRangeTerms, subtermsInOutRange, moreLeaves);
+    for (var_iterator vi = var_begin(), vend = var_end(); vi != vend; ++vi){
+      ArithVar v = *vi;
+      Assert(d_partialModel.hasNode(v));
+      Node n = d_partialModel.asNode(v);
+      if(d_partialModel.isMonomial(v) &&
+         subtermsInOutRange.find(n) != subtermsInOutRange.end() ){
+
+        JustifiedValueMap::const_iterator jvi = justified_values.find(n);
+        Assert(jvi != justified_values.end());
+        const Rational& val = (*jvi).second.first;
+        Node nEqVal = n.eqNode(mkRationalNode(val));
+        Node justification = (*jvi).second.second;
+        Node lemma = justification.impNode(nEqVal);
+        Debug("nlsplit::lemma") << "nlsplit::lemma " << lemma << endl;
+        lemmas.push_back(lemma);
+      }
+    }
+    return make_pair(false, lemmas);
+  }
+}
+
+
+const std::pair<Rational, Node>& TheoryArithPrivate::computeJustifiedModel(Node t, JustifiedValueMap& jvs){
+  JustifiedValueMap::const_iterator jvs_iter = jvs.find(t);
+  if(jvs_iter != jvs.end()){
+    return (*jvs_iter).second;
+  }
+  Assert(jvs_iter == jvs.end());
+
+  Rational value;
+  Node justification;
+
+  Kind k = t.getKind();
+  switch(k) {
+  case kind::CONST_RATIONAL:
+    value = t.getConst<Rational>();
+    justification = mkBoolNode(true);
+    break;
+
+
+  case kind::PLUS: { // 2+ args
+    Assert(t.getNumChildren() >= 2);
+    value = Rational(0);
+    NodeBuilder<> nb(kind::AND);
+    for(Node::iterator i = t.begin(), iend = t.end(); i != iend; ++i) {
+      Node child = *i;
+      const std::pair<Rational, Node>& val_just = computeJustifiedModel(child, jvs);
+      value += val_just.first;
+      nb << val_just.second;
+    }
+    justification = nb;
+  }
+    break;
+
+  case kind::MULT:{ // 2+ args
+    Assert(t.getNumChildren() >= 2);
+    value = Rational(1);
+    bool exitOnZero = false;
+    NodeBuilder<> nb(kind::AND);
+    for(Node::iterator i = t.begin(), iend = t.end(); i != iend; ++i) {
+      Node child = *i;
+      const std::pair<Rational, Node>& val_just = computeJustifiedModel(child, jvs);
+      value *= val_just.first;
+      nb << val_just.second;
+      if(value.isZero()){
+        exitOnZero = true;
+        break;
+      }
+    }
+    if(exitOnZero){
+      Assert(nb.getNumChildren() >= 1);
+      justification = nb.getChild(nb.getNumChildren() -1);
+    } else {
+      justification = nb;
+    }
+  }
+    break;
+
+  case kind::MINUS:{ // 2 args
+    const std::pair<Rational, Node>& val_just_l = computeJustifiedModel(t[0], jvs);    
+    const std::pair<Rational, Node>& val_just_r = computeJustifiedModel(t[1], jvs);
+    value = val_just_l.first - val_just_r.first;
+    justification = (val_just_l.second).andNode(val_just_r.second);
+  }
+    break;
+
+  case kind::UMINUS:{ // 1 arg
+    const std::pair<Rational, Node>& val_just_child = computeJustifiedModel(t[0], jvs);    
+    value = -(val_just_child.first);
+    justification = (val_just_child.second);
+  }
+    break;
+
+  case kind::INTS_DIVISION:
+  case kind::INTS_MODULUS:
+  case kind::DIVISION:
+  case kind::INTS_DIVISION_TOTAL:
+  case kind::INTS_MODULUS_TOTAL:
+  case kind::DIVISION_TOTAL:{ // 2 args
+    Node numer = t[0];
+    Node denom = t[1];
+    const std::pair<Rational, Node>& val_just_denom = computeJustifiedModel(denom, jvs);    
+    
+    bool isTotal =
+      (k == kind::INTS_DIVISION_TOTAL ||
+       k ==  kind::INTS_MODULUS_TOTAL ||
+       k ==  kind::DIVISION_TOTAL);
+
+    if(val_just_denom.first.isZero()){
+      if(isTotal){
+        value = 0;
+        justification = val_just_denom.second;
+      }else{
+        Node by0Func = (k == DIVISION) ?  getRealDivideBy0Func():
+          (k == INTS_DIVISION) ? getIntDivideBy0Func() : getIntModulusBy0Func();
+      
+        Node divZero = NodeManager::currentNM()->mkNode(APPLY_UF, by0Func, numer);
+        const std::pair<Rational, Node>& val_just_div_zero =
+          computeJustifiedModel(divZero, jvs);
+        value = val_just_div_zero.first;
+        justification = val_just_div_zero.second;
+      }
+    } else {
+      const std::pair<Rational, Node>& val_just_numer =
+        computeJustifiedModel(numer, jvs);
+
+      const Rational& val_numer = val_just_numer.first;
+      const Rational& val_denom = val_just_denom.first;
+
+      if(k == kind::DIVISION_TOTAL || k == kind::DIVISION){
+        value = val_numer / val_denom;
+      }else{
+        if(val_numer.isIntegral() && val_denom.isIntegral()){
+          Integer int_numer = val_numer.getNumerator();
+          Integer int_denom = val_denom.getNumerator();
+
+          if(k == kind::INTS_DIVISION_TOTAL || k == kind::INTS_DIVISION){
+            value = Rational(int_numer.euclidianDivideQuotient(int_denom));
+          }else{
+            Assert(k == kind::INTS_MODULUS_TOTAL || k == kind::INTS_MODULUS);
+            value = Rational(int_numer.euclidianDivideRemainder(int_denom));
+          }
+        } else {
+          throw ModelException(t, "Model is not integer for integer division-like function");
+        }
+      }
+      justification = (val_just_numer.second).andNode(val_just_numer.second);
+    }
+  }
+    break;
+
+  default:
+    throw ModelException(t, "Unhandled case");
+  }
+
+  std::pair<JustifiedValueMap::iterator, bool> insert_result = 
+    jvs.insert(make_pair(t, make_pair(value, justification)));
+  Assert(insert_result.second);
+  jvs_iter = insert_result.first;
+  return (*jvs_iter).second;
+}
 
 
 

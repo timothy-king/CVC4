@@ -164,6 +164,7 @@ option pbRewriteThreshold --pb-rewrite-threshold int :default 256
 option maxNLSplits --max-nl-splits unsigned :default 128
  threshold for attempting to refine non-linear terms
 
-
+option attemptNLModel  --attempt-nl-model bool :default false
+ attempt to build a model for nonlinear
 
 endmodule
