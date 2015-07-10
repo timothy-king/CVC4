@@ -419,8 +419,18 @@ private:
     virtual ~ModelException() throw ();
   };
 
-  /** Internal model value for the node */
-  DeltaRational getDeltaValue(TNode n) const throw (DeltaRationalException, ModelException);
+  /**
+   * Internal model value for the node.
+   * When deferToCandidateModel is true, always use the assignment in d_partialModel for
+   * each term recursively.
+   * When deferToCandidateModel is false, ModelException can be thrown when a
+   * term disagrees with its assignment in d_partialModel.
+   *
+   * If the assignment does not assign all deltas to zero, a DeltaRationalException can occur.
+   * i.e. x * y for [x <- 1 + 1delta, y <- 1 + 1delta] is (1 + 2delta + delta*delta)
+   * which is not a DeltaRational.
+   */
+  DeltaRational getDeltaValue(TNode n, bool deferToCandidateModel) const throw (DeltaRationalException, ModelException);
 
   /** Uninterpretted function symbol for use when interpreting
    * division by zero.
