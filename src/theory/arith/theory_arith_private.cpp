@@ -5956,7 +5956,9 @@ std::pair<bool, std::vector<Node> > TheoryArithPrivate::attemptNonlinearModel(){
   }
 
   // Phase 4: Compute the OutOfRange set
-  vector<ArithVar> outOfRange; 
+  //          (also the monomial with bad sign conditions)
+  vector<ArithVar> outOfRange;
+  vector<ArithVar> wrongSign;
   try {
     for (var_iterator vi = var_begin(), vend = var_end(); vi != vend; ++vi){
       ArithVar v = *vi;
@@ -5981,10 +5983,13 @@ std::pair<bool, std::vector<Node> > TheoryArithPrivate::attemptNonlinearModel(){
             d_partialModel.printModel(v, Debug("nlsplits"));
           }
         }
+        if(d_partialModel.isMonomial(v) &&
+           val.sgn() != d_partialModel.getAssignment(v).sgn()){
+          wrongSign.push_back(v);
+        }
       }
     }
   } catch(const exception& e){
-    cout << "failure here" << endl;
     return make_pair(false, vector<Node>());    
   }
 
@@ -6051,6 +6056,30 @@ std::pair<bool, std::vector<Node> > TheoryArithPrivate::attemptNonlinearModel(){
         Debug("nlsplit::lemma") << "nlsplit::lemma " << lemma << endl;
         lemmas.push_back(lemma);
       }
+    }
+
+    for(size_t i =0, N= wrongSign.size(); i<N; ++i ){
+      ArithVar ws = wrongSign[i];
+      Assert(d_partialModel.isMonomial(ws));
+      Assert(d_partialModel.hasNode(ws));
+      Node mono = d_partialModel.asNode(ws);
+      Assert(mono.getKind() == kind::MULT);
+
+      std::vector<Node> factors;
+      for(Node::iterator mono_iter = mono.begin(), mono_end = mono.end(); mono_iter != mono_end; ++mono_iter){
+        Node child = *mono_iter;
+        factors.push_back(child);
+      }
+      SignConditionResult scr = signConditions(factors);
+      Debug("nlsplit::lemma") << "sgn() condition" << mono << " is negative "
+                             << "\t" << scr.d_neg << endl;
+      Debug("nlsplit::lemma") << "sgn() condition" << mono << " is zero "
+                             << "\t" << scr.d_zero << endl;
+      Debug("nlsplit::lemma") << "sgn() condition" << mono << " is positive "
+                             << "\t" << scr.d_pos << endl;
+      lemmas.push_back(scr.d_neg);
+      lemmas.push_back(scr.d_zero);
+      lemmas.push_back(scr.d_pos);
     }
     return make_pair(false, lemmas);
   }
@@ -6198,6 +6227,35 @@ const std::pair<Rational, Node>& TheoryArithPrivate::computeJustifiedModel(Node 
 }
 
 
+TheoryArithPrivate::SignConditionResult TheoryArithPrivate::signConditions(const std::vector<Node>& factors){
+  // the empty product: \prod_{x in emp} x = 1
+  // 1 < 0, 1 = 0, 1 > 0
+  Node zConst = mkRationalNode(0);
+  Node prod = mkRationalNode(1);
+  SignConditionResult res(mkBoolNode(false), mkBoolNode(false), mkBoolNode(true));
+  for(std::vector<Node>::const_iterator fiter = factors.begin(), fend = factors.end(); fiter != fend; ++fiter){
+    Node factor = *fiter;
+    prod = NodeManager::currentNM()->mkNode(kind::MULT, factor, prod);
+
+    Node factorLt0 = NodeManager::currentNM()->mkNode(kind::LT, factor, zConst);
+    Node factorEq0 = NodeManager::currentNM()->mkNode(kind::EQUAL, factor, zConst);
+    Node factorGt0 = NodeManager::currentNM()->mkNode(kind::GT, factor, zConst);
+    
+    Node n = (factorLt0.andNode(res.d_pos)).orNode(factorGt0.andNode(res.d_neg));
+    Node z = factorEq0.orNode(res.d_zero);
+    Node p = (factorLt0.andNode(res.d_neg)).orNode(factorGt0.andNode(res.d_pos));
+
+    res = SignConditionResult(n, z, p);
+  }
+  
+  Node prodLt0 = NodeManager::currentNM()->mkNode(kind::LT, prod, zConst);
+  Node prodEq0 = NodeManager::currentNM()->mkNode(kind::EQUAL, prod, zConst);
+  Node prodGt0 = NodeManager::currentNM()->mkNode(kind::GT, prod, zConst);
+
+  return SignConditionResult(prodLt0.iffNode(res.d_neg),
+                             prodEq0.iffNode(res.d_zero),
+                             prodGt0.iffNode(res.d_pos));
+}
 
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */

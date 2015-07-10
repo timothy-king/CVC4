@@ -757,6 +757,28 @@ private:
 
   RationalVector d_farkasBuffer;
 
+
+
+  struct SignConditionResult {
+    Node d_neg;
+    Node d_zero;
+    Node d_pos;
+    SignConditionResult(Node n, Node z, Node p)
+      : d_neg(n)
+      , d_zero(z)
+      , d_pos(p)
+    {}
+  };
+
+  /**
+   * Given a list of real factors, let P be the product of the factors.
+   * This returns conditions for:
+   * - P < 0 iff (conditions on factors)
+   * - P = 0 iff (conditions on factors)
+   * - P > 0 iff (conditions on factors)
+   */
+  static SignConditionResult signConditions(const std::vector<Node>& factors);
+  
   /** These fields are designed to be accessible to TheoryArith methods. */
   class Statistics {
   public: 
