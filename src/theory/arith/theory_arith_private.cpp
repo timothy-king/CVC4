@@ -1106,7 +1106,8 @@ void TheoryArithPrivate::addSharedTerm(TNode n){
 
 Node TheoryArithPrivate::getModelValue(TNode term) {
   try{
-    DeltaRational drv = getDeltaValue(term);
+    // TODO This is false to just be conservative.
+    DeltaRational drv = getDeltaValue(term, false);
     const Rational& delta = d_partialModel.getDelta();
     Rational qmodel = drv.substituteDelta( delta );
     return mkRationalNode( qmodel );
@@ -4106,10 +4107,21 @@ void TheoryArithPrivate::propagate(Theory::Effort e) {
   }
 }
 
-DeltaRational TheoryArithPrivate::getDeltaValue(TNode n) const throw (DeltaRationalException, ModelException) {
+
+
+DeltaRational TheoryArithPrivate::getDeltaValue(TNode n, bool dtcm) const throw (DeltaRationalException, ModelException) {
+  // dtcm is short for DeferToCandidateModel
+
   AlwaysAssert(d_qflraStatus != Result::SAT_UNKNOWN);
   Debug("arith::value") << n << std::endl;
 
+  if(dtcm && isSetup(n)){
+    ArithVar var = d_partialModel.asArithVar(n);
+    const DeltaRational& assign = d_partialModel.getAssignment(var);
+    return assign;
+  }
+
+  
   switch(n.getKind()) {
 
   case kind::CONST_RATIONAL:
@@ -4118,7 +4130,8 @@ DeltaRational TheoryArithPrivate::getDeltaValue(TNode n) const throw (DeltaRatio
   case kind::PLUS: { // 2+ args
     DeltaRational value(0);
     for(TNode::iterator i = n.begin(), iend = n.end(); i != iend; ++i) {
-      value = value + getDeltaValue(*i);
+      TNode curr = *i;
+      value = value + getDeltaValue(curr, dtcm);
     }
     return value;
   }
@@ -4128,13 +4141,14 @@ DeltaRational TheoryArithPrivate::getDeltaValue(TNode n) const throw (DeltaRatio
     unsigned variableParts = 0;
     for(TNode::iterator i = n.begin(), iend = n.end(); i != iend; ++i) {
       TNode curr = *i;
-      value = value * getDeltaValue(curr);
+      value = value * getDeltaValue(curr, dtcm);
       if(!curr.isConst()){
         ++variableParts;
       }
     }
     // TODO: This is a bit of a weak check
     if(isSetup(n)){
+      Assert(!dtcm);
       ArithVar var = d_partialModel.asArithVar(n);
       const DeltaRational& assign = d_partialModel.getAssignment(var);
       if(assign != value){
@@ -4144,16 +4158,17 @@ DeltaRational TheoryArithPrivate::getDeltaValue(TNode n) const throw (DeltaRatio
     return value;
   }
   case kind::MINUS:{ // 2 args
-    return getDeltaValue(n[0]) - getDeltaValue(n[1]);
+    return getDeltaValue(n[0], dtcm) - getDeltaValue(n[1], dtcm);
   }
 
   case kind::UMINUS:{ // 1 arg
-    return (- getDeltaValue(n[0]));
+    return (- getDeltaValue(n[0], dtcm));
   }
 
   case kind::DIVISION:{ // 2 args
-    DeltaRational res = getDeltaValue(n[0]) / getDeltaValue(n[1]);
+    DeltaRational res = getDeltaValue(n[0], dtcm) / getDeltaValue(n[1], dtcm);
     if(isSetup(n)){
+      Assert(!dtcm);
       ArithVar var = d_partialModel.asArithVar(n);
       if(d_partialModel.getAssignment(var) != res){
         throw ModelException(n, "Model disagrees on non-linear term.");
@@ -4164,11 +4179,11 @@ DeltaRational TheoryArithPrivate::getDeltaValue(TNode n) const throw (DeltaRatio
   case kind::DIVISION_TOTAL:
   case kind::INTS_DIVISION_TOTAL:
   case kind::INTS_MODULUS_TOTAL: { // 2 args
-    DeltaRational denom = getDeltaValue(n[1]);
+    DeltaRational denom = getDeltaValue(n[1], dtcm);
     if(denom.isZero()){
       return DeltaRational(0,0);
     }else{
-      DeltaRational numer = getDeltaValue(n[0]);
+      DeltaRational numer = getDeltaValue(n[0], dtcm);
       DeltaRational res;
       if(n.getKind() == kind::DIVISION_TOTAL){
         res = numer / denom;
@@ -4179,6 +4194,7 @@ DeltaRational TheoryArithPrivate::getDeltaValue(TNode n) const throw (DeltaRatio
         res = Rational(numer.euclidianDivideRemainder(denom));
       }
       if(isSetup(n)){
+        Assert(!dtcm);
         ArithVar var = d_partialModel.asArithVar(n);
         if(d_partialModel.getAssignment(var) != res){
           throw ModelException(n, "Model disagrees on non-linear term.");
@@ -4190,6 +4206,7 @@ DeltaRational TheoryArithPrivate::getDeltaValue(TNode n) const throw (DeltaRatio
 
   default:
     if(isSetup(n)){
+      Assert(!dtcm);
       ArithVar var = d_partialModel.asArithVar(n);
       return d_partialModel.getAssignment(var);
     }else{
@@ -4215,10 +4232,10 @@ Rational TheoryArithPrivate::deltaValueForTotalOrder() const{
   Theory::shared_terms_iterator shared_end = d_containing.shared_terms_end();
   for(; shared_iter != shared_end; ++shared_iter){
     Node sharedCurr = *shared_iter;
-
+    
     // ModelException is fatal as this point. Don't catch!
     // DeltaRationalException is fatal as this point. Don't catch!
-    DeltaRational val = getDeltaValue(sharedCurr);
+    DeltaRational val = getDeltaValue(sharedCurr, true);
     relevantDeltaValues.insert(val);
   }
 
@@ -4431,7 +4448,8 @@ EqualityStatus TheoryArithPrivate::getEqualityStatus(TNode a, TNode b) {
     return EQUALITY_UNKNOWN;
   }else{
     try {
-      if (getDeltaValue(a) == getDeltaValue(b)) {
+      // TODO improve defer to candidate model test
+      if (getDeltaValue(a, false) == getDeltaValue(b,false)) {
         return EQUALITY_TRUE_IN_MODEL;
       } else {
         return EQUALITY_FALSE_IN_MODEL;
@@ -5836,7 +5854,7 @@ bool TheoryArithPrivate::hasNonlinearModel() const {
       if(d_partialModel.hasNode(v)){
         Node n = d_partialModel.asNode(v);
         // use getDeltaValue as the function evaluator
-        DeltaRational val = getDeltaValue(n);
+        DeltaRational val = getDeltaValue(n, false);
         if(val == d_partialModel.getAssignment(v)){
           if(val.infinitesimalIsZero()){
             success = true;
