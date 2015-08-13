@@ -473,7 +473,13 @@ void TheoryEngine::check(Theory::Effort effort) {
       Node fact = *fi;
       assertions.push_back(fact);
     }
-    theory::arith::produceGuardedQuery(std::cout, assertions);
+    theory::arith::AssertionPartition partitioned = theory::arith::partitionNonlinear(assertions);
+    theory::arith::produceGuardedQuery(std::cout, partitioned);
+
+    std::pair<Result::Sat, Node> reser = theory::arith::executeGuardedQuery(partitioned);
+    cout << "reser " << reser.first << endl;
+    cout << "Node " << reser.second << endl; 
+
   }
 }
 

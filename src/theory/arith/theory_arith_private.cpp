@@ -70,8 +70,10 @@
 #include "theory/arith/theory_arith.h"
 #include "theory/arith/normal_form.h"
 #include "theory/theory_model.h"
-
 #include "theory/arith/options.h"
+
+#include "theory/arith/guard_query_printer.h"
+
 #include "theory/quantifiers/options.h"
 
 
@@ -3780,6 +3782,26 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
       }
     }
   }//if !emmittedConflictOrSplit && fullEffort(effortLevel) && !hasIntegerModel()
+
+  if(Theory::fullEffort(effortLevel) && d_nlIncomplete && !emmittedConflictOrSplit){
+    std::vector<Node> assertions;
+    for(theory::Theory::assertions_iterator fi = d_containing.facts_begin(), fend = d_containing.facts_end(); fi != fend; ++fi){
+      Node fact = *fi;
+      assertions.push_back(fact);
+    }
+    AssertionPartition partitioned = partitionNonlinear(assertions);
+    std::pair<Result::Sat, Node> reser = executeGuardedQuery(partitioned);
+    cout << "reser " << reser.first << endl;
+    cout << "Node " << reser.second << endl;
+    if(reser.first == Result::UNSAT){
+      Node conflict = reser.second;
+      raiseBlackBoxConflict(conflict);
+      outputConflicts();
+      emmittedConflictOrSplit = true;
+    }
+
+  }
+  
   if(Theory::fullEffort(effortLevel) && d_nlIncomplete){
     // TODO this is total paranoia
     setIncomplete();
