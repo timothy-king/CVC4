@@ -341,6 +341,9 @@ TheoryArithPrivate::Statistics::Statistics()
   , d_mipProofsAttempted("theory::arith::z::mip::proofs::attempted", 0)
   , d_mipProofsSuccessful("theory::arith::z::mip::proofs::successful", 0)
   , d_numBranchesFailed("theory::arith::z::mip::branch::proof::failed", 0)
+  , d_guardedQueries("theory::arith::guardedqueries", 0)
+  , d_guardedQueriesUnsats("theory::arith::guardedqueries::unsats", 0)
+  , d_guardedQueriesUnknowns("theory::arith::guardedqueries::unknowns", 0)
 {
   StatisticsRegistry::registerStat(&d_statAssertUpperConflicts);
   StatisticsRegistry::registerStat(&d_statAssertLowerConflicts);
@@ -432,6 +435,11 @@ TheoryArithPrivate::Statistics::Statistics()
   StatisticsRegistry::registerStat(&d_mipProofsAttempted);
   StatisticsRegistry::registerStat(&d_mipProofsSuccessful);
   StatisticsRegistry::registerStat(&d_numBranchesFailed);
+
+  
+  StatisticsRegistry::registerStat(&d_guardedQueries);
+  StatisticsRegistry::registerStat(&d_guardedQueriesUnsats);
+  StatisticsRegistry::registerStat(&d_guardedQueriesUnknowns);
 }
 
 TheoryArithPrivate::Statistics::~Statistics(){
@@ -526,6 +534,10 @@ TheoryArithPrivate::Statistics::~Statistics(){
   StatisticsRegistry::unregisterStat(&d_mipProofsAttempted);
   StatisticsRegistry::unregisterStat(&d_mipProofsSuccessful);
   StatisticsRegistry::unregisterStat(&d_numBranchesFailed);
+
+  StatisticsRegistry::unregisterStat(&d_guardedQueries);
+  StatisticsRegistry::unregisterStat(&d_guardedQueriesUnsats);
+  StatisticsRegistry::unregisterStat(&d_guardedQueriesUnknowns);
 }
 
 bool complexityBelow(const DenseMap<Rational>& row, uint32_t cap){
@@ -3783,23 +3795,14 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
     }
   }//if !emmittedConflictOrSplit && fullEffort(effortLevel) && !hasIntegerModel()
 
-  if(Theory::fullEffort(effortLevel) && d_nlIncomplete && !emmittedConflictOrSplit){
-    std::vector<Node> assertions;
-    for(theory::Theory::assertions_iterator fi = d_containing.facts_begin(), fend = d_containing.facts_end(); fi != fend; ++fi){
-      Node fact = *fi;
-      assertions.push_back(fact);
-    }
-    AssertionPartition partitioned = partitionNonlinear(assertions);
-    std::pair<Result::Sat, Node> reser = executeGuardedQuery(partitioned);
-    cout << "reser " << reser.first << endl;
-    cout << "Node " << reser.second << endl;
-    if(reser.first == Result::UNSAT){
-      Node conflict = reser.second;
+  if(Theory::fullEffort(effortLevel) && d_nlIncomplete && !emmittedConflictOrSplit && options::attemptGuardQueries() ){
+    std::pair<Result::Sat, Node> guardedQuery = executeExternalGuardedQuery();
+    if( guardedQuery.first == Result::UNSAT ){
+      Node conflict = guardedQuery.second;
       raiseBlackBoxConflict(conflict);
       outputConflicts();
       emmittedConflictOrSplit = true;
     }
-
   }
   
   if(Theory::fullEffort(effortLevel) && d_nlIncomplete){
@@ -3821,6 +3824,33 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
     debugPrintModel(Debug("arith::print_model"));
   }
   Debug("arith") << "TheoryArithPrivate::check end" << std::endl;
+}
+
+std::pair<Result::Sat, Node> TheoryArithPrivate::executeExternalGuardedQuery() {
+  Assert(options::attemptGuardQueries());
+  ++(d_statistics.d_guardedQueries);
+  
+  Debug("arith::guarded::queries") << "TheoryArithPrivate::executeGuardedQuery()"
+                                   << d_statistics.d_guardedQueries.getData() << endl;
+  std::vector<Node> assertions;
+  for(theory::Theory::assertions_iterator fi = d_containing.facts_begin(), fend = d_containing.facts_end(); fi != fend; ++fi){
+    Node fact = *fi;
+    assertions.push_back(fact);
+  }
+  AssertionPartition partitioned = partitionNonlinear(assertions);
+  std::pair<Result::Sat, Node> result = executeGuardedQuery(partitioned);
+  Debug("arith::guarded::queries") << "TheoryArithPrivate::executeGuardedQuery() "
+                                   << d_statistics.d_guardedQueries.getData()
+                                   << " < " << result.first << ", " << result.second << " >" << endl;
+
+  Assert(result.first == Result::UNSAT || result.first == Result::SAT_UNKNOWN);
+  Assert(result.first == Result::UNSAT || result.second.isNull());
+  if(result.first == Result::UNSAT){ 
+    ++(d_statistics.d_guardedQueriesUnsats);
+  } else {
+    ++(d_statistics.d_guardedQueriesUnknowns);
+  }
+  return result;
 }
 
 Node TheoryArithPrivate::branchIntegerVariable(ArithVar x) const {

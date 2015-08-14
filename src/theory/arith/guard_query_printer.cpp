@@ -324,9 +324,9 @@ AssertionPartition partitionNonlinear(const NodeVec& assertions){
   NodeVec::iterator nonlinear_end =  std::partition(partitionedAssertions.begin(),
                                                     partitionedAssertions.end(), IsNonlinearPred());
 
-  Debug("guard") << partitionedAssertions.end() - nonlinear_end << endl;
-  Debug("guard") << (nonlinear_end <= partitionedAssertions.end()) << endl;
-  
+  Debug("guard") << "partitionNonlinear():"
+                 << "#nl "  << partitionedAssertions.end() - nonlinear_end
+                 << "#lin " << (nonlinear_end <= partitionedAssertions.end()) << endl;
   return AssertionPartition(partitionedAssertions, nonlinear_end);
 }
 

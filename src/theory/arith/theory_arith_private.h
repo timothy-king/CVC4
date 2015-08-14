@@ -738,6 +738,11 @@ private:
 
   RationalVector d_farkasBuffer;
 
+
+  /** Executes a guarded query. */
+  std::pair<Result::Sat, Node> executeExternalGuardedQuery();
+
+  
   /** These fields are designed to be accessible to TheoryArith methods. */
   class Statistics {
   public:
@@ -833,6 +838,9 @@ private:
     IntStat d_numBranchesFailed;
 
 
+    IntStat d_guardedQueries;
+    IntStat d_guardedQueriesUnsats;
+    IntStat d_guardedQueriesUnknowns;
 
     Statistics();
     ~Statistics();
