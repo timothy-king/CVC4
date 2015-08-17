@@ -97,3 +97,19 @@ unsigned int Integer::getUnsignedInt() const {
   CheckArgument(fitsUnsignedInt(), this, "Overflow detected in Integer::getUnsignedInt()");
   return cln::cl_I_to_uint(d_value);
 }
+
+
+bool Integer::perfectRoot(unsigned long int n, Integer& res) const throw(std::invalid_argument){
+  CheckArgument(sgn() < 0, this,
+                "Negative integer passed to Integer::perfectRoot()");
+  CheckArgument(n > 0, this,
+                "Zero passed as n into Integer::perfectRoot()");
+  cln::cl_I nAsI(n);
+  cln::cl_I tmp;
+  if(cln::rootp(d_value, nAsI, &tmp)){
+    res = Integer(tmp);
+    return true;
+  } else {
+    return false;
+  }
+}

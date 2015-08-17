@@ -502,6 +502,14 @@ public:
     return (a >= b ) ? a : b;
   }
 
+  /**
+   * If the current integer is negative, this throws std::invalid_argument.
+   * If the current integer is a perfect root for the power n,
+   * the function returns bool and res is equal to the root.
+   * Otherwise, this returns false. The value of res is unspecified at this point.
+   */
+  bool perfectRoot(unsigned long int n, Integer& res) const throw(std::invalid_argument);
+  
   friend class CVC4::Rational;
 };/* class Integer */
 

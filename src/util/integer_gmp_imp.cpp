@@ -65,3 +65,20 @@ unsigned int Integer::getUnsignedInt() const {
   CheckArgument(fitsSignedInt(), this, "Overflow detected in Integer::getUnsignedInt()");
   return (unsigned int) d_value.get_ui();
 }
+
+bool Integer::perfectRoot(unsigned long int n, Integer& res) const throw(std::invalid_argument){
+
+  CheckArgument(sgn() < 0, this,
+                "Negative integer passed to Integer::perfectRoot()");
+  CheckArgument(n > 0, this,
+                "Zero passed as n into Integer::perfectRoot()");
+  mpz_class tmp;
+  int ret = mpz_root(tmp.get_mpz_t(), d_value.get_mpz_t(), n);
+
+  if(ret != 0){
+    res = Integer(tmp);
+    return true;
+  } else {
+    return false;
+  }
+}
