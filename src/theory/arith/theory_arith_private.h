@@ -100,6 +100,8 @@ namespace inferbounds {
 }
 class InferBoundsResult;
 
+class FactorizationModule;
+
 /**
  * Implementation of QF_LRA.
  * Based upon:
@@ -148,6 +150,9 @@ private:
   /** quantifiers engine */
   QuantifiersEngine * d_quantEngine;
   //std::vector<ArithVar> d_pool;
+
+  FactorizationModule* d_factMod;
+
 public:
   void releaseArithVar(ArithVar v);
   void signal(ArithVar v){ d_errorSet.signalVariable(v); }
@@ -480,6 +485,8 @@ public:
 
 private:
 
+  Node ppRewriteRecursive(TNode formula);
+  
   /** The constant zero. */
   DeltaRational d_DELTA_ZERO;
 

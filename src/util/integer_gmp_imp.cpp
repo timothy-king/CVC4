@@ -68,7 +68,7 @@ unsigned int Integer::getUnsignedInt() const {
 
 bool Integer::perfectRoot(unsigned long int n, Integer& res) const throw(std::invalid_argument){
 
-  CheckArgument(sgn() < 0, this,
+  CheckArgument(sgn() >= 0, this,
                 "Negative integer passed to Integer::perfectRoot()");
   CheckArgument(n > 0, this,
                 "Zero passed as n into Integer::perfectRoot()");

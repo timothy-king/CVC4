@@ -167,4 +167,7 @@ option produceGuardQuery --produce-guard-query bool :default false
 option attemptGuardQueries --external-guard-query bool :default false
  executes a guarded query for non-linear real arithmetic
  
+option arithFactorizeRewrite --factorize-heuristic bool :default false
+ attempts to factorize non-linear real arithmetic
+ 
 endmodule

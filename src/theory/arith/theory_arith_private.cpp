@@ -73,6 +73,7 @@
 #include "theory/arith/options.h"
 
 #include "theory/arith/guard_query_printer.h"
+#include "theory/arith/factorizations.h"
 
 #include "theory/quantifiers/options.h"
 
@@ -107,6 +108,7 @@ TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context
   d_hasDoneWorkSinceCut(false),
   d_learner(u),
   d_quantEngine(NULL),
+  d_factMod(NULL),
   d_assertionsThatDoNotMatchTheirLiterals(c),
   d_nextIntegerCheckVar(0),
   d_constantIntegerVariables(c),
@@ -162,6 +164,9 @@ TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context
 TheoryArithPrivate::~TheoryArithPrivate(){
   if(d_treeLog != NULL){ delete d_treeLog; }
   if(d_approxStats != NULL) { delete d_approxStats; }
+
+
+  if(d_factMod != NULL) { delete d_factMod; }
 }
 
 static bool contains(const ConstraintCPVec& v, ConstraintP con){
@@ -1244,9 +1249,130 @@ Node TheoryArithPrivate::ppRewriteTerms(TNode n) {
   return n;
 }
 
+Node TheoryArithPrivate::ppRewriteRecursive(TNode phi){
+  typedef __gnu_cxx::hash_map<Node, Node, NodeHashFunction> NodeToNodeMap;
+  NodeToNodeMap cache;
+  vector<Node> toVisit;
+
+  toVisit.push_back(phi);
+  while(!toVisit.empty()){
+    Node curr = toVisit.back();
+   
+ 
+    NodeToNodeMap::iterator i = cache.find(curr);
+    if(isRelationOperator(curr.getKind())){
+      if( i == cache.end() ){
+        cache[curr] = ppRewriteTerms(curr);
+      }      
+      toVisit.pop_back();
+    } else {
+      if(i == cache.end()){
+        cache.insert(make_pair(curr, Node::null()));
+        for(Node::iterator ni = curr.begin(), nend=curr.end(); ni != nend; ++ni){
+          toVisit.push_back(*ni);
+        }
+      } else {
+        if(i->second.isNull()){
+          if(curr.getNumChildren() == 0){
+            i->second = curr;
+          } else {
+            NodeBuilder<> nb(curr.getKind());
+            if(curr.getMetaKind() == kind::metakind::PARAMETERIZED) {
+              nb << (curr.getOperator());
+            }
+            for(Node::iterator it = curr.begin(), end = curr.end(); it != end; ++it){
+              NodeToNodeMap::iterator inCache = cache.find(*it);
+              Assert(inCache != cache.end());
+              nb << inCache->second;
+            }
+            i->second = (Node) nb;
+          }
+        }
+        toVisit.pop_back();
+      }
+    }
+  }
+
+  NodeToNodeMap::iterator phiIt = cache.find(phi);
+  Assert(phiIt != cache.end());
+  Node pprewritten = phiIt->second;
+  Node rewritten = Rewriter::rewrite(pprewritten);
+  return rewritten;
+}
+
 Node TheoryArithPrivate::ppRewrite(TNode atom) {
   Debug("arith::preprocess") << "arith::preprocess() : " << atom << endl;
 
+  Kind k = atom.getKind();
+
+  if(options::arithFactorizeRewrite() &&
+    (k == kind::LT ||
+     k == kind::GT ||
+     k == kind::LEQ ||
+     k == kind::GEQ ||
+     k == kind::EQUAL ||
+     k == kind::DISTINCT 
+     ))
+  {
+    if(d_factMod == NULL){
+      d_factMod = new FactorizationModule();
+    }
+    Assert(d_factMod != NULL);
+    Comparison cmp = Comparison::parseNormalForm(atom);
+    if(cmp.isNormalForm() && cmp.comparisonKind() != CONST_BOOLEAN){
+    
+      Polynomial l = cmp.getLeft();
+      Polynomial r = cmp.getRight();
+      Polynomial diff = l-r;
+      
+      Integer d;
+      std::vector<Polynomial> factors;
+      FactoringResult res = d_factMod->factorize(diff, d, factors);
+      if(res == AlwaysPositive || res == AlwaysNegative){
+        // cmp : p > 0 |-> true
+        Node result = Node::null();
+        switch(cmp.comparisonKind()){
+        case EQUAL:
+          result = mkBoolNode(false); break;
+        case DISTINCT:
+          result = mkBoolNode(true); break;
+        case GT:
+        case GEQ:
+          result = mkBoolNode(res == AlwaysPositive); break;
+        case LT:
+        case LEQ: 
+          result =  mkBoolNode(res == AlwaysNegative); break;
+        case UNDEFINED_KIND:
+        default:
+          Unreachable();
+          break;
+        }
+        if(Debug.isOn("arith::preprocess")){
+          Debug("arith::preprocess") << "arith::preprocess() : returning "
+                                     << result << " as "
+                                     << diff.getNode() << " is ";
+          if(res == AlwaysPositive) {
+            Debug("arith::preprocess") << "AlwaysPositive";
+          }else{
+            Debug("arith::preprocess") << "AlwaysNegative";
+          }
+          Debug("arith::preprocess") << " on the comparison " << cmp.comparisonKind() << endl;
+        }
+        return result;
+      } else if(res == FactorComputed){
+        Node equiv = d_factMod->signConditions(cmp.comparisonKind(), factors);
+        Assert(!equiv.isNull());
+        
+        ppRewriteRecursive(equiv);
+        
+        Node rewritten = Rewriter::rewrite(equiv);
+        Debug("arith::preprocess") << "arith::preprocess() : returning "
+                                   << rewritten << endl;
+        return rewritten;
+      }
+    }
+  }
+  
   if (atom.getKind() == kind::EQUAL  && options::arithRewriteEq()) {
     Node leq = NodeBuilder<2>(kind::LEQ) << atom[0] << atom[1];
     Node geq = NodeBuilder<2>(kind::GEQ) << atom[0] << atom[1];
@@ -1318,6 +1444,8 @@ Theory::PPAssertStatus TheoryArithPrivate::ppAssert(TNode in, SubstitutionMap& o
       }
     }
   }
+
+  
 
   // If a relation, remember the bound
   switch(in.getKind()) {

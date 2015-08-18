@@ -407,6 +407,8 @@ libcvc4_la_SOURCES = \
 	theory/arith/options_handlers.h \
 	theory/arith/guard_query_printer.h \
 	theory/arith/guard_query_printer.cpp \
+	theory/arith/factorizations.h \
+	theory/arith/factorizations.cpp \
 	theory/booleans/type_enumerator.h \
 	theory/booleans/theory_bool.h \
 	theory/booleans/theory_bool.cpp \

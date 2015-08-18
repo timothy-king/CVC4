@@ -1343,6 +1343,147 @@ bool Polynomial::isNonlinear() const {
   return false;
 }
 
+Monomial Monomial::powerOf(Variable v, uint32_t n){
+  Monomial mult = mkMonomial(v);
+  Monomial res = mkOne();
+  for(uint32_t i = n; i > 0; --i){
+    res = res * mult;
+  }
+  return res;
+}
+
+VarList VarList::mkPowerOf(Variable v, uint32_t p){
+  std::vector<Variable> vs;
+  for(uint32_t i=0; i < p; ++i){
+    vs.push_back(v);
+  }
+  return mkVarList(vs);
+}
+
+Polynomial Polynomial::fromPowersOf(Variable v, const std::map<uint32_t, Polynomial>& ps){
+  Polynomial sum = mkZero();
+  Debug("fromPowers") << "fromPowersOf " << ps.size() << endl;
+  unsigned int count = 0;
+  for(std::map<uint32_t, Polynomial>::const_iterator i = ps.begin(), iend=ps.end(); i != iend; ++i){
+    uint32_t n = (*i).first;
+    const Polynomial& p = (*i).second;
+
+    Debug("fromPowers") << "fromPowersOf " << count << endl;
+    Debug("fromPowers") << p.getNode() << endl;
+
+    Polynomial v_n (Monomial::mkMonomial(VarList::mkPowerOf(v,n)));
+    Polynomial prod = p*v_n;
+    sum = sum + prod;
+
+    ++count;
+  }
+  return sum;
+}
+
+Node VarList::unaryVariable() const{
+  Node res = Node::null();
+  for(iterator i=begin(), iend=end(); i != iend; ++i){
+    Variable curr = *i;
+    if(res.isNull()){
+      res = curr.getNode();
+    } else if(res != curr.getNode()){
+      return Node::null();
+    } else {
+      Assert(!res.isNull());
+      Assert(res == curr.getNode());
+      // continue;
+    }
+  }
+  return res;
+}
+
+Node Monomial::unaryVariable() const{
+  return getVarList().unaryVariable();
+}
+
+
+Node Polynomial::unaryVariable() const{
+  Node res = Node::null();
+  for(iterator i=begin(), iend=end(); i != iend; ++i){
+    Monomial m = *i;
+    if(m.isConstant()){
+      // do nothing
+    }else{
+      Node uOfM = m.unaryVariable();
+      // res.isNull() & uOfM.isNull() & action
+      // true         & true          & return null() as m has multiple variables
+      // true         & false         & res = uOfM;
+      // false        & true          & return null() as m has multiple variables
+      // false        & false         & if v == ufOfM continue, else, return null()
+      if(uOfM.isNull()){
+        return Node::null(); // return null() as m has multiple variables
+      }else if(res.isNull()){
+        Assert(!uOfM.isNull());
+        res = uOfM; // as it has not been set before
+      }else if(res != uOfM){
+        Assert(!uOfM.isNull());
+        Assert(!res.isNull());
+        return Node::null();
+        // return null() as res was a different existing variable
+      } else {
+        Assert(!uOfM.isNull());
+        Assert(!res.isNull());
+        Assert(res == uOfM);
+        // do nothing
+      }
+    }
+  }
+  return res;
+}
+
+bool Polynomial::isUnivariate() const{
+  Node m = unaryVariable();
+  return !m.isNull();
+}
+
+std::pair<uint32_t, VarList> VarList::powerOf(Variable v) const {
+  uint32_t p = 0;
+  std::vector<Variable> without;
+  for(iterator i=begin(), iend=end(); i != iend; ++i){
+    Variable curr = *i;
+    if(curr == v){
+      Assert(p < p + 1);
+      p++;
+    } else {
+      without.push_back(v);
+    }
+  }
+  if(p == 0){
+    return make_pair(p, *this);
+  }else{
+    return make_pair(p, mkVarList(without));
+  }
+}
+
+
+std::pair<uint32_t, Monomial> Monomial::powerOf(Variable v) const{
+  std::pair<uint32_t, VarList> inVL = getVarList().powerOf(v);
+  return make_pair(inVL.first, mkMonomial(getConstant(), inVL.second));
+}
+
+std::map<uint32_t, Polynomial>  Polynomial::powersOf(Variable v) const{
+  std::map<uint32_t, Polynomial> ps;
+  for(iterator i=begin(), iend=end(); i != iend; ++i){
+    Monomial m=*i;
+    pair<uint32_t,Monomial> inV = m.powerOf(v);
+    std::map<uint32_t, Polynomial>::iterator iter = ps.find(inV.first);
+    if(iter == ps.end()){
+      ps.insert(inV);
+    } else {
+      Polynomial inMap = (*iter).second;
+      (*iter).second = inMap + inV.second;
+    }
+  }
+  return ps;
+}
+
+
+
 } //namespace arith
 } //namespace theory
 } //namespace CVC4

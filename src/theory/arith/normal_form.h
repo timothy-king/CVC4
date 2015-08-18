@@ -599,7 +599,7 @@ public:
   }
 
   static VarList parseVarList(Node n);
-
+  
   VarList operator*(const VarList& vl) const;
 
   int cmp(const VarList& vl) const;
@@ -619,6 +619,12 @@ public:
   }
   size_t getComplexity() const;
 
+  Node unaryVariable() const;
+
+  std::pair<uint32_t, VarList> powerOf(Variable v) const;
+
+  static VarList mkPowerOf(Variable v, uint32_t p);
+  
 private:
   bool isSorted(iterator start, iterator end);
 
@@ -782,6 +788,11 @@ public:
   }
 
   /**
+   * Returns v**n. Note that if n is 0 this returns 1.
+   */
+  static Monomial powerOf(Variable v, uint32_t n);
+  
+  /**
    * Given a sorted list of monomials, this function transforms this
    * into a strictly sorted list of monomials that does not contain zero.
    */
@@ -800,6 +811,10 @@ public:
 
   void print() const;
   static void printList(const std::vector<Monomial>& list);
+
+  std::pair<uint32_t, Monomial> powerOf(Variable v) const;
+
+  Node unaryVariable() const;
 
   size_t getComplexity() const;
 };/* class Monomial */
@@ -1117,6 +1132,26 @@ public:
   /** Returns a node that if asserted ensures v is the abs of p.*/
   static Node makeAbsCondition(Variable v, Polynomial p);
 
+  /** Returns true if all variables in the polynomial are the same. */
+  bool isUnivariate() const;
+
+  /**
+   * Returns Node::null() if the polynomial is not unary.
+   * Otherwise, returns the node that is the unary variable for the polynomial.
+   */
+  Node unaryVariable() const;
+  
+  /**
+   * Returns a map m representing the current polynomial p as powers of a variable v.
+   * p == \sum (v**i) * m[i]
+   */
+  std::map<uint32_t, Polynomial>  powersOf(Variable v) const;
+
+  /**
+   * Reverses the results of powersOf(v).
+   */
+  static Polynomial fromPowersOf(Variable v, const std::map<uint32_t, Polynomial>& ps);
+  
 };/* class Polynomial */
 
 
