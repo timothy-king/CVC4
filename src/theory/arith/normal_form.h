@@ -275,6 +275,11 @@ public:
     return cmp(this->getNode(), v.getNode());
   }
 
+  bool operator>(const Variable& v) const {
+    VariableNodeCmp cmp;
+    return cmp(v.getNode(), this->getNode());
+  }
+  
   struct VariableNodeCmp {
     static inline int cmp(Node n, Node m) {
       if ( n == m ) { return 0; }
@@ -387,7 +392,6 @@ public:
   bool operator<(const Constant& other) const {
     return getValue() < other.getValue();
   }
-
   bool operator==(const Constant& other) const {
     //Rely on node uniqueness.
     return getNode() == other.getNode();
@@ -608,6 +612,11 @@ public:
 
   bool operator==(const VarList& vl) const { return cmp(vl) == 0; }
 
+  VarList commonVariables(const VarList& vl) const;
+  
+  /** vl must divide the variable list exactly. */
+  VarList exactDivide(const VarList& vl) const;
+  
   bool isIntegral() const {
     for(iterator i = begin(), e=end(); i != e; ++i ){
       Variable var = *i;
@@ -626,7 +635,7 @@ public:
   static VarList mkPowerOf(Variable v, uint32_t p);
   
 private:
-  bool isSorted(iterator start, iterator end);
+  static bool isSorted(iterator start, iterator end);
 
 };/* class VarList */
 
@@ -683,7 +692,7 @@ public:
   /** Makes a monomial with no restrictions on c and vl. */
   static Monomial mkMonomial(const Constant& c, const VarList& vl);
 
-  /** If vl is empty, this make one. */
+  /** If vl is empty, this makes one. */
   static Monomial mkMonomial(const VarList& vl);
 
   static Monomial mkMonomial(const Constant& c){
@@ -733,7 +742,9 @@ public:
     return (*this) * Rational(-1);
   }
 
-
+  /** vl must divide the variable list exactly. */
+  Monomial exactDivide(const VarList& vl) const;
+  
   int cmp(const Monomial& mono) const {
     return getVarList().cmp(mono.getVarList());
   }
@@ -910,6 +921,10 @@ public:
     return Polynomial(Monomial::mkMonomial(v));
   }
 
+  static Polynomial mkPolynomial(const VarList& vl){
+    return Polynomial(Monomial::mkMonomial(vl));
+  }
+
   static Polynomial mkPolynomial(const std::vector<Monomial>& m) {
     if(m.size() == 0) {
       return Polynomial(Monomial::mkZero());
@@ -1044,6 +1059,9 @@ public:
   /** z must divide all of the coefficients of the polynomial. */
   Polynomial exactDivide(const Integer& z) const;
 
+  /** vl must divide all of the monomials of the polynomial. */
+  Polynomial exactDivide(const VarList& vl) const;
+  
   Polynomial operator+(const Polynomial& vl) const;
   Polynomial operator-(const Polynomial& vl) const;
   Polynomial operator-() const{

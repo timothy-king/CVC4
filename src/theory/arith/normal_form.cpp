@@ -168,6 +168,91 @@ VarList VarList::parseVarList(Node n) {
   // }
 }
 
+VarList VarList::commonVariables(const VarList& vl) const {
+  std::vector<Variable> common;
+  VarList::iterator myIt = begin(), myEnd = end();
+  VarList::iterator vlIt = vl.begin(), vlEnd = vl.end();
+
+  Assert(isSorted(myIt, myEnd));
+  Assert(isSorted(vlIt, vlEnd));
+  
+  while(myIt != myEnd && vlIt != vlEnd){
+    Variable myCurr = *myIt;
+    Variable vlCurr = *vlIt;
+
+    if(myCurr == vlCurr){
+      common.push_back(myCurr);
+      ++myIt;
+      ++vlIt;
+    }else if(myCurr < vlCurr){
+      ++myIt;
+    }else{
+      Assert(myCurr > vlCurr);
+      ++vlIt;
+    }
+  }
+  // At least one list is exhausted for potential common elements
+  return mkVarList(common);
+}
+
+VarList VarList::exactDivide(const VarList& vl) const{
+  std::vector<Variable> notInVl;
+  VarList::iterator myIt = begin(), myEnd = end();
+  VarList::iterator vlIt = vl.begin(), vlEnd = vl.end();
+
+  while(myIt != myEnd && vlIt != vlEnd){
+    Variable myCurr = *myIt;
+    Variable vlCurr = *vlIt;
+    if(myCurr == vlCurr){
+      // myCurr \in vl
+      ++myIt;
+      ++vlIt;
+    }else if(myCurr < vlCurr){
+      // myCurr \not\in vl
+      notInVl.push_back(myCurr);
+      ++myIt;
+    }else{
+      Assert(myCurr > vlCurr);
+      // an element of vl is not in the current elements
+      throw std::invalid_argument("VarList::exactDivide() vl does not exactly divide this");
+    }
+  }
+  // Handle remaining cases
+  if(myIt == myEnd){
+    if( vlIt != vlEnd ){
+      // an element of vl is not in the current elements
+      throw std::invalid_argument("VarList::exactDivide() vl does not exactly divide this");
+    }else {
+      // both are empty. This is a no-op
+    }
+  }else {
+    Assert(vlIt == vlEnd);
+    while(myIt != myEnd){
+      Variable myCurr = *myIt;
+      notInVl.push_back(myCurr);
+      ++myIt;
+    }
+  }
+  return mkVarList(notInVl);
+}
+
+Monomial Monomial::exactDivide(const VarList& vl) const{
+  return mkMonomial(getConstant(), getVarList().exactDivide(vl));
+}
+
+Polynomial Polynomial::exactDivide(const VarList& vl) const{
+  std::vector<Monomial> monos;
+  for(Polynomial::iterator i = begin(), iend=end(); i != iend; ++i){
+    Monomial m=*i;
+    monos.push_back(m.exactDivide(vl));
+  }
+  Monomial::sort(monos);
+  Monomial::combineAdjacentMonomials(monos);
+  return Polynomial::mkPolynomial(monos);
+}
+
+
+
 VarList VarList::operator*(const VarList& other) const {
   if(this->empty()) {
     return other;
