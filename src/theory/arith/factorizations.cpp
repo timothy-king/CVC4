@@ -43,6 +43,12 @@ void printPolynomialMap(Variable v, const std::map<uint32_t, Polynomial>& m, std
 FactoringResult FactorizationModule::factorize(const Polynomial& p, Integer& d, std::vector<Polynomial>& out){
   FactoringResult res;
   if(!p.isNonlinear()){ return FactorUnknown; }
+
+  res = attemptFactorizeMonomial(p, d, out);
+  if(res != FactorUnknown){ return res; }
+  
+  res = attemptMonomialGCD(p, d, out);
+  if(res != FactorUnknown){ return res; }
   
   res = attemptQuadraticDecomposition(p, d, out);
   if(res != FactorUnknown){ return res; }
@@ -50,10 +56,61 @@ FactoringResult FactorizationModule::factorize(const Polynomial& p, Integer& d, 
   return FactorUnknown;
 }
 
+
+FactoringResult FactorizationModule::attemptFactorizeMonomial(const Polynomial& p, Integer& d, std::vector<Polynomial>& out){
+  if(p.isConstant()) { return FactorUnknown; }
+  if(!p.isNonlinear()) { return FactorUnknown; }
+  if(p.size() != 1) { return  FactorUnknown; }
+
+  d = Integer(1);
+
+  Debug("attemptFactorizeMonomial") << "attemptFactorizeMonomial " << p.getNode() << endl;
+  
+  Monomial m = p.getHead();
+  const VarList& vl = m.getVarList();
+  out.push_back(Polynomial::mkPolynomial(m.getConstant()));
+  
+  for(VarList::iterator i = vl.begin(), iend = vl.end(); i != iend; ++i){
+    Variable v = *i;
+    out.push_back(Polynomial::mkPolynomial(v));
+  }
+  return FactorComputed;
+}
+
+FactoringResult FactorizationModule::attemptMonomialGCD(const Polynomial& p, Integer& d, std::vector<Polynomial>& out){
+  if(p.isConstant()) { return FactorUnknown; }
+  if(!p.isNonlinear()) { return FactorUnknown; }
+
+  Debug("attemptMonomialGCD") << "attemptMonomialGCD()" << p.getNode() << endl;
+
+  
+  Monomial h = p.getHead();
+  Polynomial t = p.getTail();
+  VarList common = h.getVarList();
+
+  Debug("attemptMonomialGCD") << "head " << h.getNode() << endl;
+  for(Polynomial::iterator i = t.begin(), iend = t.end(); !common.empty() && i != iend; ++i){
+    Monomial curr = *i;
+    Debug("attemptMonomialGCD") << "curr " << curr.getNode() << endl;
+    common = common.commonVariables(curr.getVarList());
+    Debug("attemptMonomialGCD") << "common " << common.getNode() << endl;
+  }
+  if(common.empty()) { return FactorUnknown; }
+  
+  d = Integer(1);
+  Polynomial divided = p.exactDivide(common);
+  out.push_back(divided);
+  out.push_back(Polynomial::mkPolynomial(common));
+
+  Debug("attemptMonomialGCD") << "success "
+                              << common.getNode() << " "
+                              << divided.getNode() << endl;
+  return FactorComputed;
+}
+
 FactoringResult FactorizationModule::attemptQuadraticDecomposition(const Polynomial& p, Integer& d, std::vector<Polynomial>& out){
   if(p.isConstant()) { return FactorUnknown; }
   if(!p.isUnivariate()) { return FactorUnknown; }
-  if(p.isConstant()) { return FactorUnknown; }
   if(!p.isNonlinear()) { return FactorUnknown; }
 
   d = p.denominatorLCM();

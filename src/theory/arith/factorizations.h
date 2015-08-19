@@ -40,6 +40,9 @@ public:
   
 private:
   FactoringResult attemptQuadraticDecomposition(const Polynomial& p, Integer& d, std::vector<Polynomial>& out);
+  FactoringResult attemptFactorizeMonomial(const Polynomial& p, Integer& d, std::vector<Polynomial>& out);
+
+  FactoringResult attemptMonomialGCD(const Polynomial& p, Integer& d, std::vector<Polynomial>& out);
 
   static void fillInRange(std::map<uint32_t, Polynomial>& vPowers, uint32_t start, uint32_t end, const Polynomial& val);
 
