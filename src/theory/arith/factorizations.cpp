@@ -250,6 +250,11 @@ Node FactorizationModule::zeroConditions(const std::vector<Polynomial>& factors)
     (Node)nb;
 }
 
+/**
+ * Let count = | { f < 0 | f \in factors} |
+ * If  odd, return a node equivalent to count being odd.
+ * If !odd, return a node equivalent to count being even.
+ */
 Node FactorizationModule::strictLTCount(bool odd, const std::vector<Polynomial>& factors){
   Node curr = NodeManager::currentNM()->mkConst<bool>(odd);
   Polynomial zero = Polynomial::mkZero();
@@ -264,6 +269,7 @@ Node FactorizationModule::strictLTCount(bool odd, const std::vector<Polynomial>&
 }
 
 Node FactorizationModule::signConditions(Kind cmpKind, const std::vector<Polynomial>& factors){
+  Debug("fac::signConditions") << cmpKind << endl;
   switch(cmpKind){
   case kind::LT:
     {
@@ -278,9 +284,9 @@ Node FactorizationModule::signConditions(Kind cmpKind, const std::vector<Polynom
       return ((zero).notNode()).andNode(sgtc);
     }
   case kind::LEQ:
-    return signConditions(kind::GT, factors);
+    return signConditions(kind::GT, factors).notNode();
   case kind::GEQ:
-    return signConditions(kind::LT, factors);
+    return signConditions(kind::LT, factors).notNode();
   case kind::EQUAL:
     return zeroConditions(factors);
   case kind::DISTINCT:
