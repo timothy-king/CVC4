@@ -211,7 +211,9 @@ FactoringResult FactorizationModule::attemptQuadraticDecomposition(const Polynom
 
     Polynomial f_plus = Polynomial::mkPolynomial(v) - plus;
     Polynomial f_minus = Polynomial::mkPolynomial(v) - minus;
-    out.push_back(f_plus);
+
+    Assert((a_p*f_plus*f_minus).getNode() == ip.getNode());
+    out.push_back(a_p*f_plus);
     out.push_back(f_minus);
     
     Debug("quadratic") << "... FactorComputed" << endl;
@@ -256,8 +258,15 @@ Node FactorizationModule::zeroConditions(const std::vector<Polynomial>& factors)
  * If !odd, return a node equivalent to count being even.
  */
 Node FactorizationModule::strictLTCount(bool odd, const std::vector<Polynomial>& factors){
-  Node curr = NodeManager::currentNM()->mkConst<bool>(odd);
+  Node curr = NodeManager::currentNM()->mkConst<bool>(!odd);
   Polynomial zero = Polynomial::mkZero();
+
+  // The final result R can be expressed using (+) as xor
+  // R := !odd (+) {f_1 < 0} (+) ... (+) {f_k < 0}
+  // isOdd(count) <-> {f_1 < 0} (+) ... (+) {f_k < 0}
+  // R := !odd (+) isOdd(count)
+  // if odd == true, R == false (+) isOdd(count) <-> isOdd(count)
+  // else, R == true (+) isOdd(count) <-> !isOdd(count)
   for( std::vector<Polynomial>::const_iterator i=factors.begin(), iend=factors.end(); i!=iend; ++i){
     const Polynomial& p = *i;
     Comparison cmp = Comparison::mkComparison(kind::LT, p, zero);
@@ -274,13 +283,13 @@ Node FactorizationModule::signConditions(Kind cmpKind, const std::vector<Polynom
   case kind::LT:
     {
       Node zero = zeroConditions(factors);
-      Node sltc = strictLTCount(false, factors);
+      Node sltc = strictLTCount(true, factors);
       return ((zero).notNode()).andNode(sltc);
     }
   case kind::GT:
     {
       Node zero = zeroConditions(factors);
-      Node sgtc = strictLTCount(true, factors);
+      Node sgtc = strictLTCount(false, factors);
       return ((zero).notNode()).andNode(sgtc);
     }
   case kind::LEQ:
