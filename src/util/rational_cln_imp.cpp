@@ -111,6 +111,8 @@ Rational Rational::pow(unsigned long p) const{
   if(p == 0){
     return Rational(1);
   } else {
-    return Rational(cln::expt_pos(d_value), Integer(p));
+    cln::cl_I exp(p);
+    cln::cl_RA pow = cln::expt_pos(d_value, exp);
+    return Rational(pow);
   }
 }

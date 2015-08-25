@@ -5796,6 +5796,19 @@ Node TheoryArithPrivate::rootBoundCache(ConstraintCP c){
   return Node::null();
 }
 
+
+Node mkLeftAbsCmp(Kind k, Node l, Node r){
+  // (k |l| r)
+  // (k (ite (< l 0) (-l) l) r)
+  // (ite (< l 0) (k (-l) r) (k l r))
+  NodeManager* nm = NodeManager::currentNM();
+  Node lIsNeg = nm->mkNode(kind::LT, l, mkRationalNode(0));
+  Node negL = nm->mkNode(kind::UMINUS, l); 
+  Node negCmp = nm->mkNode(k, negL, r); 
+  Node posCmp = nm->mkNode(k, l, r);
+  return lIsNeg.iteNode(negCmp, posCmp);
+}
+
 Node TheoryArithPrivate::rootBound(ConstraintCP c){
   Assert(c->assertedToTheTheory());
   if(c->getType() == Disequality){ return Node::null(); }
@@ -5810,6 +5823,8 @@ Node TheoryArithPrivate::rootBound(ConstraintCP c){
   unsigned long p = pd.first;
   const VarList& vl = pd.second;
   Assert(p == pd.first); // catch conversion issues
+
+  NodeManager* nm = NodeManager::currentNM();
   
   if(p <= 1){
     return Node::null();
@@ -5863,31 +5878,29 @@ Node TheoryArithPrivate::rootBound(ConstraintCP c){
         Assert( rhs >= 0);
         Assert( p % 2 == 0);
 
+        Node lb = mkLeftAbsCmp(isStrict ? GT : GEQ, lhsNode, mkRationalNode(lu.first));
+        Node ub = mkLeftAbsCmp(isStrict ? LT : LEQ, lhsNode, mkRationalNode(lu.second));
         switch(c->getType()){
         case LowerBound:
           // vl^p >= r
           // |vl| >= root(r,p) >= l
           // (ite (vl<0) -vl vl)) >= l
           // (ite (vl<0) (-vl>=l) (vl>=l))
-          implied = mkAbsCmp(isStrict ? GT : GEQ, vl, lu.first);
+          implied = lb;
           break;
         case UpperBound:
           // vl^p <= r
           // |vl| <= root(r,p) <= u
           // (ite (vl<0) -vl vl)) <= u
           // (ite (vl<0) (-vl<=u) (vl<=u))
-          implied = mkAbsCmp(isStrict ? LT : LEQ, vl, lu.second);
+          implied = ub;
           break;
         case Equality:
           // vl^p == r
           // |vl| <= root(r,p) <= u
           // (ite (vl<0) -vl vl)) <= u
           // (ite (vl<0) (-vl<=u) (vl<=u))
-          {
-            Node leq = mkAbsCmp(LEQ, vl, lu.second);
-            Node geq = mkAbsCmp(GEQ, vl, lu.second);
-            implied = leq.andNode(geq);
-          }
+          implied = lb.andNode(ub);
           break;
         default:
           Unreachable();
@@ -5905,29 +5918,27 @@ Node TheoryArithPrivate::rootBound(ConstraintCP c){
       // s in { -1,0,1 }
       const Rational& sl = rhs.sgn() < 0 ? lu.second : lu.first;
       const Rational& su = rhs.sgn() < 0 ? lu.first : lu.second;
+      Node lb = nm->mkNode(isStrict ? GT: GEQ, lhsNode, mkRationalNode(sl));
+      Node ub = nm->mkNode(isStrict ? LT: LEQ, lhsNode, mkRationalNode(su));
       // sl <= x <= sr
       switch(c->getType()){
       case LowerBound:
         // vl^p >= r
         // vl >= s*root(|r|,p) = x >= sl;
-        implied = mkCmp(isStrict ? GT: GEQ, vl, sl);
+        implied = lb;
         break;
       case UpperBound:
         // vl^p <= r
         // vl <= s*root(|r|,p) = x <= su;
-        implied = mkCmp(isStrict ? LT: LEQ, vl, su);
+        implied = ub;
         break;
       case Equality:
-        {
-          // vl^p = r
-          // vl = s*root(|r|,p) = x
-          // sl <= x <= su
-          // x >= sl
-          Node lb = mkCmp(isStrict ? GT: GEQ, vl, sl);
-          // x <= su
-          Node ub = mkCmp(isStrict ? LT: LEQ, vl, su);
-          implied = lb.andNode(ub);
-        }
+        // vl^p = r
+        // vl = s*root(|r|,p) = x
+        // sl <= x <= su
+        // x >= sl
+        // x <= su
+        implied = lb.andNode(ub);
         break;
       default:
         Unreachable();
@@ -5943,6 +5954,7 @@ Node TheoryArithPrivate::rootBound(ConstraintCP c){
     }
   }
 }
+
 
 // InferBoundsResult TheoryArithPrivate::inferUpperBoundSimplex(TNode t, const inferbounds::InferBoundAlgorithm& param){
 //   Assert(param.findUpperBound());
