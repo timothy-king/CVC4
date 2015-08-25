@@ -3925,7 +3925,7 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
     }
   }//if !emmittedConflictOrSplit && fullEffort(effortLevel) && !hasIntegerModel()
 
-  if(Theory::fullEffort(effortLevel) && d_nlIncomplete && !emmittedConflictOrSplit && options::attemptGuardQueries() ){
+  if(Theory::fullEffort(effortLevel) && d_nlIncomplete && !emmittedConflictOrSplit && options::arithBoundRoots() ){
     std::vector<Node> lemmas = rootBounds();
     for(std::vector<Node>::const_iterator i=lemmas.begin(), iend=lemmas.end(); i != iend; ++i){
       emmittedConflictOrSplit = true;
@@ -5845,6 +5845,8 @@ Node TheoryArithPrivate::rootBound(ConstraintCP c){
   if(p <= 1){
     return Node::null();
   } else {
+    Node vlNode = vl.getNode();
+
     bool isStrict = (c->isUpperBound() && c->isStrictUpperBound()) ||
       (c->isLowerBound() && c->isStrictLowerBound());
 
@@ -5894,8 +5896,18 @@ Node TheoryArithPrivate::rootBound(ConstraintCP c){
         Assert( rhs >= 0);
         Assert( p % 2 == 0);
 
-        Node lb = mkLeftAbsCmp(isStrict ? GT : GEQ, lhsNode, mkRationalNode(lu.first));
-        Node ub = mkLeftAbsCmp(isStrict ? LT : LEQ, lhsNode, mkRationalNode(lu.second));
+        // x**2 >= r
+        // x >= r
+        Node lb = mkLeftAbsCmp(isStrict ? GT : GEQ, vlNode, mkRationalNode(lu.first));
+        Node ub = mkLeftAbsCmp(isStrict ? LT : LEQ, vlNode, mkRationalNode(lu.second));
+        Debug("root") << "rhs " << rhs
+                      << " p " << p
+                      << " lu.first " << lu.first
+                      << " lu.second " << lu.second
+                      << " lb " << lb
+                      << " ub " << ub
+                      << endl;
+
         switch(c->getType()){
         case LowerBound:
           // vl^p >= r
@@ -5922,6 +5934,7 @@ Node TheoryArithPrivate::rootBound(ConstraintCP c){
           Unreachable();
           break;
         }
+        Debug("root") << "implied " << implied << endl;
       }      
       // c => |vl| <= u
     } else {
@@ -5934,8 +5947,8 @@ Node TheoryArithPrivate::rootBound(ConstraintCP c){
       // s in { -1,0,1 }
       const Rational& sl = rhs.sgn() < 0 ? lu.second : lu.first;
       const Rational& su = rhs.sgn() < 0 ? lu.first : lu.second;
-      Node lb = nm->mkNode(isStrict ? GT: GEQ, lhsNode, mkRationalNode(sl));
-      Node ub = nm->mkNode(isStrict ? LT: LEQ, lhsNode, mkRationalNode(su));
+      Node lb = nm->mkNode(isStrict ? GT: GEQ, vlNode, mkRationalNode(sl));
+      Node ub = nm->mkNode(isStrict ? LT: LEQ, vlNode, mkRationalNode(su));
       // sl <= x <= sr
       switch(c->getType()){
       case LowerBound:

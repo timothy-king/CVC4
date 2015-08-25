@@ -169,5 +169,8 @@ option attemptGuardQueries --external-guard-query bool :default false
  
 option arithFactorizeRewrite --factorize-heuristic bool :default false
  attempts to factorize non-linear real arithmetic
+
+option arithBoundRoots --root-bounds bool :default false
+ attempts to approximate bounds of nth roots
  
 endmodule

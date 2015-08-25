@@ -145,7 +145,7 @@ std::pair<Rational, Rational> estimateNthRoot(const Rational& q, unsigned long i
   if(deriv == 0){
     lower = x;
     upper = x;
-  } else if(rem.sgn() > 0){
+  } else if(deriv > 0){
     // u - (x**n) > 0
     // (x**n) < u
     // |u - (x**n)| = u - (x**n) <= D
@@ -162,7 +162,7 @@ std::pair<Rational, Rational> estimateNthRoot(const Rational& q, unsigned long i
   }
 
   int jumpRounds = 0;
-  Rational base = D * (deriv);
+  Rational base = D * Integer(deriv);
   while( deriv * rem.sgn() > 0){
     jumpRounds++;
     x = x + base;
@@ -183,6 +183,8 @@ std::pair<Rational, Rational> estimateNthRoot(const Rational& q, unsigned long i
                      << " lower " << lower
                      << " x " <<x
                      << " upper " << upper
+                     << "rem " << rem
+                     << "deriv " << deriv
                      << endl;
   }
 
@@ -215,16 +217,24 @@ std::pair<Rational, Rational> estimateNthRoot(const Rational& q, unsigned long i
                      << " upper " << upper
                      << std::endl;
 
+    Assert(lower < mid && mid < upper);
     if(rem.sgn() == 0){
       lower = mid;
       upper = mid;
-    }else if(rem.sgn() < 0){ // u < mid**n
+    }else if(rem.sgn() < 0){
+      // u - mid**n < 0
       upper = mid;
-    }else{
+    }else{ // rq - midPow > 0
+      // q > midPow
       lower = mid;
     }
     diff = upper - lower;
   }
+
+
+  Assert(lower <= upper);
+  Assert(lower.pow(n) <= q);
+  Assert(q <= upper.pow(n));
 
   Debug("rootRem") << "final rootRem(" << q << ", " << n <<")"
                    << " lower " << lower
