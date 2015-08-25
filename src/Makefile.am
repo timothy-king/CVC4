@@ -350,6 +350,8 @@ libcvc4_la_SOURCES = \
 	theory/arith/constraint_forward.h \
 	theory/arith/constraint.h \
 	theory/arith/constraint.cpp \
+	theory/arith/roots.h \
+	theory/arith/roots.cpp \
 	theory/arith/congruence_manager.h \
 	theory/arith/congruence_manager.cpp \
 	theory/arith/normal_form.h\

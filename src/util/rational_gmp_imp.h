@@ -334,6 +334,10 @@ public:
   /** Equivalent to calling (this->abs()).cmp(b.abs()) */
   int absCmp(const Rational& q) const;
 
+
+  /** Integer power function. p >= 0. */
+  Rational pow(unsigned long p) const;
+  
 };/* class Rational */
 
 struct RationalHashFunction {

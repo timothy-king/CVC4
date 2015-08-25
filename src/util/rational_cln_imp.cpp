@@ -104,3 +104,13 @@ RationalFromDoubleException::RationalFromDoubleException(double d) throw()
   ss << ")";
   setMessage(ss.str());
 }
+
+/** Integer power function.*/
+Rational Rational::pow(unsigned long p) const{
+  CheckArgument(p >= 0, this, "Negative integer passed to Rational::pow()");
+  if(p == 0){
+    return Rational(1);
+  } else {
+    return Rational(cln::expt_pos(d_value), Integer(p));
+  }
+}

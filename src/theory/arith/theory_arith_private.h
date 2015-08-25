@@ -698,6 +698,8 @@ private:
   context::CDO<unsigned> d_cutCount;
   context::CDHashSet<ArithVar, std::hash<ArithVar> > d_cutInContext;
 
+
+  
   context::CDO<bool> d_likelyIntegerInfeasible;
 
 
@@ -748,7 +750,10 @@ private:
 
   /** Executes a guarded query. */
   std::pair<Result::Sat, Node> executeExternalGuardedQuery();
-
+  Node rootBoundCache(ConstraintCP c);
+  Node rootBound(ConstraintCP c);
+  std::vector<Node> rootBounds();
+  CDNodeSet d_rootBoundCache;
   
   /** These fields are designed to be accessible to TheoryArith methods. */
   class Statistics {

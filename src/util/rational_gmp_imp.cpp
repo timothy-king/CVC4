@@ -101,3 +101,22 @@ RationalFromDoubleException::RationalFromDoubleException(double d) throw()
   ss << ")";
   setMessage(ss.str());
 }
+
+/** Integer power function.*/
+Rational Rational::pow(unsigned long p) const{
+  CheckArgument(p >= 0, this, "Negative integer passed to Rational::pow()");
+
+  mpq_class base(d_value);
+  mpq_class result(1,1);
+  result.canonicalize();
+
+  unsigned long exp = p;
+  while( exp != 0 ){
+    if( exp & 1 != 0){
+      result *= base;
+    }
+    exp >>= 1;
+    base *= base;
+  }
+  return Rational(result);
+}

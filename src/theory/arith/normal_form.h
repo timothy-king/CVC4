@@ -323,6 +323,7 @@ public:
   };
 
   bool operator==(const Variable& v) const { return getNode() == v.getNode();}
+  bool operator!=(const Variable& v) const { return getNode() != v.getNode();}
 
   size_t getComplexity() const;
 };/* class Variable */
@@ -633,6 +634,20 @@ public:
   std::pair<uint32_t, VarList> powerOf(Variable v) const;
 
   static VarList mkPowerOf(Variable v, uint32_t p);
+
+  /**
+   * Return <p,v> s.t. this == v**p
+   * and p is the gcd of the powers of the variables in
+   * this.
+   * If this is empty, return <0, empty>.
+   */
+  std::pair<uint32_t, VarList> leastPower() const;
+
+  VarList pow(uint32_t p) const;
+  VarList exactRoot(uint32_t p) const;
+  std::vector< std::pair<uint32_t, Variable> > asPowers() const;
+
+  bool isNonlinear() const { return size() >= 2; }
   
 private:
   static bool isSorted(iterator start, iterator end);
@@ -795,7 +810,7 @@ public:
 
   /** Returns true if the VarList is a product of at least 2 Variables.*/
   bool isNonlinear() const {
-    return getVarList().size() >= 2;
+    return getVarList().isNonlinear();
   }
 
   /**

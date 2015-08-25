@@ -74,6 +74,7 @@
 
 #include "theory/arith/guard_query_printer.h"
 #include "theory/arith/factorizations.h"
+#include "theory/arith/roots.h"
 
 #include "theory/quantifiers/options.h"
 
@@ -156,6 +157,7 @@ TheoryArithPrivate::TheoryArithPrivate(TheoryArith& containing, context::Context
   d_dioSolveResources(0),
   d_solveIntMaybeHelp(0u),
   d_solveIntAttempts(0u),
+  d_rootBoundCache(c),
   d_statistics()
 {
   srand(79);
@@ -5748,6 +5750,197 @@ std::pair<Node, DeltaRational> TheoryArithPrivate::entailmentCheckSimplex(int sg
     return make_pair(result.getExplanation(), result.getValue());
   }else{
     return make_pair(Node::null(), DeltaRational());
+  }
+}
+
+std::vector<Node> TheoryArithPrivate::rootBounds(){
+  std::vector<Node> lemmas;
+  ArithVariables::var_iterator i = d_partialModel.var_begin(), iend =  d_partialModel.var_begin();
+  
+  for(; i != iend; ++i){
+    ArithVar v = *i;
+    if(d_partialModel.hasNode(v)){
+      Node lhsNode =  d_partialModel.asNode(v);
+      if(Polynomial::isMember(lhsNode)){
+        Polynomial p = Polynomial::parsePolynomial(lhsNode);
+        if(p.size() == 1 && p.isNonlinear()) {
+          if(d_partialModel.hasUpperBound(v)){
+            ConstraintCP ub = d_partialModel.getUpperBoundConstraint(v);
+            Node rb = rootBoundCache(ub);
+            if(!rb.isNull()){
+              lemmas.push_back(rb);
+            }
+          }
+          if(d_partialModel.hasLowerBound(v)){
+            ConstraintCP lb = d_partialModel.getLowerBoundConstraint(v);
+            Node rb = rootBoundCache(lb);
+            if(!rb.isNull()){
+              lemmas.push_back(rb);
+            }
+          }
+        }
+      }
+    }
+  }
+  return lemmas;
+}
+
+Node TheoryArithPrivate::rootBoundCache(ConstraintCP c){
+  if(c->assertedToTheTheory()){
+    Node witness = c->getWitness();
+    if(d_rootBoundCache.find(witness) == d_rootBoundCache.end()){
+      d_rootBoundCache.insert(witness);
+      return rootBound(c);
+    }
+  }
+  return Node::null();
+}
+
+Node TheoryArithPrivate::rootBound(ConstraintCP c){
+  Assert(c->assertedToTheTheory());
+  if(c->getType() == Disequality){ return Node::null(); }
+
+  Node lhsNode =  d_partialModel.asNode(c->getVariable());
+  if(!VarList::isMember(lhsNode)){ return Node::null(); }
+  
+  VarList lhs = VarList::parseVarList(lhsNode);
+  if(!lhs.isNonlinear()) { return Node::null(); }
+
+  std::pair<uint32_t, VarList> pd = lhs.leastPower();
+  unsigned long p = pd.first;
+  const VarList& vl = pd.second;
+  Assert(p == pd.first); // catch conversion issues
+  
+  if(p <= 1){
+    return Node::null();
+  } else {
+    bool isStrict = (c->isUpperBound() && c->isStrictUpperBound()) ||
+      (c->isLowerBound() && c->isStrictLowerBound());
+
+    Rational rhs = (c->getValue()).getNoninfinitesimalPart();
+    if(vl.isIntegral() && isStrict){
+      if(c->isUpperBound()){
+        rhs = (c->getValue()).floor();
+      }else{
+        Assert(c->isLowerBound());
+        rhs = (c->getValue()).ceiling();
+      }
+      isStrict = false;
+    }
+
+    Rational D(1, 1<<28);
+    std::pair<Rational, Rational> lu = estimateNthRoot(rhs.abs(), p, D);
+
+    Node cAsNode = c->getWitness();
+    Node implied = Node::null();
+    if(p % 2 == 0){
+      // p is even
+      if(rhs.sgn() < 0){
+        // let 2k = p and q^2 = vl^p, or q = vl^k, r = rhs, l <= x <= u, x^p = r
+        switch(c->getType()){
+        case LowerBound:
+          {
+            // q^2 >= 0 > r 
+            // This is valid.
+            // q^2 >= r is itself a valid lemma
+            return cAsNode;
+          }
+        case Equality:
+        case UpperBound:
+          {
+            // both cases imply
+            // q^2 <= r < 0
+            // This is a constradiction.
+            return cAsNode.notNode();
+          }
+        default:
+          Unreachable();
+          break;
+        }
+        return Node::null();
+      } else {
+        // rhs >= 0 and p is even
+        Assert( rhs >= 0);
+        Assert( p % 2 == 0);
+
+        switch(c->getType()){
+        case LowerBound:
+          // vl^p >= r
+          // |vl| >= root(r,p) >= l
+          // (ite (vl<0) -vl vl)) >= l
+          // (ite (vl<0) (-vl>=l) (vl>=l))
+          implied = mkAbsCmp(isStrict ? GT : GEQ, vl, lu.first);
+          break;
+        case UpperBound:
+          // vl^p <= r
+          // |vl| <= root(r,p) <= u
+          // (ite (vl<0) -vl vl)) <= u
+          // (ite (vl<0) (-vl<=u) (vl<=u))
+          implied = mkAbsCmp(isStrict ? LT : LEQ, vl, lu.second);
+          break;
+        case Equality:
+          // vl^p == r
+          // |vl| <= root(r,p) <= u
+          // (ite (vl<0) -vl vl)) <= u
+          // (ite (vl<0) (-vl<=u) (vl<=u))
+          {
+            Node leq = mkAbsCmp(LEQ, vl, lu.second);
+            Node geq = mkAbsCmp(GEQ, vl, lu.second);
+            implied = leq.andNode(geq);
+          }
+          break;
+        default:
+          Unreachable();
+          break;
+        }
+      }      
+      // c => |vl| <= u
+    } else {
+      // p is odd
+      Assert(p % 2 != 0);
+
+      // x^p = r, s = sgn(r)
+      // x = sgn(r) * root(|r|,p)
+      // l <= root(|r|,p) <= u
+      // s in { -1,0,1 }
+      const Rational& sl = rhs.sgn() < 0 ? lu.second : lu.first;
+      const Rational& su = rhs.sgn() < 0 ? lu.first : lu.second;
+      // sl <= x <= sr
+      switch(c->getType()){
+      case LowerBound:
+        // vl^p >= r
+        // vl >= s*root(|r|,p) = x >= sl;
+        implied = mkCmp(isStrict ? GT: GEQ, vl, sl);
+        break;
+      case UpperBound:
+        // vl^p <= r
+        // vl <= s*root(|r|,p) = x <= su;
+        implied = mkCmp(isStrict ? LT: LEQ, vl, su);
+        break;
+      case Equality:
+        {
+          // vl^p = r
+          // vl = s*root(|r|,p) = x
+          // sl <= x <= su
+          // x >= sl
+          Node lb = mkCmp(isStrict ? GT: GEQ, vl, sl);
+          // x <= su
+          Node ub = mkCmp(isStrict ? LT: LEQ, vl, su);
+          implied = lb.andNode(ub);
+        }
+        break;
+      default:
+        Unreachable();
+        break;
+      }
+    }
+
+    if(implied.isNull()){
+      return Node::null();
+    } else {
+      Node lemma = cAsNode.impNode(implied);
+      return lemma;
+    }
   }
 }
 

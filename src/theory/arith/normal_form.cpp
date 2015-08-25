@@ -20,6 +20,8 @@
 #include <list>
 #include "theory/theory.h"
 
+#include <boost/math/common_factor.hpp>
+
 using namespace std;
 
 namespace CVC4 {
@@ -1565,6 +1567,84 @@ std::map<uint32_t, Polynomial>  Polynomial::powersOf(Variable v) const{
     }
   }
   return ps;
+}
+
+std::vector< std::pair<uint32_t, Variable> > VarList::asPowers() const {
+  std::vector< std::pair<uint32_t, Variable> > ps;
+
+  iterator i=begin(), iend=end();
+  while(i != iend){
+    uint32_t count = 1;
+    Variable v = *i;
+    i++;
+    while(i != iend){
+      Variable curr = *i;
+      if(curr == v){
+        count++;
+      } else {
+        break;
+      }
+      ++i;
+    }
+    Assert(i == iend || (*i) != v);
+    ps.push_back(make_pair(count, v));
+  }
+  return ps;
+}
+
+std::pair<uint32_t, VarList> VarList::leastPower() const{
+  if(empty()){ return make_pair(0,*this); }
+  if(singleton()){ return make_pair(1, *this); }
+
+  std::vector< std::pair<uint32_t, Variable> > ps = asPowers();
+
+  Assert(!ps.empty());
+  
+  uint32_t g = ps.front().first;
+  Assert(g >= 1);
+  for(size_t s = 1, N=ps.size(); s < N && g > 1; s++){
+    Assert(ps[s].first >= 1);  
+    g = boost::math::gcd(g, ps[s].first);
+  }
+  Assert(g >= 1);
+  if(g == 1){
+    return make_pair(1, *this);
+  } else {
+    Assert(g >= 2);
+    return make_pair(g, exactRoot(g) );
+  }
+}
+
+VarList VarList::exactRoot(uint32_t p) const{
+  if(p == 0){
+    return mkEmptyVarList();
+  } else if( p == 1 ){
+    return *this;
+  } else {
+    Assert(p > 1);
+    std::vector<Variable> quot;
+    uint32_t count = 0;
+    for(iterator i=begin(), iend=end(); i != iend; ++i, ++count){
+      Variable v = *i;
+      Assert( powerOf(v).first % p == 0 );
+      if(count % p == 0){
+        quot.push_back(v);
+      }
+    }
+    VarList ret = mkVarList(quot);
+    Assert(ret.pow(p) == *this);
+    return ret;
+  }
+}
+
+VarList VarList::pow(uint32_t p) const{
+  // not very efficient
+  VarList r = mkEmptyVarList();
+  while(p > 0){
+    r = r * (*this);
+    --p;
+  }
+  return r;
 }
 
 
