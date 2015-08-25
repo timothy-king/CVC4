@@ -115,9 +115,10 @@ std::pair<Rational, Rational> estimateNthRoot(const Rational& q, unsigned long i
     
     xp = x;
     Assert(xp.pow(n-1) == xp_to_n1);
-    x = (n_minus_1 * xp + xp_to_n1) * one_over_n;
+    x = (n_minus_1 * xp + q / xp_to_n1) * one_over_n;
+    // x^{n-1}
     Debug("rootRem") << "rootRem(" << q << ", " << n <<") round #" << rounds
-                     << xp << " -> " << x << std::endl;
+                     << " " << xp << " -> " << x << std::endl;
 
     xp_to_n1 = x.pow(n-1);
     rem = q - (x*xp_to_n1); // u - x**n
@@ -130,8 +131,18 @@ std::pair<Rational, Rational> estimateNthRoot(const Rational& q, unsigned long i
   } while( rem.abs() > D );
   Assert((q-x.pow(n)).abs() <= D);
   
+
+  Debug("rootRem") << "(|rem| <= D) : |" << rem << "| <= " << D << std::endl;
+  Debug("rootRem") << "rootRem(" << q << ", " << n <<") round #" << rounds
+                   << " lower " << lower
+                   << " x " << x
+                   << " upper " << upper
+                   << std::endl;
+
+  int deriv = rem.sgn();
+
   // |q - (x**n)| <= D
-  if(rem.sgn() == 0){
+  if(deriv == 0){
     lower = x;
     upper = x;
   } else if(rem.sgn() > 0){
@@ -140,15 +151,47 @@ std::pair<Rational, Rational> estimateNthRoot(const Rational& q, unsigned long i
     // |u - (x**n)| = u - (x**n) <= D
     // u <= (x**n) + D
     Assert(lower == x);
-    setMin(upper, x+(D >= 1 ? D : 1));
+    Assert(deriv == 1);
   } else {
     // u - (x**n) < 0
     // (x**n) > u
     // |u - (x**n)| = - (u - (x**n)) <= D
     // (x**n) -D <= u
     Assert(upper == x);
-    setMax(lower, x-(D >= 1 ? D : 1));
+    Assert(deriv == -1);
   }
+
+  int jumpRounds = 0;
+  Rational base = D * (deriv);
+  while( deriv * rem.sgn() > 0){
+    jumpRounds++;
+    x = x + base;
+    base = base * 2;
+    rem = q-x.pow(n);
+
+    if(rem.sgn() < 0){ // u < x**n
+      setMin(upper, x);
+    }else if(rem.sgn() > 0){ // u > x**n
+      setMax(lower, x);
+    }else{
+      lower = x;
+      upper = x;
+    }
+
+
+    Debug("rootRem") << "jump(" << q << ", " << n <<") round #" << jumpRounds
+                     << " lower " << lower
+                     << " x " <<x
+                     << " upper " << upper
+                     << endl;
+  }
+
+
+  Debug("rootRem") << "rootRem(" << q << ", " << n <<") round #" << rounds
+                   << " lower " << lower
+                   << " x " <<x
+                   << " upper " << upper
+                   << std::endl;
 
   // refine by bisection
   
@@ -161,6 +204,17 @@ std::pair<Rational, Rational> estimateNthRoot(const Rational& q, unsigned long i
     Rational mid = (upper + lower)/2;
     Rational midPow = mid.pow(n);
     rem = q - midPow;
+
+    Debug("rootRem") << "bisect"
+                     << " q " << q
+                     << " mid " << mid
+                     << " midPow " << midPow
+                     << " rem " << rem
+                     << " lower " << lower
+                     << "  " <<x
+                     << " upper " << upper
+                     << std::endl;
+
     if(rem.sgn() == 0){
       lower = mid;
       upper = mid;
@@ -171,6 +225,11 @@ std::pair<Rational, Rational> estimateNthRoot(const Rational& q, unsigned long i
     }
     diff = upper - lower;
   }
+
+  Debug("rootRem") << "final rootRem(" << q << ", " << n <<")"
+                   << " lower " << lower
+                   << " upper " << upper
+                   << std::endl;
   return make_pair(lower, upper);
 }
 

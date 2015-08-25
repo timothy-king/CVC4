@@ -3926,6 +3926,16 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
   }//if !emmittedConflictOrSplit && fullEffort(effortLevel) && !hasIntegerModel()
 
   if(Theory::fullEffort(effortLevel) && d_nlIncomplete && !emmittedConflictOrSplit && options::attemptGuardQueries() ){
+    std::vector<Node> lemmas = rootBounds();
+    for(std::vector<Node>::const_iterator i=lemmas.begin(), iend=lemmas.end(); i != iend; ++i){
+      emmittedConflictOrSplit = true;
+      Node lemma = *i;
+      Debug("arith::lemma") << "rootLemma " << lemma << endl;
+      outputLemma(lemma);
+    }
+  }
+
+  if(Theory::fullEffort(effortLevel) && d_nlIncomplete && !emmittedConflictOrSplit && options::attemptGuardQueries() ){
     std::pair<Result::Sat, Node> guardedQuery = executeExternalGuardedQuery();
     if( guardedQuery.first == Result::UNSAT ){
       Node conflict = guardedQuery.second;
@@ -5754,13 +5764,17 @@ std::pair<Node, DeltaRational> TheoryArithPrivate::entailmentCheckSimplex(int sg
 }
 
 std::vector<Node> TheoryArithPrivate::rootBounds(){
+  Debug("root") << "rootBounds" << endl;
   std::vector<Node> lemmas;
-  ArithVariables::var_iterator i = d_partialModel.var_begin(), iend =  d_partialModel.var_begin();
-  
+  ArithVariables::var_iterator i = d_partialModel.var_begin(), iend =  d_partialModel.var_end();
   for(; i != iend; ++i){
     ArithVar v = *i;
     if(d_partialModel.hasNode(v)){
       Node lhsNode =  d_partialModel.asNode(v);
+      Debug("root") << "v" << v << " " << lhsNode << endl;
+      if(Debug.isOn("root")){
+        d_partialModel.printModel(v, Debug("root") );
+      }
       if(Polynomial::isMember(lhsNode)){
         Polynomial p = Polynomial::parsePolynomial(lhsNode);
         if(p.size() == 1 && p.isNonlinear()) {
@@ -5810,6 +5824,8 @@ Node mkLeftAbsCmp(Kind k, Node l, Node r){
 }
 
 Node TheoryArithPrivate::rootBound(ConstraintCP c){
+  Debug("root") << "rootBound(" << c << ")" << endl;
+
   Assert(c->assertedToTheTheory());
   if(c->getType() == Disequality){ return Node::null(); }
 
@@ -5843,7 +5859,7 @@ Node TheoryArithPrivate::rootBound(ConstraintCP c){
       isStrict = false;
     }
 
-    Rational D(1, 1<<28);
+    Rational D(1, Integer(1).multiplyByPow2(200));
     std::pair<Rational, Rational> lu = estimateNthRoot(rhs.abs(), p, D);
 
     Node cAsNode = c->getWitness();
