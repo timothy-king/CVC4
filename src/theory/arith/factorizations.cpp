@@ -230,7 +230,7 @@ void FactorizationModule::fillInRange(std::map<uint32_t, Polynomial>& vPowers,
                                       uint32_t end,
                                       const Polynomial& val)
 {
-  for(uint32_t i = start; i < end; ++i){
+  for(uint32_t i = start; i <= end; ++i){
     if(vPowers.find(i) == vPowers.end()){
       vPowers.insert(std::make_pair(i,val));
     }
