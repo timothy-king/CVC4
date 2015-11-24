@@ -32,7 +32,7 @@ install:
 # Download and cache a copy of cxxtest until it appears officially in quantal.
  - wget http://sourceforge.net/projects/cxxtest/files/cxxtest/4.3/cxxtest-4.3.tar.gz
  - tar -xzvf cxxtest-4.3.tar.gz
- - cp -vR cxxtest-4.3 $HOME/cxxtest
+ - cp -vRT cxxtest-4.3 $HOME/cxxtest
 before_script:
  - export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64
  - export PATH=$PATH:$JAVA_HOME/bin
