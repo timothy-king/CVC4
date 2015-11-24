@@ -32,7 +32,7 @@ install:
 # Download and cache a copy of cxxtest until it appears officially in quantal.
  - wget http://sourceforge.net/projects/cxxtest/files/cxxtest/4.3/cxxtest-4.3.tar.gz
  - tar -xzvf cxxtest-4.3.tar.gz
- - cp -R cxxtest-4.3 $HOME/cxxtest
+ - cp -vR cxxtest-4.3 $HOME/cxxtest
 before_script:
  - export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64
  - export PATH=$PATH:$JAVA_HOME/bin
@@ -44,7 +44,7 @@ script:
    normal="$(echo -e '\033[0m')" red="$normal$(echo -e '\033[01;31m')" green="$normal$(echo -e '\033[01;32m')"
    configureCVC4() {
      echo "CVC4 config - $TRAVIS_CVC4_CONFIG";
-     ./configure --enable-unit-testing --enable-proof --with-portfolio $TRAVIS_CVC4_CONFIG CXXTEST=$HOME/cxxtest ||
+     ./configure --enable-unit-testing --enable-proof --with-portfolio $TRAVIS_CVC4_CONFIG CXXTESTGEN=$HOME/cxxtest/bin/cxxtestgen CXXTEST=$HOME/cxxtest ||
        (echo; cat builds/config.log; error "CONFIGURE FAILED");
    }
    error() {
