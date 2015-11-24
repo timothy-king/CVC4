@@ -1,6 +1,7 @@
 language: cpp
-cache: apt
-  directories:
+cache:
+ apt: true
+ directories:
   - $HOME/cxxtest
 
 sudo: false
@@ -15,18 +16,18 @@ env:
  - TRAVIS_LFSC=yes
  - TRAVIS_LFSC=yes TRAVIS_LFSC_DISTCHECK=yes
 addons:
-  apt:
-    sources:
-    - ubuntu-toolchain-r-test
-    packages:
-    - libgmp-dev
-    - libboost-dev
-    - libboost-thread-dev
-    - swig
-    - libcln-dev
-    - openjdk-7-jdk
-    - antlr3
-    - libantlr3c-dev
+ apt:
+  sources:
+  - ubuntu-toolchain-r-test
+  packages:
+  - libgmp-dev
+  - libboost-dev
+  - libboost-thread-dev
+  - swig
+  - libcln-dev
+  - openjdk-7-jdk
+  - antlr3
+  - libantlr3c-dev
 install:
 # Download and cache a copy of cxxtest until it appears officially in quantal.
  - wget http://sourceforge.net/projects/cxxtest/files/cxxtest/4.3/cxxtest-4.3.tar.gz
