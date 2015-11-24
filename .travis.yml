@@ -54,7 +54,7 @@ script:
      exit 1;
    }
    makeDistcheck() {
-     make -j2 distcheck CVC4_REGRESSION_ARGS='--no-early-exit' ||
+     make -j2 distcheck CVC4_REGRESSION_ARGS='--no-early-exit' DISTCHECK_CONFIGURE_FLAGS="CXXTEST=$HOME/cxxtest" ||
        error "DISTCHECK (WITH NEWTHEORY TESTS) FAILED";
    }
    makeCheck() {
