@@ -19,6 +19,7 @@
 #include <cxxtest/TestSuite.h>
 #include <sstream>
 
+#include "base/language.h"
 #include "base/output.h"
 #include "expr/command.h"
 #include "expr/expr.h"
@@ -27,7 +28,7 @@
 #include "parser/parser.h"
 #include "parser/parser_builder.h"
 #include "parser/smt2/smt2.h"
-#include "util/language.h"
+
 
 using namespace CVC4;
 using namespace CVC4::parser;

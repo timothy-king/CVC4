@@ -24,9 +24,9 @@
 #include <string>
 #include <sstream>
 
+#include "base/language.h"
 #include "expr/command.h"
 #include "util/didyoumean.h"
-#include "util/language.h"
 
 namespace CVC4 {
 namespace options {

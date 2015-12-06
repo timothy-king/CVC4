@@ -34,6 +34,7 @@
 #endif /* HAVE_LIBREADLINE */
 
 
+#include "base/language.h"
 #include "base/output.h"
 #include "cvc4autoconfig.h"
 #include "expr/command.h"
@@ -44,7 +45,6 @@
 #include "parser/parser.h"
 #include "parser/parser_builder.h"
 #include "smt/options.h"
-#include "util/language.h"
 
 using namespace std;
 

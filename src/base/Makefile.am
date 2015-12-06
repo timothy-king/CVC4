@@ -23,11 +23,14 @@ libbase_la_SOURCES = \
 	gmp_util.h \
 	lemma_input_channel_forward.h \
 	lemma_output_channel_forward.h \
+	option_exception.h \
 	output.cpp \
 	output.h \
 	modal_exception.h \
 	simplification_mode.h \
-	simplification_mode.cpp
+	simplification_mode.cpp \
+	language.h \
+	language.cpp
 
 
 BUILT_SOURCES = \
@@ -61,7 +64,9 @@ EXTRA_DIST = \
 	integer.i \
 	rational.i \
 	tls.h.in \
-	modal_exception.i
+	modal_exception.i \
+	option_exception.i \
+	language.i
 
 DISTCLEANFILES = \
 	integer.h.tmp \

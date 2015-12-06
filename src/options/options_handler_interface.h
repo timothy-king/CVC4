@@ -22,9 +22,10 @@
 #include <ostream>
 #include <string>
 
+#include "base/language.h"
 #include "base/modal_exception.h"
+#include "base/option_exception.h"
 #include "base/simplification_mode.h"
-#include "options/option_exception.h"
 
 namespace CVC4 {
 class CVC4_PUBLIC LogicInfo;
@@ -37,6 +38,7 @@ class CVC4_PUBLIC OptionsHandler {
 public:
   virtual ~OptionsHandler() {}
 
+  /* smt/options_handlers.h */
   virtual void dumpMode(std::string option, std::string optarg) = 0;
   virtual LogicInfo* stringToLogicInfo(std::string option, std::string optarg) throw(OptionException) = 0;
   virtual SimplificationMode stringToSimplificationMode(std::string option, std::string optarg) throw(OptionException) = 0;
@@ -54,10 +56,51 @@ public:
   virtual unsigned long tlimitPerHandler(std::string option, std::string optarg) throw(OptionException) = 0;
   virtual unsigned long rlimitHandler(std::string option, std::string optarg) throw(OptionException) = 0;
   virtual unsigned long rlimitPerHandler(std::string option, std::string optarg) throw(OptionException) = 0;
-  
+
+  /* expr/options_handlers.h */
+  virtual void setDefaultExprDepth(std::string option, int depth) = 0;
+  virtual void setDefaultDagThresh(std::string option, int dag) = 0;
+  virtual void setPrintExprTypes(std::string option) = 0;
+
+  /* main/options_handlers.h */
+  virtual void showConfiguration(std::string option) = 0;
+  virtual void showDebugTags(std::string option) = 0;
+  virtual void showTraceTags(std::string option) = 0;
+  virtual void threadN(std::string option) = 0;
+
+  /* options/base_options_handlers.h */
+  virtual void setVerbosity(std::string option, int value) throw(OptionException) = 0;
+  virtual void increaseVerbosity(std::string option) = 0;
+  virtual void decreaseVerbosity(std::string option) = 0;
+  virtual OutputLanguage stringToOutputLanguage(std::string option, std::string optarg) throw(OptionException) = 0;
+  virtual InputLanguage stringToInputLanguage(std::string option, std::string optarg) throw(OptionException) = 0;
+  virtual void addTraceTag(std::string option, std::string optarg) = 0;
+  virtual void addDebugTag(std::string option, std::string optarg) = 0;
+  virtual void setPrintSuccess(std::string option, bool value) = 0;
 }; /* class CVC4_PUBLIC OptionHandler */
 
+/* options/base_options_handlers.h */
+void setVerbosity(std::string option, int value, OptionsHandler* handler) throw(OptionException);
+void increaseVerbosity(std::string option, OptionsHandler* handler);
+void decreaseVerbosity(std::string option, OptionsHandler* handler);
+OutputLanguage stringToOutputLanguage(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException);
+InputLanguage stringToInputLanguage(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException);
+void addTraceTag(std::string option, std::string optarg, OptionsHandler* handler);
+void addDebugTag(std::string option, std::string optarg, OptionsHandler* handler);
+void setPrintSuccess(std::string option, bool value, OptionsHandler* handler);
 
+/* main/options_handlers.h */
+void showConfiguration(std::string option, OptionsHandler* handler);
+void showDebugTags(std::string option, OptionsHandler* handler);
+void showTraceTags(std::string option, OptionsHandler* handler);
+void threadN(std::string option, OptionsHandler* handler);
+
+/* expr/options_handlers.h */
+void setDefaultExprDepth(std::string option, int depth, OptionsHandler* handler);
+void setDefaultDagThresh(std::string option, int dag, OptionsHandler* handler);
+void setPrintExprTypes(std::string option, OptionsHandler* handler);
+
+/* smt/options_handlers.h */
 void dumpMode(std::string option, std::string optarg, OptionsHandler* handler);
 
 LogicInfo* stringToLogicInfo(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException);

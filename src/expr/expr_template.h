@@ -26,15 +26,15 @@ ${includes}
 #ifndef __CVC4__EXPR_H
 #define __CVC4__EXPR_H
 
-#include <string>
 #include <iostream>
 #include <iterator>
 #include <stdint.h>
+#include <string>
 
 #include "base/exception.h"
-#include "util/language.h"
-#include "util/hash.h"
+#include "base/language.h"
 #include "expr/options.h"
+#include "util/hash.h"
 
 // This is a hack, but an important one: if there's an error, the
 // compiler directs the user to the template file instead of the

@@ -21,18 +21,17 @@
 #include <string>
 #include <typeinfo>
 
-#include "util/boolean_simplification.h"
-#include "printer/dagification_visitor.h"
-#include "util/node_visitor.h"
-#include "theory/substitutions.h"
-#include "util/language.h"
-#include "smt/smt_engine.h"
-#include "smt/options.h"
+#include "base/language.h"
 #include "expr/node_manager_attributes.h"
-
-#include "theory/theory_model.h"
+#include "printer/dagification_visitor.h"
+#include "smt/options.h"
+#include "smt/smt_engine.h"
 #include "theory/arrays/theory_arrays_rewriter.h"
 #include "theory/quantifiers/term_database.h"
+#include "theory/substitutions.h"
+#include "theory/theory_model.h"
+#include "util/boolean_simplification.h"
+#include "util/node_visitor.h"
 
 using namespace std;
 

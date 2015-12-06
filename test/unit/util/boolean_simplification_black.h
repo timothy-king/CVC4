@@ -14,15 +14,15 @@
  ** Black box testing of CVC4::BooleanSimplification.
  **/
 
-#include "util/language.h"
-#include "expr/node.h"
+#include <algorithm>
+#include <set>
+#include <vector>
+
+#include "base/language.h"
 #include "expr/kind.h"
+#include "expr/node.h"
 #include "expr/node_manager.h"
 #include "util/boolean_simplification.h"
-
-#include <algorithm>
-#include <vector>
-#include <set>
 
 using namespace CVC4;
 using namespace std;

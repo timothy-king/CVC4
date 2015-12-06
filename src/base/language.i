@@ -1,5 +1,5 @@
 %{
-#include "util/language.h"
+#include "base/language.h"
 %}
 
 namespace CVC4 {
@@ -41,4 +41,4 @@ namespace CVC4 {
 %rename(OUTPUT_LANG_Z3STR) CVC4::language::output::LANG_Z3STR;
 %rename(OUTPUT_LANG_SYGUS) CVC4::language::output::LANG_SYGUS;
 
-%include "util/language.h"
+%include "base/language.h"

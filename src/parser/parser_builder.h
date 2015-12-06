@@ -21,9 +21,8 @@
 
 #include <string>
 
+#include "base/language.h"
 #include "parser/input.h"
-
-#include "util/language.h"
 
 namespace CVC4 {
 

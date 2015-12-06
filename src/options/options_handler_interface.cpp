@@ -17,13 +17,69 @@
 #include <ostream>
 #include <string>
 
+#include "base/language.h"
 #include "base/modal_exception.h"
-#include "options/option_exception.h"
+#include "base/option_exception.h"
 #include "options/options_handler_interface.h"
 
 namespace CVC4 {
 namespace options {
 
+/* options/base_options_handlers.h */
+void setVerbosity(std::string option, int value, OptionsHandler* handler) throw(OptionException) {
+  handler->setVerbosity(option, value);
+}
+void increaseVerbosity(std::string option, OptionsHandler* handler) {
+  handler->increaseVerbosity(option);
+}
+void decreaseVerbosity(std::string option, OptionsHandler* handler) {
+  handler->decreaseVerbosity(option);
+}
+
+OutputLanguage stringToOutputLanguage(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
+  return handler->stringToOutputLanguage(option, optarg);
+}
+
+InputLanguage stringToInputLanguage(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
+  return handler->stringToInputLanguage(option, optarg);
+}
+void addTraceTag(std::string option, std::string optarg, OptionsHandler* handler);
+void addDebugTag(std::string option, std::string optarg, OptionsHandler* handler);
+void setPrintSuccess(std::string option, bool value, OptionsHandler* handler);
+
+
+/* main/options_handlers.h */
+void showConfiguration(std::string option, OptionsHandler* handler) {
+  handler->showConfiguration(option);
+}
+
+void showDebugTags(std::string option, OptionsHandler* handler) {
+  handler->showDebugTags(option);
+}
+
+void showTraceTags(std::string option, OptionsHandler* handler) {
+  handler->showTraceTags(option);
+}
+
+void threadN(std::string option, OptionsHandler* handler){
+  handler->threadN(option);
+}
+
+/* expr/options_handlers.h */
+void setDefaultExprDepth(std::string option, int depth, OptionsHandler* handler){
+  handler->setDefaultExprDepth(option, depth);
+}
+
+void setDefaultDagThresh(std::string option, int dag, OptionsHandler* handler){
+  handler->setDefaultDagThresh(option, dag);
+}
+
+void setPrintExprTypes(std::string option, OptionsHandler* handler) {
+  handler->setPrintExprTypes(option);
+}
+
+
+/* smt/options_handlers.h */
 void dumpMode(std::string option, std::string optarg, OptionsHandler* handler) {
   handler->dumpMode(option, optarg);
 }

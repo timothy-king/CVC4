@@ -22,11 +22,11 @@
 #include <map>
 #include <string>
 
-#include "util/language.h"
-#include "util/sexpr.h"
-#include "util/model.h"
-#include "expr/node.h"
+#include "base/language.h"
 #include "expr/command.h"
+#include "expr/node.h"
+#include "util/model.h"
+#include "util/sexpr.h"
 
 namespace CVC4 {
 

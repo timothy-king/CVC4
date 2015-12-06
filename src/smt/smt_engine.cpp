@@ -26,6 +26,7 @@
 
 #include "base/exception.h"
 #include "base/modal_exception.h"
+#include "base/option_exception.h"
 #include "base/output.h"
 #include "context/cdhashset.h"
 #include "context/cdlist.h"
@@ -42,7 +43,6 @@
 #include "expr/node_builder.h"
 #include "expr/node_self_iterator.h"
 #include "main/options.h"
-#include "options/option_exception.h"
 #include "printer/options.h"
 #include "printer/printer.h"
 #include "proof/proof.h"

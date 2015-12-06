@@ -21,12 +21,13 @@
 #include <cstring>
 #include <cstdlib>
 #include <cerrno>
-#include "smt/smt_engine.h"
-#include "util/language.h"
+
+#include "base/language.h"
 #include "expr/command.h"
 #include "expr/expr.h"
-#include "parser/parser_builder.h"
 #include "parser/parser.h"
+#include "parser/parser_builder.h"
+#include "smt/smt_engine.h"
 
 using namespace std;
 using namespace CVC4;

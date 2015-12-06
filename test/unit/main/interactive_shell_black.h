@@ -20,11 +20,11 @@
 #include <vector>
 #include <sstream>
 
+#include "base/language.h"
 #include "expr/expr_manager.h"
 #include "main/interactive_shell.h"
-#include "parser/parser_builder.h"
-#include "util/language.h"
 #include "options/options.h"
+#include "parser/parser_builder.h"
 
 using namespace CVC4;
 using namespace std;

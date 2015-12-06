@@ -39,12 +39,10 @@ libutil_la_SOURCES = \
 	statistics_registry.h \
 	statistics_registry.cpp \
 	dynamic_array.h \
-	language.h \
 	lemma_input_channel.h \
 	lemma_output_channel.h \
 	dense_map.h \
 	channel.h \
-	language.cpp \
 	ntuple.h \
 	subrange_bound.h \
 	dump.h \
@@ -107,7 +105,6 @@ EXTRA_DIST = \
 	result.i \
 	configuration.i \
 	subrange_bound.i \
-	language.i \
 	array.i \
 	array_store_all.i \
 	emptyset.i \

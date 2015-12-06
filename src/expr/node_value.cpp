@@ -18,14 +18,15 @@
  ** reference count on NodeValue instances and
  **/
 
-#include "expr/node_value.h"
-#include "expr/node.h"
+#include <sstream>
+
+#include "base/language.h"
 #include "expr/kind.h"
 #include "expr/metakind.h"
-#include "util/language.h"
+#include "expr/node.h"
+#include "expr/node_value.h"
 #include "options/options.h"
 #include "printer/printer.h"
-#include <sstream>
 
 using namespace std;
 

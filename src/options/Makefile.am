@@ -92,7 +92,6 @@ noinst_LTLIBRARIES = liboptions.la
 liboptions_la_SOURCES = \
 	options.h \
 	base_options_handlers.h \
-	option_exception.h \
 	options_handler_interface.h \
 	options_handler_interface.cpp
 
@@ -132,8 +131,7 @@ EXTRA_DIST = \
 	options_template.cpp \
 	options_holder_template.h \
 	options.i \
-	option_exception.i \
-	option_handler_interface.i \
+	options_handler_interface.i \
 	$(OPTIONS_FILES) \
 	mktagheaders \
 	mktags \

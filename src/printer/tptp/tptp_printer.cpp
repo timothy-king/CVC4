@@ -14,16 +14,16 @@
  ** The pretty-printer interface for the TPTP output language.
  **/
 
-#include "printer/tptp/tptp_printer.h"
-#include "expr/expr.h" // for ExprSetDepth etc..
-#include "util/language.h" // for LANG_AST
-#include "expr/node_manager.h" // for VarNameAttr
-#include "expr/command.h"
-
 #include <iostream>
-#include <vector>
 #include <string>
 #include <typeinfo>
+#include <vector>
+
+#include "base/language.h" // for LANG_AST
+#include "expr/command.h"
+#include "expr/expr.h" // for ExprSetDepth etc..
+#include "expr/node_manager.h" // for VarNameAttr
+#include "printer/tptp/tptp_printer.h"
 
 using namespace std;
 

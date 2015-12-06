@@ -22,10 +22,10 @@
 #line 23 "${template}"
 
 #include "base/cvc4_assert.h"
+#include "base/language.h"
 #include "expr/type_node.h"
 #include "expr/kind.h"
 #include "expr/expr.h"
-#include "util/language.h"
 
 #include <sstream>
 

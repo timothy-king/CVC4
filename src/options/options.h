@@ -24,8 +24,8 @@
 #include <string>
 #include <vector>
 
-#include "options/option_exception.h"
-#include "util/language.h"
+#include "base/language.h"
+#include "base/option_exception.h"
 #include "base/tls.h"
 #include "util/sexpr.h"
 

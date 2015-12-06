@@ -14,17 +14,15 @@
  ** Base of the pretty-printer interface.
  **/
 
+#include <string>
+
+#include "base/language.h"
+#include "printer/ast/ast_printer.h"
+#include "printer/cvc/cvc_printer.h"
 #include "printer/printer.h"
-
-#include "util/language.h"
-
 #include "printer/smt1/smt1_printer.h"
 #include "printer/smt2/smt2_printer.h"
 #include "printer/tptp/tptp_printer.h"
-#include "printer/cvc/cvc_printer.h"
-#include "printer/ast/ast_printer.h"
-
-#include <string>
 
 using namespace std;
 
