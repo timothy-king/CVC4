@@ -19,7 +19,7 @@
 #ifndef __CVC4__THEORY__BV__OPTIONS_HANDLERS_H
 #define __CVC4__THEORY__BV__OPTIONS_HANDLERS_H
 
-#include "theory/bv/bitblast_mode.h"
+#include "base/bitblast_mode.h"
 #include "main/options.h"
 
 namespace CVC4 {

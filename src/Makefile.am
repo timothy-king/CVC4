@@ -204,8 +204,6 @@ libcvc4_la_SOURCES = \
 	theory/bv/bv_subtheory_algebraic.h \
 	theory/bv/bv_subtheory_algebraic.cpp \
 	theory/bv/options_handlers.h \
-	theory/bv/bitblast_mode.h \
-	theory/bv/bitblast_mode.cpp \
 	theory/bv/bitblast_utils.h \
 	theory/bv/bvintropow2.h \
 	theory/bv/bvintropow2.cpp \
@@ -414,8 +412,6 @@ libcvc4_la_SOURCES = \
 	theory/booleans/theory_bool_rewriter.cpp \
 	theory/booleans/circuit_propagator.h \
 	theory/booleans/circuit_propagator.cpp \
-	theory/booleans/boolean_term_conversion_mode.h \
-	theory/booleans/boolean_term_conversion_mode.cpp \
 	theory/booleans/options_handlers.h \
 	theory/fp/theory_fp.h \
 	theory/fp/theory_fp.cpp \

@@ -15,20 +15,21 @@
  ** \todo document this file
  **/
 
-#include "smt/boolean_terms.h"
-#include "smt/smt_engine.h"
-#include "theory/theory_engine.h"
-#include "theory/theory_model.h"
-#include "theory/booleans/boolean_term_conversion_mode.h"
-#include "theory/booleans/options.h"
+#include <algorithm>
+#include <map>
+#include <set>
+#include <stack>
+#include <string>
+
+#include "base/boolean_term_conversion_mode.h"
 #include "expr/kind.h"
 #include "expr/node_manager_attributes.h"
+#include "smt/boolean_terms.h"
+#include "smt/smt_engine.h"
+#include "theory/booleans/options.h"
+#include "theory/theory_engine.h"
+#include "theory/theory_model.h"
 #include "util/ntuple.h"
-#include <string>
-#include <algorithm>
-#include <set>
-#include <map>
-#include <stack>
 
 using namespace std;
 using namespace CVC4::theory;

@@ -14,7 +14,7 @@
  ** Bitblast modes for bit-vector solver.
  **/
 
-#include "theory/bv/bitblast_mode.h"
+#include "base/bitblast_mode.h"
 
 namespace CVC4 {
 

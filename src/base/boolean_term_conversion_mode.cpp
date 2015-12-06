@@ -16,7 +16,7 @@
  **/
 
 #include <iostream>
-#include "theory/booleans/boolean_term_conversion_mode.h"
+#include "base/boolean_term_conversion_mode.h"
 
 namespace CVC4 {
 

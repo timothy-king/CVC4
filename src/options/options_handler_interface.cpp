@@ -17,6 +17,7 @@
 #include <ostream>
 #include <string>
 
+#include "base/boolean_term_conversion_mode.h"
 #include "base/decision_mode.h"
 #include "base/language.h"
 #include "base/modal_exception.h"
@@ -29,6 +30,11 @@
 
 namespace CVC4 {
 namespace options {
+
+// theory/booleans/options_handlers.h
+theory::booleans::BooleanTermConversionMode stringToBooleanTermConversionMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
+  return handler->stringToBooleanTermConversionMode( option, optarg);
+}
 
 // theory/uf/options_handlers.h
 theory::uf::UfssMode stringToUfssMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
@@ -185,6 +191,9 @@ unsigned long rlimitPerHandler(std::string option, std::string optarg, OptionsHa
   return handler->rlimitPerHandler(option, optarg);
 }
 
+
+
+OptionsHandler::OptionsHandler() { }
 
 }/* CVC4::options namespace */
 }/* CVC4 namespace */

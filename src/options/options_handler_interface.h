@@ -22,6 +22,7 @@
 #include <ostream>
 #include <string>
 
+#include "base/boolean_term_conversion_mode.h"
 #include "base/decision_mode.h"
 #include "base/language.h"
 #include "base/modal_exception.h"
@@ -39,6 +40,7 @@ namespace options {
 
 class CVC4_PUBLIC OptionsHandler {
 public:
+  OptionsHandler();
   virtual ~OptionsHandler() {}
 
   // DONE
@@ -49,15 +51,18 @@ public:
   // printer/options_handlers.h
   // smt/options_handlers.h
   // theory/options_handlers.h
+  // theory/booleans/options_handlers.h
   // theory/uf/options_handlers.h
 
   // TODO:
   // theory/arith/options_handlers.h            \
-  // theory/booleans/options_handlers.h         \
   // theory/bv/options_handlers.h               \
   // theory/quantifiers/options_handlers.h
 
 
+
+  // theory/booleans/options_handlers.h
+  virtual theory::booleans::BooleanTermConversionMode stringToBooleanTermConversionMode(std::string option, std::string optarg) throw(OptionException) = 0;
 
   // theory/uf/options_handlers.h
   virtual theory::uf::UfssMode stringToUfssMode(std::string option, std::string optarg) throw(OptionException) = 0;
@@ -116,6 +121,9 @@ public:
   virtual void addDebugTag(std::string option, std::string optarg) = 0;
   virtual void setPrintSuccess(std::string option, bool value) = 0;
 }; /* class CVC4_PUBLIC OptionHandler */
+
+// theory/booleans/options_handlers.h
+theory::booleans::BooleanTermConversionMode stringToBooleanTermConversionMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException);
 
 // theory/uf/options_handlers.h
 theory::uf::UfssMode stringToUfssMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException);

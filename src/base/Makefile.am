@@ -36,7 +36,11 @@ libbase_la_SOURCES = \
 	printer_modes.h \
 	printer_modes.cpp \
 	theoryof_mode.h \
-	ufss_mode.h
+	ufss_mode.h \
+	boolean_term_conversion_mode.h \
+	boolean_term_conversion_mode.cpp \
+	bitblast_mode.h \
+	bitblast_mode.cpp
 
 BUILT_SOURCES = \
 	rational.h \

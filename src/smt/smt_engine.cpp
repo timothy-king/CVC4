@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <ext/hash_map>
 
+#include "base/boolean_term_conversion_mode.h"
 #include "base/decision_mode.h"
 #include "base/exception.h"
 #include "base/modal_exception.h"
@@ -61,7 +62,6 @@
 #include "theory/arith/options.h"
 #include "theory/arith/pseudoboolean_proc.h"
 #include "theory/arrays/options.h"
-#include "theory/booleans/boolean_term_conversion_mode.h"
 #include "theory/booleans/circuit_propagator.h"
 #include "theory/booleans/options.h"
 #include "theory/bv/bvintropow2.h"
