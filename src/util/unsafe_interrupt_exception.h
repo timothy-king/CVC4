@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file modal_exception.h
+/*! \file unsafe_interrupt_exception.h
  ** \verbatim
  ** Original author: Liana Hadarean
  ** Major contributors: none

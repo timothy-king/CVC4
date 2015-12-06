@@ -24,7 +24,11 @@ libbase_la_SOURCES = \
 	lemma_input_channel_forward.h \
 	lemma_output_channel_forward.h \
 	output.cpp \
-	output.h
+	output.h \
+	modal_exception.h \
+	simplification_mode.h \
+	simplification_mode.cpp
+
 
 BUILT_SOURCES = \
 	rational.h \
@@ -56,7 +60,8 @@ EXTRA_DIST = \
 	integer.h.in \
 	integer.i \
 	rational.i \
-	tls.h.in
+	tls.h.in \
+	modal_exception.i
 
 DISTCLEANFILES = \
 	integer.h.tmp \

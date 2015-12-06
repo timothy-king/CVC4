@@ -15,7 +15,7 @@
  ** \todo document this file
  **/
 
-#include "smt/simplification_mode.h"
+#include "base/simplification_mode.h"
 
 namespace CVC4 {
 

@@ -21,11 +21,11 @@
 #ifndef __CVC4__PROP_ENGINE_H
 #define __CVC4__PROP_ENGINE_H
 
+#include "base/modal_exception.h"
 #include "expr/node.h"
 #include "options/options.h"
 #include "util/result.h"
 #include "util/unsafe_interrupt_exception.h"
-#include "smt/modal_exception.h"
 #include "proof/proof_manager.h"
 #include <sys/time.h>
 

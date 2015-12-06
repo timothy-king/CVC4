@@ -18,9 +18,9 @@
 #include <sstream>
 
 #include "base/output.h"
+#include "base/modal_exception.h"
 #include "expr/command.h"
 #include "expr/node_manager.h"
-#include "smt/modal_exception.h"
 #include "smt/smt_engine.h"
 #include "util/dump.h"
 #include "util/sexpr.h"

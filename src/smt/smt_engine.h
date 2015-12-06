@@ -22,22 +22,22 @@
 #include <string>
 #include <vector>
 
-#include "context/cdlist_forward.h"
+#include "base/modal_exception.h"
 #include "context/cdhashmap_forward.h"
 #include "context/cdhashset_forward.h"
+#include "context/cdlist_forward.h"
 #include "expr/expr.h"
 #include "expr/expr_manager.h"
-#include "util/proof.h"
-#include "util/unsat_core.h"
-#include "smt/modal_exception.h"
-#include "smt/logic_exception.h"
 #include "options/options.h"
+#include "smt/logic_exception.h"
+#include "theory/logic_info.h"
+#include "util/hash.h"
+#include "util/proof.h"
 #include "util/result.h"
 #include "util/sexpr.h"
-#include "util/hash.h"
-#include "util/unsafe_interrupt_exception.h"
 #include "util/statistics.h"
-#include "theory/logic_info.h"
+#include "util/unsafe_interrupt_exception.h"
+#include "util/unsat_core.h"
 
 // In terms of abstraction, this is below (and provides services to)
 // ValidityChecker and above (and requires the services of)

@@ -296,7 +296,9 @@ std::set<JavaInputStreamAdapter*> CVC4::JavaInputStreamAdapter::s_adapters;
 %include "base/bitvector.i"
 %include "base/exception.i"
 %include "base/integer.i"
+%include "base/modal_exception.i"
 %include "base/rational.i"
+
 %include "util/unsafe_interrupt_exception.i"
 //%include "util/floatingpoint.i"
 %include "util/language.i"
@@ -336,7 +338,6 @@ std::set<JavaInputStreamAdapter*> CVC4::JavaInputStreamAdapter::s_adapters;
 %include "theory/logic_info.i"
 
 %include "smt/smt_engine.i"
-%include "smt/modal_exception.i"
 %include "smt/logic_exception.i"
 
 %include "options/options.i"

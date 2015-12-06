@@ -20,10 +20,10 @@
 #define __CVC4__SMT__OPTIONS_HANDLERS_H
 
 #include "cvc4autoconfig.h"
+#include "base/modal_exception.h"
 #include "util/configuration_private.h"
 #include "util/dump.h"
 #include "util/resource_manager.h"
-#include "smt/modal_exception.h"
 #include "smt/smt_engine.h"
 #include "lib/strtok_r.h"
 

@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file lemma_output_channel.h
+/** \file lemma_output_channel.h
  ** \verbatim
  ** Original author: Morgan Deters
  ** Major contributors: none
@@ -21,7 +21,7 @@
 #ifndef __CVC4__LEMMA_OUTPUT_CHANNEL_H
 #define __CVC4__LEMMA_OUTPUT_CHANNEL_H
 
-#include "base/lemma_output_channel_foward.h"
+#include "base/lemma_output_channel_forward.h"
 #include "expr/expr.h"
 
 namespace CVC4 {

@@ -25,6 +25,7 @@
 #include <ext/hash_map>
 
 #include "base/exception.h"
+#include "base/modal_exception.h"
 #include "base/output.h"
 #include "context/cdhashset.h"
 #include "context/cdlist.h"
@@ -53,7 +54,6 @@
 #include "smt/boolean_terms.h"
 #include "smt/command_list.h"
 #include "smt/logic_request.h"
-#include "smt/modal_exception.h"
 #include "smt/model_postprocessor.h"
 #include "smt/options.h"
 #include "smt/smt_engine.h"

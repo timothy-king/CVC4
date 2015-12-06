@@ -110,14 +110,11 @@ libcvc4_la_SOURCES = \
 	smt/smt_engine_scope.h \
 	smt/command_list.cpp \
 	smt/command_list.h \
-	smt/modal_exception.h \
 	smt/boolean_terms.h \
 	smt/boolean_terms.cpp \
 	smt/logic_exception.h \
 	smt/logic_request.h \
 	smt/logic_request.cpp \
-	smt/simplification_mode.h \
-	smt/simplification_mode.cpp \
 	smt/options_handlers.h \
 	theory/decision_attributes.h \
 	theory/logic_info.h \
@@ -495,7 +492,6 @@ EXTRA_DIST = \
 	mksubdirs \
 	Makefile.theories \
 	smt/smt_options_template.cpp \
-	smt/modal_exception.i \
 	smt/logic_exception.i \
 	smt/smt_engine.i \
 	theory/logic_info.i \
