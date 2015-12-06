@@ -15,15 +15,17 @@
  ** \todo document this file
  **/
 
+#include <ostream>
+
+#include "base/output.h"
 #include "smt/options.h"
 #include "theory/arith/arith_ite_utils.h"
-#include "theory/arith/normal_form.h"
 #include "theory/arith/arith_utilities.h"
+#include "theory/arith/normal_form.h"
 #include "theory/ite_utilities.h"
-#include "theory/theory_model.h"
 #include "theory/rewriter.h"
 #include "theory/substitutions.h"
-#include <ostream>
+#include "theory/theory_model.h"
 
 using namespace std;
 

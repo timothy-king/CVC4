@@ -15,23 +15,21 @@
  ** \todo document this file
  **/
 
-
 #include <cxxtest/TestSuite.h>
 
-#include "theory/theory.h"
-#include "theory/theory_engine.h"
-#include "theory/arith/theory_arith.h"
-#include "theory/quantifiers_engine.h"
+#include <vector>
+
+#include "base/rational.h"
+#include "context/context.h"
 #include "expr/node.h"
 #include "expr/node_manager.h"
-#include "context/context.h"
-#include "util/rational.h"
 #include "smt/smt_engine.h"
 #include "smt/smt_engine_scope.h"
-
+#include "theory/arith/theory_arith.h"
+#include "theory/quantifiers_engine.h"
+#include "theory/theory.h"
+#include "theory/theory_engine.h"
 #include "theory/theory_test_utils.h"
-
-#include <vector>
 
 using namespace CVC4;
 using namespace CVC4::theory;

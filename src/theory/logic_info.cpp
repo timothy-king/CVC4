@@ -20,9 +20,10 @@
 #include <cstring>
 #include <sstream>
 
+#include "base/cvc4_assert.h"
 #include "expr/kind.h"
 #include "theory/logic_info.h"
-#include "util/cvc4_assert.h"
+
 
 using namespace std;
 using namespace CVC4::theory;

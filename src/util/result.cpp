@@ -19,9 +19,9 @@
 #include <string>
 #include <cctype>
 
-#include "util/result.h"
-#include "util/cvc4_assert.h"
+#include "base/cvc4_assert.h"
 #include "printer/printer.h"
+#include "util/result.h"
 
 using namespace std;
 

@@ -15,7 +15,7 @@
  ** \todo document this file
  **/
 
-
+#include "base/output.h"
 #include "theory/arith/dual_simplex.h"
 #include "theory/arith/options.h"
 #include "theory/arith/constraint.h"

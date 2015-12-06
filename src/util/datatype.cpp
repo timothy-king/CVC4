@@ -18,15 +18,15 @@
 #include <string>
 #include <sstream>
 
-#include "util/datatype.h"
+#include "base/cvc4_assert.h"
 #include "expr/type.h"
 #include "expr/expr_manager.h"
 #include "expr/expr_manager_scope.h"
 #include "expr/node_manager.h"
 #include "expr/node.h"
 #include "expr/attribute.h"
+#include "util/datatype.h"
 #include "util/matcher.h"
-#include "util/cvc4_assert.h"
 
 using namespace std;
 

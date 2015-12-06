@@ -40,10 +40,11 @@
 #include "parser/parser_exception.h"
 #include "parser/input.h"
 
-#include "util/bitvector.h"
-#include "util/integer.h"
-#include "util/rational.h"
-#include "util/output.h"
+#include "base/bitvector.h"
+#include "base/integer.h"
+#include "base/output.h"
+#include "base/rational.h"
+
 
 namespace CVC4 {
 

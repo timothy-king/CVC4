@@ -17,13 +17,14 @@
 #include <exception>
 #include <string>
 
-#include "options/options.h"
+#include "base/exception.h"
+#include "base/tls.h"
 #include "expr/expr_manager.h"
+#include "options/options.h"
 #include "smt/smt_engine.h"
-#include "util/exception.h"
 #include "util/statistics.h"
-#include "util/tls.h"
 #include "util/statistics_registry.h"
+
 #include "cvc4autoconfig.h"
 
 #ifndef __CVC4__MAIN__MAIN_H

@@ -19,7 +19,7 @@
 #ifndef __CVC4__EXPR__OPTIONS_HANDLERS_H
 #define __CVC4__EXPR__OPTIONS_HANDLERS_H
 
-#include "util/output.h"
+#include "base/output.h"
 #include "util/dump.h"
 
 namespace CVC4 {

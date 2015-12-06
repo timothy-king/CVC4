@@ -48,12 +48,12 @@ using namespace CVC4;
 #include <typeinfo>
 #include <cassert>
 
-#include "util/sexpr.h"
-#include "util/exception.h"
-#include "expr/type.h"
-#include "expr/expr.h"
-#include "util/datatype.h"
+#include "base/exception.h"
 #include "expr/command.h"
+#include "expr/expr.h"
+#include "expr/type.h"
+#include "util/datatype.h"
+#include "util/sexpr.h"
 
 #ifdef SWIGJAVA
 #include "bindings/java_stream_adapters.h"
@@ -293,10 +293,11 @@ std::set<JavaInputStreamAdapter*> CVC4::JavaInputStreamAdapter::s_adapters;
 
 #endif /* SWIGJAVA */
 
-%include "util/exception.i"
+%include "base/bitvector.i"
+%include "base/exception.i"
+%include "base/integer.i"
+%include "base/rational.i"
 %include "util/unsafe_interrupt_exception.i"
-%include "util/integer.i"
-%include "util/rational.i"
 //%include "util/floatingpoint.i"
 %include "util/language.i"
 %include "util/cardinality.i"
@@ -306,7 +307,6 @@ std::set<JavaInputStreamAdapter*> CVC4::JavaInputStreamAdapter::s_adapters;
 %include "util/statistics.i"
 %include "util/result.i"
 %include "util/configuration.i"
-%include "util/bitvector.i"
 %include "util/subrange_bound.i"
 %include "util/array.i"
 %include "util/array_store_all.i"

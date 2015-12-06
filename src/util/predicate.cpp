@@ -16,9 +16,9 @@
  ** the CONSTANT-metakinded SUBTYPE_TYPE types.
  **/
 
+#include "base/cvc4_assert.h"
 #include "expr/expr.h"
 #include "util/predicate.h"
-#include "util/cvc4_assert.h"
 
 using namespace std;
 

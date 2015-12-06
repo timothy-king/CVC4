@@ -17,10 +17,12 @@
 #include <iostream>
 #include <vector>
 
-#include "util/sexpr.h"
-#include "util/cvc4_assert.h"
-#include "printer/printer.h"
+#include "base/cvc4_assert.h"
 #include "expr/expr.h"
+#include "printer/printer.h"
+#include "util/sexpr.h"
+
+
 
 namespace CVC4 {
 

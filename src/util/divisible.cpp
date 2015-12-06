@@ -15,8 +15,9 @@
  ** \todo document this file
  **/
 
+#include "base/exception.h"
 #include "util/divisible.h"
-#include "util/exception.h"
+
 
 using namespace std;
 

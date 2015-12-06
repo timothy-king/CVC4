@@ -23,8 +23,8 @@
 #include <iostream>
 #include <utility>
 
-#include "util/integer.h"
-#include "util/exception.h"
+#include "base/integer.h"
+#include "base/exception.h"
 
 namespace CVC4 {
 

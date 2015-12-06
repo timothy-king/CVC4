@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file integer.h.in
+/*! \file rational.h.in
  ** \verbatim
  ** Original author: Morgan Deters
  ** Major contributors: Tim King
@@ -9,9 +9,9 @@
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
- ** \brief A multi-precision integer constant
+ ** \brief A multi-precision rational constant
  **
- ** A multi-precision integer constant.
+ ** A multi-precision rational constant.
  **/
 
 // these gestures are used to avoid a public header dependence on cvc4autoconfig.h
@@ -28,15 +28,15 @@
 #endif /* @CVC4_USE_GMP_IMP@ */
 
 #ifdef CVC4_CLN_IMP
-#  include "util/integer_cln_imp.h"
+#  include "base/rational_cln_imp.h"
 #  if SWIG
-     %include "util/integer_cln_imp.h"
+     %include "base/rational_cln_imp.h"
 #  endif /* SWIG */
 #endif /* CVC4_CLN_IMP */
 
 #ifdef CVC4_GMP_IMP
-#  include "util/integer_gmp_imp.h"
+#  include "base/rational_gmp_imp.h"
 #  if SWIG
-     %include "util/integer_gmp_imp.h"
+     %include "base/rational_gmp_imp.h"
 #  endif /* SWIG */
 #endif /* CVC4_GMP_IMP */

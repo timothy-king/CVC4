@@ -1285,7 +1285,7 @@ AC_SUBST(mk_empty)
 # still trigger certain automake behavior; see test/unit/Makefile.am.
 AM_CONDITIONAL([CVC4_FALSE], [false])
 
-# set up substitutions for src/util/{rational,integer}.h.in
+# set up substitutions for src/base/{rational,integer}.h.in
 if test $cvc4_cln_or_gmp = cln; then
   CVC4_USE_CLN_IMP=1
   CVC4_USE_GMP_IMP=0
@@ -1410,9 +1410,9 @@ if test -n "$CVC4_LANGUAGE_BINDINGS"; then
   fi
 fi
 
-CVC4_CONFIG_FILE_ONLY_IF_CHANGED([src/util/rational.h])
-CVC4_CONFIG_FILE_ONLY_IF_CHANGED([src/util/integer.h])
-CVC4_CONFIG_FILE_ONLY_IF_CHANGED([src/util/tls.h])
+CVC4_CONFIG_FILE_ONLY_IF_CHANGED([src/base/rational.h])
+CVC4_CONFIG_FILE_ONLY_IF_CHANGED([src/base/integer.h])
+CVC4_CONFIG_FILE_ONLY_IF_CHANGED([src/base/tls.h])
 
 CVC4_CONFIG_FILE_ONLY_IF_CHANGED([doc/cvc4.1_template])
 CVC4_CONFIG_FILE_ONLY_IF_CHANGED([doc/cvc4.5])

@@ -18,7 +18,7 @@
 #ifndef __CVC4__UNSAFE_INTERRUPT_EXCEPTION_H
 #define __CVC4__UNSAFE_INTERRUPT_EXCEPTION_H
 
-#include "util/exception.h"
+#include "base/exception.h"
 
 namespace CVC4 {
 

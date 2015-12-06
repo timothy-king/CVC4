@@ -16,7 +16,7 @@
  **/
 
 #include "cvc4autoconfig.h"
-#include "util/integer.h"
+#include "base/integer.h"
 #include <string>
 #include <sstream>
 

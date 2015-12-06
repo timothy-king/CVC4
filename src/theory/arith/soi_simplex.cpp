@@ -16,13 +16,14 @@
  **/
 
 
+#include <algorithm>
+
+#include "base/output.h"
 #include "theory/arith/soi_simplex.h"
 #include "theory/arith/options.h"
 #include "theory/arith/constraint.h"
-
 #include "util/statistics_registry.h"
 
-#include <algorithm>
 
 using namespace std;
 

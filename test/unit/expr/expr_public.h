@@ -19,9 +19,9 @@
 #include <sstream>
 #include <string>
 
+#include "base/exception.h"
 #include "expr/expr_manager.h"
 #include "expr/expr.h"
-#include "util/exception.h"
 
 using namespace CVC4;
 using namespace CVC4::kind;

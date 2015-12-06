@@ -1,5 +1,5 @@
 %{
-#include "util/exception.h"
+#include "base/exception.h"
 %}
 
 %ignore CVC4::operator<<(std::ostream&, const Exception&) throw();
@@ -8,4 +8,4 @@
 
 %rename(CVC4IllegalArgumentException) CVC4::IllegalArgumentException;
 
-%include "util/exception.h"
+%include "base/exception.h"

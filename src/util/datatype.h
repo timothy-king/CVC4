@@ -31,10 +31,11 @@ namespace CVC4 {
   class CVC4_PUBLIC Datatype;
 }/* CVC4 namespace */
 
+#include "base/exception.h"
 #include "expr/expr.h"
 #include "expr/type.h"
 #include "util/hash.h"
-#include "util/exception.h"
+
 
 namespace CVC4 {
 

@@ -22,9 +22,9 @@
 #pragma once
 
 #include <vector>
-#include "util/index.h"
-#include "util/rational.h"
 
+#include "base/rational.h"
+#include "util/index.h"
 
 namespace CVC4 {
 namespace theory {

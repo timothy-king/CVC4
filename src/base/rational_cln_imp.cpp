@@ -15,7 +15,7 @@
  **/
 
 #include "cvc4autoconfig.h"
-#include "util/rational.h"
+#include "base/rational.h"
 #include <string>
 #include <sstream>
 

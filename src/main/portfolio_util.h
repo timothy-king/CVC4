@@ -17,11 +17,11 @@
 
 #include <queue>
 
+#include "base/output.h"
 #include "expr/pickler.h"
 #include "util/channel.h"
 #include "util/lemma_input_channel.h"
 #include "util/lemma_output_channel.h"
-#include "util/output.h"
 #include "main/options.h"
 
 namespace CVC4 {

@@ -31,10 +31,11 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "prop/minisat/utils/Options.h"
 #include "prop/minisat/core/SolverTypes.h"
 
+#include "base/output.h"
 #include "context/context.h"
-#include "theory/theory.h"
-#include "util/output.h"
 #include "expr/command.h"
+#include "theory/theory.h"
+
 
 namespace CVC4 {
   class SatProof;

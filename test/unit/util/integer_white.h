@@ -17,7 +17,7 @@
 #include <cxxtest/TestSuite.h>
 #include <sstream>
 
-#include "util/integer.h"
+#include "base/integer.h"
 
 using namespace CVC4;
 using namespace std;

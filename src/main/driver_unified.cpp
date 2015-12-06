@@ -23,27 +23,27 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include "base/output.h"
 #include "cvc4autoconfig.h"
-#include "main/main.h"
-#include "main/interactive_shell.h"
-#include "main/options.h"
-#include "parser/parser.h"
-#include "parser/parser_builder.h"
-#include "parser/parser_exception.h"
-#include "expr/expr_manager.h"
 #include "expr/command.h"
-#include "util/configuration.h"
-#include "options/options.h"
-#include "theory/quantifiers/options.h"
+#include "expr/expr_manager.h"
 #include "main/command_executor.h"
 
 #ifdef PORTFOLIO_BUILD
 #  include "main/command_executor_portfolio.h"
 #endif
 
+#include "main/interactive_shell.h"
+#include "main/main.h"
 #include "main/options.h"
+#include "main/options.h"
+#include "options/options.h"
+#include "parser/parser.h"
+#include "parser/parser_builder.h"
+#include "parser/parser_exception.h"
 #include "smt/options.h"
-#include "util/output.h"
+#include "theory/quantifiers/options.h"
+#include "util/configuration.h"
 #include "util/result.h"
 #include "util/statistics_registry.h"
 

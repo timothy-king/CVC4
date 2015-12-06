@@ -22,7 +22,7 @@
 #include <iostream>
 #include <string>
 
-#include "util/exception.h"
+#include "base/exception.h"
 
 namespace CVC4 {
 

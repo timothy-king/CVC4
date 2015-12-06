@@ -15,10 +15,11 @@
  **/
 
 #include <cxxtest/TestSuite.h>
-#include <sstream>
-#include <limits>
 
-#include "util/integer.h"
+#include <limits>
+#include <sstream>
+
+#include "base/integer.h"
 
 using namespace CVC4;
 using namespace std;

@@ -21,12 +21,12 @@
 #include <sstream>
 #include <exception>
 
+#include "base/output.h"
 #include "expr/command.h"
 #include "smt/smt_engine.h"
 #include "options/options.h"
 #include "smt/options.h"
 #include "smt/smt_engine_scope.h"
-#include "util/output.h"
 #include "util/dump.h"
 #include "util/sexpr.h"
 #include "util/model.h"

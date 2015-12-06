@@ -54,10 +54,10 @@
 
 #include "smt/smt_engine.h"
 
-#include "util/rational.h"
-#include "util/integer.h"
+#include "base/rational.h"
+#include "base/integer.h"
 
-#include "util/exception.h"
+#include "base/exception.h"
 #include "util/hash.h"
 
 #include "parser/parser.h"

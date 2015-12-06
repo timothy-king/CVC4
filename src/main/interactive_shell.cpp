@@ -15,30 +15,15 @@
  ** The shell supports the readline library.
  **/
 
-#include <iostream>
-#include <cstdlib>
-#include <vector>
-#include <string>
-#include <set>
 #include <algorithm>
-#include <utility>
-
-#include "cvc4autoconfig.h"
-
-#include "main/interactive_shell.h"
-
-#include "expr/command.h"
-#include "parser/input.h"
-#include "parser/parser.h"
-#include "parser/parser_builder.h"
-#include "options/options.h"
-#include "smt/options.h"
-#include "main/options.h"
-#include "util/language.h"
-#include "util/output.h"
-
-#include <string.h>
 #include <cassert>
+#include <cstdlib>
+#include <iostream>
+#include <set>
+#include <string.h>
+#include <string>
+#include <utility>
+#include <vector>
 
 #if HAVE_LIBREADLINE
 #  include <readline/readline.h>
@@ -47,6 +32,19 @@
 #    include <ext/stdio_filebuf.h>
 #  endif /* HAVE_EXT_STDIO_FILEBUF_H */
 #endif /* HAVE_LIBREADLINE */
+
+
+#include "base/output.h"
+#include "cvc4autoconfig.h"
+#include "expr/command.h"
+#include "main/interactive_shell.h"
+#include "main/options.h"
+#include "options/options.h"
+#include "parser/input.h"
+#include "parser/parser.h"
+#include "parser/parser_builder.h"
+#include "smt/options.h"
+#include "util/language.h"
 
 using namespace std;
 

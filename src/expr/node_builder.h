@@ -169,11 +169,12 @@ namespace CVC4 {
   class NodeManager;
 }/* CVC4 namespace */
 
+#include "base/cvc4_assert.h"
+#include "base/output.h"
 #include "expr/kind.h"
 #include "expr/metakind.h"
-#include "util/cvc4_assert.h"
 #include "expr/node_value.h"
-#include "util/output.h"
+
 
 namespace CVC4 {
 

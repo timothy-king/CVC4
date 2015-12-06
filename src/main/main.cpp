@@ -18,25 +18,24 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
-
 #include <stdio.h>
 #include <unistd.h>
 
-#include "main/main.h"
-#include "main/interactive_shell.h"
+#include "base/output.h"
+#include "expr/command.h"
+#include "expr/expr_manager.h"
 #include "main/command_executor.h"
+#include "main/interactive_shell.h"
+#include "main/main.h"
+#include "main/options.h"
 #include "parser/parser.h"
 #include "parser/parser_builder.h"
 #include "parser/parser_exception.h"
-#include "expr/expr_manager.h"
 #include "smt/smt_engine.h"
-#include "expr/command.h"
 #include "util/configuration.h"
-#include "main/options.h"
-#include "util/output.h"
+#include "util/language.h"
 #include "util/result.h"
 #include "util/statistics.h"
-#include "util/language.h"
 
 using namespace std;
 using namespace CVC4;

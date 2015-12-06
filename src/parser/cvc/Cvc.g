@@ -476,9 +476,9 @@ Expr addNots(ExprManager* em, size_t n, Expr e) {
 #  define ANTLR3_INLINE_INPUT_8BIT
 #endif /* CVC4_COMPETITION_MODE && !CVC4_SMTCOMP_APPLICATION_TRACK */
 
-#include "parser/antlr_tracing.h"
-#include "util/integer.h"
+#include "base/integer.h"
 #include "parser/antlr_input.h"
+#include "parser/antlr_tracing.h"
 #include "parser/parser.h"
 
 }/* @lexer::includes */
@@ -541,16 +541,17 @@ namespace CVC4 {
 
 @parser::postinclude {
 
+#include <sstream>
+#include <string>
+#include <vector>
+
+#include "base/output.h"
 #include "expr/expr.h"
 #include "expr/kind.h"
 #include "expr/type.h"
 #include "parser/antlr_input.h"
 #include "parser/parser.h"
-#include "util/output.h"
 
-#include <vector>
-#include <string>
-#include <sstream>
 
 #define REPEAT_COMMAND(k, CommandCtor)                      \
   ({                                                        \

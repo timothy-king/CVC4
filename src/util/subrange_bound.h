@@ -20,8 +20,8 @@
 #ifndef __CVC4__SUBRANGE_BOUND_H
 #define __CVC4__SUBRANGE_BOUND_H
 
-#include "util/integer.h"
-#include "util/exception.h"
+#include "base/integer.h"
+#include "base/exception.h"
 
 #include <limits>
 

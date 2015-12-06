@@ -17,7 +17,7 @@
 #include <cxxtest/TestSuite.h>
 #include <sstream>
 
-#include "util/bitvector.h"
+#include "base/bitvector.h"
 
 using namespace CVC4;
 using namespace std;

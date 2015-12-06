@@ -22,9 +22,9 @@
 #include <vector>
 #include <algorithm>
 
+#include "base/cvc4_assert.h"
 #include "expr/expr_manager_scope.h"
 #include "expr/node.h"
-#include "util/cvc4_assert.h"
 
 namespace CVC4 {
 

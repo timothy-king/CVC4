@@ -21,7 +21,7 @@
 #ifndef __CVC4__PREDICATE_H
 #define __CVC4__PREDICATE_H
 
-#include "util/exception.h"
+#include "base/exception.h"
 
 namespace CVC4 {
 

@@ -25,9 +25,9 @@
 #include <cvc4/expr/command.h>
 
 #include <cvc4/util/datatype.h>
-#include <cvc4/util/integer.h>
-#include <cvc4/util/rational.h>
-#include <cvc4/util/exception.h>
+#include <cvc4/base/integer.h>
+#include <cvc4/base/rational.h>
+#include <cvc4/base/exception.h>
 #include <cvc4/options/options.h>
 #include <cvc4/util/configuration.h>
 

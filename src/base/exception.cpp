@@ -14,12 +14,13 @@
  ** CVC4's exception base class and some associated utilities.
  **/
 
-#include "util/exception.h"
+#include "base/exception.h"
 #include <string>
 #include <cstdio>
 #include <cstdlib>
 #include <cstdarg>
-#include "util/cvc4_assert.h"
+
+#include "base/cvc4_assert.h"
 
 using namespace std;
 using namespace CVC4;

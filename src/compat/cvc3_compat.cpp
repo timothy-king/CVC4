@@ -14,18 +14,20 @@
  ** CVC3 compatibility layer for CVC4.
  **/
 
+#include "base/bitvector.h"
+#include "base/integer.h"
+#include "base/output.h"
+#include "base/rational.h"
+
 #include "compat/cvc3_compat.h"
 
 #include "expr/kind.h"
 #include "expr/command.h"
 
-#include "util/rational.h"
-#include "util/integer.h"
-#include "util/bitvector.h"
 #include "util/hash.h"
 #include "util/subrange_bound.h"
 #include "util/predicate.h"
-#include "util/output.h"
+
 
 #include "parser/parser.h"
 #include "parser/parser_builder.h"

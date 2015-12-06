@@ -21,8 +21,8 @@
 #define __CVC4__BITVECTOR_H
 
 #include <iostream>
-#include "util/exception.h"
-#include "util/integer.h"
+#include "base/exception.h"
+#include "base/integer.h"
 
 namespace CVC4 {
 

@@ -15,7 +15,7 @@ rewriter ::CVC4::theory::bv::TheoryBVRewriter "theory/bv/theory_bv_rewriter.h"
 constant BITVECTOR_TYPE \
 	::CVC4::BitVectorSize \
 	"::CVC4::UnsignedHashFunction< ::CVC4::BitVectorSize >" \
-	"util/bitvector.h" \
+	"base/bitvector.h" \
 	"bit-vector type"
 cardinality BITVECTOR_TYPE \
 	"::CVC4::theory::bv::CardinalityComputer::computeCardinality(%TYPE%)" \
@@ -24,7 +24,7 @@ cardinality BITVECTOR_TYPE \
 constant CONST_BITVECTOR \
     ::CVC4::BitVector \
     ::CVC4::BitVectorHashFunction \
-    "util/bitvector.h" \
+    "base/bitvector.h" \
     "a fixed-width bit-vector constant; payload is an instance of the CVC4::BitVector class"
 
 enumerator BITVECTOR_TYPE \
@@ -80,43 +80,43 @@ operator BITVECTOR_ACKERMANIZE_UREM 1 "term to be treated as a variable; used fo
 constant BITVECTOR_BITOF_OP \
 	::CVC4::BitVectorBitOf \
 	::CVC4::BitVectorBitOfHashFunction \
-	"util/bitvector.h" \
+	"base/bitvector.h" \
 	"operator for the bit-vector boolean bit extract; payload is an instance of the CVC4::BitVectorBitOf class"
 
 constant BITVECTOR_EXTRACT_OP \
 	::CVC4::BitVectorExtract \
 	::CVC4::BitVectorExtractHashFunction \
-	"util/bitvector.h" \
+	"base/bitvector.h" \
 	"operator for the bit-vector extract; payload is an instance of the CVC4::BitVectorExtract class"
 
 constant BITVECTOR_REPEAT_OP \
 	::CVC4::BitVectorRepeat \
 	"::CVC4::UnsignedHashFunction< ::CVC4::BitVectorRepeat >" \
-	"util/bitvector.h" \
+	"base/bitvector.h" \
 	"operator for the bit-vector repeat; payload is an instance of the CVC4::BitVectorRepeat class"
 
 constant BITVECTOR_ZERO_EXTEND_OP \
 	::CVC4::BitVectorZeroExtend \
 	"::CVC4::UnsignedHashFunction< ::CVC4::BitVectorZeroExtend >" \
-	"util/bitvector.h" \
+	"base/bitvector.h" \
 	"operator for the bit-vector zero-extend; payload is an instance of the CVC4::BitVectorZeroExtend class"
 
 constant BITVECTOR_SIGN_EXTEND_OP \
 	::CVC4::BitVectorSignExtend \
 	"::CVC4::UnsignedHashFunction< ::CVC4::BitVectorSignExtend >" \
-	"util/bitvector.h" \
+	"base/bitvector.h" \
 	"operator for the bit-vector sign-extend; payload is an instance of the CVC4::BitVectorSignExtend class"
 
 constant BITVECTOR_ROTATE_LEFT_OP \
 	::CVC4::BitVectorRotateLeft \
 	"::CVC4::UnsignedHashFunction< ::CVC4::BitVectorRotateLeft >" \
-	"util/bitvector.h" \
+	"base/bitvector.h" \
 	"operator for the bit-vector rotate left; payload is an instance of the CVC4::BitVectorRotateLeft class"
 
 constant BITVECTOR_ROTATE_RIGHT_OP \
 	::CVC4::BitVectorRotateRight \
 	"::CVC4::UnsignedHashFunction< ::CVC4::BitVectorRotateRight >" \
-	"util/bitvector.h" \
+	"base/bitvector.h" \
 	"operator for the bit-vector rotate right; payload is an instance of the CVC4::BitVectorRotateRight class"
 
 parameterized BITVECTOR_BITOF BITVECTOR_BITOF_OP 1 "bit-vector boolean bit extract; first parameter is a BITVECTOR_BITOF_OP, second is a bit-vector term"
@@ -130,7 +130,7 @@ parameterized BITVECTOR_ROTATE_RIGHT BITVECTOR_ROTATE_RIGHT_OP 1 "bit-vector rot
 constant INT_TO_BITVECTOR_OP \
 	::CVC4::IntToBitVector \
 	"::CVC4::UnsignedHashFunction< ::CVC4::IntToBitVector >" \
-	"util/bitvector.h" \
+	"base/bitvector.h" \
 	"operator for the integer conversion to bit-vector; payload is an instance of the CVC4::IntToBitVector class"
 parameterized INT_TO_BITVECTOR INT_TO_BITVECTOR_OP 1 "integer conversion to bit-vector; first parameter is an INT_TO_BITVECTOR_OP, second is an integer term"
 operator BITVECTOR_TO_NAT 1 "bit-vector conversion to (nonnegative) integer; parameter is a bit-vector"

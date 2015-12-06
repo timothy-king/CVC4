@@ -14,8 +14,8 @@
 ** Manages and updates various resource and time limits.
 **/
 
+#include "base/output.h"
 #include "util/resource_manager.h"
-#include "util/output.h"
 #include "smt/smt_engine_scope.h"
 #include "smt/options.h"
 #include "theory/rewriter.h"

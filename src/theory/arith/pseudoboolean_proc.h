@@ -19,17 +19,17 @@
 
 #pragma once
 
-#include <vector>
-#include "util/rational.h"
-#include "util/maybe.h"
-#include "expr/node.h"
-
-#include "context/context.h"
-#include "context/cdo.h"
-#include "context/cdhashmap.h"
-
-#include "theory/substitutions.h"
 #include <ext/hash_set>
+#include <vector>
+
+#include "base/rational.h"
+#include "context/cdhashmap.h"
+#include "context/cdo.h"
+#include "context/context.h"
+#include "expr/node.h"
+#include "theory/substitutions.h"
+#include "util/maybe.h"
+
 
 namespace CVC4 {
 namespace theory {

@@ -25,10 +25,10 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "prop/minisat/mtl/Sort.h"
 #include "prop/minisat/core/Solver.h"
 
+#include "base/output.h"
 #include "prop/theory_proxy.h"
 #include "prop/minisat/minisat.h"
 #include "prop/options.h"
-#include "util/output.h"
 #include "expr/command.h"
 #include "proof/proof_manager.h"
 #include "proof/sat_proof.h"

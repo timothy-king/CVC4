@@ -101,15 +101,15 @@ namespace CVC4 {
 
 @parser::postinclude {
 
+#include "base/integer.h"
+#include "base/output.h"
+#include "base/rational.h"
 #include "expr/expr.h"
 #include "expr/kind.h"
 #include "expr/type.h"
 #include "parser/antlr_input.h"
 #include "parser/parser.h"
 #include "parser/smt1/smt1.h"
-#include "util/integer.h"
-#include "util/output.h"
-#include "util/rational.h"
 #include <vector>
 
 using namespace CVC4;

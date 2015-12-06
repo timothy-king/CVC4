@@ -19,11 +19,11 @@
 #ifndef __CVC4__THEORY__BUILTIN__TYPE_ENUMERATOR_H
 #define __CVC4__THEORY__BUILTIN__TYPE_ENUMERATOR_H
 
-#include "util/integer.h"
-#include "util/uninterpreted_constant.h"
-#include "theory/type_enumerator.h"
+#include "base/integer.h"
 #include "expr/type_node.h"
 #include "expr/kind.h"
+#include "theory/type_enumerator.h"
+#include "util/uninterpreted_constant.h"
 
 namespace CVC4 {
 namespace theory {

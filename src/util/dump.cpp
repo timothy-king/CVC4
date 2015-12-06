@@ -14,6 +14,7 @@
  ** Dump utility classes and functions.
  **/
 
+#include "base/output.h"
 #include "util/dump.h"
 
 using namespace std;

@@ -1,5 +1,5 @@
 %{
-#include "util/rational.h"
+#include "base/rational.h"
 %}
 
 %ignore CVC4::RationalFromDoubleException::RationalFromDoubleException(double);
@@ -32,4 +32,4 @@
 
 %ignore CVC4::operator<<(std::ostream&, const Rational&);
 
-%include "util/rational.h"
+%include "base/rational.h"

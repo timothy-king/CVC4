@@ -45,18 +45,18 @@ extern int optreset;
 #include <stdint.h>
 #include <time.h>
 
+#include "base/exception.h"
+#include "base/output.h"
+#include "base/tls.h"
 #include "expr/expr.h"
 #include "util/configuration.h"
 #include "util/didyoumean.h"
-#include "util/exception.h"
 #include "util/language.h"
-#include "util/tls.h"
 
 ${include_all_option_headers}
 
 #line 58 "${template}"
 
-#include "util/output.h"
 #include "options/options_holder.h"
 #include "cvc4autoconfig.h"
 #include "options/base_options_handlers.h"

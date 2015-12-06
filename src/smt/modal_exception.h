@@ -22,7 +22,7 @@
 #ifndef __CVC4__SMT__MODAL_EXCEPTION_H
 #define __CVC4__SMT__MODAL_EXCEPTION_H
 
-#include "util/exception.h"
+#include "base/exception.h"
 
 namespace CVC4 {
 

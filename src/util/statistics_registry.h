@@ -22,7 +22,7 @@
 #define __CVC4__STATISTICS_REGISTRY_H
 
 #include "util/statistics.h"
-#include "util/exception.h"
+#include "base/exception.h"
 #include "lib/clock_gettime.h"
 
 #include <sstream>

@@ -31,7 +31,7 @@ ${includes}
 #include <iterator>
 #include <stdint.h>
 
-#include "util/exception.h"
+#include "base/exception.h"
 #include "util/language.h"
 #include "util/hash.h"
 #include "expr/options.h"

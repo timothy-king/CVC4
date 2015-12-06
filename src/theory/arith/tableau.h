@@ -19,11 +19,12 @@
 
 #pragma once
 
-#include "util/dense_map.h"
-#include "util/rational.h"
+#include <vector>
+
+#include "base/rational.h"
 #include "theory/arith/arithvar.h"
 #include "theory/arith/matrix.h"
-#include <vector>
+#include "util/dense_map.h"
 
 namespace CVC4 {
 namespace theory {

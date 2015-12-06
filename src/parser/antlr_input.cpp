@@ -27,6 +27,7 @@
 #include "parser/parser_exception.h"
 #include "parser/parser.h"
 
+#include "base/output.h"
 #include "expr/command.h"
 #include "expr/type.h"
 #include "parser/cvc/cvc_input.h"
@@ -34,7 +35,6 @@
 #include "parser/smt2/smt2_input.h"
 #include "parser/smt2/sygus_input.h"
 #include "parser/tptp/tptp_input.h"
-#include "util/output.h"
 
 using namespace std;
 using namespace CVC4;

@@ -15,16 +15,16 @@
  **/
 
 
-#include "theory/quantifiers/theory_quantifiers.h"
-#include "theory/valuation.h"
-#include "theory/quantifiers_engine.h"
+#include "base/cvc4_assert.h"
+#include "expr/kind.h"
 #include "theory/quantifiers/instantiation_engine.h"
 #include "theory/quantifiers/model_engine.h"
-#include "expr/kind.h"
-#include "util/cvc4_assert.h"
 #include "theory/quantifiers/options.h"
-#include "theory/quantifiers/term_database.h"
 #include "theory/quantifiers/quantifiers_attributes.h"
+#include "theory/quantifiers/term_database.h"
+#include "theory/quantifiers/theory_quantifiers.h"
+#include "theory/quantifiers_engine.h"
+#include "theory/valuation.h"
 
 using namespace std;
 using namespace CVC4;

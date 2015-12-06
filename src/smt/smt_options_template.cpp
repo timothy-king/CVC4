@@ -14,15 +14,16 @@
  ** Option handling for SmtEngine.
  **/
 
-#include "smt/smt_engine.h"
-#include "smt/modal_exception.h"
-#include "util/sexpr.h"
-#include "util/dump.h"
-#include "expr/command.h"
-#include "expr/node_manager.h"
-
 #include <string>
 #include <sstream>
+
+#include "base/output.h"
+#include "expr/command.h"
+#include "expr/node_manager.h"
+#include "smt/modal_exception.h"
+#include "smt/smt_engine.h"
+#include "util/dump.h"
+#include "util/sexpr.h"
 
 ${include_all_option_headers}
 ${option_handler_includes}

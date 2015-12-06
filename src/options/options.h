@@ -26,7 +26,7 @@
 
 #include "options/option_exception.h"
 #include "util/language.h"
-#include "util/tls.h"
+#include "base/tls.h"
 #include "util/sexpr.h"
 
 namespace CVC4 {

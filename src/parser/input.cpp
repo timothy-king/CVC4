@@ -18,10 +18,11 @@
 #include "parser/parser_exception.h"
 #include "parser/parser.h"
 
+#include "base/output.h"
 #include "expr/command.h"
 #include "expr/type.h"
 #include "parser/antlr_input.h"
-#include "util/output.h"
+
 
 using namespace std;
 using namespace CVC4;

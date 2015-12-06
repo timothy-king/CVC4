@@ -20,6 +20,7 @@
 #ifndef __CVC4__LEMMA_INPUT_CHANNEL_H
 #define __CVC4__LEMMA_INPUT_CHANNEL_H
 
+#include "base/lemma_input_channel_forward.h"
 #include "expr/expr.h"
 
 namespace CVC4 {

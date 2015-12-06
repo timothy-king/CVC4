@@ -15,11 +15,10 @@
  ** \todo document this file
  **/
 
-
+#include "base/output.h"
 #include "theory/arith/fc_simplex.h"
 #include "theory/arith/options.h"
 #include "theory/arith/constraint.h"
-
 #include "util/statistics_registry.h"
 
 using namespace std;

@@ -16,11 +16,11 @@
  **/
 
 #include "proof/proof_manager.h"
+#include "base/cvc4_assert.h"
 #include "util/proof.h"
 #include "proof/sat_proof.h"
 #include "proof/cnf_proof.h"
 #include "proof/theory_proof.h"
-#include "util/cvc4_assert.h"
 #include "smt/smt_engine.h"
 #include "smt/smt_engine_scope.h"
 #include "theory/output_channel.h"

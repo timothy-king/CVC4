@@ -21,17 +21,17 @@
 #include <stdint.h>
 #include <cassert>
 
-#include "parser/input.h"
-#include "parser/parser.h"
-#include "parser/parser_exception.h"
+#include "base/output.h"
 #include "expr/command.h"
 #include "expr/expr.h"
 #include "expr/kind.h"
 #include "expr/type.h"
-#include "util/output.h"
-#include "util/resource_manager.h"
 #include "options/options.h"
+#include "parser/input.h"
+#include "parser/parser.h"
+#include "parser/parser_exception.h"
 #include "smt/options.h"
+#include "util/resource_manager.h"
 
 using namespace std;
 using namespace CVC4::kind;

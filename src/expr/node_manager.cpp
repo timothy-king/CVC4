@@ -20,12 +20,12 @@
 #include "expr/node_manager_attributes.h"
 
 #include "expr/attribute.h"
-#include "util/cvc4_assert.h"
+#include "base/tls.h"
+#include "base/cvc4_assert.h"
 #include "options/options.h"
 #include "smt/options.h"
 #include "util/statistics_registry.h"
 #include "util/resource_manager.h"
-#include "util/tls.h"
 
 #include "expr/type_checker.h"
 

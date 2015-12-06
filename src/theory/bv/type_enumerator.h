@@ -19,11 +19,11 @@
 #ifndef __CVC4__THEORY__BV__TYPE_ENUMERATOR_H
 #define __CVC4__THEORY__BV__TYPE_ENUMERATOR_H
 
-#include "util/bitvector.h"
-#include "util/integer.h"
-#include "theory/type_enumerator.h"
+#include "base/bitvector.h"
+#include "base/integer.h"
 #include "expr/type_node.h"
 #include "expr/kind.h"
+#include "theory/type_enumerator.h"
 
 namespace CVC4 {
 namespace theory {

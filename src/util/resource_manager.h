@@ -22,7 +22,7 @@
 #include <cstddef>
 #include <sys/time.h>
 
-#include "util/exception.h"
+#include "base/exception.h"
 #include "util/unsafe_interrupt_exception.h"
 
 namespace CVC4 {

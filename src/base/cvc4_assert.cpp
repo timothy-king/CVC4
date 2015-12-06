@@ -18,7 +18,8 @@
 #include <cstdarg>
 #include <cstdio>
 
-#include "util/cvc4_assert.h"
+#include "base/cvc4_assert.h"
+#include "base/output.h"
 
 using namespace std;
 

@@ -13,7 +13,7 @@
  **
  **/
 
-#include "util/cvc4_assert.h"
+#include "base/cvc4_assert.h"
 #include "util/floatingpoint.h"
 
 namespace CVC4 {

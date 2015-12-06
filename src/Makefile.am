@@ -19,7 +19,7 @@ AM_CPPFLAGS = \
 	-I@builddir@ -I@srcdir@/include -I@srcdir@ -I@top_srcdir@/proofs/lfsc_checker
 AM_CXXFLAGS = -Wall -Wno-unknown-pragmas -Wno-parentheses $(FLAG_VISIBILITY_HIDDEN)
 
-SUBDIRS = lib options expr util prop/minisat prop/bvminisat . parser compat bindings main
+SUBDIRS = lib base options expr util prop/minisat prop/bvminisat . parser compat bindings main
 # The THEORIES list has been moved to Makefile.theories
 include @top_srcdir@/src/Makefile.theories
 
@@ -439,6 +439,7 @@ nodist_libcvc4_la_SOURCES = \
 	theory/type_enumerator.cpp
 
 libcvc4_la_LIBADD = \
+	@builddir@/base/libbase.la \
 	@builddir@/options/liboptions.la \
 	@builddir@/util/libutil.la \
 	@builddir@/expr/libexpr.la \
@@ -581,9 +582,9 @@ install-data-local:
 	(echo include/cvc4.h; \
 	 echo include/cvc4_public.h; \
 	 echo include/cvc4parser_public.h; \
-	 echo util/tls.h; \
-	 echo util/integer.h; \
-	 echo util/rational.h; \
+	 echo base/integer.h; \
+	 echo base/rational.h; \
+	 echo base/tls.h; \
 	 find * -name '*.h' | \
 		xargs grep -l '^# *include  *"cvc4.*_public\.h"'; \
 	(cd "$(srcdir)" && find * -name '*.h' | \
@@ -614,9 +615,9 @@ uninstall-local:
 	-(echo include/cvc4.h; \
 	  echo include/cvc4_public.h; \
 	  echo include/cvc4parser_public.h; \
-	  echo util/tls.h; \
-	  echo util/integer.h; \
-	  echo util/rational.h; \
+	  echo base/integer.h; \
+	  echo base/rational.h; \
+	  echo base/tls.h; \
 	  find * -name '*.h' | \
 		xargs grep -l '^# *include  *"cvc4.*_public\.h"'; \
 	(cd "$(srcdir)" && find * -name '*.h' | \

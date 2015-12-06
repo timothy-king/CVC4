@@ -14,7 +14,7 @@
  ** Output utility classes and functions.
  **/
 
-#include "util/output.h"
+#include "base/output.h"
 
 #include <iostream>
 

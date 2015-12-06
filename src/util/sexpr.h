@@ -31,9 +31,9 @@
 #include <iomanip>
 #include <sstream>
 
-#include "util/integer.h"
-#include "util/rational.h"
-#include "util/exception.h"
+#include "base/integer.h"
+#include "base/rational.h"
+#include "base/exception.h"
 
 namespace CVC4 {
 
