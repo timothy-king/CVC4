@@ -22,6 +22,7 @@
 #include <ostream>
 #include <string>
 
+#include "base/bitblast_mode.h"
 #include "base/boolean_term_conversion_mode.h"
 #include "base/decision_mode.h"
 #include "base/language.h"
@@ -53,12 +54,20 @@ public:
   // theory/options_handlers.h
   // theory/booleans/options_handlers.h
   // theory/uf/options_handlers.h
+  // theory/bv/options_handlers.h
 
   // TODO:
   // theory/arith/options_handlers.h            \
-  // theory/bv/options_handlers.h               \
   // theory/quantifiers/options_handlers.h
 
+
+
+  // theory/bv/options_handlers.h
+  virtual void abcEnabledBuild(std::string option, bool value) throw(OptionException) = 0;
+  virtual void abcEnabledBuild(std::string option, std::string value) throw(OptionException) = 0;
+  virtual theory::bv::BitblastMode stringToBitblastMode(std::string option, std::string optarg) throw(OptionException) = 0;
+  virtual theory::bv::BvSlicerMode stringToBvSlicerMode(std::string option, std::string optarg) throw(OptionException) = 0;
+  virtual void setBitblastAig(std::string option, bool arg) throw(OptionException) = 0;
 
 
   // theory/booleans/options_handlers.h
@@ -121,6 +130,13 @@ public:
   virtual void addDebugTag(std::string option, std::string optarg) = 0;
   virtual void setPrintSuccess(std::string option, bool value) = 0;
 }; /* class CVC4_PUBLIC OptionHandler */
+
+// theory/bv/options_handlers.h
+void abcEnabledBuild(std::string option, bool value, OptionsHandler* handler) throw(OptionException);
+void abcEnabledBuild(std::string option, std::string value, OptionsHandler* handler) throw(OptionException);
+theory::bv::BitblastMode stringToBitblastMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException);
+theory::bv::BvSlicerMode stringToBvSlicerMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException);
+void setBitblastAig(std::string option, bool arg, OptionsHandler* handler) throw(OptionException);
 
 // theory/booleans/options_handlers.h
 theory::booleans::BooleanTermConversionMode stringToBooleanTermConversionMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException);

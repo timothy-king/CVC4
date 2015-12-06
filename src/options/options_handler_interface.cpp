@@ -31,6 +31,25 @@
 namespace CVC4 {
 namespace options {
 
+
+// theory/bv/options_handlers.h
+void abcEnabledBuild(std::string option, bool value, OptionsHandler* handler) throw(OptionException) {
+  handler->abcEnabledBuild(option, value);
+}
+void abcEnabledBuild(std::string option, std::string value, OptionsHandler* handler) throw(OptionException) {
+  handler->abcEnabledBuild(option, value);
+}
+theory::bv::BitblastMode stringToBitblastMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
+  return handler->stringToBitblastMode(option, optarg);
+}
+theory::bv::BvSlicerMode stringToBvSlicerMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
+  return handler->stringToBvSlicerMode(option, optarg);
+}
+void setBitblastAig(std::string option, bool arg, OptionsHandler* handler) throw(OptionException) {
+  handler->setBitblastAig(option, arg);
+}
+
+
 // theory/booleans/options_handlers.h
 theory::booleans::BooleanTermConversionMode stringToBooleanTermConversionMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
   return handler->stringToBooleanTermConversionMode( option, optarg);
