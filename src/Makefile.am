@@ -233,7 +233,6 @@ libcvc4_la_SOURCES = \
 	theory/datatypes/datatypes_sygus.cpp \
 	theory/sets/expr_patterns.h \
 	theory/sets/normal_form.h \
-	theory/sets/options_handlers.h \
 	theory/sets/scrutinize.h \
 	theory/sets/term_info.h \
 	theory/sets/theory_sets.cpp \

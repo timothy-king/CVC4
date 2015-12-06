@@ -49,6 +49,7 @@ public:
   // printer/options_handlers.h
   // smt/options_handlers.h
   // theory/options_handlers.h
+  // theory/uf/options_handlers.h
 
   // TODO:
   // theory/arith/options_handlers.h            \
@@ -56,8 +57,7 @@ public:
   // theory/bv/options_handlers.h               \
   // theory/fp/options_handlers.h
   // theory/quantifiers/options_handlers.h      \
-  // theory/sets/options_handlers.h             \
-  // theory/uf/options_handlers.h               \
+
 
 
   // theory/uf/options_handlers.h
