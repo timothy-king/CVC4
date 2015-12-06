@@ -35,7 +35,8 @@ libbase_la_SOURCES = \
 	decision_mode.cpp \
 	printer_modes.h \
 	printer_modes.cpp \
-	theoryof_mode.h
+	theoryof_mode.h \
+	ufss_mode.h
 
 BUILT_SOURCES = \
 	rational.h \

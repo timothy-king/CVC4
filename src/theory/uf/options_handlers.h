@@ -19,19 +19,13 @@
 #ifndef __CVC4__THEORY__UF__OPTIONS_HANDLERS_H
 #define __CVC4__THEORY__UF__OPTIONS_HANDLERS_H
 
+#include "base/option_exception.h"
+#include "base/ufss_mode.h"
+
 namespace CVC4 {
 namespace theory {
 namespace uf {
-  
-typedef enum {
-  /** default, use uf strong solver to find minimal models for uninterpreted sorts */
-  UF_SS_FULL,
-  /** use uf strong solver to shrink model sizes, but do no enforce minimality */
-  UF_SS_NO_MINIMAL,
-  /** do not use uf strong solver */
-  UF_SS_NONE,
-} UfssMode;
-  
+
 static const std::string ufssModeHelp = "\
 UF strong solver options currently supported by the --uf-ss option:\n\
 \n\
