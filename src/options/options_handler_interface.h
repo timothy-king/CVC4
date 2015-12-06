@@ -48,6 +48,7 @@ public:
   // options/base_options_handlers.h
   // printer/options_handlers.h
   // smt/options_handlers.h
+  // theory/options_handlers.h
 
   // TODO:
   // theory/arith/options_handlers.h            \
@@ -58,6 +59,9 @@ public:
   // theory/sets/options_handlers.h             \
   // theory/uf/options_handlers.h               \
 
+
+  // theory/uf/options_handlers.h
+  virtual theory::uf::UfssMode stringToUfssMode(std::string option, std::string optarg) throw(OptionException) = 0;
 
   // theory/options_handlers.h
   virtual theory::TheoryOfMode stringToTheoryOfMode(std::string option, std::string optarg) = 0;
@@ -113,6 +117,9 @@ public:
   virtual void addDebugTag(std::string option, std::string optarg) = 0;
   virtual void setPrintSuccess(std::string option, bool value) = 0;
 }; /* class CVC4_PUBLIC OptionHandler */
+
+// theory/uf/options_handlers.h
+theory::uf::UfssMode stringToUfssMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException);
 
 
 // theory/options_handlers.h

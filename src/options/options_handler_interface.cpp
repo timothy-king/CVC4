@@ -24,10 +24,16 @@
 #include "base/printer_modes.h"
 #include "base/simplification_mode.h"
 #include "base/theoryof_mode.h"
+#include "base/ufss_mode.h"
 #include "options/options_handler_interface.h"
 
 namespace CVC4 {
 namespace options {
+
+// theory/uf/options_handlers.h
+theory::uf::UfssMode stringToUfssMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
+  return handler->stringToUfssMode(option, optarg);
+}
 
 // theory/options_handlers.h
 theory::TheoryOfMode stringToTheoryOfMode(std::string option, std::string optarg, OptionsHandler* handler) {
