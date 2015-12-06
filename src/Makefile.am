@@ -123,7 +123,6 @@ libcvc4_la_SOURCES = \
 	theory/theory_test_utils.h \
 	theory/theory.h \
 	theory/theory.cpp \
-	theory/theoryof_mode.h \
 	theory/theory_registrar.h \
 	theory/rewriter.h \
 	theory/rewriter_attributes.h \
