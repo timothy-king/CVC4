@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file modes.cpp
+/*! \file printer_modes.cpp
  ** \verbatim
  ** Original author: Andrew Reynolds
  ** Major contributors: Morgan Deters
@@ -15,7 +15,7 @@
  ** \todo document this file
  **/
 
-#include "printer/modes.h"
+#include "base/printer_modes.h"
 
 namespace CVC4 {
 

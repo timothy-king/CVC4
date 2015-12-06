@@ -26,6 +26,16 @@
 namespace CVC4 {
 namespace options {
 
+// printer/options_handlers.h
+ModelFormatMode stringToModelFormatMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
+  return handler->stringToModelFormatMode(option, optarg);
+}
+
+InstFormatMode stringToInstFormatMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
+  return handler->stringToInstFormatMode(option, optarg);
+}
+
+
 // decision/options_handlers.h
 decision::DecisionMode stringToDecisionMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
   return handler->stringToDecisionMode(option, optarg);

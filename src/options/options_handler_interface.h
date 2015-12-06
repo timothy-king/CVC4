@@ -26,6 +26,7 @@
 #include "base/language.h"
 #include "base/modal_exception.h"
 #include "base/option_exception.h"
+#include "base/printer_modes.h"
 #include "base/simplification_mode.h"
 
 namespace CVC4 {
@@ -44,10 +45,10 @@ public:
   // expr/options_handlers.h
   // main/options_handlers.h
   // options/base_options_handlers.h
+  // printer/options_handlers.h
   // smt/options_handlers.h
 
   // TODO:
-  // printer/options_handlers.h                 \
   // theory/arith/options_handlers.h            \
   // theory/booleans/options_handlers.h         \
   // theory/bv/options_handlers.h               \
@@ -57,6 +58,11 @@ public:
   // theory/sets/options_handlers.h             \
   // theory/uf/options_handlers.h               \
 
+
+
+  // printer/options_handlers.h
+  virtual ModelFormatMode stringToModelFormatMode(std::string option, std::string optarg) throw(OptionException) = 0;
+  virtual InstFormatMode stringToInstFormatMode(std::string option, std::string optarg) throw(OptionException) = 0;
 
   // decision/options_handlers.h
   virtual decision::DecisionMode stringToDecisionMode(std::string option, std::string optarg) throw(OptionException) = 0;
@@ -103,6 +109,10 @@ public:
   virtual void addDebugTag(std::string option, std::string optarg) = 0;
   virtual void setPrintSuccess(std::string option, bool value) = 0;
 }; /* class CVC4_PUBLIC OptionHandler */
+
+// printer/options_handlers.h
+ModelFormatMode stringToModelFormatMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException);
+InstFormatMode stringToInstFormatMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException);
 
 // decision/options_handlers.h
 decision::DecisionMode stringToDecisionMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException);

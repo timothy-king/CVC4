@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file modes.h
+/*! \file printer_modes.h
  ** \verbatim
  ** Original author: Andrew Reynolds
  ** Major contributors: Morgan Deters
