@@ -66,8 +66,6 @@ libcvc4_la_SOURCES = \
 	printer/printer.cpp \
 	printer/dagification_visitor.h \
 	printer/dagification_visitor.cpp \
-	printer/modes.h \
-	printer/modes.cpp \
 	printer/ast/ast_printer.h \
 	printer/ast/ast_printer.cpp \
 	printer/smt1/smt1_printer.h \

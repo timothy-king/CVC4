@@ -19,7 +19,7 @@
 #ifndef __CVC4__PRINTER__OPTIONS_HANDLERS_H
 #define __CVC4__PRINTER__OPTIONS_HANDLERS_H
 
-#include "printer/modes.h"
+#include "base/printer_modes.h"
 
 namespace CVC4 {
 namespace printer {

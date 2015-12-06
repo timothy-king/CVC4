@@ -32,7 +32,9 @@ libbase_la_SOURCES = \
 	language.h \
 	language.cpp \
 	decision_mode.h \
-	decision_mode.cpp
+	decision_mode.cpp \
+	printer_modes.h \
+	printer_modes.cpp
 
 
 BUILT_SOURCES = \
