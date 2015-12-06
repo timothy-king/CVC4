@@ -21,10 +21,21 @@
 #include "base/language.h"
 #include "base/modal_exception.h"
 #include "base/option_exception.h"
+#include "base/printer_modes.h"
+#include "base/simplification_mode.h"
+#include "base/theoryof_mode.h"
 #include "options/options_handler_interface.h"
 
 namespace CVC4 {
 namespace options {
+
+// theory/options_handlers.h
+theory::TheoryOfMode stringToTheoryOfMode(std::string option, std::string optarg, OptionsHandler* handler) {
+  return handler->stringToTheoryOfMode(option, optarg);
+}
+void useTheory(std::string option, std::string optarg, OptionsHandler* handler) {
+  return handler->useTheory(option, optarg);
+}
 
 // printer/options_handlers.h
 ModelFormatMode stringToModelFormatMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {

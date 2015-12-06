@@ -19,6 +19,8 @@
 #ifndef __CVC4__THEORY__OPTIONS_HANDLERS_H
 #define __CVC4__THEORY__OPTIONS_HANDLERS_H
 
+
+#include "base/theoryof_mode.h"
 #include "expr/metakind.h"
 
 namespace CVC4 {

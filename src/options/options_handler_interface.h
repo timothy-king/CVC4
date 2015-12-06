@@ -28,6 +28,7 @@
 #include "base/option_exception.h"
 #include "base/printer_modes.h"
 #include "base/simplification_mode.h"
+#include "base/theoryof_mode.h"
 
 namespace CVC4 {
 class CVC4_PUBLIC LogicInfo;
@@ -53,11 +54,14 @@ public:
   // theory/booleans/options_handlers.h         \
   // theory/bv/options_handlers.h               \
   // theory/fp/options_handlers.h
-  // theory/options_handlers.h           \
   // theory/quantifiers/options_handlers.h      \
   // theory/sets/options_handlers.h             \
   // theory/uf/options_handlers.h               \
 
+
+  // theory/options_handlers.h
+  virtual theory::TheoryOfMode stringToTheoryOfMode(std::string option, std::string optarg) = 0;
+  virtual void useTheory(std::string option, std::string optarg) = 0;
 
 
   // printer/options_handlers.h
@@ -109,6 +113,11 @@ public:
   virtual void addDebugTag(std::string option, std::string optarg) = 0;
   virtual void setPrintSuccess(std::string option, bool value) = 0;
 }; /* class CVC4_PUBLIC OptionHandler */
+
+
+// theory/options_handlers.h
+theory::TheoryOfMode stringToTheoryOfMode(std::string option, std::string optarg, OptionsHandler* handler);
+void useTheory(std::string option, std::string optarg, OptionsHandler* handler);
 
 // printer/options_handlers.h
 ModelFormatMode stringToModelFormatMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException);
