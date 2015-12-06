@@ -509,8 +509,7 @@ EXTRA_DIST = \
 	theory/example/ecdata.cpp \
 	theory/example/theory_uf_tim.h \
 	theory/example/theory_uf_tim.cpp \
-	theory/fp/kinds \
-	theory/fp/options_handlers.h
+	theory/fp/kinds
 
 svn_versioninfo.cpp: svninfo
 	$(AM_V_GEN)( \

@@ -55,8 +55,7 @@ public:
   // theory/arith/options_handlers.h            \
   // theory/booleans/options_handlers.h         \
   // theory/bv/options_handlers.h               \
-  // theory/fp/options_handlers.h
-  // theory/quantifiers/options_handlers.h      \
+  // theory/quantifiers/options_handlers.h
 
 
 
