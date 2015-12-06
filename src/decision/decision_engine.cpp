@@ -14,13 +14,11 @@
  ** Decision engine
  **/
 
+#include "base/decision_mode.h"
 #include "decision/decision_engine.h"
 #include "decision/justification_heuristic.h"
-
-#include "expr/node.h"
 #include "decision/options.h"
-#include "decision/decision_mode.h"
-
+#include "expr/node.h"
 #include "smt/options.h"
 
 using namespace std;

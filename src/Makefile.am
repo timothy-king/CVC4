@@ -56,8 +56,6 @@ libcvc4_la_SOURCES = \
 	context/stacking_map.h \
 	context/stacking_vector.h \
 	context/cddense_set.h \
-	decision/decision_mode.h \
-	decision/decision_mode.cpp \
 	decision/decision_engine.h \
 	decision/decision_engine.cpp \
 	decision/decision_strategy.h \

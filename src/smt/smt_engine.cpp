@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <ext/hash_map>
 
+#include "base/decision_mode.h"
 #include "base/exception.h"
 #include "base/modal_exception.h"
 #include "base/option_exception.h"
@@ -32,7 +33,6 @@
 #include "context/cdlist.h"
 #include "context/context.h"
 #include "decision/decision_engine.h"
-#include "decision/decision_mode.h"
 #include "decision/options.h"
 #include "expr/attribute.h"
 #include "expr/command.h"

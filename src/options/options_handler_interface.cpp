@@ -17,6 +17,7 @@
 #include <ostream>
 #include <string>
 
+#include "base/decision_mode.h"
 #include "base/language.h"
 #include "base/modal_exception.h"
 #include "base/option_exception.h"
@@ -24,6 +25,16 @@
 
 namespace CVC4 {
 namespace options {
+
+// decision/options_handlers.h
+decision::DecisionMode stringToDecisionMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
+  return handler->stringToDecisionMode(option, optarg);
+}
+
+decision::DecisionWeightInternal stringToDecisionWeightInternal(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
+  return handler->stringToDecisionWeightInternal(option, optarg);
+}
+
 
 /* options/base_options_handlers.h */
 void setVerbosity(std::string option, int value, OptionsHandler* handler) throw(OptionException) {

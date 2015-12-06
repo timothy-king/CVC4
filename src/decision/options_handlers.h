@@ -19,7 +19,7 @@
 #ifndef __CVC4__DECISION__OPTIONS_HANDLERS_H
 #define __CVC4__DECISION__OPTIONS_HANDLERS_H
 
-#include "decision/decision_mode.h"
+#include "base/decision_mode.h"
 #include "main/options.h"
 
 namespace CVC4 {

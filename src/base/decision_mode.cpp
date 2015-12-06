@@ -15,7 +15,7 @@
  ** \todo document this file
  **/
 
-#include "decision/decision_mode.h"
+#include "base/decision_mode.h"
 
 namespace CVC4 {
 

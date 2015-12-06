@@ -30,7 +30,9 @@ libbase_la_SOURCES = \
 	simplification_mode.h \
 	simplification_mode.cpp \
 	language.h \
-	language.cpp
+	language.cpp \
+	decision_mode.h \
+	decision_mode.cpp
 
 
 BUILT_SOURCES = \

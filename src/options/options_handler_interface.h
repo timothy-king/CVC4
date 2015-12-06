@@ -22,6 +22,7 @@
 #include <ostream>
 #include <string>
 
+#include "base/decision_mode.h"
 #include "base/language.h"
 #include "base/modal_exception.h"
 #include "base/option_exception.h"
@@ -37,6 +38,30 @@ namespace options {
 class CVC4_PUBLIC OptionsHandler {
 public:
   virtual ~OptionsHandler() {}
+
+  // DONE
+  // decision/options_handlers.h
+  // expr/options_handlers.h
+  // main/options_handlers.h
+  // options/base_options_handlers.h
+  // smt/options_handlers.h
+
+  // TODO:
+  // printer/options_handlers.h                 \
+  // theory/arith/options_handlers.h            \
+  // theory/booleans/options_handlers.h         \
+  // theory/bv/options_handlers.h               \
+  // theory/fp/options_handlers.h
+  // theory/options_handlers.h           \
+  // theory/quantifiers/options_handlers.h      \
+  // theory/sets/options_handlers.h             \
+  // theory/uf/options_handlers.h               \
+
+
+  // decision/options_handlers.h
+  virtual decision::DecisionMode stringToDecisionMode(std::string option, std::string optarg) throw(OptionException) = 0;
+  virtual decision::DecisionWeightInternal stringToDecisionWeightInternal(std::string option, std::string optarg) throw(OptionException) = 0;
+
 
   /* smt/options_handlers.h */
   virtual void dumpMode(std::string option, std::string optarg) = 0;
@@ -78,6 +103,11 @@ public:
   virtual void addDebugTag(std::string option, std::string optarg) = 0;
   virtual void setPrintSuccess(std::string option, bool value) = 0;
 }; /* class CVC4_PUBLIC OptionHandler */
+
+// decision/options_handlers.h
+decision::DecisionMode stringToDecisionMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException);
+decision::DecisionWeightInternal stringToDecisionWeightInternal(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException);
+
 
 /* options/base_options_handlers.h */
 void setVerbosity(std::string option, int value, OptionsHandler* handler) throw(OptionException);
