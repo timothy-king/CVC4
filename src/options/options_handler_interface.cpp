@@ -31,6 +31,53 @@
 namespace CVC4 {
 namespace options {
 
+// theory/quantifiers/options_handlers.h
+theory::quantifiers::InstWhenMode stringToInstWhenMode(std::string option, std::string optarg,  OptionsHandler* handler) throw(OptionException) {
+  return handler->stringToInstWhenMode(option, optarg);
+}
+void checkInstWhenMode(std::string option, theory::quantifiers::InstWhenMode mode,  OptionsHandler* handler) throw(OptionException) {
+  handler->checkInstWhenMode(option, mode);
+}
+theory::quantifiers::LiteralMatchMode stringToLiteralMatchMode(std::string option, std::string optarg,  OptionsHandler* handler) throw(OptionException) {
+  return handler->stringToLiteralMatchMode(option, optarg);
+}
+void checkLiteralMatchMode(std::string option, theory::quantifiers::LiteralMatchMode mode,  OptionsHandler* handler) throw(OptionException) {
+  handler->checkLiteralMatchMode(option, mode);
+}
+theory::quantifiers::MbqiMode stringToMbqiMode(std::string option, std::string optarg,  OptionsHandler* handler) throw(OptionException) {
+  return handler->stringToMbqiMode(option, optarg);
+}
+void checkMbqiMode(std::string option, theory::quantifiers::MbqiMode mode,  OptionsHandler* handler) throw(OptionException) {
+  handler->checkMbqiMode(option, mode);
+}
+theory::quantifiers::QcfWhenMode stringToQcfWhenMode(std::string option, std::string optarg,  OptionsHandler* handler) throw(OptionException) {
+  return handler->stringToQcfWhenMode(option, optarg);
+}
+theory::quantifiers::UserPatMode stringToUserPatMode(std::string option, std::string optarg,  OptionsHandler* handler) throw(OptionException) {
+  return handler->stringToUserPatMode(option, optarg);
+}
+theory::quantifiers::TriggerSelMode stringToTriggerSelMode(std::string option, std::string optarg,  OptionsHandler* handler) throw(OptionException) {
+  return handler->stringToTriggerSelMode(option, optarg);
+}
+theory::quantifiers::PrenexQuantMode stringToPrenexQuantMode(std::string option, std::string optarg,  OptionsHandler* handler) throw(OptionException) {
+  return handler->stringToPrenexQuantMode(option, optarg);
+}
+theory::quantifiers::CegqiFairMode stringToCegqiFairMode(std::string option, std::string optarg,  OptionsHandler* handler) throw(OptionException) {
+  return handler->stringToCegqiFairMode(option, optarg);
+}
+theory::quantifiers::TermDbMode stringToTermDbMode(std::string option, std::string optarg,  OptionsHandler* handler) throw(OptionException) {
+  return handler-> stringToTermDbMode(option, optarg);
+}
+theory::quantifiers::IteLiftQuantMode stringToIteLiftQuantMode(std::string option, std::string optarg,  OptionsHandler* handler) throw(OptionException) {
+  return handler->stringToIteLiftQuantMode(option, optarg);
+}
+theory::quantifiers::SygusInvTemplMode stringToSygusInvTemplMode(std::string option, std::string optarg,  OptionsHandler* handler) throw(OptionException) {
+  return handler->stringToSygusInvTemplMode(option, optarg);
+}
+theory::quantifiers::MacrosQuantMode stringToMacrosQuantMode(std::string option, std::string optarg,  OptionsHandler* handler) throw(OptionException) {
+  return handler->stringToMacrosQuantMode(option, optarg);
+}
+
 
 // theory/bv/options_handlers.h
 void abcEnabledBuild(std::string option, bool value, OptionsHandler* handler) throw(OptionException) {
