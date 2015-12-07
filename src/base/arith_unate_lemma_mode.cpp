@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file arith_propagation_mode.cpp
+/*! \file arith_unate_lemma_mode.cpp
  ** \verbatim
  ** Original author: Morgan Deters
  ** Major contributors: none
@@ -15,26 +15,26 @@
  ** \todo document this file
  **/
 
-#include "theory/arith/arith_propagation_mode.h"
+#include "base/arith_unate_lemma_mode.h"
 
 namespace CVC4 {
 
-std::ostream& operator<<(std::ostream& out, ArithPropagationMode mode) {
+std::ostream& operator<<(std::ostream& out, ArithUnateLemmaMode mode) {
   switch(mode) {
-  case NO_PROP:
-    out << "NO_PROP";
+  case NO_PRESOLVE_LEMMAS:
+    out << "NO_PRESOLVE_LEMMAS";
     break;
-  case UNATE_PROP:
-    out << "UNATE_PROP";
+  case INEQUALITY_PRESOLVE_LEMMAS:
+    out << "INEQUALITY_PRESOLVE_LEMMAS";
     break;
-  case BOUND_INFERENCE_PROP:
-    out << "BOUND_INFERENCE_PROP";
+  case EQUALITY_PRESOLVE_LEMMAS:
+    out << "EQUALITY_PRESOLVE_LEMMAS";
     break;
-  case BOTH_PROP:
-    out << "BOTH_PROP";
+  case ALL_PRESOLVE_LEMMAS:
+    out << "ALL_PRESOLVE_LEMMAS";
     break;
   default:
-    out << "ArithPropagationMode!UNKNOWN";
+    out << "ArithUnateLemmaMode!UNKNOWN";
   }
 
   return out;

@@ -1,8 +1,8 @@
 /*********************                                                        */
-/*! \file arith_unate_lemma_mode.cpp
+/*! \file arith_heuristic_pivot_rule.cpp
  ** \verbatim
  ** Original author: Morgan Deters
- ** Major contributors: none
+ ** Major contributors: Tim King
  ** Minor contributors (to current version): none
  ** This file is part of the CVC4 project.
  ** Copyright (c) 2009-2014  New York University and The University of Iowa
@@ -15,26 +15,23 @@
  ** \todo document this file
  **/
 
-#include "theory/arith/arith_unate_lemma_mode.h"
+#include "base/arith_heuristic_pivot_rule.h"
 
 namespace CVC4 {
 
-std::ostream& operator<<(std::ostream& out, ArithUnateLemmaMode mode) {
-  switch(mode) {
-  case NO_PRESOLVE_LEMMAS:
-    out << "NO_PRESOLVE_LEMMAS";
+std::ostream& operator<<(std::ostream& out, ErrorSelectionRule rule) {
+  switch(rule) {
+  case MINIMUM_AMOUNT:
+    out << "MINIMUM_AMOUNT";
     break;
-  case INEQUALITY_PRESOLVE_LEMMAS:
-    out << "INEQUALITY_PRESOLVE_LEMMAS";
+  case VAR_ORDER:
+    out << "VAR_ORDER";
     break;
-  case EQUALITY_PRESOLVE_LEMMAS:
-    out << "EQUALITY_PRESOLVE_LEMMAS";
-    break;
-  case ALL_PRESOLVE_LEMMAS:
-    out << "ALL_PRESOLVE_LEMMAS";
+  case MAXIMUM_AMOUNT:
+    out << "MAXIMUM_AMOUNT";
     break;
   default:
-    out << "ArithUnateLemmaMode!UNKNOWN";
+    out << "ArithHeuristicPivotRule!UNKNOWN";
   }
 
   return out;

@@ -24,12 +24,12 @@
 
 namespace CVC4 {
 
-typedef enum {
+enum ArithPropagationMode {
   NO_PROP,
   UNATE_PROP,
   BOUND_INFERENCE_PROP,
   BOTH_PROP
-} ArithPropagationMode;
+};
 
 std::ostream& operator<<(std::ostream& out, ArithPropagationMode rule) CVC4_PUBLIC;
 

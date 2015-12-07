@@ -24,7 +24,7 @@
 #include "theory/arith/bound_counts.h"
 #include "theory/arith/delta_rational.h"
 #include "theory/arith/partial_model.h"
-#include "theory/arith/arith_heuristic_pivot_rule.h"
+#include "base/arith_heuristic_pivot_rule.h"
 #include "theory/arith/tableau_sizes.h"
 #include "theory/arith/callbacks.h"
 

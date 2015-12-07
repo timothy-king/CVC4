@@ -391,12 +391,6 @@ libcvc4_la_SOURCES = \
 	theory/arith/theory_arith_private.cpp \
 	theory/arith/dio_solver.h \
 	theory/arith/dio_solver.cpp \
-	theory/arith/arith_heuristic_pivot_rule.h \
-	theory/arith/arith_heuristic_pivot_rule.cpp \
-	theory/arith/arith_unate_lemma_mode.h \
-	theory/arith/arith_unate_lemma_mode.cpp \
-	theory/arith/arith_propagation_mode.h \
-	theory/arith/arith_propagation_mode.cpp \
 	theory/arith/pseudoboolean_proc.h \
 	theory/arith/pseudoboolean_proc.cpp \
 	theory/arith/cut_log.h \

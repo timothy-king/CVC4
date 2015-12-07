@@ -1,8 +1,8 @@
 /*********************                                                        */
-/*! \file arith_heuristic_pivot_rule.cpp
+/*! \file arith_propagation_mode.cpp
  ** \verbatim
  ** Original author: Morgan Deters
- ** Major contributors: Tim King
+ ** Major contributors: none
  ** Minor contributors (to current version): none
  ** This file is part of the CVC4 project.
  ** Copyright (c) 2009-2014  New York University and The University of Iowa
@@ -15,23 +15,26 @@
  ** \todo document this file
  **/
 
-#include "theory/arith/arith_heuristic_pivot_rule.h"
+#include "base/arith_propagation_mode.h"
 
 namespace CVC4 {
 
-std::ostream& operator<<(std::ostream& out, ErrorSelectionRule rule) {
-  switch(rule) {
-  case MINIMUM_AMOUNT:
-    out << "MINIMUM_AMOUNT";
+std::ostream& operator<<(std::ostream& out, ArithPropagationMode mode) {
+  switch(mode) {
+  case NO_PROP:
+    out << "NO_PROP";
     break;
-  case VAR_ORDER:
-    out << "VAR_ORDER";
+  case UNATE_PROP:
+    out << "UNATE_PROP";
     break;
-  case MAXIMUM_AMOUNT:
-    out << "MAXIMUM_AMOUNT";
+  case BOUND_INFERENCE_PROP:
+    out << "BOUND_INFERENCE_PROP";
+    break;
+  case BOTH_PROP:
+    out << "BOTH_PROP";
     break;
   default:
-    out << "ArithHeuristicPivotRule!UNKNOWN";
+    out << "ArithPropagationMode!UNKNOWN";
   }
 
   return out;
