@@ -22,6 +22,10 @@
 #include <ostream>
 #include <string>
 
+#include "base/arith_heuristic_pivot_rule.h"
+#include "base/arith_propagation_mode.h"
+#include "base/arith_unate_lemma_mode.h"
+#include "base/bitblast_mode.h"
 #include "base/bitblast_mode.h"
 #include "base/boolean_term_conversion_mode.h"
 #include "base/decision_mode.h"
@@ -32,6 +36,7 @@
 #include "base/quantifiers_modes.h"
 #include "base/simplification_mode.h"
 #include "base/theoryof_mode.h"
+#include "base/ufss_mode.h"
 
 namespace CVC4 {
 class CVC4_PUBLIC LogicInfo;
@@ -56,11 +61,14 @@ public:
   // theory/booleans/options_handlers.h
   // theory/uf/options_handlers.h
   // theory/bv/options_handlers.h
-
-  // TODO:
-  // theory/arith/options_handlers.h
   // theory/quantifiers/options_handlers.h
+  // theory/arith/options_handlers.h
 
+
+  // theory/arith/options_handlers.h
+  virtual ArithUnateLemmaMode stringToArithUnateLemmaMode(std::string option, std::string optarg) throw(OptionException) = 0;
+  virtual ArithPropagationMode stringToArithPropagationMode(std::string option, std::string optarg) throw(OptionException) = 0;
+  virtual ErrorSelectionRule stringToErrorSelectionRule(std::string option, std::string optarg) throw(OptionException) = 0;
 
   // theory/quantifiers/options_handlers.h
   virtual theory::quantifiers::InstWhenMode stringToInstWhenMode(std::string option, std::string optarg) throw(OptionException) = 0;
@@ -148,6 +156,10 @@ public:
   virtual void setPrintSuccess(std::string option, bool value) = 0;
 }; /* class CVC4_PUBLIC OptionHandler */
 
+// theory/arith/options_handlers.h
+ArithUnateLemmaMode stringToArithUnateLemmaMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException);
+ArithPropagationMode stringToArithPropagationMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException);
+ErrorSelectionRule stringToErrorSelectionRule(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException);
 
 // theory/quantifiers/options_handlers.h
 theory::quantifiers::InstWhenMode stringToInstWhenMode(std::string option, std::string optarg,  OptionsHandler* handler) throw(OptionException);

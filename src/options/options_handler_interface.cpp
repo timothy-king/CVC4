@@ -17,12 +17,18 @@
 #include <ostream>
 #include <string>
 
+#include "base/arith_heuristic_pivot_rule.h"
+#include "base/arith_propagation_mode.h"
+#include "base/arith_unate_lemma_mode.h"
+#include "base/bitblast_mode.h"
+#include "base/bitblast_mode.h"
 #include "base/boolean_term_conversion_mode.h"
 #include "base/decision_mode.h"
 #include "base/language.h"
 #include "base/modal_exception.h"
 #include "base/option_exception.h"
 #include "base/printer_modes.h"
+#include "base/quantifiers_modes.h"
 #include "base/simplification_mode.h"
 #include "base/theoryof_mode.h"
 #include "base/ufss_mode.h"
@@ -30,6 +36,17 @@
 
 namespace CVC4 {
 namespace options {
+
+// theory/arith/options_handlers.h
+ArithUnateLemmaMode stringToArithUnateLemmaMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
+  return handler->stringToArithUnateLemmaMode(option, optarg);
+}
+ArithPropagationMode stringToArithPropagationMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
+  return handler->stringToArithPropagationMode(option, optarg);
+}
+ErrorSelectionRule stringToErrorSelectionRule(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
+  return handler->stringToErrorSelectionRule(option, optarg);
+}
 
 // theory/quantifiers/options_handlers.h
 theory::quantifiers::InstWhenMode stringToInstWhenMode(std::string option, std::string optarg,  OptionsHandler* handler) throw(OptionException) {
