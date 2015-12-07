@@ -103,7 +103,7 @@ common-option - -v --verbose void :handler CVC4::options::increaseVerbosity
 common-option - -q --quiet void :handler CVC4::options::decreaseVerbosity
  decrease verbosity (may be repeated)
 
-common-option statistics statistics --stats bool :predicate CVC4::smt::statsEnabledBuild :predicate-include "smt/options_handlers.h"
+common-option statistics statistics --stats bool :predicate CVC4::options::statsEnabledBuild :predicate-include "options/options_handler_interface.h"
  give statistics on exit
 undocumented-alias --statistics = --stats
 undocumented-alias --no-statistics = --no-stats
@@ -128,7 +128,7 @@ option - trace -t --trace=TAG argument :handler CVC4::options::addTraceTag
 option - debug -d --debug=TAG argument :handler CVC4::options::addDebugTag
  debug something (e.g. -d arith), can repeat
 
-option printSuccess print-success --print-success bool :predicate CVC4::options::setPrintSuccess :predicate-include "options/base_options_handlers.h"
+option printSuccess print-success --print-success bool :predicate CVC4::options::setPrintSuccess :predicate-include "options/options_handler_interface.h"
  print the "success" output required of SMT-LIBv2
 
 alias --smtlib-strict = --lang=smt2 --output-lang=smt2 --strict-parsing --default-expr-depth=-1 --print-success --incremental --abstract-values

@@ -21,6 +21,7 @@
 #include "base/modal_exception.h"
 #include "expr/command.h"
 #include "expr/node_manager.h"
+#include "options/options_handler_interface.h"
 #include "smt/smt_engine.h"
 #include "util/dump.h"
 #include "util/sexpr.h"
@@ -38,7 +39,8 @@ void SmtEngine::setOption(const std::string& key, const CVC4::SExpr& value)
   throw(OptionException, ModalException) {
 
   NodeManagerScope nms(d_nodeManager);
-  SmtEngine* const smt = this;
+  SmtEngine* const smt_this = this;
+  options::OptionsHandler* const handler = this->d_handler;
 
   Trace("smt") << "SMT setOption(" << key << ", " << value << ")" << endl;
   if(Dump.isOn("benchmark")) {

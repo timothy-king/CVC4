@@ -52,6 +52,7 @@
 #include "proof/theory_proof.h"
 #include "prop/options.h"
 #include "prop/prop_engine.h"
+#include "options/options_handler_interface.h"
 #include "smt/boolean_terms.h"
 #include "smt/command_list.h"
 #include "smt/logic_request.h"
@@ -711,6 +712,7 @@ SmtEngine::SmtEngine(ExprManager* em) throw() :
   d_needPostsolve(false),
   d_earlyTheoryPP(true),
   d_status(),
+  d_handler(NULL),
   d_private(NULL),
   d_smtAttributes(NULL),
   d_statisticsRegistry(NULL),
@@ -933,7 +935,7 @@ void SmtEngine::setLogicInternal() throw() {
 
 void SmtEngine::setDefaults() {
   if(options::forceLogic.wasSetByUser()) {
-    d_logic = options::forceLogic();
+    d_logic = *(options::forceLogic());
   }
 
   // set strings-exp

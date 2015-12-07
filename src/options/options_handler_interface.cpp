@@ -70,6 +70,9 @@ void checkMbqiMode(std::string option, theory::quantifiers::MbqiMode mode,  Opti
 theory::quantifiers::QcfWhenMode stringToQcfWhenMode(std::string option, std::string optarg,  OptionsHandler* handler) throw(OptionException) {
   return handler->stringToQcfWhenMode(option, optarg);
 }
+theory::quantifiers::QcfMode stringToQcfMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
+  return handler->stringToQcfMode(option, optarg);
+}
 theory::quantifiers::UserPatMode stringToUserPatMode(std::string option, std::string optarg,  OptionsHandler* handler) throw(OptionException) {
   return handler->stringToUserPatMode(option, optarg);
 }

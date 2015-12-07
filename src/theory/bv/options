@@ -7,14 +7,14 @@ module BV "theory/bv/options.h" Bitvector theory
 
 # Option to set the bit-blasting mode (lazy, eager)
 
-option bitblastMode bitblast --bitblast=MODE CVC4::theory::bv::BitblastMode :handler CVC4::theory::bv::stringToBitblastMode :default CVC4::theory::bv::BITBLAST_MODE_LAZY :read-write :include "base/bitblast_mode.h" :handler-include "theory/bv/options_handlers.h"
+option bitblastMode bitblast --bitblast=MODE CVC4::theory::bv::BitblastMode :handler CVC4::options::stringToBitblastMode :default CVC4::theory::bv::BITBLAST_MODE_LAZY :read-write :include "base/bitblast_mode.h" :handler-include "options/options_handler_interface.h"
  choose bitblasting mode, see --bitblast=help
 
 # Options for eager bit-blasting
  
-option bitvectorAig --bitblast-aig bool :default false :predicate CVC4::theory::bv::abcEnabledBuild CVC4::theory::bv::setBitblastAig :predicate-include "theory/bv/options_handlers.h" :read-write
+option bitvectorAig --bitblast-aig bool :default false :predicate CVC4::options::abcEnabledBuild CVC4::options::setBitblastAig :predicate-include "options/options_handler_interface.h" :read-write
  bitblast by first converting to AIG (implies --bitblast=eager)
-expert-option bitvectorAigSimplifications --bv-aig-simp=COMMAND std::string :default "" :predicate CVC4::theory::bv::abcEnabledBuild :read-write :link --bitblast-aig :link-smt bitblast-aig
+expert-option bitvectorAigSimplifications --bv-aig-simp=COMMAND std::string :default "" :predicate CVC4::options::abcEnabledBuild :read-write :link --bitblast-aig :link-smt bitblast-aig
  abc command to run AIG simplifications (implies --bitblast-aig, default is "balance;drw")
 
 # Options for lazy bit-blasting
@@ -25,7 +25,7 @@ option bitvectorPropagate --bv-propagate bool :default true :read-write :link --
 option bitvectorEqualitySolver --bv-eq-solver bool :default true :read-write :link --bitblast=lazy
  use the equality engine for the bit-vector theory (only if --bitblast=lazy)
 
-option bitvectorEqualitySlicer --bv-eq-slicer=MODE CVC4::theory::bv::BvSlicerMode :handler CVC4::theory::bv::stringToBvSlicerMode :default CVC4::theory::bv::BITVECTOR_SLICER_OFF :read-write :include "base/bitblast_mode.h" :handler-include "theory/bv/options_handlers.h" :read-write :link --bv-eq-solver
+option bitvectorEqualitySlicer --bv-eq-slicer=MODE CVC4::theory::bv::BvSlicerMode :handler CVC4::options::stringToBvSlicerMode :default CVC4::theory::bv::BITVECTOR_SLICER_OFF :read-write :include "base/bitblast_mode.h" :handler-include "options/options_handler_interface.h" :read-write :link --bv-eq-solver
  turn on the slicing equality solver for the bit-vector theory (only if --bitblast=lazy)
 
 option bitvectorInequalitySolver --bv-inequality-solver bool :default true :read-write :link --bitblast=lazy

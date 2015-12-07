@@ -33,6 +33,7 @@ namespace CVC4 {
 
 namespace options {
   struct OptionsHolder;
+  class OptionsHandler;
 }/* CVC4::options namespace */
 
 class ExprStream;
@@ -49,10 +50,10 @@ class CVC4_PUBLIC Options {
 
   /** Low-level assignment function for options */
   template <class T>
-  void assign(T, std::string option, std::string value, SmtEngine* smt);
+  void assign(T, std::string option, std::string value, options::OptionsHandler* handler);
   /** Low-level assignment function for bool-valued options */
   template <class T>
-  void assignBool(T, std::string option, bool value, SmtEngine* smt);
+  void assignBool(T, std::string option, bool value, options::OptionsHandler* handler);
 
   friend class NodeManager;
   friend class NodeManagerScope;

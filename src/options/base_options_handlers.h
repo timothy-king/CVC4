@@ -26,12 +26,13 @@
 
 #include "base/language.h"
 #include "expr/command.h"
+#include "options/options_handler_interface.h"
 #include "util/didyoumean.h"
 
 namespace CVC4 {
 namespace options {
 
-inline void setVerbosity(std::string option, int value, SmtEngine* smt) throw(OptionException) {
+inline void setVerbosity(std::string option, int value, OptionsHandler* handler) throw(OptionException) {
   if(Configuration::isMuzzledBuild()) {
     DebugChannel.setStream(CVC4::null_os);
     TraceChannel.setStream(CVC4::null_os);
@@ -60,17 +61,17 @@ inline void setVerbosity(std::string option, int value, SmtEngine* smt) throw(Op
   }
 }
 
-inline void increaseVerbosity(std::string option, SmtEngine* smt) {
+inline void increaseVerbosity(std::string option, OptionsHandler* handler) {
   options::verbosity.set(options::verbosity() + 1);
-  setVerbosity(option, options::verbosity(), smt);
+  setVerbosity(option, options::verbosity(), handler);
 }
 
-inline void decreaseVerbosity(std::string option, SmtEngine* smt) {
+inline void decreaseVerbosity(std::string option, OptionsHandler* handler) {
   options::verbosity.set(options::verbosity() - 1);
-  setVerbosity(option, options::verbosity(), smt);
+  setVerbosity(option, options::verbosity(), handler);
 }
 
-inline OutputLanguage stringToOutputLanguage(std::string option, std::string optarg, SmtEngine* smt) throw(OptionException) {
+inline OutputLanguage stringToOutputLanguage(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
   if(optarg == "help") {
     options::languageHelp.set(true);
     return language::output::LANG_AUTO;
@@ -85,7 +86,7 @@ inline OutputLanguage stringToOutputLanguage(std::string option, std::string opt
   Unreachable();
 }
 
-inline InputLanguage stringToInputLanguage(std::string option, std::string optarg, SmtEngine* smt) throw(OptionException) {
+inline InputLanguage stringToInputLanguage(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
   if(optarg == "help") {
     options::languageHelp.set(true);
     return language::input::LANG_AUTO;
@@ -118,7 +119,7 @@ inline std::string suggestTags(char const* const* validTags, std::string inputTa
   return  didYouMean.getMatchAsString(inputTag);
 }
 
-inline void addTraceTag(std::string option, std::string optarg, SmtEngine* smt) {
+inline void addTraceTag(std::string option, std::string optarg, OptionsHandler* handler) {
   if(Configuration::isTracingBuild()) {
     if(!Configuration::isTraceTag(optarg.c_str())) {
 
@@ -143,7 +144,7 @@ inline void addTraceTag(std::string option, std::string optarg, SmtEngine* smt) 
   Trace.on(optarg);
 }
 
-inline void addDebugTag(std::string option, std::string optarg, SmtEngine* smt) {
+inline void addDebugTag(std::string option, std::string optarg, OptionsHandler* handler) {
   if(Configuration::isDebugBuild() && Configuration::isTracingBuild()) {
     if(!Configuration::isDebugTag(optarg.c_str()) &&
        !Configuration::isTraceTag(optarg.c_str())) {
@@ -172,7 +173,7 @@ inline void addDebugTag(std::string option, std::string optarg, SmtEngine* smt) 
   Trace.on(optarg);
 }
 
-inline void setPrintSuccess(std::string option, bool value, SmtEngine* smt) {
+inline void setPrintSuccess(std::string option, bool value, OptionsHandler* handler) {
   Debug.getStream() << Command::printsuccess(value);
   Trace.getStream() << Command::printsuccess(value);
   Notice.getStream() << Command::printsuccess(value);
@@ -194,7 +195,7 @@ public:
   comparator(double d) throw() : d_lbound(0), d_dbound(d), d_hasLbound(false) {}
 
   template <class T>
-  void operator()(std::string option, const T& value, SmtEngine* smt) {
+  void operator()(std::string option, const T& value, OptionsHandler* handler) {
     if((d_hasLbound && !(Cmp<T>()(value, T(d_lbound)))) ||
        (!d_hasLbound && !(Cmp<T>()(value, T(d_dbound))))) {
       std::stringstream ss;

@@ -47,6 +47,7 @@ libbase_la_SOURCES = \
 	quantifiers_modes.h \
 	simplification_mode.cpp \
 	simplification_mode.h \
+	theoryof_mode.cpp \
 	theoryof_mode.h \
 	ufss_mode.h
 

@@ -50,6 +50,7 @@ extern int optreset;
 #include "base/output.h"
 #include "base/tls.h"
 #include "expr/expr.h"
+#include "options/options_handler_interface.h"
 #include "util/configuration.h"
 #include "util/didyoumean.h"
 
@@ -183,7 +184,7 @@ std::string handleOption<std::string>(std::string option, std::string optionarg)
  * If a user specifies a :handler or :predicates, it overrides this.
  */
 template <class T>
-typename T::type runHandlerAndPredicates(T, std::string option, std::string optionarg, SmtEngine* smt) {
+typename T::type runHandlerAndPredicates(T, std::string option, std::string optionarg, options::OptionsHandler* handler) {
   // By default, parse the option argument in a way appropriate for its type.
   // E.g., for "unsigned int" options, ensure that the provided argument is
   // a nonnegative integer that fits in the unsigned int type.
@@ -192,7 +193,7 @@ typename T::type runHandlerAndPredicates(T, std::string option, std::string opti
 }
 
 template <class T>
-void runBoolPredicates(T, std::string option, bool b, SmtEngine* smt) {
+void runBoolPredicates(T, std::string option, bool b, options::OptionsHandler* handler) {
   // By default, nothing to do for bool.  Users add things with
   // :predicate in options files to provide custom checking routines
   // that can throw exceptions.
@@ -384,7 +385,7 @@ std::vector<std::string> Options::parseOptions(int argc, char* main_argv[]) thro
   options::OptionsGuard guard(&s_current, this);
 
   const char *progName = main_argv[0];
-  SmtEngine* const smt = NULL;
+  options::OptionsHandler* const handler = NULL;
 
   Debug("options") << "main_argv == " << main_argv << std::endl;
 
