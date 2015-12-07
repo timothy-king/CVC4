@@ -57,7 +57,7 @@ public:
   // theory/bv/options_handlers.h
 
   // TODO:
-  // theory/arith/options_handlers.h            \
+  // theory/arith/options_handlers.h
   // theory/quantifiers/options_handlers.h
 
 

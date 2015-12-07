@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file modes.h
+/*! \file quantifiers_modes.h
  ** \verbatim
  ** Original author: Andrew Reynolds
  ** Major contributors: Morgan Deters
@@ -17,8 +17,8 @@
 
 #include "cvc4_public.h"
 
-#ifndef __CVC4__THEORY__QUANTIFIERS__MODES_H
-#define __CVC4__THEORY__QUANTIFIERS__MODES_H
+#ifndef __CVC4__BASE__QUANTIFIERS_MODES_H
+#define __CVC4__BASE__QUANTIFIERS_MODES_H
 
 #include <iostream>
 
@@ -26,7 +26,7 @@ namespace CVC4 {
 namespace theory {
 namespace quantifiers {
 
-typedef enum {
+enum InstWhenMode {
   /** Apply instantiation round before full effort (possibly at standard effort) */
   INST_WHEN_PRE_FULL,
   /** Apply instantiation round at full effort or above  */
@@ -39,18 +39,18 @@ typedef enum {
   INST_WHEN_FULL_DELAY_LAST_CALL,
   /** Apply instantiation round at last call only */
   INST_WHEN_LAST_CALL,
-} InstWhenMode;
+};
 
-typedef enum {
+enum LiteralMatchMode {
   /** Do not consider polarity of patterns */
   LITERAL_MATCH_NONE,
   /** Consider polarity of boolean predicates only */
   LITERAL_MATCH_PREDICATE,
   /** Consider polarity of boolean predicates, as well as equalities */
   LITERAL_MATCH_EQUALITY,
-} LiteralMatchMode;
+};
 
-typedef enum {
+enum MbqiMode {
   /** mbqi from CADE 24 paper */
   MBQI_GEN_EVAL,
   /** no mbqi */
@@ -63,9 +63,9 @@ typedef enum {
   MBQI_ABS,
   /** mbqi trust (produce no instantiations) */
   MBQI_TRUST,
-} MbqiMode;
+};
 
-typedef enum {
+enum QcfWhenMode {
   /** default, apply at full effort */
   QCF_WHEN_MODE_DEFAULT,
   /** apply at last call */
@@ -74,9 +74,9 @@ typedef enum {
   QCF_WHEN_MODE_STD,
   /** apply based on heuristics */
   QCF_WHEN_MODE_STD_H,
-} QcfWhenMode;
+};
 
-typedef enum {
+enum QcfMode {
   /** default, use qcf for conflicts only */
   QCF_CONFLICT_ONLY,
   /** use qcf for conflicts and propagations */
@@ -85,9 +85,9 @@ typedef enum {
   QCF_PARTIAL,
   /** use qcf for model checking */
   QCF_MC,
-} QcfMode;
+};
 
-typedef enum {
+enum UserPatMode {
   /** use but do not trust */
   USER_PAT_MODE_USE,
   /** default, if patterns are supplied for a quantifier, use only those */
@@ -98,27 +98,27 @@ typedef enum {
   USER_PAT_MODE_IGNORE,
   /** interleave use/resort for user patterns */
   USER_PAT_MODE_INTERLEAVE,
-} UserPatMode;
+};
 
-typedef enum {
+enum TriggerSelMode {
   /** default for trigger selection */
   TRIGGER_SEL_DEFAULT,
   /** only consider minimal terms for triggers */
   TRIGGER_SEL_MIN,
   /** only consider maximal terms for triggers */
   TRIGGER_SEL_MAX,
-} TriggerSelMode;
+};
 
-typedef enum CVC4_PUBLIC {
+enum CVC4_PUBLIC PrenexQuantMode {
   /** default : prenex quantifiers without user patterns */
   PRENEX_NO_USER_PAT,
   /** prenex all */
   PRENEX_ALL,
   /** prenex none */
   PRENEX_NONE,
-} PrenexQuantMode;
+};
 
-typedef enum {
+enum CegqiFairMode {
   /** enforce fairness by UF corresponding to datatypes size */
   CEGQI_FAIR_UF_DT_SIZE,
   /** enforce fairness by datatypes size */
@@ -127,41 +127,41 @@ typedef enum {
   CEGQI_FAIR_DT_HEIGHT_PRED,
   /** do not use fair strategy for CEGQI */
   CEGQI_FAIR_NONE,
-} CegqiFairMode;
+};
 
-typedef enum {
+enum TermDbMode {
   /** consider all terms in master equality engine */
   TERM_DB_ALL,
   /** consider only relevant terms */
   TERM_DB_RELEVANT,
-} TermDbMode;
+};
 
-typedef enum {
+enum IteLiftQuantMode {
   /** do not lift ITEs in quantified formulas */
   ITE_LIFT_QUANT_MODE_NONE,
   /** only lift ITEs in quantified formulas if reduces the term size */
   ITE_LIFT_QUANT_MODE_SIMPLE,
   /** lift ITEs  */
   ITE_LIFT_QUANT_MODE_ALL,
-} IteLiftQuantMode;
+};
 
-typedef enum {
+enum SygusInvTemplMode {
   /** synthesize I( x ) */
   SYGUS_INV_TEMPL_MODE_NONE,
   /** synthesize ( pre( x ) V I( x ) ) */
   SYGUS_INV_TEMPL_MODE_PRE,
   /** synthesize ( post( x ) ^ I( x ) ) */
   SYGUS_INV_TEMPL_MODE_POST,
-} SygusInvTemplMode;
+};
 
-typedef enum {
+enum MacrosQuantMode {
   /** infer all definitions */
   MACROS_QUANT_MODE_ALL,
   /** infer ground definitions */
   MACROS_QUANT_MODE_GROUND,
   /** infer ground uf definitions */
   MACROS_QUANT_MODE_GROUND_UF,
-} MacrosQuantMode;
+};
 
 }/* CVC4::theory::quantifiers namespace */
 }/* CVC4::theory namespace */
@@ -170,4 +170,4 @@ std::ostream& operator<<(std::ostream& out, theory::quantifiers::InstWhenMode mo
 
 }/* CVC4 namespace */
 
-#endif /* __CVC4__THEORY__QUANTIFIERS__MODES_H */
+#endif /* __CVC4__BASE__QUANTIFIERS_MODES_H */

@@ -278,8 +278,6 @@ libcvc4_la_SOURCES = \
 	theory/quantifiers/inst_match.cpp \
 	theory/quantifiers/model_engine.h \
 	theory/quantifiers/model_engine.cpp \
-	theory/quantifiers/modes.cpp \
-	theory/quantifiers/modes.h \
 	theory/quantifiers/term_database.h \
 	theory/quantifiers/term_database.cpp \
 	theory/quantifiers/first_order_model.h \

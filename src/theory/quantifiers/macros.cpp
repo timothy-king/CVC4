@@ -16,14 +16,14 @@
 
 #include <vector>
 
-#include "theory/quantifiers/macros.h"
-#include "theory/rewriter.h"
+#include "base/quantifiers_modes.h"
 #include "proof/proof_manager.h"
 #include "smt/smt_engine_scope.h"
-#include "theory/quantifiers/modes.h"
+#include "theory/quantifiers/macros.h"
 #include "theory/quantifiers/options.h"
 #include "theory/quantifiers/term_database.h"
 #include "theory/quantifiers/trigger.h"
+#include "theory/rewriter.h"
 
 using namespace CVC4;
 using namespace std;

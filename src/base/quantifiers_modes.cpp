@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file modes.cpp
+/*! \file quantifiers_modes.cpp
  ** \verbatim
  ** Original author: Andrew Reynolds
  ** Major contributors: Morgan Deters
@@ -16,7 +16,7 @@
  **/
 
 #include <iostream>
-#include "theory/quantifiers/modes.h"
+#include "base/quantifiers_modes.h"
 
 namespace CVC4 {
 

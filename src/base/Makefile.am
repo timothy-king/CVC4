@@ -15,32 +15,35 @@ noinst_LTLIBRARIES = libbase.la
 libbase_la_SOURCES = \
 	Makefile.am \
 	Makefile.in \
+	bitblast_mode.cpp \
+	bitblast_mode.h \
 	bitvector.h \
+	boolean_term_conversion_mode.cpp \
+	boolean_term_conversion_mode.h \
 	cvc4_assert.cpp \
 	cvc4_assert.h \
+	decision_mode.cpp \
+	decision_mode.h \
 	exception.cpp \
 	exception.h \
 	gmp_util.h \
+	language.cpp \
+	language.h \
 	lemma_input_channel_forward.h \
 	lemma_output_channel_forward.h \
+	modal_exception.h \
 	option_exception.h \
 	output.cpp \
 	output.h \
-	modal_exception.h \
-	simplification_mode.h \
-	simplification_mode.cpp \
-	language.h \
-	language.cpp \
-	decision_mode.h \
-	decision_mode.cpp \
-	printer_modes.h \
 	printer_modes.cpp \
+	printer_modes.h \
+	quantifiers_modes.cpp \
+	quantifiers_modes.h \
+	simplification_mode.cpp \
+	simplification_mode.h \
 	theoryof_mode.h \
-	ufss_mode.h \
-	boolean_term_conversion_mode.h \
-	boolean_term_conversion_mode.cpp \
-	bitblast_mode.h \
-	bitblast_mode.cpp
+	ufss_mode.h
+
 
 BUILT_SOURCES = \
 	rational.h \
