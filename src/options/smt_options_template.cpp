@@ -78,7 +78,7 @@ void SmtEngine::setOption(const std::string& key, const CVC4::SExpr& value)
   throw UnrecognizedOptionException(key);
 }
 
-std::string SmtEngine::getOption(const std::string& key) const
+CVC4::SExpr SmtEngine::getOption(const std::string& key) const
   throw(OptionException) {
 
   NodeManagerScope nms(d_nodeManager);
@@ -102,7 +102,34 @@ std::string SmtEngine::getOption(const std::string& key) const
     Dump("benchmark") << GetOptionCommand(key);
   }
 
-  Assert(key != "command-verbosity") {
+  if(key == "command-verbosity") {
+    vector<SExpr> result;
+    SExpr defaultVerbosity;
+    for(map<string, Integer>::const_iterator i = d_commandVerbosity.begin();
+        i != d_commandVerbosity.end();
+        ++i) {
+      vector<SExpr> v;
+      v.push_back((*i).first);
+      v.push_back((*i).second);
+      if((*i).first == "*") {
+        // put the default at the end of the SExpr
+        defaultVerbosity = v;
+      } else {
+        result.push_back(v);
+      }
+    }
+    // put the default at the end of the SExpr
+    if(!defaultVerbosity.isAtom()) {
+      result.push_back(defaultVerbosity);
+    } else {
+      // ensure the default is always listed
+      vector<SExpr> v;
+      v.push_back("*");
+      v.push_back(Integer(2));
+      result.push_back(v);
+    }
+    return result;
+  }
 
   ${smt_getoption_handlers}
 
