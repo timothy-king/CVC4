@@ -24,6 +24,7 @@
 #include "base/bitblast_mode.h"
 #include "base/boolean_term_conversion_mode.h"
 #include "base/decision_mode.h"
+#include "base/exception.h"
 #include "base/language.h"
 #include "base/modal_exception.h"
 #include "base/option_exception.h"
@@ -36,6 +37,10 @@
 
 namespace CVC4 {
 namespace options {
+
+#warning "TODO: Remove all instances of these checks."
+static const char* s_third_argument_warning =
+    "We no longer support passing the third argument to the setting an option as NULL.";
 
 // theory/arith/options_handlers.h
 ArithUnateLemmaMode stringToArithUnateLemmaMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
@@ -215,6 +220,7 @@ void dumpMode(std::string option, std::string optarg, OptionsHandler* handler) {
 }
 
 LogicInfo* stringToLogicInfo(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException){
+  CheckArgument(handler != NULL, handler, s_third_argument_warning);
   return handler->stringToLogicInfo(option, optarg);
 }
 
@@ -224,6 +230,7 @@ SimplificationMode stringToSimplificationMode(std::string option, std::string op
 
 // ensure we haven't started search yet
 void beforeSearch(std::string option, bool value, OptionsHandler* handler) throw(ModalException){
+  CheckArgument(handler != NULL, handler, s_third_argument_warning);
   handler->beforeSearch(option, value);
 }
 
@@ -233,11 +240,11 @@ void setProduceAssertions(std::string option, bool value, OptionsHandler* handle
 
 // ensure we are a proof-enabled build of CVC4
 void proofEnabledBuild(std::string option, bool value, OptionsHandler* handler) throw(OptionException) {
-  handler->proofEnabledBuild(option, value);  
+  handler->proofEnabledBuild(option, value);
 }
 
 void dumpToFile(std::string option, std::string optarg, OptionsHandler* handler) {
-  handler->dumpToFile(option, optarg);  
+  handler->dumpToFile(option, optarg);
 }
 
 void setRegularOutputChannel(std::string option, std::string optarg, OptionsHandler* handler) {
@@ -262,18 +269,22 @@ void statsEnabledBuild(std::string option, bool value, OptionsHandler* handler) 
 }
 
 unsigned long tlimitHandler(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
+  CheckArgument(handler != NULL, handler, s_third_argument_warning);
   return handler->tlimitHandler(option, optarg);
 }
 
 unsigned long tlimitPerHandler(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
+  CheckArgument(handler != NULL, handler, s_third_argument_warning);
   return handler-> tlimitPerHandler(option, optarg);
 }
 
 unsigned long rlimitHandler(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
+  CheckArgument(handler != NULL, handler, s_third_argument_warning);
   return handler->rlimitHandler(option, optarg);
 }
 
 unsigned long rlimitPerHandler(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
+  CheckArgument(handler != NULL, handler, s_third_argument_warning);
   return handler->rlimitPerHandler(option, optarg);
 }
 

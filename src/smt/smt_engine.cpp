@@ -4674,4 +4674,14 @@ void SmtEngine::setPrintFuncInModel(Expr f, bool p) {
   }
 }
 
+
+
+void SmtEngine::beforeSearch(SmtEngine* smt, const std::string& option) throw(ModalException) {
+  if(smt != NULL && smt->d_fullyInited) {
+    std::stringstream ss;
+    ss << "cannot change option `" << option << "' after final initialization (i.e., after logic has been set)";
+    throw ModalException(ss.str());
+  }
+}
+
 }/* CVC4 namespace */

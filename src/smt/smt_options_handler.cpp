@@ -16,6 +16,9 @@
 
 #include <ostream>
 #include <string>
+#include <cerrno>
+#include <cstring>
+#include <sstream>
 
 #include "base/arith_heuristic_pivot_rule.h"
 #include "base/arith_propagation_mode.h"
@@ -24,25 +27,40 @@
 #include "base/bitblast_mode.h"
 #include "base/boolean_term_conversion_mode.h"
 #include "base/decision_mode.h"
+#include "base/didyoumean.h"
+#include "base/language.h"
 #include "base/language.h"
 #include "base/modal_exception.h"
+#include "base/modal_exception.h"
 #include "base/option_exception.h"
+#include "base/output.h"
+#include "base/output.h"
 #include "base/printer_modes.h"
 #include "base/quantifiers_modes.h"
 #include "base/simplification_mode.h"
 #include "base/theoryof_mode.h"
 #include "base/ufss_mode.h"
+#include "cvc4autoconfig.h"
+#include "expr/command.h"
+#include "expr/node_manager.h"
+#include "lib/strtok_r.h"
 #include "options/options_handler_interface.h"
+#include "options/options_handler_interface.h"
+#include "parser/options.h"
+#include "smt/options.h"
+#include "smt/smt_engine.h"
 #include "smt/smt_engine.h"
 #include "smt/smt_options_handler.h"
 #include "theory/logic_info.h"
-
-#include "base/output.h"
-#include "base/language.h"
-#include "expr/command.h"
-#include "options/options_handler_interface.h"
-#include "base/didyoumean.h"
 #include "util/configuration.h"
+#include "util/configuration_private.h"
+#include "util/dump.h"
+#include "util/dump.h"
+#include "util/resource_manager.h"
+
+#include "base/decision_mode.h"
+#include "main/options.h"
+#include "decision/options.h"
 
 namespace CVC4 {
 namespace smt {
@@ -52,6 +70,548 @@ SmtOptionsHandler::SmtOptionsHandler(SmtEngine* smt)
 {}
 
 SmtOptionsHandler::~SmtOptionsHandler(){}
+
+
+
+// decision/options_handlers.h
+const std::string SmtOptionsHandler::s_decisionModeHelp = "\
+Decision modes currently supported by the --decision option:\n\
+\n\
+internal (default)\n\
++ Use the internal decision heuristics of the SAT solver\n\
+\n\
+justification\n\
++ An ATGP-inspired justification heuristic\n\
+\n\
+justification-stoponly\n\
++ Use the justification heuristic only to stop early, not for decisions\n\
+";
+
+decision::DecisionMode SmtOptionsHandler::stringToDecisionMode(std::string option, std::string optarg) throw(OptionException) {
+  options::decisionStopOnly.set(false);
+
+  if(optarg == "internal") {
+    return decision::DECISION_STRATEGY_INTERNAL;
+  } else if(optarg == "justification") {
+    return decision::DECISION_STRATEGY_JUSTIFICATION;
+  } else if(optarg == "justification-stoponly") {
+    options::decisionStopOnly.set(true);
+    return decision::DECISION_STRATEGY_JUSTIFICATION;
+  } else if(optarg == "help") {
+    puts(s_decisionModeHelp.c_str());
+    exit(1);
+  } else {
+    throw OptionException(std::string("unknown option for --decision: `") +
+                          optarg + "'.  Try --decision help.");
+  }
+}
+
+decision::DecisionWeightInternal SmtOptionsHandler::stringToDecisionWeightInternal(std::string option, std::string optarg) throw(OptionException) {
+  if(optarg == "off")
+    return decision::DECISION_WEIGHT_INTERNAL_OFF;
+  else if(optarg == "max")
+    return decision::DECISION_WEIGHT_INTERNAL_MAX;
+  else if(optarg == "sum")
+    return decision::DECISION_WEIGHT_INTERNAL_SUM;
+  else if(optarg == "usr1")
+    return decision::DECISION_WEIGHT_INTERNAL_USR1;
+  else
+    throw OptionException(std::string("--decision-weight-internal must be off, max or sum."));
+}
+
+
+
+// smt/options_handlers.h
+const std::string SmtOptionsHandler::SmtOptionsHandler::s_dumpHelp = "\
+Dump modes currently supported by the --dump option:\n\
+\n\
+benchmark\n\
++ Dump the benchmark structure (set-logic, push/pop, queries, etc.), but\n\
+  does not include any declarations or assertions.  Implied by all following\n\
+  modes.\n\
+\n\
+declarations\n\
++ Dump user declarations.  Implied by all following modes.\n\
+\n\
+skolems\n\
++ Dump internally-created skolem variable declarations.  These can\n\
+  arise from preprocessing simplifications, existential elimination,\n\
+  and a number of other things.  Implied by all following modes.\n\
+\n\
+assertions\n\
++ Output the assertions after preprocessing and before clausification.\n\
+  Can also specify \"assertions:pre-PASS\" or \"assertions:post-PASS\",\n\
+  where PASS is one of the preprocessing passes: definition-expansion\n\
+  boolean-terms constrain-subtypes substitution strings-pp skolem-quant\n\
+  simplify static-learning ite-removal repeat-simplify\n\
+  rewrite-apply-to-const theory-preprocessing.\n\
+  PASS can also be the special value \"everything\", in which case the\n\
+  assertions are printed before any preprocessing (with\n\
+  \"assertions:pre-everything\") or after all preprocessing completes\n\
+  (with \"assertions:post-everything\").\n\
+\n\
+clauses\n\
++ Do all the preprocessing outlined above, and dump the CNF-converted\n\
+  output\n\
+\n\
+state\n\
++ Dump all contextual assertions (e.g., SAT decisions, propagations..).\n\
+  Implied by all \"stateful\" modes below and conflicts with all\n\
+  non-stateful modes below.\n\
+\n\
+t-conflicts [non-stateful]\n\
++ Output correctness queries for all theory conflicts\n\
+\n\
+missed-t-conflicts [stateful]\n\
++ Output completeness queries for theory conflicts\n\
+\n\
+t-propagations [stateful]\n\
++ Output correctness queries for all theory propagations\n\
+\n\
+missed-t-propagations [stateful]\n\
++ Output completeness queries for theory propagations (LARGE and EXPENSIVE)\n\
+\n\
+t-lemmas [non-stateful]\n\
++ Output correctness queries for all theory lemmas\n\
+\n\
+t-explanations [non-stateful]\n\
++ Output correctness queries for all theory explanations\n\
+\n\
+bv-rewrites [non-stateful]\n\
++ Output correctness queries for all bitvector rewrites\n\
+\n\
+bv-abstraction [non-stateful]\n\
++ Output correctness queries for all bv abstraction \n\
+\n\
+bv-algebraic [non-stateful]\n\
++ Output correctness queries for bv algebraic solver. \n\
+\n\
+theory::fullcheck [non-stateful]\n                                      \
++ Output completeness queries for all full-check effort-level theory checks\n\
+\n\
+Dump modes can be combined with multiple uses of --dump.  Generally you want\n\
+one from the assertions category (either assertions or clauses), and\n\
+perhaps one or more stateful or non-stateful modes for checking correctness\n\
+and completeness of decision procedure implementations.  Stateful modes dump\n\
+the contextual assertions made by the core solver (all decisions and\n\
+propagations as assertions; that affects the validity of the resulting\n\
+correctness and completeness queries, so of course stateful and non-stateful\n\
+modes cannot be mixed in the same run.\n\
+\n\
+The --output-language option controls the language used for dumping, and\n\
+this allows you to connect CVC4 to another solver implementation via a UNIX\n\
+pipe to perform on-line checking.  The --dump-to option can be used to dump\n\
+to a file.\n\
+";
+
+const std::string SmtOptionsHandler::s_simplificationHelp = "\
+Simplification modes currently supported by the --simplification option:\n\
+\n\
+batch (default) \n\
++ save up all ASSERTions; run nonclausal simplification and clausal\n\
+  (MiniSat) propagation for all of them only after reaching a querying command\n\
+  (CHECKSAT or QUERY or predicate SUBTYPE declaration)\n\
+\n\
+none\n\
++ do not perform nonclausal simplification\n\
+";
+
+void SmtOptionsHandler::dumpMode(std::string option, std::string optarg) {
+#ifdef CVC4_DUMPING
+  char* optargPtr = strdup(optarg.c_str());
+  char* tokstr = optargPtr;
+  char* toksave;
+  while((optargPtr = strtok_r(tokstr, ",", &toksave)) != NULL) {
+    tokstr = NULL;
+    if(!strcmp(optargPtr, "benchmark")) {
+    } else if(!strcmp(optargPtr, "declarations")) {
+    } else if(!strcmp(optargPtr, "assertions")) {
+      Dump.on("assertions:post-everything");
+    } else if(!strncmp(optargPtr, "assertions:", 11)) {
+      const char* p = optargPtr + 11;
+      if(!strncmp(p, "pre-", 4)) {
+        p += 4;
+      } else if(!strncmp(p, "post-", 5)) {
+        p += 5;
+      } else {
+        throw OptionException(std::string("don't know how to dump `") +
+                              optargPtr + "'.  Please consult --dump help.");
+      }
+      if(!strcmp(p, "everything")) {
+      } else if(!strcmp(p, "definition-expansion")) {
+      } else if(!strcmp(p, "boolean-terms")) {
+      } else if(!strcmp(p, "constrain-subtypes")) {
+      } else if(!strcmp(p, "substitution")) {
+      } else if(!strcmp(p, "strings-pp")) {
+      } else if(!strcmp(p, "skolem-quant")) {
+      } else if(!strcmp(p, "simplify")) {
+      } else if(!strcmp(p, "static-learning")) {
+      } else if(!strcmp(p, "ite-removal")) {
+      } else if(!strcmp(p, "repeat-simplify")) {
+      } else if(!strcmp(p, "rewrite-apply-to-const")) {
+      } else if(!strcmp(p, "theory-preprocessing")) {
+      } else if(!strcmp(p, "nonclausal")) {
+      } else if(!strcmp(p, "theorypp")) {
+      } else if(!strcmp(p, "itesimp")) {
+      } else if(!strcmp(p, "unconstrained")) {
+      } else if(!strcmp(p, "repeatsimp")) {
+      } else {
+        throw OptionException(std::string("don't know how to dump `") +
+                              optargPtr + "'.  Please consult --dump help.");
+      }
+      Dump.on("assertions");
+    } else if(!strcmp(optargPtr, "skolems")) {
+    } else if(!strcmp(optargPtr, "clauses")) {
+    } else if(!strcmp(optargPtr, "t-conflicts") ||
+              !strcmp(optargPtr, "t-lemmas") ||
+              !strcmp(optargPtr, "t-explanations") ||
+              !strcmp(optargPtr, "bv-rewrites") ||
+              !strcmp(optargPtr, "theory::fullcheck")) {
+      // These are "non-state-dumping" modes.  If state (SAT decisions,
+      // propagations, etc.) is dumped, it will interfere with the validity
+      // of these generated queries.
+      if(Dump.isOn("state")) {
+        throw OptionException(std::string("dump option `") + optargPtr +
+                              "' conflicts with a previous, "
+                              "state-dumping dump option.  You cannot "
+                              "mix stateful and non-stateful dumping modes; "
+                              "see --dump help.");
+      } else {
+        Dump.on("no-permit-state");
+      }
+    } else if(!strcmp(optargPtr, "state") ||
+              !strcmp(optargPtr, "missed-t-conflicts") ||
+              !strcmp(optargPtr, "t-propagations") ||
+              !strcmp(optargPtr, "missed-t-propagations")) {
+      // These are "state-dumping" modes.  If state (SAT decisions,
+      // propagations, etc.) is not dumped, it will interfere with the
+      // validity of these generated queries.
+      if(Dump.isOn("no-permit-state")) {
+        throw OptionException(std::string("dump option `") + optargPtr +
+                              "' conflicts with a previous, "
+                              "non-state-dumping dump option.  You cannot "
+                              "mix stateful and non-stateful dumping modes; "
+                              "see --dump help.");
+      } else {
+        Dump.on("state");
+      }
+    } else if(!strcmp(optargPtr, "help")) {
+      puts(s_dumpHelp.c_str());
+      exit(1);
+    } else if(!strcmp(optargPtr, "bv-abstraction")) {
+      Dump.on("bv-abstraction");
+    } else if(!strcmp(optargPtr, "bv-algebraic")) {
+      Dump.on("bv-algebraic");
+    } else {
+      throw OptionException(std::string("unknown option for --dump: `") +
+                            optargPtr + "'.  Try --dump help.");
+    }
+
+    Dump.on(optargPtr);
+    Dump.on("benchmark");
+    if(strcmp(optargPtr, "benchmark")) {
+      Dump.on("declarations");
+      if(strcmp(optargPtr, "declarations")) {
+        Dump.on("skolems");
+      }
+    }
+  }
+  free(optargPtr);
+#else /* CVC4_DUMPING */
+  throw OptionException("The dumping feature was disabled in this build of CVC4.");
+#endif /* CVC4_DUMPING */
+}
+
+LogicInfo* SmtOptionsHandler::stringToLogicInfo(std::string option, std::string optarg) throw(OptionException) {
+  try {
+#warning "TODO: Fix the blatant memory leak here"
+    LogicInfo* logic = new LogicInfo(optarg);
+    if(d_smtEngine != NULL) {
+      d_smtEngine->setLogic(*logic);
+    }
+    return logic;
+  } catch(IllegalArgumentException& e) {
+    throw OptionException(std::string("invalid logic specification for --force-logic: `") +
+                          optarg + "':\n" + e.what());
+  }
+}
+
+SimplificationMode SmtOptionsHandler::stringToSimplificationMode(std::string option, std::string optarg) throw(OptionException) {
+  if(optarg == "batch") {
+    return SIMPLIFICATION_MODE_BATCH;
+  } else if(optarg == "none") {
+    return SIMPLIFICATION_MODE_NONE;
+  } else if(optarg == "help") {
+    puts(s_simplificationHelp.c_str());
+    exit(1);
+  } else {
+    throw OptionException(std::string("unknown option for --simplification: `") +
+                          optarg + "'.  Try --simplification help.");
+  }
+}
+
+
+void SmtOptionsHandler::beforeSearch(std::string option, bool value) throw(ModalException) {
+  SmtEngine::beforeSearch(d_smtEngine, option);
+}
+
+void SmtOptionsHandler::setProduceAssertions(std::string option, bool value) throw() {
+  options::produceAssertions.set(value);
+  options::interactiveMode.set(value);
+}
+
+
+void SmtOptionsHandler::proofEnabledBuild(std::string option, bool value) throw(OptionException) {
+#if !(IS_PROOFS_BUILD)
+  if(value) {
+    std::stringstream ss;
+    ss << "option `" << option << "' requires a proofs-enabled build of CVC4; this binary was not built with proof support";
+    throw OptionException(ss.str());
+  }
+#endif /* IS_PROOFS_BUILD */
+}
+
+
+// This macro is used for setting :regular-output-channel and :diagnostic-output-channel
+// to redirect a stream.  It maintains all attributes set on the stream.
+#define __CVC4__SMT__OUTPUTCHANNELS__SETSTREAM__(__channel_get, __channel_set) \
+  { \
+    int dagSetting = expr::ExprDag::getDag(__channel_get); \
+    size_t exprDepthSetting = expr::ExprSetDepth::getDepth(__channel_get); \
+    bool printtypesSetting = expr::ExprPrintTypes::getPrintTypes(__channel_get); \
+    OutputLanguage languageSetting = expr::ExprSetLanguage::getLanguage(__channel_get); \
+    __channel_set; \
+    __channel_get << Expr::dag(dagSetting); \
+    __channel_get << Expr::setdepth(exprDepthSetting); \
+    __channel_get << Expr::printtypes(printtypesSetting); \
+    __channel_get << Expr::setlanguage(languageSetting); \
+  }
+
+void SmtOptionsHandler::dumpToFile(std::string option, std::string optarg) {
+#ifdef CVC4_DUMPING
+  std::ostream* outStream = NULL;
+  if(optarg == "") {
+    throw OptionException(std::string("Bad file name for --dump-to"));
+  } else if(optarg == "-") {
+    outStream = &DumpOutC::dump_cout;
+  } else if(!options::filesystemAccess()) {
+    throw OptionException(std::string("Filesystem access not permitted"));
+  } else {
+    errno = 0;
+    outStream = new std::ofstream(optarg.c_str(), std::ofstream::out | std::ofstream::trunc);
+    if(outStream == NULL || !*outStream) {
+      std::stringstream ss;
+      ss << "Cannot open dump-to file: `" << optarg << "': " << __cvc4_errno_failreason();
+      throw OptionException(ss.str());
+    }
+  }
+  __CVC4__SMT__OUTPUTCHANNELS__SETSTREAM__(Dump.getStream(), Dump.setStream(*outStream));
+#else /* CVC4_DUMPING */
+  throw OptionException("The dumping feature was disabled in this build of CVC4.");
+#endif /* CVC4_DUMPING */
+}
+
+void SmtOptionsHandler::setRegularOutputChannel(std::string option, std::string optarg) {
+  std::ostream* outStream = NULL;
+  if(optarg == "") {
+    throw OptionException(std::string("Bad file name setting for regular output channel"));
+  } else if(optarg == "stdout") {
+    outStream = &std::cout;
+  } else if(optarg == "stderr") {
+    outStream = &std::cerr;
+  } else if(!options::filesystemAccess()) {
+    throw OptionException(std::string("Filesystem access not permitted"));
+  } else {
+    errno = 0;
+    outStream = new std::ofstream(optarg.c_str(), std::ofstream::out | std::ofstream::trunc);
+    if(outStream == NULL || !*outStream) {
+      std::stringstream ss;
+      ss << "Cannot open regular-output-channel file: `" << optarg << "': " << __cvc4_errno_failreason();
+      throw OptionException(ss.str());
+    }
+  }
+  __CVC4__SMT__OUTPUTCHANNELS__SETSTREAM__(*options::err(), options::err.set(outStream));
+}
+
+void SmtOptionsHandler::setDiagnosticOutputChannel(std::string option, std::string optarg) {
+  std::ostream* outStream = NULL;
+  if(optarg == "") {
+    throw OptionException(std::string("Bad file name setting for diagnostic output channel"));
+  } else if(optarg == "stdout") {
+    outStream = &std::cout;
+  } else if(optarg == "stderr") {
+    outStream = &std::cerr;
+  } else if(!options::filesystemAccess()) {
+    throw OptionException(std::string("Filesystem access not permitted"));
+  } else {
+    errno = 0;
+    outStream = new std::ofstream(optarg.c_str(), std::ofstream::out | std::ofstream::trunc);
+    if(outStream == NULL || !*outStream) {
+      std::stringstream ss;
+      ss << "Cannot open diagnostic-output-channel file: `" << optarg << "': " << __cvc4_errno_failreason();
+      throw OptionException(ss.str());
+    }
+  }
+  __CVC4__SMT__OUTPUTCHANNELS__SETSTREAM__(Debug.getStream(), Debug.setStream(*outStream));
+  __CVC4__SMT__OUTPUTCHANNELS__SETSTREAM__(Warning.getStream(), Warning.setStream(*outStream));
+  __CVC4__SMT__OUTPUTCHANNELS__SETSTREAM__(Message.getStream(), Message.setStream(*outStream));
+  __CVC4__SMT__OUTPUTCHANNELS__SETSTREAM__(Notice.getStream(), Notice.setStream(*outStream));
+  __CVC4__SMT__OUTPUTCHANNELS__SETSTREAM__(Chat.getStream(), Chat.setStream(*outStream));
+  __CVC4__SMT__OUTPUTCHANNELS__SETSTREAM__(Trace.getStream(), Trace.setStream(*outStream));
+  __CVC4__SMT__OUTPUTCHANNELS__SETSTREAM__(*options::err(), options::err.set(outStream));
+}
+
+#undef __CVC4__SMT__OUTPUTCHANNELS__SETSTREAM
+
+
+
+std::string SmtOptionsHandler::checkReplayFilename(std::string option, std::string optarg) {
+#ifdef CVC4_REPLAY
+  if(optarg == "") {
+    throw OptionException(std::string("Bad file name for --replay"));
+  } else {
+    return optarg;
+  }
+#else /* CVC4_REPLAY */
+  throw OptionException("The replay feature was disabled in this build of CVC4.");
+#endif /* CVC4_REPLAY */
+}
+
+std::ostream* SmtOptionsHandler::checkReplayLogFilename(std::string option, std::string optarg) {
+#ifdef CVC4_REPLAY
+  if(optarg == "") {
+    throw OptionException(std::string("Bad file name for --replay-log"));
+  } else if(optarg == "-") {
+    return &std::cout;
+  } else if(!options::filesystemAccess()) {
+    throw OptionException(std::string("Filesystem access not permitted"));
+  } else {
+    errno = 0;
+    std::ostream* replayLog = new std::ofstream(optarg.c_str(), std::ofstream::out | std::ofstream::trunc);
+    if(replayLog == NULL || !*replayLog) {
+      std::stringstream ss;
+      ss << "Cannot open replay-log file: `" << optarg << "': " << __cvc4_errno_failreason();
+      throw OptionException(ss.str());
+    }
+    return replayLog;
+  }
+#else /* CVC4_REPLAY */
+  throw OptionException("The replay feature was disabled in this build of CVC4.");
+#endif /* CVC4_REPLAY */
+}
+
+void SmtOptionsHandler::statsEnabledBuild(std::string option, bool value) throw(OptionException) {
+#ifndef CVC4_STATISTICS_ON
+  if(value) {
+    std::stringstream ss;
+    ss << "option `" << option << "' requires a statistics-enabled build of CVC4; this binary was not built with statistics support";
+    throw OptionException(ss.str());
+  }
+#endif /* CVC4_STATISTICS_ON */
+}
+
+unsigned long SmtOptionsHandler::tlimitHandler(std::string option, std::string optarg) throw(OptionException)  {
+  unsigned long ms;
+  std::istringstream convert(optarg);
+  if (!(convert >> ms)) {
+    throw OptionException("option `"+option+"` requires a number as an argument");
+  }
+
+  // make sure the resource is set if the option is updated
+  // if the smt engine is null the resource will be set in the
+  if (d_smtEngine != NULL) {
+    ResourceManager* rm = NodeManager::fromExprManager(d_smtEngine->getExprManager())->getResourceManager();
+    rm->setTimeLimit(ms, true);
+  }
+  return ms;
+}
+
+unsigned long SmtOptionsHandler::tlimitPerHandler(std::string option, std::string optarg) throw(OptionException) {
+  unsigned long ms;
+
+  std::istringstream convert(optarg);
+  if (!(convert >> ms)) {
+    throw OptionException("option `"+option+"` requires a number as an argument");
+  }
+
+  if (d_smtEngine != NULL) {
+    ResourceManager* rm = NodeManager::fromExprManager(d_smtEngine->getExprManager())->getResourceManager();
+    rm->setTimeLimit(ms, false);
+  }
+  return ms;
+}
+
+unsigned long SmtOptionsHandler::rlimitHandler(std::string option, std::string optarg) throw(OptionException) {
+  unsigned long ms;
+
+  std::istringstream convert(optarg);
+  if (!(convert >> ms)) {
+    throw OptionException("option `"+option+"` requires a number as an argument");
+  }
+
+  if (d_smtEngine != NULL) {
+    ResourceManager* rm = NodeManager::fromExprManager(d_smtEngine->getExprManager())->getResourceManager();
+    rm->setResourceLimit(ms, true);
+  }
+  return ms;
+}
+
+unsigned long SmtOptionsHandler::rlimitPerHandler(std::string option, std::string optarg) throw(OptionException) {
+  unsigned long ms;
+
+  std::istringstream convert(optarg);
+  if (!(convert >> ms)) {
+    throw OptionException("option `"+option+"` requires a number as an argument");
+  }
+
+  // TODO: Remove check?
+  if (d_smtEngine != NULL) {
+    ResourceManager* rm = NodeManager::fromExprManager(d_smtEngine->getExprManager())->getResourceManager();
+    rm->setResourceLimit(ms, false);
+  }
+  return ms;
+}
+
+
+
+// expr/options_handlers.h
+void SmtOptionsHandler::setDefaultExprDepth(std::string option, int depth) {
+  if(depth < -1) {
+    throw OptionException("--default-expr-depth requires a positive argument, or -1.");
+  }
+
+  Debug.getStream() << Expr::setdepth(depth);
+  Trace.getStream() << Expr::setdepth(depth);
+  Notice.getStream() << Expr::setdepth(depth);
+  Chat.getStream() << Expr::setdepth(depth);
+  Message.getStream() << Expr::setdepth(depth);
+  Warning.getStream() << Expr::setdepth(depth);
+  // intentionally exclude Dump stream from this list
+}
+
+void SmtOptionsHandler::setDefaultDagThresh(std::string option, int dag) {
+  if(dag < 0) {
+    throw OptionException("--default-dag-thresh requires a nonnegative argument.");
+  }
+
+  Debug.getStream() << Expr::dag(dag);
+  Trace.getStream() << Expr::dag(dag);
+  Notice.getStream() << Expr::dag(dag);
+  Chat.getStream() << Expr::dag(dag);
+  Message.getStream() << Expr::dag(dag);
+  Warning.getStream() << Expr::dag(dag);
+  Dump.getStream() << Expr::dag(dag);
+}
+
+void SmtOptionsHandler::setPrintExprTypes(std::string option) {
+  Debug.getStream() << Expr::printtypes(true);
+  Trace.getStream() << Expr::printtypes(true);
+  Notice.getStream() << Expr::printtypes(true);
+  Chat.getStream() << Expr::printtypes(true);
+  Message.getStream() << Expr::printtypes(true);
+  Warning.getStream() << Expr::printtypes(true);
+  // intentionally exclude Dump stream from this list
+}
 
 
 // main/options_handlers.h
@@ -106,7 +666,7 @@ void SmtOptionsHandler::showConfiguration(std::string option) {
   exit(0);
 }
 
-void SmtOptionsHandler::showDebugTags(std::string option) = 0;
+void SmtOptionsHandler::showDebugTags(std::string option) {
   if(Configuration::isDebugBuild() && Configuration::isTracingBuild()) {
     printf("available tags:");
     unsigned ntags = Configuration::getNumDebugTags();
@@ -295,6 +855,37 @@ std::string SmtOptionsHandler::suggestTags(char const* const* validTags, std::st
   }
 
   return  didYouMean.getMatchAsString(inputTag);
+}
+
+std::string SmtOptionsHandler::__cvc4_errno_failreason() {
+#if HAVE_STRERROR_R
+#if STRERROR_R_CHAR_P
+  if(errno != 0) {
+    // GNU version of strerror_r: *might* use the given buffer,
+    // or might not.  It returns a pointer to buf, or not.
+    char buf[80];
+    return std::string(strerror_r(errno, buf, sizeof buf));
+  } else {
+    return "unknown reason";
+  }
+#else /* STRERROR_R_CHAR_P */
+  if(errno != 0) {
+    // XSI version of strerror_r: always uses the given buffer.
+    // Returns an error code.
+    char buf[80];
+    if(strerror_r(errno, buf, sizeof buf) == 0) {
+      return std::string(buf);
+    } else {
+      // some error occurred while getting the error string
+      return "unknown reason";
+    }
+  } else {
+    return "unknown reason";
+  }
+#endif /* STRERROR_R_CHAR_P */
+#else /* HAVE_STRERROR_R */
+  return "unknown reason";
+#endif /* HAVE_STRERROR_R */
 }
 
 }/* CVC4::smt namespace */

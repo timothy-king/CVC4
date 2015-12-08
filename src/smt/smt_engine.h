@@ -97,7 +97,6 @@ namespace smt {
   class SmtScope;
   class BooleanTermConverter;
 
-  void beforeSearch(std::string, bool, SmtEngine*) throw(ModalException);
   ProofManager* currentProofManager();
 
   struct CommandCleanup;
@@ -363,7 +362,6 @@ class CVC4_PUBLIC SmtEngine {
   friend class ::CVC4::smt::SmtScope;
   friend class ::CVC4::smt::BooleanTermConverter;
   friend ::CVC4::StatisticsRegistry* ::CVC4::stats::getStatisticsRegistry(SmtEngine*);
-  friend void ::CVC4::smt::beforeSearch(std::string, bool, SmtEngine*) throw(ModalException);
   friend ProofManager* ::CVC4::smt::currentProofManager();
   friend class ::CVC4::LogicRequest;
   // to access d_modelCommands
@@ -726,6 +724,11 @@ public:
    */
   void setPrintFuncInModel(Expr f, bool p);
 
+
+  /**
+   * Throws a ModalException if smt is non-null and the SmtEngine has not been fully initialized.
+   */
+  static void beforeSearch(SmtEngine* smt, const std::string& option) throw(ModalException);
 };/* class SmtEngine */
 
 }/* CVC4 namespace */

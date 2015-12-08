@@ -50,21 +50,18 @@ public:
   ~SmtOptionsHandler();
 
   // DONE
+  // decision/options_handlers.h
+  // smt/options_handlers.h
+  // expr/options_handlers.h
   // main/options_handlers.h
   // options/base_options_handlers.h
 
   // WORKING ON
-  /* expr/options_handlers.h */
-
+  // decision/options_handlers.h
 
 
   // TODO
-  // decision/options_handlers.h
-  // expr/options_handlers.h
-  // main/options_handlers.h
-  // options/base_options_handlers.h
   // printer/options_handlers.h
-  // smt/options_handlers.h
   // theory/options_handlers.h
   // theory/booleans/options_handlers.h
   // theory/uf/options_handlers.h
@@ -120,33 +117,32 @@ public:
   virtual InstFormatMode stringToInstFormatMode(std::string option, std::string optarg) throw(OptionException) = 0;
 
   // decision/options_handlers.h
-  virtual decision::DecisionMode stringToDecisionMode(std::string option, std::string optarg) throw(OptionException) = 0;
-  virtual decision::DecisionWeightInternal stringToDecisionWeightInternal(std::string option, std::string optarg) throw(OptionException) = 0;
+  virtual decision::DecisionMode stringToDecisionMode(std::string option, std::string optarg) throw(OptionException);
+  virtual decision::DecisionWeightInternal stringToDecisionWeightInternal(std::string option, std::string optarg) throw(OptionException);
 
 
   /* smt/options_handlers.h */
-  virtual void dumpMode(std::string option, std::string optarg) = 0;
-  virtual LogicInfo* stringToLogicInfo(std::string option, std::string optarg) throw(OptionException) = 0;
-  virtual SimplificationMode stringToSimplificationMode(std::string option, std::string optarg) throw(OptionException) = 0;
-
-  virtual void beforeSearch(std::string option, bool value) throw(ModalException) = 0;
-  virtual void setProduceAssertions(std::string option, bool value) throw() = 0;
-  virtual void proofEnabledBuild(std::string option, bool value) throw(OptionException) = 0;
-  virtual void dumpToFile(std::string option, std::string optarg) = 0;
-  virtual void setRegularOutputChannel(std::string option, std::string optarg) = 0;
-  virtual void setDiagnosticOutputChannel(std::string option, std::string optarg) = 0;
-  virtual std::string checkReplayFilename(std::string option, std::string optarg) = 0;
-  virtual std::ostream* checkReplayLogFilename(std::string option, std::string optarg) = 0;
-  virtual void statsEnabledBuild(std::string option, bool value) throw(OptionException) = 0;
-  virtual unsigned long tlimitHandler(std::string option, std::string optarg) throw(OptionException) = 0;
-  virtual unsigned long tlimitPerHandler(std::string option, std::string optarg) throw(OptionException) = 0;
-  virtual unsigned long rlimitHandler(std::string option, std::string optarg) throw(OptionException) = 0;
-  virtual unsigned long rlimitPerHandler(std::string option, std::string optarg) throw(OptionException) = 0;
+  virtual void dumpMode(std::string option, std::string optarg);
+  virtual LogicInfo* stringToLogicInfo(std::string option, std::string optarg) throw(OptionException);
+  virtual SimplificationMode stringToSimplificationMode(std::string option, std::string optarg) throw(OptionException);
+  virtual void beforeSearch(std::string option, bool value) throw(ModalException);
+  virtual void setProduceAssertions(std::string option, bool value) throw();
+  virtual void proofEnabledBuild(std::string option, bool value) throw(OptionException);
+  virtual void dumpToFile(std::string option, std::string optarg);
+  virtual void setRegularOutputChannel(std::string option, std::string optarg);
+  virtual void setDiagnosticOutputChannel(std::string option, std::string optarg);
+  virtual std::string checkReplayFilename(std::string option, std::string optarg);
+  virtual std::ostream* checkReplayLogFilename(std::string option, std::string optarg);
+  virtual void statsEnabledBuild(std::string option, bool value) throw(OptionException);
+  virtual unsigned long tlimitHandler(std::string option, std::string optarg) throw(OptionException);
+  virtual unsigned long tlimitPerHandler(std::string option, std::string optarg) throw(OptionException);
+  virtual unsigned long rlimitHandler(std::string option, std::string optarg) throw(OptionException);
+  virtual unsigned long rlimitPerHandler(std::string option, std::string optarg) throw(OptionException);
 
   /* expr/options_handlers.h */
-  virtual void setDefaultExprDepth(std::string option, int depth) = 0;
-  virtual void setDefaultDagThresh(std::string option, int dag) = 0;
-  virtual void setPrintExprTypes(std::string option) = 0;
+  virtual void setDefaultExprDepth(std::string option, int depth);
+  virtual void setDefaultDagThresh(std::string option, int dag);
+  virtual void setPrintExprTypes(std::string option);
 
   /* main/options_handlers.h */
   virtual void showConfiguration(std::string option);
@@ -169,6 +165,11 @@ private:
 
   static std::string suggestTags(char const* const* validTags, std::string inputTag,
                                  char const* const* additionalTags = NULL);
+  static std::string __cvc4_errno_failreason();
+
+  static const std::string s_decisionModeHelp;
+  static const std::string s_simplificationHelp;
+  static const std::string s_dumpHelp;
 }; /* class SmtOptionsHandler */
 
 
