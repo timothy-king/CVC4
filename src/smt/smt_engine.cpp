@@ -60,6 +60,7 @@
 #include "smt/options.h"
 #include "smt/smt_engine.h"
 #include "smt/smt_engine_scope.h"
+#include "smt/smt_options_handler.h"
 #include "theory/arith/options.h"
 #include "theory/arith/pseudoboolean_proc.h"
 #include "theory/arrays/options.h"
@@ -712,7 +713,7 @@ SmtEngine::SmtEngine(ExprManager* em) throw() :
   d_needPostsolve(false),
   d_earlyTheoryPP(true),
   d_status(),
-  d_handler(NULL),
+  d_optionsHandler(new SmtOptionsHandler(this)),
   d_private(NULL),
   d_smtAttributes(NULL),
   d_statisticsRegistry(NULL),
@@ -884,6 +885,9 @@ SmtEngine::~SmtEngine() throw() {
     d_stats = NULL;
     delete d_statisticsRegistry;
     d_statisticsRegistry = NULL;
+
+    delete d_optionsHandler;
+    d_optionsHandler = NULL;
 
     delete d_private;
     d_private = NULL;

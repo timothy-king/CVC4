@@ -77,8 +77,6 @@ libutil_la_SOURCES = \
 	regexp.h \
 	regexp.cpp \
 	bin_heap.h \
-	didyoumean.h \
-	didyoumean.cpp \
 	unsat_core.h \
 	unsat_core.cpp \
 	floatingpoint.h \

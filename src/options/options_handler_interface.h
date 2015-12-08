@@ -39,7 +39,7 @@
 #include "base/ufss_mode.h"
 
 namespace CVC4 {
-class CVC4_PUBLIC LogicInfo;
+class LogicInfo;
 }/* CVC4 namespace */
 
 namespace CVC4 {
@@ -155,7 +155,7 @@ public:
   virtual void addTraceTag(std::string option, std::string optarg) = 0;
   virtual void addDebugTag(std::string option, std::string optarg) = 0;
   virtual void setPrintSuccess(std::string option, bool value) = 0;
-}; /* class CVC4_PUBLIC OptionHandler */
+}; /* class OptionHandler */
 
 // theory/arith/options_handlers.h
 ArithUnateLemmaMode stringToArithUnateLemmaMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException);
@@ -269,4 +269,4 @@ unsigned long rlimitPerHandler(std::string option, std::string optarg, OptionsHa
 }/* CVC4::options namespace */
 }/* CVC4 namespace */
 
-#endif /* __CVC4__SMT__OPTIONS_HANDLERS_H */
+#endif /*  __CVC4__OPTIONS__OPTIONS_HANDLER_INTERFACE_H */

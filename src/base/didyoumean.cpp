@@ -17,11 +17,12 @@
  ** There are no dependencies on CVC4 (except namespace).
  **/
 
-#include "didyoumean.h"
+#include "base/didyoumean.h"
 #include <iostream>
 #include <sstream>
+
 using namespace std;
-using namespace CVC4;
+namespace CVC4 {
 
 vector<string> DidYouMean::getMatch(string input) {
   /** Magic numbers */
@@ -67,7 +68,7 @@ int DidYouMean::editDistance(const std::string& a, const std::string& b)
 {
   // input string: a
   // desired string: b
-  
+
   const int swapCost = 0;
   const int substituteCost = 2;
   const int addCost = 1;
@@ -121,7 +122,7 @@ int DidYouMean::editDistance(const std::string& a, const std::string& b)
 
       // delete
       C[cur][j] = std::min(C[cur][j], C[prv][j] + deleteCost);
-      
+
 #ifdef DIDYOUMEAN_DEBUG1
       std::cout << "C[" << cur << "][" << 0 << "] = " << C[cur][0] << std::endl;
 #endif
@@ -152,3 +153,4 @@ string DidYouMean::getMatchAsString(string input, int prefixNewLines, int suffix
   }
   return oss.str();
 }
+}/* CVC4 namespace */

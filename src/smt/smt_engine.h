@@ -270,7 +270,7 @@ class CVC4_PUBLIC SmtEngine {
   /**
    * This responds to requests to set options.
    */
-  options::OptionsHandler* d_handler;
+  options::OptionsHandler* d_optionsHandler;
 
   /**
    * A private utility class to SmtEngine.

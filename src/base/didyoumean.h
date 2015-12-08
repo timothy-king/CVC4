@@ -34,11 +34,11 @@ public:
   ~DidYouMean() {}
 
   DidYouMean(Words words) : d_words(words) {}
-  
+
   void addWord(std::string word) {
     d_words.insert(word);
   }
-  
+
   std::vector<std::string> getMatch(std::string input);
 
   /**

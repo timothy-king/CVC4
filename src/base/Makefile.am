@@ -30,6 +30,8 @@ libbase_la_SOURCES = \
 	cvc4_assert.h \
 	decision_mode.cpp \
 	decision_mode.h \
+	didyoumean.cpp \
+	didyoumean.h \
 	exception.cpp \
 	exception.h \
 	gmp_util.h \
