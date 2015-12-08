@@ -50,6 +50,7 @@ public:
   ~SmtOptionsHandler();
 
   // DONE
+  // printer/options_handlers.h
   // decision/options_handlers.h
   // smt/options_handlers.h
   // expr/options_handlers.h
@@ -57,12 +58,10 @@ public:
   // options/base_options_handlers.h
 
   // WORKING ON
-  // decision/options_handlers.h
+  // theory/options_handlers.h
 
 
   // TODO
-  // printer/options_handlers.h
-  // theory/options_handlers.h
   // theory/booleans/options_handlers.h
   // theory/uf/options_handlers.h
   // theory/bv/options_handlers.h
@@ -113,15 +112,15 @@ public:
 
 
   // printer/options_handlers.h
-  virtual ModelFormatMode stringToModelFormatMode(std::string option, std::string optarg) throw(OptionException) = 0;
-  virtual InstFormatMode stringToInstFormatMode(std::string option, std::string optarg) throw(OptionException) = 0;
+  virtual ModelFormatMode stringToModelFormatMode(std::string option, std::string optarg) throw(OptionException);
+  virtual InstFormatMode stringToInstFormatMode(std::string option, std::string optarg) throw(OptionException);
 
   // decision/options_handlers.h
   virtual decision::DecisionMode stringToDecisionMode(std::string option, std::string optarg) throw(OptionException);
   virtual decision::DecisionWeightInternal stringToDecisionWeightInternal(std::string option, std::string optarg) throw(OptionException);
 
 
-  /* smt/options_handlers.h */
+  // smt/options_handlers.h
   virtual void dumpMode(std::string option, std::string optarg);
   virtual LogicInfo* stringToLogicInfo(std::string option, std::string optarg) throw(OptionException);
   virtual SimplificationMode stringToSimplificationMode(std::string option, std::string optarg) throw(OptionException);
@@ -167,9 +166,13 @@ private:
                                  char const* const* additionalTags = NULL);
   static std::string __cvc4_errno_failreason();
 
+  /* Help strings */
   static const std::string s_decisionModeHelp;
   static const std::string s_simplificationHelp;
   static const std::string s_dumpHelp;
+  static const std::string s_modelFormatHelp;
+  static const std::string s_instFormatHelp ;
+
 }; /* class SmtOptionsHandler */
 
 

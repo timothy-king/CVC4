@@ -73,6 +73,57 @@ SmtOptionsHandler::~SmtOptionsHandler(){}
 
 
 
+// printer/options_handlers.h
+const std::string SmtOptionsHandler::s_modelFormatHelp = "\
+Model format modes currently supported by the --model-format option:\n\
+\n\
+default \n\
++ Print model as expressions in the output language format.\n\
+\n\
+table\n\
++ Print functional expressions over finite domains in a table format.\n\
+";
+
+const std::string SmtOptionsHandler::s_instFormatHelp = "\
+Inst format modes currently supported by the --model-format option:\n\
+\n\
+default \n\
++ Print instantiations as a list in the output language format.\n\
+\n\
+szs\n\
++ Print instantiations as SZS compliant proof.\n\
+";
+
+ModelFormatMode SmtOptionsHandler::stringToModelFormatMode(std::string option, std::string optarg) throw(OptionException) {
+  if(optarg == "default") {
+    return MODEL_FORMAT_MODE_DEFAULT;
+  } else if(optarg == "table") {
+    return MODEL_FORMAT_MODE_TABLE;
+  } else if(optarg == "help") {
+    puts(s_modelFormatHelp.c_str());
+    exit(1);
+  } else {
+    throw OptionException(std::string("unknown option for --model-format: `") +
+                          optarg + "'.  Try --model-format help.");
+  }
+}
+
+InstFormatMode SmtOptionsHandler::stringToInstFormatMode(std::string option, std::string optarg) throw(OptionException) {
+  if(optarg == "default") {
+    return INST_FORMAT_MODE_DEFAULT;
+  } else if(optarg == "szs") {
+    return INST_FORMAT_MODE_SZS;
+  } else if(optarg == "help") {
+    puts(s_instFormatHelp.c_str());
+    exit(1);
+  } else {
+    throw OptionException(std::string("unknown option for --inst-format: `") +
+                          optarg + "'.  Try --inst-format help.");
+  }
+}
+
+
+
 // decision/options_handlers.h
 const std::string SmtOptionsHandler::s_decisionModeHelp = "\
 Decision modes currently supported by the --decision option:\n\
