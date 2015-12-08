@@ -22,6 +22,7 @@
 #include <string>
 #include <vector>
 
+#include "expr/sexpr.h"
 #include "base/modal_exception.h"
 #include "context/cdhashmap_forward.h"
 #include "context/cdhashset_forward.h"
@@ -34,7 +35,6 @@
 #include "util/hash.h"
 #include "util/proof.h"
 #include "util/result.h"
-#include "util/sexpr.h"
 #include "util/statistics.h"
 #include "util/unsafe_interrupt_exception.h"
 #include "util/unsat_core.h"

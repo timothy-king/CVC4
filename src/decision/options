@@ -12,7 +12,7 @@ option decisionMode decision-mode --decision=MODE decision::DecisionMode :handle
 # only use DE to determine when to stop, not to make decisions
 option decisionStopOnly bool
 
-expert-option decisionThreshold --decision-threshold=N decision::DecisionWeight :default 0 :include "theory/decision_attributes.h"
+expert-option decisionThreshold --decision-threshold=N decision::DecisionWeight :default 0 :include "options/decision_weight.h"
  ignore all nodes greater than threshold in first attempt to pick decision
 
 expert-option decisionUseWeight --decision-use-weight bool :default false

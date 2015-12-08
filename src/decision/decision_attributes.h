@@ -16,23 +16,21 @@
 
 #include "cvc4_private.h"
 
-#ifndef __CVC4__THEORY__DECISION_ATTRIBUTES
-#define __CVC4__THEORY__DECISION_ATTRIBUTES
+#ifndef __CVC4__DECISION__DECISION_ATTRIBUTES_H
+#define __CVC4__DECISION__DECISION_ATTRIBUTES_H
 
+#include "options/decision_weight.h"
 #include "expr/attribute.h"
 
 namespace CVC4 {
 namespace decision {
-typedef uint64_t DecisionWeight;
-}
-namespace theory {
 namespace attr {
   struct DecisionWeightTag {};
-}/* CVC4::theory::attr namespace */
+}/* CVC4::decision::attr namespace */
 
-typedef expr::Attribute<attr::DecisionWeightTag, decision::DecisionWeight> DecisionWeightAttr;
+typedef expr::Attribute<attr::DecisionWeightTag, DecisionWeight> DecisionWeightAttr;
 
-}/* CVC4::theory namespace */
+}/* CVC4::decision namespace */
 }/* CVC4 namespace */
 
-#endif /* __CVC4__THEORY__DECISION_ATTRIBUTES */
+#endif /* __CVC4__DECISION__DECISION_ATTRIBUTES_H */

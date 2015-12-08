@@ -940,24 +940,25 @@ public:
 class NodeManagerScope {
   /** The old NodeManager, to be restored on destruction. */
   NodeManager* d_oldNodeManager;
-
+  Options::OptionsScope d_optionsScope;
 public:
 
-  NodeManagerScope(NodeManager* nm) :
-    d_oldNodeManager(NodeManager::s_current) {
+  NodeManagerScope(NodeManager* nm)
+      : d_oldNodeManager(NodeManager::s_current)
+      , d_optionsScope(nm ? nm->d_options : NULL) {
     // There are corner cases where nm can be NULL and it's ok.
     // For example, if you write { Expr e; }, then when the null
     // Expr is destructed, there's no active node manager.
     //Assert(nm != NULL);
     NodeManager::s_current = nm;
-    Options::s_current = nm ? nm->d_options : NULL;
+    //Options::s_current = nm ? nm->d_options : NULL;
     Debug("current") << "node manager scope: "
                      << NodeManager::s_current << "\n";
   }
 
   ~NodeManagerScope() {
     NodeManager::s_current = d_oldNodeManager;
-    Options::s_current = d_oldNodeManager ? d_oldNodeManager->d_options : NULL;
+    //Options::s_current = d_oldNodeManager ? d_oldNodeManager->d_options : NULL;
     Debug("current") << "node manager scope: "
                      << "returning to " << NodeManager::s_current << "\n";
   }

@@ -27,7 +27,6 @@
 #include "base/language.h"
 #include "base/option_exception.h"
 #include "base/tls.h"
-#include "util/sexpr.h"
 
 namespace CVC4 {
 
@@ -55,11 +54,25 @@ class CVC4_PUBLIC Options {
   template <class T>
   void assignBool(T, std::string option, bool value, options::OptionsHandler* handler);
 
-  friend class NodeManager;
-  friend class NodeManagerScope;
-  friend class SmtEngine;
+  // #warning "These friendships need to go."
+  // friend class NodeManager;
+  // friend class NodeManagerScope;
+  friend class options::OptionsHandler;
 
 public:
+  class CVC4_PUBLIC OptionsScope {
+  private:
+    Options* d_oldOptions;
+  public:
+    OptionsScope(Options* newOptions) :
+        d_oldOptions(Options::s_current)
+    {
+      Options::s_current = newOptions;
+    }
+    ~OptionsScope(){
+      Options::s_current = d_oldOptions;
+    }
+  };
 
   /** Return true if current Options are null */
   static inline bool isCurrentNull() {
@@ -151,7 +164,7 @@ public:
   /**
    * Get the setting for all options.
    */
-  SExpr getOptions() const throw();
+  std::vector< std::vector<std::string> > getOptions() const throw();
 
 };/* class Options */
 

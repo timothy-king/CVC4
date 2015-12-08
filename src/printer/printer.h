@@ -25,8 +25,8 @@
 #include "base/language.h"
 #include "expr/command.h"
 #include "expr/node.h"
+#include "expr/sexpr.h"
 #include "util/model.h"
-#include "util/sexpr.h"
 
 namespace CVC4 {
 
@@ -189,4 +189,3 @@ inline std::ostream& operator<<(std::ostream& out, PrettySExprs ps) {
 }/* CVC4 namespace */
 
 #endif /* __CVC4__PRINTER__PRINTER_H */
-

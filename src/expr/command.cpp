@@ -23,15 +23,15 @@
 
 #include "base/output.h"
 #include "expr/command.h"
-#include "smt/smt_engine.h"
+#include "expr/node.h"
+#include "expr/sexpr.h"
 #include "options/options.h"
+#include "printer/printer.h"
 #include "smt/options.h"
+#include "smt/smt_engine.h"
 #include "smt/smt_engine_scope.h"
 #include "util/dump.h"
-#include "util/sexpr.h"
 #include "util/model.h"
-#include "expr/node.h"
-#include "printer/printer.h"
 
 using namespace std;
 
@@ -1332,7 +1332,7 @@ void SetBenchmarkStatusCommand::invoke(SmtEngine* smtEngine) throw() {
   try {
     stringstream ss;
     ss << d_status;
-    SExpr status = ss.str();
+    SExpr status = SExpr(ss.str());
     smtEngine->setInfo("status", status);
     d_commandStatus = CommandSuccess::instance();
   } catch(exception& e) {

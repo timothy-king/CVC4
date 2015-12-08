@@ -73,7 +73,7 @@ TEMPLATE_FILES = \
 	base_options_template.cpp \
 	options_holder_template.h \
 	options_template.cpp \
-	../smt/smt_options_template.cpp \
+	smt_options_template.cpp \
 	../../doc/cvc4.1_template \
 	../../doc/libcvc4.3_template \
 	../../doc/SmtEngine.3cvc_template \
@@ -93,17 +93,19 @@ liboptions_la_SOURCES = \
 	options.h \
 	base_options_handlers.h \
 	options_handler_interface.h \
-	options_handler_interface.cpp
+	options_handler_interface.cpp \
+	decision_weight.h
 
 nodist_liboptions_la_SOURCES = \
 	options.cpp \
 	options_holder.h \
-	$(OPTIONS_FILES_SRCS)
+	$(OPTIONS_FILES_SRCS) \
+	smt_options.cpp
 
 
 BUILT_SOURCES = \
 	exprs-builts \
-	../smt/smt_options.cpp \
+	smt_options.cpp \
 	options.cpp \
 	options_holder.h \
 	$(OPTIONS_FILES_SRCS) \
@@ -132,6 +134,7 @@ EXTRA_DIST = \
 	options_holder_template.h \
 	options.i \
 	options_handler_interface.i \
+	smt_options_template.cpp \
 	$(OPTIONS_FILES) \
 	mktagheaders \
 	mktags \
@@ -180,7 +183,7 @@ MOSTLYCLEANFILES = \
 #   mkoptions apply-sed-files-to-template sed-file template-file filename
 
 $(OPTIONS_FILES):;
-options_holder_template.h options_template.cpp ../smt/smt_options_template.cpp base_options_template.h base_options_template.cpp :;
+options_holder_template.h options_template.cpp smt_options_template.cpp base_options_template.h base_options_template.cpp :;
 
 
 $(TEMPLATE_SEDS) : %.sed : % mkoptions
@@ -262,12 +265,12 @@ options.cpp : options_template.cpp options_template.cpp.sed mkoptions summary.se
 
 
 #   mkoptions apply-sed-to-template sed-file template-file
-../smt/smt_options.cpp : ../smt/smt_options_template.cpp ../smt/smt_options_template.cpp.sed mkoptions summary.sed gen-heads-stamp
+smt_options.cpp : smt_options_template.cpp smt_options_template.cpp.sed mkoptions summary.sed gen-heads-stamp
 #	echo "$(OPTIONS_FILES)"
 	$(AM_V_at)chmod +x @srcdir@/mkoptions
 	$(AM_V_GEN)(@srcdir@/mkoptions apply-sed-files-to-template \
-		@srcdir@/../smt/smt_options_template.cpp \
-		@builddir@/../smt/smt_options_template.cpp.sed \
+		@srcdir@/smt_options_template.cpp \
+		@builddir@/smt_options_template.cpp.sed \
 		summary.sed \
 	) > "$@"
 
@@ -286,7 +289,7 @@ $(DOCUMENTATION_FILES) : % : %_template %_template.sed mkoptions summary.sed
 
 
 
-#options-stamp: options_holder_template.h options_template.cpp ../smt/smt_options_template.cpp base_options_template.h base_options_template.cpp mkoptions $(OPTIONS_FILE_SRCS)
+#options-stamp: options_holder_template.h options_template.cpp smt_options_template.cpp base_options_template.h base_options_template.cpp mkoptions $(OPTIONS_FILE_SRCS)
 
 
 # This rule is ugly.  It's needed to ensure that automake's dependence

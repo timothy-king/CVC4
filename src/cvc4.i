@@ -51,9 +51,9 @@ using namespace CVC4;
 #include "base/exception.h"
 #include "expr/command.h"
 #include "expr/expr.h"
+#include "expr/sexpr.h"
 #include "expr/type.h"
 #include "util/datatype.h"
-#include "util/sexpr.h"
 
 #ifdef SWIGJAVA
 #include "bindings/java_stream_adapters.h"
@@ -305,7 +305,7 @@ std::set<JavaInputStreamAdapter*> CVC4::JavaInputStreamAdapter::s_adapters;
 //%include "util/floatingpoint.i"
 %include "util/cardinality.i"
 %include "util/bool.i"
-%include "util/sexpr.i"
+%include "expr/sexpr.i"
 %include "options/options.i"
 %include "util/statistics.i"
 %include "util/result.i"

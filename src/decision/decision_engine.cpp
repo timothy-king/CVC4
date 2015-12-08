@@ -15,6 +15,7 @@
  **/
 
 #include "base/decision_mode.h"
+#include "decision/decision_attributes.h"
 #include "decision/decision_engine.h"
 #include "decision/justification_heuristic.h"
 #include "decision/options.h"

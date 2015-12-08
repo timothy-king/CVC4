@@ -297,7 +297,7 @@ DecisionWeight JustificationHeuristic::getWeightPolarized(TNode n, bool polarity
 }
 
 DecisionWeight JustificationHeuristic::getWeight(TNode n) {
-  if(!n.hasAttribute(theory::DecisionWeightAttr()) ) {
+  if(!n.hasAttribute(DecisionWeightAttr()) ) {
 
     DecisionWeightInternal combiningFn =
       options::decisionWeightInternal();
@@ -305,7 +305,7 @@ DecisionWeight JustificationHeuristic::getWeight(TNode n) {
     if(combiningFn == DECISION_WEIGHT_INTERNAL_OFF || n.getNumChildren() == 0) {
 
       if(options::decisionRandomWeight() != 0) {
-        n.setAttribute(theory::DecisionWeightAttr(), rand() % options::decisionRandomWeight());
+        n.setAttribute(DecisionWeightAttr(), rand() % options::decisionRandomWeight());
       }
 
     } else if(combiningFn == DECISION_WEIGHT_INTERNAL_MAX) {
@@ -313,21 +313,21 @@ DecisionWeight JustificationHeuristic::getWeight(TNode n) {
       DecisionWeight dW = 0;
       for(TNode::iterator i=n.begin(); i != n.end(); ++i)
         dW = max(dW, getWeight(*i));
-      n.setAttribute(theory::DecisionWeightAttr(), dW);
+      n.setAttribute(DecisionWeightAttr(), dW);
 
     } else if(combiningFn == DECISION_WEIGHT_INTERNAL_SUM ||
               combiningFn == DECISION_WEIGHT_INTERNAL_USR1) {
       DecisionWeight dW = 0;
       for(TNode::iterator i=n.begin(); i != n.end(); ++i)
         dW = max(dW, getWeight(*i));
-      n.setAttribute(theory::DecisionWeightAttr(), dW);
+      n.setAttribute(DecisionWeightAttr(), dW);
 
     } else {
       Unreachable();
     }
 
   }
-  return n.getAttribute(theory::DecisionWeightAttr());
+  return n.getAttribute(DecisionWeightAttr());
 }
 
 typedef vector<TNode> ChildList;

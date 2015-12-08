@@ -21,12 +21,12 @@
 
 #include <vector>
 
-#include "expr/kind.h"
-#include "expr/type.h"
 #include "expr/expr.h"
-#include "util/subrange_bound.h"
+#include "expr/kind.h"
+#include "expr/sexpr.h"
+#include "expr/type.h"
 #include "util/statistics.h"
-#include "util/sexpr.h"
+#include "util/subrange_bound.h"
 
 ${includes}
 

@@ -14,34 +14,30 @@
  ** CVC3 compatibility layer for CVC4.
  **/
 
+#include <algorithm>
+#include <cassert>
+#include <iostream>
+#include <iterator>
+#include <sstream>
+#include <string>
+
 #include "base/bitvector.h"
 #include "base/integer.h"
 #include "base/output.h"
 #include "base/rational.h"
-
 #include "compat/cvc3_compat.h"
-
-#include "expr/kind.h"
 #include "expr/command.h"
-
-#include "util/hash.h"
-#include "util/subrange_bound.h"
-#include "util/predicate.h"
-
-
+#include "expr/kind.h"
+#include "expr/options.h"
+#include "expr/sexpr.h"
+#include "parser/options.h"
 #include "parser/parser.h"
 #include "parser/parser_builder.h"
-
-#include "parser/options.h"
 #include "smt/options.h"
-#include "expr/options.h"
+#include "util/hash.h"
+#include "util/predicate.h"
+#include "util/subrange_bound.h"
 
-#include <iostream>
-#include <string>
-#include <sstream>
-#include <algorithm>
-#include <iterator>
-#include <cassert>
 
 using namespace std;
 
@@ -903,23 +899,23 @@ void CLFlags::setFlag(const std::string& name,
 void ValidityChecker::setUpOptions(CVC4::Options& options, const CLFlags& clflags) {
   // always incremental and model-producing in CVC3 compatibility mode
   // also incrementally-simplifying and interactive
-  d_smt->setOption("incremental", string("true"));
+  d_smt->setOption("incremental", CVC4::SExpr(true));
   // disable this option by default for now, because datatype models
   // are broken [MGD 10/4/2012]
   //d_smt->setOption("produce-models", string("true"));
-  d_smt->setOption("simplification-mode", string("incremental"));
-  d_smt->setOption("interactive-mode", string("true"));// support SmtEngine::getAssertions()
+  d_smt->setOption("simplification-mode", CVC4::SExpr(string("incremental")));
+  d_smt->setOption("interactive-mode", CVC4::SExpr(true));// support SmtEngine::getAssertions()
 
-  d_smt->setOption("statistics", string(clflags["stats"].getBool() ? "true" : "false"));
-  d_smt->setOption("random-seed", int2string(clflags["seed"].getInt()));
-  d_smt->setOption("parse-only", string(clflags["parse-only"].getBool() ? "true" : "false"));
-  d_smt->setOption("input-language", clflags["lang"].getString());
+  d_smt->setOption("statistics", CVC4::SExpr(clflags["stats"].getBool() ? true : false));
+  d_smt->setOption("random-seed", CVC4::SExpr(int2string(clflags["seed"].getInt())));
+  d_smt->setOption("parse-only", CVC4::SExpr(clflags["parse-only"].getBool() ? true : false));
+  d_smt->setOption("input-language", CVC4::SExpr(clflags["lang"].getString()));
   if(clflags["output-lang"].getString() == "") {
     stringstream langss;
     langss << CVC4::language::toOutputLanguage(options[CVC4::options::inputLanguage]);
-    d_smt->setOption("output-language", langss.str());
+    d_smt->setOption("output-language", CVC4::SExpr(langss.str()));
   } else {
-    d_smt->setOption("output-language", clflags["output-lang"].getString());
+    d_smt->setOption("output-language", CVC4::SExpr(clflags["output-lang"].getString()));
   }
 }
 
@@ -2500,8 +2496,8 @@ void ValidityChecker::loadFile(const std::string& fileName,
   CVC4::Options opts = d_em->getOptions();
   stringstream langss;
   langss << lang;
-  d_smt->setOption("input-language", langss.str());
-  d_smt->setOption("interactive-mode", string(interactive ? "true" : "false"));
+  d_smt->setOption("input-language", CVC4::SExpr(langss.str()));
+  d_smt->setOption("interactive-mode", CVC4::SExpr(interactive ? true : false));
   CVC4::parser::ParserBuilder parserBuilder(d_em, fileName, opts);
   CVC4::parser::Parser* p = parserBuilder.build();
   p->useDeclarationsFrom(d_parserContext);
@@ -2515,8 +2511,8 @@ void ValidityChecker::loadFile(std::istream& is,
   CVC4::Options opts = d_em->getOptions();
   stringstream langss;
   langss << lang;
-  d_smt->setOption("input-language", langss.str());
-  d_smt->setOption("interactive-mode", string(interactive ? "true" : "false"));
+  d_smt->setOption("input-language", CVC4::SExpr(langss.str()));
+  d_smt->setOption("interactive-mode", CVC4::SExpr(interactive ? true : false));
   CVC4::parser::ParserBuilder parserBuilder(d_em, "[stream]", opts);
   CVC4::parser::Parser* p = parserBuilder.withStreamInput(is).build();
   d_parserContext = p;

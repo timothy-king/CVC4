@@ -573,7 +573,7 @@ annotation[CVC4::Command*& smt_command]
     annotatedFormulas[pats,pat] '}'
   | attribute[key]
     ( userValue[value]
-      { smt_command = new SetInfoCommand(key.c_str() + 1, value); }
+      { smt_command = new SetInfoCommand(key.c_str() + 1, SExpr(value)); }
     | { smt_command = new EmptyCommand(std::string("annotation: ") + key); }
     )
   ;

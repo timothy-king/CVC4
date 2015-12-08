@@ -50,7 +50,6 @@ extern int optreset;
 #include "base/language.h"
 #include "base/output.h"
 #include "base/tls.h"
-#include "expr/expr.h"
 #include "options/options_handler_interface.h"
 
 ${include_all_option_headers}
@@ -605,14 +604,14 @@ std::vector<std::string> Options::suggestSmtOptions(const std::string& optionNam
   return suggestions;
 }
 
-SExpr Options::getOptions() const throw() {
-  std::vector<SExpr> opts;
+std::vector< std::vector<std::string> > Options::getOptions() const throw() {
+  std::vector< std::vector<std::string> > opts;
 
   ${all_modules_get_options}
 
 #line 614 "${template}"
 
-  return SExpr(opts);
+  return opts;
 }
 
 #undef USE_EARLY_TYPE_CHECKING_BY_DEFAULT

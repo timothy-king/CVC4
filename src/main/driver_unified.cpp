@@ -306,7 +306,7 @@ int runCvc4(int argc, char* argv[], Options& opts) {
       }
 #ifndef PORTFOLIO_BUILD
       if(!opts.wasSetByUser(options::incrementalSolving)) {
-        cmd = new SetOptionCommand("incremental", true);
+        cmd = new SetOptionCommand("incremental", SExpr(true));
         cmd->setMuted(true);
         pExecutor->doCommand(cmd);
         delete cmd;
@@ -353,7 +353,7 @@ int runCvc4(int argc, char* argv[], Options& opts) {
           throw OptionException("--tear-down-incremental incompatible with --incremental");
         }
 
-        cmd = new SetOptionCommand("incremental", false);
+        cmd = new SetOptionCommand("incremental", SExpr(false));
         cmd->setMuted(true);
         pExecutor->doCommand(cmd);
         delete cmd;
@@ -492,7 +492,7 @@ int runCvc4(int argc, char* argv[], Options& opts) {
       delete parser;
     } else {
       if(!opts.wasSetByUser(options::incrementalSolving)) {
-        cmd = new SetOptionCommand("incremental", false);
+        cmd = new SetOptionCommand("incremental", SExpr(false));
         cmd->setMuted(true);
         pExecutor->doCommand(cmd);
         delete cmd;

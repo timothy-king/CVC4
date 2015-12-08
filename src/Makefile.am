@@ -56,6 +56,7 @@ libcvc4_la_SOURCES = \
 	context/stacking_map.h \
 	context/stacking_vector.h \
 	context/cddense_set.h \
+	decision/decision_attributes.h \
 	decision/decision_engine.h \
 	decision/decision_engine.cpp \
 	decision/decision_strategy.h \
@@ -114,7 +115,6 @@ libcvc4_la_SOURCES = \
 	smt/logic_request.h \
 	smt/logic_request.cpp \
 	smt/options_handlers.h \
-	theory/decision_attributes.h \
 	theory/logic_info.h \
 	theory/logic_info.cpp \
 	theory/output_channel.h \
@@ -414,7 +414,6 @@ libcvc4_la_SOURCES = \
 	theory/fp/theory_fp_type_rules.h
 
 nodist_libcvc4_la_SOURCES = \
-	smt/smt_options.cpp \
 	theory/rewriter_tables.h \
 	theory/theory_traits.h \
 	theory/type_enumerator.cpp
@@ -475,7 +474,6 @@ EXTRA_DIST = \
 	cvc4.i \
 	mksubdirs \
 	Makefile.theories \
-	smt/smt_options_template.cpp \
 	smt/logic_exception.i \
 	smt/smt_engine.i \
 	theory/logic_info.i \

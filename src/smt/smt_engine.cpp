@@ -1012,7 +1012,7 @@ void SmtEngine::setDefaults() {
         throw OptionException("pseudoboolean rewrites not supported with unsat cores");
       }
       Notice() << "SmtEngine: turning off pseudoboolean rewrites to support unsat-cores" << endl;
-      setOption("pb-rewrites", false);
+      setOption("pb-rewrites", SExpr(false));
     }
 
     if(options::sortInference()) {
@@ -1044,21 +1044,21 @@ void SmtEngine::setDefaults() {
         throw OptionException("bv-intro-pow2 not supported with unsat cores");
       }
       Notice() << "SmtEngine: turning off bv-introduce-pow2 to support unsat-cores" << endl;
-      setOption("bv-intro-pow2", false);
+      setOption("bv-intro-pow2", SExpr(false));
     }
     if(options::repeatSimp()) {
       if(options::repeatSimp.wasSetByUser()) {
         throw OptionException("repeat-simp not supported with unsat cores");
       }
       Notice() << "SmtEngine: turning off repeat-simp to support unsat-cores" << endl;
-      setOption("repeat-simp", false);
+      setOption("repeat-simp", SExpr(false));
     }
 
   }
 
   if(options::produceAssignments() && !options::produceModels()) {
     Notice() << "SmtEngine: turning on produce-models to support produce-assignments" << endl;
-    setOption("produce-models", SExpr("true"));
+    setOption("produce-models", SExpr(true));
   }
 
   // Set the options for the theoryOf
@@ -1693,41 +1693,41 @@ CVC4::SExpr SmtEngine::getInfo(const std::string& key) const
         i != NodeManager::fromExprManager(d_exprManager)->getStatisticsRegistry()->end();
         ++i) {
       vector<SExpr> v;
-      v.push_back((*i).first);
+      v.push_back(SExpr((*i).first));
       v.push_back((*i).second);
-      stats.push_back(v);
+      stats.push_back(SExpr(v));
     }
     for(StatisticsRegistry::const_iterator i = d_statisticsRegistry->begin();
         i != d_statisticsRegistry->end();
         ++i) {
       vector<SExpr> v;
-      v.push_back((*i).first);
+      v.push_back(SExpr((*i).first));
       v.push_back((*i).second);
-      stats.push_back(v);
+      stats.push_back(SExpr(v));
     }
-    return stats;
+    return SExpr(stats);
   } else if(key == "error-behavior") {
     // immediate-exit | continued-execution
     if( options::continuedExecution() || options::interactive() ) {
-      return SExpr::Keyword("continued-execution");
+      return SExpr(SExpr::Keyword("continued-execution"));
     } else {
-      return SExpr::Keyword("immediate-exit");
+      return SExpr(SExpr::Keyword("immediate-exit"));
     }
   } else if(key == "name") {
-    return Configuration::getName();
+    return SExpr(Configuration::getName());
   } else if(key == "version") {
-    return Configuration::getVersionString();
+    return SExpr(Configuration::getVersionString());
   } else if(key == "authors") {
-    return Configuration::about();
+    return SExpr(Configuration::about());
   } else if(key == "status") {
     // sat | unsat | unknown
     switch(d_status.asSatisfiabilityResult().isSat()) {
     case Result::SAT:
-      return SExpr::Keyword("sat");
+      return SExpr(SExpr::Keyword("sat"));
     case Result::UNSAT:
-      return SExpr::Keyword("unsat");
+      return SExpr(SExpr::Keyword("unsat"));
     default:
-      return SExpr::Keyword("unknown");
+      return SExpr(SExpr::Keyword("unknown"));
     }
   } else if(key == "reason-unknown") {
     if(!d_status.isNull() && d_status.isUnknown()) {
@@ -1735,7 +1735,7 @@ CVC4::SExpr SmtEngine::getInfo(const std::string& key) const
       ss << d_status.whyUnknown();
       string s = ss.str();
       transform(s.begin(), s.end(), s.begin(), ::tolower);
-      return SExpr::Keyword(s);
+      return SExpr(SExpr::Keyword(s));
     } else {
       throw ModalException("Can't get-info :reason-unknown when the "
                            "last result wasn't unknown!");
@@ -1744,7 +1744,8 @@ CVC4::SExpr SmtEngine::getInfo(const std::string& key) const
     return SExpr(d_userLevels.size());
   } else if(key == "all-options") {
     // get the options, like all-statistics
-    return Options::current()->getOptions();
+    std::vector< std::vector<std::string> > current_options = Options::current()->getOptions();
+    return SExpr::parseListOfListOfAtoms(current_options);
   } else {
     throw UnrecognizedOptionException();
   }
@@ -4073,13 +4074,13 @@ CVC4::SExpr SmtEngine::getAssignment() throw(ModalException, UnsafeInterruptExce
     vector<SExpr> v;
     if((*i).getKind() == kind::APPLY) {
       Assert((*i).getNumChildren() == 0);
-      v.push_back(SExpr::Keyword((*i).getOperator().toString()));
+      v.push_back(SExpr(SExpr::Keyword((*i).getOperator().toString())));
     } else {
       Assert((*i).isVar());
-      v.push_back(SExpr::Keyword((*i).toString()));
+      v.push_back(SExpr(SExpr::Keyword((*i).toString())));
     }
-    v.push_back(SExpr::Keyword(resultNode.toString()));
-    sexprs.push_back(v);
+    v.push_back(SExpr(SExpr::Keyword(resultNode.toString())));
+    sexprs.push_back(SExpr(v));
   }
   return SExpr(sexprs);
 }
@@ -4682,6 +4683,100 @@ void SmtEngine::beforeSearch(SmtEngine* smt, const std::string& option) throw(Mo
     ss << "cannot change option `" << option << "' after final initialization (i.e., after logic has been set)";
     throw ModalException(ss.str());
   }
+}
+
+
+void SmtEngine::setOption(const std::string& key, const CVC4::SExpr& value)
+  throw(OptionException, ModalException) {
+
+  NodeManagerScope nms(d_nodeManager);
+
+  Trace("smt") << "SMT setOption(" << key << ", " << value << ")" << endl;
+  if(Dump.isOn("benchmark")) {
+    Dump("benchmark") << SetOptionCommand(key, value);
+  }
+
+  if(key == "command-verbosity") {
+    if(!value.isAtom()) {
+      const vector<SExpr>& cs = value.getChildren();
+      if(cs.size() == 2 &&
+         (cs[0].isKeyword() || cs[0].isString()) &&
+         cs[1].isInteger()) {
+        string c = cs[0].getValue();
+        const Integer& v = cs[1].getIntegerValue();
+        if(v < 0 || v > 2) {
+          throw OptionException("command-verbosity must be 0, 1, or 2");
+        }
+        d_commandVerbosity[c] = v;
+        return;
+      }
+    }
+    throw OptionException("command-verbosity value must be a tuple (command-name, integer)");
+  }
+
+  if(!value.isAtom()) {
+    throw OptionException("bad value for :" + key);
+  }
+
+  string optionarg = value.getValue();
+
+  d_optionsHandler->setOption(key, optionarg);
+}
+
+CVC4::SExpr SmtEngine::getOption(const std::string& key) const
+  throw(OptionException) {
+
+  NodeManagerScope nms(d_nodeManager);
+
+  Trace("smt") << "SMT getOption(" << key << ")" << endl;
+
+  if(key.length() >= 18 &&
+     key.compare(0, 18, "command-verbosity:") == 0) {
+    map<string, Integer>::const_iterator i = d_commandVerbosity.find(key.c_str() + 18);
+    if(i != d_commandVerbosity.end()) {
+      return SExpr((*i).second);
+    }
+    i = d_commandVerbosity.find("*");
+    if(i != d_commandVerbosity.end()) {
+      return SExpr((*i).second);
+    }
+    return SExpr(Integer(2));
+  }
+
+  if(Dump.isOn("benchmark")) {
+    Dump("benchmark") << GetOptionCommand(key);
+  }
+
+  if(key == "command-verbosity") {
+    vector<SExpr> result;
+    SExpr defaultVerbosity;
+    for(map<string, Integer>::const_iterator i = d_commandVerbosity.begin();
+        i != d_commandVerbosity.end();
+        ++i) {
+      vector<SExpr> v;
+      v.push_back(SExpr((*i).first));
+      v.push_back(SExpr((*i).second));
+      if((*i).first == "*") {
+        // put the default at the end of the SExpr
+        defaultVerbosity = SExpr(v);
+      } else {
+        result.push_back(SExpr(v));
+      }
+    }
+    // put the default at the end of the SExpr
+    if(!defaultVerbosity.isAtom()) {
+      result.push_back(defaultVerbosity);
+    } else {
+      // ensure the default is always listed
+      vector<SExpr> v;
+      v.push_back(SExpr("*"));
+      v.push_back(SExpr(Integer(2)));
+      result.push_back(SExpr(v));
+    }
+    return SExpr(result);
+  }
+
+  return SExpr::parseAtom(d_optionsHandler->getOption(key));
 }
 
 }/* CVC4 namespace */

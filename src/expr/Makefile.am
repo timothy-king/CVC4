@@ -6,38 +6,40 @@ AM_CXXFLAGS = -Wall -Wno-unknown-pragmas $(FLAG_VISIBILITY_HIDDEN)
 noinst_LTLIBRARIES = libexpr.la
 
 libexpr_la_SOURCES = \
-	node.h \
-	node.cpp \
-	type_node.h \
-	type_node.cpp \
-	node_builder.h \
-	convenience_node_builders.h \
-	type.h \
-	type.cpp \
-	node_value.h \
-	node_value.cpp \
-	node_manager.h \
-	node_manager.cpp \
-	node_manager_attributes.h \
-	type_checker.h \
-	attribute_unique_id.h \
+	attribute.cpp \
 	attribute.h \
 	attribute_internals.h \
-	attribute.cpp \
-	command.h \
+	attribute_unique_id.h \
 	command.cpp \
-	symbol_table.h \
-	symbol_table.cpp \
+	command.h \
+	convenience_node_builders.h \
 	expr_manager_scope.h \
-	node_self_iterator.h \
-	variable_type_map.h \
-	pickle_data.h \
-	pickle_data.cpp \
-	pickler.h \
-	pickler.cpp \
-	node_self_iterator.h \
 	expr_stream.h \
-	kind_map.h
+	kind_map.h \
+	node.cpp \
+	node.h \
+	node_builder.h \
+	node_manager.cpp \
+	node_manager.h \
+	node_manager_attributes.h \
+	node_self_iterator.h \
+	node_self_iterator.h \
+	node_value.cpp \
+	node_value.h \
+	pickle_data.cpp \
+	pickle_data.h \
+	pickler.cpp \
+	pickler.h \
+	sexpr.cpp \
+	sexpr.h \
+	symbol_table.cpp \
+	symbol_table.h \
+	type.cpp \
+	type.h \
+	type_checker.h \
+	type_node.cpp \
+	type_node.h \
+	variable_type_map.h
 
 nodist_libexpr_la_SOURCES = \
 	kind.h \
@@ -69,6 +71,7 @@ EXTRA_DIST = \
 	type.i \
 	kind.i \
 	expr.i \
+	sexpr.i \
 	variable_type_map.i
 
 BUILT_SOURCES = \

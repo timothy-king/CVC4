@@ -108,7 +108,7 @@ public:
   virtual SExpr getValue() const {
     std::stringstream ss;
     flushInformation(ss);
-    return ss.str();
+    return SExpr(ss.str());
   }
 
 };/* class Stat */
@@ -122,27 +122,27 @@ template <class T>
 inline SExpr mkSExpr(const T& x) {
   std::stringstream ss;
   ss << x;
-  return ss.str();
+  return SExpr(ss.str());
 }
 
 template <>
 inline SExpr mkSExpr(const uint64_t& x) {
-  return Integer(x);
+  return SExpr(Integer(x));
 }
 
 template <>
 inline SExpr mkSExpr(const int64_t& x) {
-  return Integer(x);
+  return SExpr(Integer(x));
 }
 
 template <>
 inline SExpr mkSExpr(const int& x) {
-  return Integer(x);
+  return SExpr(Integer(x));
 }
 
 template <>
 inline SExpr mkSExpr(const Integer& x) {
-  return x;
+  return SExpr(x);
 }
 
 template <>
@@ -150,12 +150,12 @@ inline SExpr mkSExpr(const double& x) {
   // roundabout way to get a Rational from a double
   std::stringstream ss;
   ss << std::fixed << std::setprecision(8) << x;
-  return Rational::fromDecimal(ss.str());
+  return SExpr(Rational::fromDecimal(ss.str()));
 }
 
 template <>
 inline SExpr mkSExpr(const Rational& x) {
-  return x;
+  return SExpr(x);
 }
 
 /**
@@ -632,7 +632,7 @@ public:
     std::vector<SExpr> v;
     for(StatSet::iterator i = d_stats.begin(); i != d_stats.end(); ++i) {
       std::vector<SExpr> w;
-      w.push_back((*i)->getName());
+      w.push_back(SExpr((*i)->getName()));
       w.push_back((*i)->getValue());
       v.push_back(SExpr(w));
     }

@@ -50,6 +50,10 @@ public:
   OptionsHandler();
   virtual ~OptionsHandler() {}
 
+  void setOption(const std::string& key, const std::string& optionarg) throw(OptionException, ModalException);
+
+  std::string getOption(const std::string& key) const throw(OptionException);
+
   // DONE
   // decision/options_handlers.h
   // expr/options_handlers.h

@@ -204,7 +204,7 @@ parseCommand returns [CVC4::Command* cmd = NULL]
         filename = filename.substr(0, filename.length() - 2);
       }
       CommandSequence* seq = new CommandSequence();
-      seq->addCommand(new SetInfoCommand("name", filename));
+      seq->addCommand(new SetInfoCommand("name", SExpr(filename)));
       if(PARSER_STATE->hasConjecture()) {
         seq->addCommand(new QueryCommand(MK_CONST(bool(false))));
       } else {

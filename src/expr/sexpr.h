@@ -26,10 +26,10 @@
 #ifndef __CVC4__SEXPR_H
 #define __CVC4__SEXPR_H
 
-#include <vector>
-#include <string>
 #include <iomanip>
 #include <sstream>
+#include <string>
+#include <vector>
 
 #include "base/integer.h"
 #include "base/rational.h"
@@ -82,7 +82,7 @@ public:
     d_children() {
   }
 
-  SExpr(const CVC4::Integer& value) :
+  explicit SExpr(const CVC4::Integer& value) :
     d_sexprType(SEXPR_INTEGER),
     d_integerValue(value),
     d_rationalValue(0),
@@ -90,7 +90,7 @@ public:
     d_children() {
   }
 
-  SExpr(int value) :
+  explicit SExpr(int value) :
     d_sexprType(SEXPR_INTEGER),
     d_integerValue(value),
     d_rationalValue(0),
@@ -98,7 +98,7 @@ public:
     d_children() {
   }
 
-  SExpr(long int value) :
+  explicit SExpr(long int value) :
     d_sexprType(SEXPR_INTEGER),
     d_integerValue(value),
     d_rationalValue(0),
@@ -106,7 +106,7 @@ public:
     d_children() {
   }
 
-  SExpr(unsigned int value) :
+  explicit SExpr(unsigned int value) :
     d_sexprType(SEXPR_INTEGER),
     d_integerValue(value),
     d_rationalValue(0),
@@ -114,7 +114,7 @@ public:
     d_children() {
   }
 
-  SExpr(unsigned long int value) :
+  explicit SExpr(unsigned long int value) :
     d_sexprType(SEXPR_INTEGER),
     d_integerValue(value),
     d_rationalValue(0),
@@ -122,7 +122,7 @@ public:
     d_children() {
   }
 
-  SExpr(const CVC4::Rational& value) :
+  explicit SExpr(const CVC4::Rational& value) :
     d_sexprType(SEXPR_RATIONAL),
     d_integerValue(0),
     d_rationalValue(value),
@@ -130,7 +130,7 @@ public:
     d_children() {
   }
 
-  SExpr(const std::string& value) :
+  explicit SExpr(const std::string& value) :
     d_sexprType(SEXPR_STRING),
     d_integerValue(0),
     d_rationalValue(0),
@@ -144,7 +144,7 @@ public:
    * Given the other constructors this SExpr("foo") converts to bool.
    * instead of SExpr(string("foo")).
    */
-  SExpr(const char* value) :
+  explicit SExpr(const char* value) :
     d_sexprType(SEXPR_STRING),
     d_integerValue(0),
     d_rationalValue(0),
@@ -156,15 +156,15 @@ public:
    * This adds a convenience wrapper to SExpr to cast from bools.
    * This is internally handled as the strings "true" and "false"
    */
-  SExpr(bool value) :
-    d_sexprType(SEXPR_STRING),
+  explicit SExpr(bool value) :
+    d_sexprType(SEXPR_KEYWORD),
     d_integerValue(0),
     d_rationalValue(0),
     d_stringValue(value ? "true" : "false"),
     d_children() {
   }
 
-  SExpr(const Keyword& value) :
+  explicit SExpr(const Keyword& value) :
     d_sexprType(SEXPR_KEYWORD),
     d_integerValue(0),
     d_rationalValue(0),
@@ -172,7 +172,7 @@ public:
     d_children() {
   }
 
-  SExpr(const std::vector<SExpr>& children) :
+  explicit SExpr(const std::vector<SExpr>& children) :
     d_sexprType(SEXPR_NOT_ATOM),
     d_integerValue(0),
     d_rationalValue(0),
@@ -181,19 +181,30 @@ public:
   }
 
   /** Is this S-expression an atom? */
-  bool isAtom() const;
+  bool isAtom() const {
+    return d_sexprType != SEXPR_NOT_ATOM;
+  }
 
   /** Is this S-expression an integer? */
-  bool isInteger() const;
+  bool isInteger() const {
+    return d_sexprType == SEXPR_INTEGER;
+  }
 
   /** Is this S-expression a rational? */
-  bool isRational() const;
+  bool isRational() const {
+    return d_sexprType == SEXPR_RATIONAL;
+  }
 
   /** Is this S-expression a string? */
-  bool isString() const;
+  bool isString() const {
+    return d_sexprType == SEXPR_STRING;
+  }
 
   /** Is this S-expression a keyword? */
-  bool isKeyword() const;
+  bool isKeyword() const {
+    return d_sexprType == SEXPR_KEYWORD;
+  }
+
 
   /**
    * Get the string value of this S-expression. This will cause an
@@ -225,78 +236,30 @@ public:
   /** Is this S-expression different from another? */
   bool operator!=(const SExpr& s) const;
 
+
+  /**
+   * This returns the best match in the following order:
+   * match atom with
+   *  "true", "false" -> SExpr(value)
+   * | is and integer -> as integer
+   * | is a rational -> as rational
+   * | _ -> SExpr()
+   */
+  static SExpr parseAtom(const std::string& atom);
+
+  /**
+   * Parses a list of atoms.
+   */
+  static SExpr parseListOfAtoms(const std::vector<std::string>& atoms);
+
+  /**
+   * Parses a list of list of atoms.
+   */
+  static SExpr parseListOfListOfAtoms(const std::vector< std::vector<std::string> >& atoms_lists);
+
 };/* class SExpr */
 
-inline bool SExpr::isAtom() const {
-  return d_sexprType != SEXPR_NOT_ATOM;
-}
-
-inline bool SExpr::isInteger() const {
-  return d_sexprType == SEXPR_INTEGER;
-}
-
-inline bool SExpr::isRational() const {
-  return d_sexprType == SEXPR_RATIONAL;
-}
-
-inline bool SExpr::isString() const {
-  return d_sexprType == SEXPR_STRING;
-}
-
-inline bool SExpr::isKeyword() const {
-  return d_sexprType == SEXPR_KEYWORD;
-}
-
-inline std::string SExpr::getValue() const {
-  CheckArgument( isAtom(), this );
-  switch(d_sexprType) {
-  case SEXPR_INTEGER:
-    return d_integerValue.toString();
-  case SEXPR_RATIONAL: {
-    // We choose to represent rationals as decimal strings rather than
-    // "numerator/denominator."  Perhaps an additional SEXPR_DECIMAL
-    // could be added if we need both styles, even if it's backed by
-    // the same Rational object.
-    std::stringstream ss;
-    ss << std::fixed << d_rationalValue.getDouble();
-    return ss.str();
-  }
-  case SEXPR_STRING:
-  case SEXPR_KEYWORD:
-    return d_stringValue;
-  case SEXPR_NOT_ATOM:
-    return std::string();
-  }
-  return std::string();
-}
-
-inline const CVC4::Integer& SExpr::getIntegerValue() const {
-  CheckArgument( isInteger(), this );
-  return d_integerValue;
-}
-
-inline const CVC4::Rational& SExpr::getRationalValue() const {
-  CheckArgument( isRational(), this );
-  return d_rationalValue;
-}
-
-inline const std::vector<SExpr>& SExpr::getChildren() const {
-  CheckArgument( !isAtom(), this );
-  return d_children;
-}
-
-inline bool SExpr::operator==(const SExpr& s) const {
-  return d_sexprType == s.d_sexprType &&
-         d_integerValue == s.d_integerValue &&
-         d_rationalValue == s.d_rationalValue &&
-         d_stringValue == s.d_stringValue &&
-         d_children == s.d_children;
-}
-
-inline bool SExpr::operator!=(const SExpr& s) const {
-  return !(*this == s);
-}
-
+#warning "Remove this"
 std::ostream& operator<<(std::ostream& out, const SExpr& sexpr) CVC4_PUBLIC;
 
 }/* CVC4 namespace */

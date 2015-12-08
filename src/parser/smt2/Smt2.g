@@ -1446,12 +1446,12 @@ simpleSymbolicExprNoKeyword[CVC4::SExpr& sexpr]
   | HEX_LITERAL
     { assert( AntlrInput::tokenText($HEX_LITERAL).find("#x") == 0 );
       std::string hexString = AntlrInput::tokenTextSubstr($HEX_LITERAL, 2);
-      sexpr = Integer(hexString, 16);
+      sexpr = SExpr(Integer(hexString, 16));
     }
   | BINARY_LITERAL
     { assert( AntlrInput::tokenText($BINARY_LITERAL).find("#b") == 0 );
       std::string binString = AntlrInput::tokenTextSubstr($BINARY_LITERAL, 2);
-      sexpr = Integer(binString, 2);
+      sexpr = SExpr(Integer(binString, 2));
     }
   | str[s,false]
     { sexpr = SExpr(s); }

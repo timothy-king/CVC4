@@ -32,8 +32,6 @@ libutil_la_SOURCES = \
 	divisible.cpp \
 	maybe.h \
 	matcher.h \
-	sexpr.h \
-	sexpr.cpp \
 	statistics.h \
 	statistics.cpp \
 	statistics_registry.h \
@@ -94,7 +92,6 @@ libstatistics_la_SOURCES = \
 EXTRA_DIST = \
 	statistics.i \
 	bool.i \
-	sexpr.i \
 	datatype.i \
 	tuple.i \
 	record.i \

@@ -29,12 +29,12 @@
 #include <map>
 
 #include "expr/expr.h"
+#include "expr/sexpr.h"
 #include "expr/type.h"
 #include "expr/variable_type_map.h"
-#include "util/result.h"
-#include "util/sexpr.h"
 #include "util/datatype.h"
 #include "util/proof.h"
+#include "util/result.h"
 #include "util/unsat_core.h"
 
 namespace CVC4 {

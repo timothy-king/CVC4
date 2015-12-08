@@ -1,5 +1,5 @@
 %{
-#include "util/sexpr.h"
+#include "expr/sexpr.h"
 %}
 
 %ignore CVC4::operator<<(std::ostream&, const SExpr&);
@@ -18,4 +18,4 @@
 %rename(equals) CVC4::SExpr::operator==(const SExpr&) const;
 %ignore CVC4::SExpr::operator!=(const SExpr&) const;
 
-%include "util/sexpr.h"
+%include "expr/sexpr.h"
