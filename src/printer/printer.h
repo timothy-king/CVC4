@@ -23,10 +23,10 @@
 #include <string>
 
 #include "base/language.h"
+#include "base/sexpr.h"
 #include "expr/command.h"
 #include "expr/node.h"
 #include "util/model.h"
-#include "util/sexpr.h"
 
 namespace CVC4 {
 

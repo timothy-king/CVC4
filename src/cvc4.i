@@ -49,11 +49,11 @@ using namespace CVC4;
 #include <cassert>
 
 #include "base/exception.h"
+#include "base/sexpr.h"
 #include "expr/command.h"
 #include "expr/expr.h"
 #include "expr/type.h"
 #include "util/datatype.h"
-#include "util/sexpr.h"
 
 #ifdef SWIGJAVA
 #include "bindings/java_stream_adapters.h"

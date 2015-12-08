@@ -32,8 +32,6 @@ libutil_la_SOURCES = \
 	divisible.cpp \
 	maybe.h \
 	matcher.h \
-	sexpr.h \
-	sexpr.cpp \
 	statistics.h \
 	statistics.cpp \
 	statistics_registry.h \

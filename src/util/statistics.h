@@ -20,12 +20,12 @@
 #ifndef __CVC4__STATISTICS_H
 #define __CVC4__STATISTICS_H
 
-#include "util/sexpr.h"
+#include "base/sexpr.h"
 
-#include <string>
+#include <iterator>
 #include <ostream>
 #include <set>
-#include <iterator>
+#include <string>
 #include <utility>
 
 namespace CVC4 {

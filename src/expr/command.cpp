@@ -28,7 +28,7 @@
 #include "smt/options.h"
 #include "smt/smt_engine_scope.h"
 #include "util/dump.h"
-#include "util/sexpr.h"
+#include "base/sexpr.h"
 #include "util/model.h"
 #include "expr/node.h"
 #include "printer/printer.h"

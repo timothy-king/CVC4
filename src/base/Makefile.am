@@ -47,6 +47,8 @@ libbase_la_SOURCES = \
 	printer_modes.h \
 	quantifiers_modes.cpp \
 	quantifiers_modes.h \
+	sexpr.cpp \
+	sexpr.h \
 	simplification_mode.cpp \
 	simplification_mode.h \
 	theoryof_mode.cpp \

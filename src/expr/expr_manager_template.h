@@ -26,7 +26,7 @@
 #include "expr/expr.h"
 #include "util/subrange_bound.h"
 #include "util/statistics.h"
-#include "util/sexpr.h"
+#include "base/sexpr.h"
 
 ${includes}
 

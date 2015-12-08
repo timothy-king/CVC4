@@ -414,7 +414,6 @@ libcvc4_la_SOURCES = \
 	theory/fp/theory_fp_type_rules.h
 
 nodist_libcvc4_la_SOURCES = \
-	smt/smt_options.cpp \
 	theory/rewriter_tables.h \
 	theory/theory_traits.h \
 	theory/type_enumerator.cpp

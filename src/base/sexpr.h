@@ -297,7 +297,8 @@ inline bool SExpr::operator!=(const SExpr& s) const {
   return !(*this == s);
 }
 
-std::ostream& operator<<(std::ostream& out, const SExpr& sexpr) CVC4_PUBLIC;
+#warning "Disabling this now."
+//std::ostream& operator<<(std::ostream& out, const SExpr& sexpr) CVC4_PUBLIC;
 
 }/* CVC4 namespace */
 

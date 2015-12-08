@@ -18,17 +18,16 @@
 #include <vector>
 
 #include "base/cvc4_assert.h"
-#include "expr/expr.h"
-#include "printer/printer.h"
-#include "util/sexpr.h"
+#include "base/sexpr.h"
+//#include "printer/printer.h"
 
 
 
 namespace CVC4 {
 
-std::ostream& operator<<(std::ostream& out, const SExpr& sexpr) {
-  Printer::getPrinter(Expr::setlanguage::getLanguage(out))->toStream(out, sexpr);
-  return out;
-}
+// std::ostream& operator<<(std::ostream& out, const SExpr& sexpr) {
+//   Printer::getPrinter(Expr::setlanguage::getLanguage(out))->toStream(out, sexpr);
+//   return out;
+// }
 
 }/* CVC4 namespace */

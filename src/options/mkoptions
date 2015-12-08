@@ -604,7 +604,7 @@ template <> bool Options::wasSetByUser(options::${internal}__option_t) const { r
     while [ $i -lt ${#smt_links[@]} ]; do
       run_smt_links="$run_smt_links
 #line $lineno \"$kf\"
-    smt_this->setOption(std::string(\"${smt_links[$i]}\"), SExpr(${smt_links[$(($i+1))]}));"
+    handler->setOption(std::string(\"${smt_links[$i]}\"), (${smt_links[$(($i+1))]}));"
       i=$((i+2))
     done
   fi
@@ -738,7 +738,7 @@ template <> options::${internal}__option_t::type runHandlerAndPredicates(options
 #line $lineno \"$kf\"
   if(key == \"$smtname\") {
 #line $lineno \"$kf\"
-    return SExprKeyword(options::$internal() ? \"true\" : \"false\");
+    return (options::$internal() ? \"true\" : \"false\");
   }";;
       int|unsigned|int*_t|uint*_t|unsigned\ long|long|CVC4::Integer)
         all_modules_get_options="${all_modules_get_options:+$all_modules_get_options
@@ -748,7 +748,7 @@ template <> options::${internal}__option_t::type runHandlerAndPredicates(options
 #line $lineno \"$kf\"
   if(key == \"$smtname\") {
 #line $lineno \"$kf\"
-    return SExpr(Integer(options::$internal()));
+    return (Integer(options::$internal()));
   }";;
       float|double)
         all_modules_get_options="${all_modules_get_options:+$all_modules_get_options

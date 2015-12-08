@@ -27,7 +27,6 @@
 #include "base/language.h"
 #include "base/option_exception.h"
 #include "base/tls.h"
-#include "util/sexpr.h"
 
 namespace CVC4 {
 
@@ -55,9 +54,10 @@ class CVC4_PUBLIC Options {
   template <class T>
   void assignBool(T, std::string option, bool value, options::OptionsHandler* handler);
 
+  #warning "These friendships need to go."
   friend class NodeManager;
   friend class NodeManagerScope;
-  friend class SmtEngine;
+  friend class options::OptionsHandler;
 
 public:
 
@@ -151,7 +151,7 @@ public:
   /**
    * Get the setting for all options.
    */
-  SExpr getOptions() const throw();
+  std::vector<std::string> getOptions() const throw();
 
 };/* class Options */
 
