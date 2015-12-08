@@ -50,6 +50,7 @@ public:
   ~SmtOptionsHandler();
 
   // DONE
+  // theory/options_handlers.h
   // printer/options_handlers.h
   // decision/options_handlers.h
   // smt/options_handlers.h
@@ -58,11 +59,10 @@ public:
   // options/base_options_handlers.h
 
   // WORKING ON
-  // theory/options_handlers.h
+  // theory/booleans/options_handlers.h
 
 
   // TODO
-  // theory/booleans/options_handlers.h
   // theory/uf/options_handlers.h
   // theory/bv/options_handlers.h
   // theory/quantifiers/options_handlers.h
@@ -101,14 +101,14 @@ public:
 
 
   // theory/booleans/options_handlers.h
-  virtual theory::booleans::BooleanTermConversionMode stringToBooleanTermConversionMode(std::string option, std::string optarg) throw(OptionException) = 0;
+  virtual theory::booleans::BooleanTermConversionMode stringToBooleanTermConversionMode(std::string option, std::string optarg) throw(OptionException);
 
   // theory/uf/options_handlers.h
   virtual theory::uf::UfssMode stringToUfssMode(std::string option, std::string optarg) throw(OptionException) = 0;
 
   // theory/options_handlers.h
-  virtual theory::TheoryOfMode stringToTheoryOfMode(std::string option, std::string optarg) = 0;
-  virtual void useTheory(std::string option, std::string optarg) = 0;
+  virtual theory::TheoryOfMode stringToTheoryOfMode(std::string option, std::string optarg);
+  virtual void useTheory(std::string option, std::string optarg);
 
 
   // printer/options_handlers.h
@@ -172,6 +172,8 @@ private:
   static const std::string s_dumpHelp;
   static const std::string s_modelFormatHelp;
   static const std::string s_instFormatHelp ;
+  static const std::string s_theoryOfModeHelp;
+  static const std::string s_booleanTermConversionModeHelp;
 
 }; /* class SmtOptionsHandler */
 

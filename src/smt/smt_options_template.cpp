@@ -40,7 +40,7 @@ void SmtEngine::setOption(const std::string& key, const CVC4::SExpr& value)
 
   NodeManagerScope nms(d_nodeManager);
   SmtEngine* const smt_this = this;
-  options::OptionsHandler* const handler = this->d_handler;
+  options::OptionsHandler* const handler = this->d_optionsHandler;
 
   Trace("smt") << "SMT setOption(" << key << ", " << value << ")" << endl;
   if(Dump.isOn("benchmark")) {

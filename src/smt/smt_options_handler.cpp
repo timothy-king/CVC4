@@ -58,9 +58,12 @@
 #include "util/dump.h"
 #include "util/resource_manager.h"
 
+#include "base/theoryof_mode.h"
+#include "expr/metakind.h"
 #include "base/decision_mode.h"
 #include "main/options.h"
 #include "decision/options.h"
+#include "theory/options.h"
 
 namespace CVC4 {
 namespace smt {
@@ -70,6 +73,79 @@ SmtOptionsHandler::SmtOptionsHandler(SmtEngine* smt)
 {}
 
 SmtOptionsHandler::~SmtOptionsHandler(){}
+
+// theory/booleans/options_handlers.h
+const std::string SmtOptionsHandler::s_booleanTermConversionModeHelp = "\
+Boolean term conversion modes currently supported by the\n\
+--boolean-term-conversion-mode option:\n\
+\n\
+bitvectors [default]\n\
++ Boolean terms are converted to bitvectors of size 1.\n\
+\n\
+datatypes\n\
++ Boolean terms are converted to enumerations in the Datatype theory.\n\
+\n\
+native\n\
++ Boolean terms are converted in a \"natural\" way depending on where they\n\
+  are used.  If in a datatype context, they are converted to an enumeration.\n\
+  Elsewhere, they are converted to a bitvector of size 1.\n\
+";
+
+theory::booleans::BooleanTermConversionMode SmtOptionsHandler::stringToBooleanTermConversionMode(std::string option, std::string optarg) throw(OptionException){
+  if(optarg ==  "bitvectors") {
+    return theory::booleans::BOOLEAN_TERM_CONVERT_TO_BITVECTORS;
+  } else if(optarg ==  "datatypes") {
+    return theory::booleans::BOOLEAN_TERM_CONVERT_TO_DATATYPES;
+  } else if(optarg ==  "native") {
+    return theory::booleans::BOOLEAN_TERM_CONVERT_NATIVE;
+  } else if(optarg ==  "help") {
+    puts(s_booleanTermConversionModeHelp.c_str());
+    exit(1);
+  } else {
+    throw OptionException(std::string("unknown option for --boolean-term-conversion-mode: `") +
+                          optarg + "'.  Try --boolean-term-conversion-mode help.");
+  }
+}
+
+// theory/options_handlers.h
+const std::string SmtOptionsHandler::s_theoryOfModeHelp = "\
+TheoryOf modes currently supported by the --theoryof-mode option:\n\
+\n\
+type (default) \n\
++ type variables, constants and equalities by type\n\
+\n\
+term \n\
++ type variables as uninterpreted, equalities by the parametric theory\n\
+";
+
+theory::TheoryOfMode SmtOptionsHandler::stringToTheoryOfMode(std::string option, std::string optarg) {
+  if(optarg == "type") {
+    return theory::THEORY_OF_TYPE_BASED;
+  } else if(optarg == "term") {
+    return theory::THEORY_OF_TERM_BASED;
+  } else if(optarg == "help") {
+    puts(s_theoryOfModeHelp.c_str());
+    exit(1);
+  } else {
+    throw OptionException(std::string("unknown option for --theoryof-mode: `") +
+                          optarg + "'.  Try --theoryof-mode help.");
+  }
+}
+
+void SmtOptionsHandler::useTheory(std::string option, std::string optarg) {
+  if(optarg == "help") {
+    puts(theory::useTheoryHelp);
+    exit(1);
+  }
+  if(theory::useTheoryValidate(optarg)) {
+    std::map<std::string, bool> m = options::theoryAlternates();
+    m[optarg] = true;
+    options::theoryAlternates.set(m);
+  } else {
+    throw OptionException(std::string("unknown option for ") + option + ": `" +
+                          optarg + "'.  Try --use-theory help.");
+  }
+}
 
 
 
