@@ -42,6 +42,7 @@
 #include "parser/parser_builder.h"
 #include "parser/parser_exception.h"
 #include "smt/options.h"
+#include "smt/smt_options_handler.h"
 #include "theory/quantifiers/options.h"
 #include "util/configuration.h"
 #include "util/result.h"
@@ -130,8 +131,11 @@ int runCvc4(int argc, char* argv[], Options& opts) {
 
   progPath = argv[0];
 
+#warning "Check this with Kshitij"
+  smt::SmtOptionsHandler optionsHandler(NULL);
+
   // Parse the options
-  vector<string> filenames = opts.parseOptions(argc, argv);
+  vector<string> filenames = opts.parseOptions(argc, argv, &optionsHandler);
 
 # ifndef PORTFOLIO_BUILD
   if( opts.wasSetByUser(options::threads) ||

@@ -146,7 +146,7 @@ public:
    * The return value is what's left of the command line (that is, the
    * non-option arguments).
    */
-  std::vector<std::string> parseOptions(int argc, char* argv[]) throw(OptionException);
+  std::vector<std::string> parseOptions(int argc, char* argv[], options::OptionsHandler* handler) throw(OptionException);
 
   /**
    * Get the setting for all options.

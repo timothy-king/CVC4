@@ -640,7 +640,7 @@ template <> void runBoolPredicates(options::${internal}__option_t, std::string o
     if [ "$type" = bool ]; then
       all_modules_option_handlers="${all_modules_option_handlers}${cases}
 #line $lineno \"$kf\"
-      assignBool(options::$internal, option, true, NULL);$run_links
+      assignBool(options::$internal, option, true, handler);$run_links
       break;
 "
     elif [ -n "$expect_arg" -a "$internal" != - ]; then
@@ -673,7 +673,7 @@ template <> options::${internal}__option_t::type runHandlerAndPredicates(options
 }"
       all_modules_option_handlers="${all_modules_option_handlers}${cases}
 #line $lineno \"$kf\"
-      assign(options::$internal, option, optionarg, NULL);$run_links
+      assign(options::$internal, option, optionarg, handler);$run_links
       break;
 "
     elif [ -n "$expect_arg" ]; then
@@ -716,7 +716,7 @@ template <> options::${internal}__option_t::type runHandlerAndPredicates(options
     if [ "$type" = bool ]; then
       all_modules_option_handlers="${all_modules_option_handlers}${cases_alternate}
 #line $lineno \"$kf\"
-      assignBool(options::$internal, option, false, NULL);$run_links_alternate
+      assignBool(options::$internal, option, false, handler);$run_links_alternate
       break;
 "
     else

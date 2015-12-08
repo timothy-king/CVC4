@@ -380,11 +380,10 @@ public:
  * The return value is what's left of the command line (that is, the
  * non-option arguments).
  */
-std::vector<std::string> Options::parseOptions(int argc, char* main_argv[]) throw(OptionException) {
+std::vector<std::string> Options::parseOptions(int argc, char* main_argv[], options::OptionsHandler* const handler) throw(OptionException) {
   options::OptionsGuard guard(&s_current, this);
 
   const char *progName = main_argv[0];
-  options::OptionsHandler* const handler = NULL;
 
   Debug("options") << "main_argv == " << main_argv << std::endl;
 

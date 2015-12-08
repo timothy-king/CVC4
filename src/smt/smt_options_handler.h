@@ -44,7 +44,8 @@
 namespace CVC4 {
 namespace smt {
 
-class SmtOptionsHandler : public options::OptionsHandler {
+#warning "Why does this need to be public for driver unified?"
+class CVC4_PUBLIC SmtOptionsHandler : public options::OptionsHandler {
 public:
   SmtOptionsHandler(SmtEngine* smt);
   ~SmtOptionsHandler();
