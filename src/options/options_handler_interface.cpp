@@ -178,9 +178,18 @@ OutputLanguage stringToOutputLanguage(std::string option, std::string optarg, Op
 InputLanguage stringToInputLanguage(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
   return handler->stringToInputLanguage(option, optarg);
 }
-void addTraceTag(std::string option, std::string optarg, OptionsHandler* handler);
-void addDebugTag(std::string option, std::string optarg, OptionsHandler* handler);
-void setPrintSuccess(std::string option, bool value, OptionsHandler* handler);
+
+void addTraceTag(std::string option, std::string optarg, OptionsHandler* handler) {
+  handler->addTraceTag(option, optarg);
+}
+
+void addDebugTag(std::string option, std::string optarg, OptionsHandler* handler) {
+  handler->addDebugTag(option, optarg);
+}
+
+void setPrintSuccess(std::string option, bool value, OptionsHandler* handler) {
+  handler->setPrintSuccess(option, value);
+}
 
 
 /* main/options_handlers.h */
