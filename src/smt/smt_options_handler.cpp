@@ -65,6 +65,11 @@
 #include "decision/options.h"
 #include "theory/options.h"
 
+#include "base/bitblast_mode.h"
+#include "main/options.h"
+#include "theory/bv/options.h"
+
+
 namespace CVC4 {
 namespace smt {
 
@@ -73,6 +78,134 @@ SmtOptionsHandler::SmtOptionsHandler(SmtEngine* smt)
 {}
 
 SmtOptionsHandler::~SmtOptionsHandler(){}
+
+// theory/bv/options_handlers.h
+void SmtOptionsHandler::abcEnabledBuild(std::string option, bool value) throw(OptionException) {
+#ifndef CVC4_USE_ABC
+  if(value) {
+    std::stringstream ss;
+    ss << "option `" << option << "' requires an abc-enabled build of CVC4; this binary was not built with abc support";
+    throw OptionException(ss.str());
+  }
+#endif /* CVC4_USE_ABC */
+}
+
+void SmtOptionsHandler::abcEnabledBuild(std::string option, std::string value) throw(OptionException) {
+#ifndef CVC4_USE_ABC
+  if(!value.empty()) {
+    std::stringstream ss;
+    ss << "option `" << option << "' requires an abc-enabled build of CVC4; this binary was not built with abc support";
+    throw OptionException(ss.str());
+  }
+#endif /* CVC4_USE_ABC */
+}
+
+const std::string SmtOptionsHandler::s_bitblastingModeHelp = "\
+Bit-blasting modes currently supported by the --bitblast option:\n\
+\n\
+lazy (default)\n\
++ Separate boolean structure and term reasoning betwen the core\n\
+  SAT solver and the bv SAT solver\n\
+\n\
+eager\n\
++ Bitblast eagerly to bv SAT solver\n\
+";
+
+theory::bv::BitblastMode SmtOptionsHandler::stringToBitblastMode(std::string option, std::string optarg) throw(OptionException) {
+  if(optarg == "lazy") {
+    if (!options::bitvectorPropagate.wasSetByUser()) {
+      options::bitvectorPropagate.set(true);
+    }
+    if (!options::bitvectorEqualitySolver.wasSetByUser()) {
+      options::bitvectorEqualitySolver.set(true);
+    }
+    if (!options::bitvectorEqualitySlicer.wasSetByUser()) {
+      if (options::incrementalSolving() ||
+          options::produceModels()) {
+        options::bitvectorEqualitySlicer.set(theory::bv::BITVECTOR_SLICER_OFF);
+      } else {
+        options::bitvectorEqualitySlicer.set(theory::bv::BITVECTOR_SLICER_AUTO);
+      }
+    }
+
+    if (!options::bitvectorInequalitySolver.wasSetByUser()) {
+      options::bitvectorInequalitySolver.set(true);
+    }
+    if (!options::bitvectorAlgebraicSolver.wasSetByUser()) {
+      options::bitvectorAlgebraicSolver.set(true);
+    }
+    return theory::bv::BITBLAST_MODE_LAZY;
+  } else if(optarg == "eager") {
+
+    if (options::incrementalSolving() &&
+        options::incrementalSolving.wasSetByUser()) {
+      throw OptionException(std::string("Eager bit-blasting does not currently support incremental mode. \n\
+                                         Try --bitblast=lazy"));
+    }
+    if (!options::bitvectorToBool.wasSetByUser()) {
+      options::bitvectorToBool.set(true);
+    }
+
+    if (!options::bvAbstraction.wasSetByUser() &&
+        !options::skolemizeArguments.wasSetByUser()) {
+      options::bvAbstraction.set(true);
+      options::skolemizeArguments.set(true);
+    }
+    return theory::bv::BITBLAST_MODE_EAGER;
+  } else if(optarg == "help") {
+    puts(s_bitblastingModeHelp.c_str());
+    exit(1);
+  } else {
+    throw OptionException(std::string("unknown option for --bitblast: `") +
+                          optarg + "'.  Try --bitblast=help.");
+  }
+}
+
+const std::string SmtOptionsHandler::s_bvSlicerModeHelp = "\
+Bit-vector equality slicer modes supported by the --bv-eq-slicer option:\n\
+\n\
+auto (default)\n\
++ Turn slicer on if input has only equalities over core symbols\n\
+\n\
+on\n\
++ Turn slicer on\n\
+\n\
+off\n\
++ Turn slicer off\n\
+";
+
+theory::bv::BvSlicerMode SmtOptionsHandler::stringToBvSlicerMode(std::string option, std::string optarg) throw(OptionException) {
+  if(optarg == "auto") {
+    return theory::bv::BITVECTOR_SLICER_AUTO;
+  } else if(optarg == "on") {
+    return theory::bv::BITVECTOR_SLICER_ON;
+  } else if(optarg == "off") {
+    return theory::bv::BITVECTOR_SLICER_OFF;
+  } else if(optarg == "help") {
+    puts(s_bitblastingModeHelp.c_str());
+    exit(1);
+  } else {
+    throw OptionException(std::string("unknown option for --bv-eq-slicer: `") +
+                          optarg + "'.  Try --bv-eq-slicer=help.");
+  }
+}
+
+void SmtOptionsHandler::setBitblastAig(std::string option, bool arg) throw(OptionException) {
+  if(arg) {
+    if(options::bitblastMode.wasSetByUser()) {
+      if(options::bitblastMode() != theory::bv::BITBLAST_MODE_EAGER) {
+        throw OptionException("bitblast-aig must be used with eager bitblaster");
+      }
+    } else {
+      theory::bv::BitblastMode mode = stringToBitblastMode("", "eager");
+      options::bitblastMode.set(mode);
+    }
+    if(!options::bitvectorAigSimplifications.wasSetByUser()) {
+      options::bitvectorAigSimplifications.set("balance;drw");
+    }
+  }
+}
+
 
 // theory/booleans/options_handlers.h
 const std::string SmtOptionsHandler::s_booleanTermConversionModeHelp = "\
@@ -106,6 +239,39 @@ theory::booleans::BooleanTermConversionMode SmtOptionsHandler::stringToBooleanTe
                           optarg + "'.  Try --boolean-term-conversion-mode help.");
   }
 }
+
+// theory/uf/options_handlers.h
+const std::string SmtOptionsHandler::s_ufssModeHelp = "\
+UF strong solver options currently supported by the --uf-ss option:\n\
+\n\
+full \n\
++ Default, use uf strong solver to find minimal models for uninterpreted sorts.\n\
+\n\
+no-minimal \n\
++ Use uf strong solver to shrink model sizes, but do no enforce minimality.\n\
+\n\
+none \n\
++ Do not use uf strong solver to shrink model sizes. \n\
+\n\
+";
+
+theory::uf::UfssMode SmtOptionsHandler::stringToUfssMode(std::string option, std::string optarg) throw(OptionException) {
+  if(optarg ==  "default" || optarg == "full" ) {
+    return theory::uf::UF_SS_FULL;
+  } else if(optarg == "no-minimal") {
+    return theory::uf::UF_SS_NO_MINIMAL;
+  } else if(optarg == "none") {
+    return theory::uf::UF_SS_NONE;
+  } else if(optarg ==  "help") {
+    puts(s_ufssModeHelp.c_str());
+    exit(1);
+  } else {
+    throw OptionException(std::string("unknown option for --uf-ss: `") +
+                          optarg + "'.  Try --uf-ss help.");
+  }
+}
+
+
 
 // theory/options_handlers.h
 const std::string SmtOptionsHandler::s_theoryOfModeHelp = "\

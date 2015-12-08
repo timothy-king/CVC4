@@ -50,6 +50,9 @@ public:
   ~SmtOptionsHandler();
 
   // DONE
+  // theory/bv/options_handlers.h
+  // theory/booleans/options_handlers.h
+  // theory/uf/options_handlers.h
   // theory/options_handlers.h
   // printer/options_handlers.h
   // decision/options_handlers.h
@@ -59,13 +62,9 @@ public:
   // options/base_options_handlers.h
 
   // WORKING ON
-  // theory/booleans/options_handlers.h
-
+  // theory/quantifiers/options_handlers.h
 
   // TODO
-  // theory/uf/options_handlers.h
-  // theory/bv/options_handlers.h
-  // theory/quantifiers/options_handlers.h
   // theory/arith/options_handlers.h
 
 
@@ -93,18 +92,18 @@ public:
   virtual theory::quantifiers::MacrosQuantMode stringToMacrosQuantMode(std::string option, std::string optarg) throw(OptionException) = 0;
 
   // theory/bv/options_handlers.h
-  virtual void abcEnabledBuild(std::string option, bool value) throw(OptionException) = 0;
-  virtual void abcEnabledBuild(std::string option, std::string value) throw(OptionException) = 0;
-  virtual theory::bv::BitblastMode stringToBitblastMode(std::string option, std::string optarg) throw(OptionException) = 0;
-  virtual theory::bv::BvSlicerMode stringToBvSlicerMode(std::string option, std::string optarg) throw(OptionException) = 0;
-  virtual void setBitblastAig(std::string option, bool arg) throw(OptionException) = 0;
+  virtual void abcEnabledBuild(std::string option, bool value) throw(OptionException);
+  virtual void abcEnabledBuild(std::string option, std::string value) throw(OptionException);
+  virtual theory::bv::BitblastMode stringToBitblastMode(std::string option, std::string optarg) throw(OptionException);
+  virtual theory::bv::BvSlicerMode stringToBvSlicerMode(std::string option, std::string optarg) throw(OptionException);
+  virtual void setBitblastAig(std::string option, bool arg) throw(OptionException);
 
 
   // theory/booleans/options_handlers.h
   virtual theory::booleans::BooleanTermConversionMode stringToBooleanTermConversionMode(std::string option, std::string optarg) throw(OptionException);
 
   // theory/uf/options_handlers.h
-  virtual theory::uf::UfssMode stringToUfssMode(std::string option, std::string optarg) throw(OptionException) = 0;
+  virtual theory::uf::UfssMode stringToUfssMode(std::string option, std::string optarg) throw(OptionException);
 
   // theory/options_handlers.h
   virtual theory::TheoryOfMode stringToTheoryOfMode(std::string option, std::string optarg);
@@ -174,6 +173,9 @@ private:
   static const std::string s_instFormatHelp ;
   static const std::string s_theoryOfModeHelp;
   static const std::string s_booleanTermConversionModeHelp;
+  static const std::string s_ufssModeHelp;
+  static const std::string s_bitblastingModeHelp;
+  static const std::string s_bvSlicerModeHelp;
 
 }; /* class SmtOptionsHandler */
 
