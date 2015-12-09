@@ -3,7 +3,7 @@
 # See src/options/base_options for a description of this file format
 #
 
-module ARRAYS "theory/arrays/options.h" Arrays theory
+module ARRAYS "options/arrays_options.h" Arrays theory
 
 option arraysOptimizeLinear --arrays-optimize-linear bool :default true :read-write
  turn on optimization for linear array terms (see de Moura FMCAD 09 arrays paper)

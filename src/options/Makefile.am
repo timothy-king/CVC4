@@ -17,8 +17,8 @@ OPTIONS_FILES_SRCS = \
 	arith_options.h \
 	uf_options.cpp \
 	uf_options.h \
-	../theory/arrays/options.cpp \
-	../theory/arrays/options.h \
+	arrays_options.cpp \
+	arrays_options.h \
 	../theory/quantifiers/options.cpp \
 	../theory/quantifiers/options.h \
 	../theory/strings/options.cpp \
@@ -335,7 +335,7 @@ MANUAL_RM = \
 	../proof/options.lo \
 	../smt/options.lo \
 	arith_options.lo \
-	../theory/arrays/options.lo \
+	arrays_options.lo \
 	booleans_options.lo \
 	builtin_options.lo \
 	bv_options.lo \

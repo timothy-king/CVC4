@@ -64,7 +64,7 @@
 #include "smt_util/command.h"
 #include "options/arith_options.h"
 #include "theory/arith/pseudoboolean_proc.h"
-#include "theory/arrays/options.h"
+#include "options/arrays_options.h"
 #include "theory/booleans/circuit_propagator.h"
 #include "theory/booleans/options.h"
 #include "theory/bv/bvintropow2.h"
