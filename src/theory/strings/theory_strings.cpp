@@ -17,10 +17,10 @@
 #include <cmath>
 
 #include "expr/kind.h"
+#include "options/strings_options.h"
 #include "smt/logic_exception.h"
 #include "smt_util/command.h"
 #include "theory/rewriter.h"
-#include "theory/strings/options.h"
 #include "theory/strings/theory_strings.h"
 #include "theory/strings/theory_strings_rewriter.h"
 #include "theory/strings/type_enumerator.h"

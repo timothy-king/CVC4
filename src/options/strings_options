@@ -3,7 +3,7 @@
 # See src/options/base_options for a description of this file format
 #
 
-module STRINGS "theory/strings/options.h" Strings theory
+module STRINGS "options/strings_options.h" Strings theory
 
 option stringExp strings-exp --strings-exp bool :default false :read-write
  experimental features in the theory of strings

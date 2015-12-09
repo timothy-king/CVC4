@@ -78,7 +78,7 @@
 #include "theory/quantifiers/macros.h"
 #include "options/quantifiers_options.h"
 #include "theory/quantifiers/quantifiers_rewriter.h"
-#include "theory/strings/options.h"
+#include "options/strings_options.h"
 #include "theory/strings/theory_strings.h"
 #include "theory/substitutions.h"
 #include "theory/theory_engine.h"
