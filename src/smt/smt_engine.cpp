@@ -61,7 +61,7 @@
 #include "smt/smt_engine_scope.h"
 #include "smt/smt_options_handler.h"
 #include "smt_util/command.h"
-#include "theory/arith/options.h"
+#include "options/arith_options.h"
 #include "theory/arith/pseudoboolean_proc.h"
 #include "theory/arrays/options.h"
 #include "theory/booleans/circuit_propagator.h"

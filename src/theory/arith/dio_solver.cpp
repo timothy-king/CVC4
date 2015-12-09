@@ -17,8 +17,8 @@
 #include <iostream>
 
 #include "base/output.h"
+#include "options/arith_options.h"
 #include "theory/arith/dio_solver.h"
-#include "theory/arith/options.h"
 
 using namespace std;
 

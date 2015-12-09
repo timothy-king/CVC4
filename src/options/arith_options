@@ -3,7 +3,7 @@
 # See src/options/base_options for a description of this file format
 #
 
-module ARITH "theory/arith/options.h" Arithmetic theory
+module ARITH "options/arith_options.h" Arithmetic theory
 
 option arithUnateLemmaMode --unate-lemmas=MODE ArithUnateLemmaMode :handler CVC4::options::stringToArithUnateLemmaMode :default ALL_PRESOLVE_LEMMAS :handler-include "options/options_handler_interface.h" :include "base/arith_unate_lemma_mode.h"
  determines which lemmas to add before solving (default is 'all', see --unate-lemmas=help)

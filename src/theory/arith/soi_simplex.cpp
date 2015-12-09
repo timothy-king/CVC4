@@ -19,9 +19,9 @@
 #include <algorithm>
 
 #include "base/output.h"
-#include "theory/arith/soi_simplex.h"
-#include "theory/arith/options.h"
+#include "options/arith_options.h"
 #include "theory/arith/constraint.h"
+#include "theory/arith/soi_simplex.h"
 #include "util/statistics_registry.h"
 
 

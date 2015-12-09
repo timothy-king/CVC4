@@ -25,7 +25,7 @@
 #include <unistd.h>
 
 #include "base/language.h"
-#include "expr/command.h"
+#include "smt_util/command.h"
 #include "parser/parser.h"
 #include "parser/parser_builder.h"
 

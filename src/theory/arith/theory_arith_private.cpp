@@ -32,6 +32,7 @@
 #include "expr/metakind.h"
 #include "expr/node.h"
 #include "expr/node_builder.h"
+#include "options/arith_options.h"
 #include "smt/logic_exception.h"
 #include "smt/logic_request.h"
 #include "smt/options.h"  // for incrementalSolving()
@@ -53,7 +54,6 @@
 #include "theory/arith/matrix.h"
 #include "theory/arith/matrix.h"
 #include "theory/arith/normal_form.h"
-#include "theory/arith/options.h"
 #include "theory/arith/partial_model.h"
 #include "theory/arith/partial_model.h"
 #include "theory/arith/simplex.h"

@@ -13,8 +13,8 @@ OPTIONS_FILES_SRCS = \
 	../theory/datatypes/options.h \
 	../theory/builtin/options.cpp \
 	../theory/builtin/options.h \
-	../theory/arith/options.cpp \
-	../theory/arith/options.h \
+	arith_options.cpp \
+	arith_options.h \
 	../theory/uf/options.cpp \
 	../theory/uf/options.h \
 	../theory/arrays/options.cpp \
@@ -334,7 +334,7 @@ MANUAL_RM = \
 	../printer/options.lo \
 	../proof/options.lo \
 	../smt/options.lo \
-	../theory/arith/options.lo \
+	arith_options.lo \
 	../theory/arrays/options.lo \
 	../theory/booleans/options.lo \
 	../theory/builtin/options.lo \
