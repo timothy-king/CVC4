@@ -14,51 +14,37 @@
  ** The theory engine.
  **/
 
-#include <vector>
 #include <list>
-
-#include "theory/arith/arith_ite_utils.h"
+#include <vector>
 
 #include "decision/decision_engine.h"
-
 #include "expr/attribute.h"
 #include "expr/node.h"
 #include "expr/node_builder.h"
+#include "options/bv_options.h"
 #include "options/options.h"
-#include "util/lemma_output_channel.h"
-#include "util/resource_manager.h"
-
+#include "proof/proof_manager.h"
+#include "proof/proof_manager.h"
+#include "smt/logic_exception.h"
+#include "theory/arith/arith_ite_utils.h"
+#include "theory/bv/theory_bv_utils.h"
+#include "theory/ite_utilities.h"
+#include "theory/quantifiers/first_order_model.h"
+#include "theory/quantifiers/model_engine.h"
+#include "theory/quantifiers/options.h"
+#include "theory/quantifiers/theory_quantifiers.h"
+#include "theory/quantifiers_engine.h"
+#include "theory/rewriter.h"
 #include "theory/theory.h"
 #include "theory/theory_engine.h"
-#include "theory/rewriter.h"
-#include "theory/theory_traits.h"
-
-#include "smt/logic_exception.h"
-
-#include "proof/proof_manager.h"
-
-#include "util/node_visitor.h"
-#include "util/ite_removal.h"
-
-//#include "theory/ite_simplifier.h"
-//#include "theory/ite_compressor.h"
-#include "theory/ite_utilities.h"
-#include "theory/unconstrained_simplifier.h"
-
 #include "theory/theory_model.h"
-
-#include "theory/quantifiers_engine.h"
-#include "theory/quantifiers/theory_quantifiers.h"
-#include "theory/quantifiers/options.h"
-#include "theory/quantifiers/model_engine.h"
-#include "theory/quantifiers/first_order_model.h"
-
+#include "theory/theory_traits.h"
 #include "theory/uf/equality_engine.h"
-//#include "theory/rewriterules/efficient_e_matching.h"
-#include "theory/bv/theory_bv_utils.h"
-#include "theory/bv/options.h"
-
-#include "proof/proof_manager.h"
+#include "theory/unconstrained_simplifier.h"
+#include "util/ite_removal.h"
+#include "util/lemma_output_channel.h"
+#include "util/node_visitor.h"
+#include "util/resource_manager.h"
 
 using namespace std;
 

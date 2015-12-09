@@ -21,6 +21,7 @@
 #include "base/output.h"
 #include "expr/expr.h"
 #include "expr/node.h"
+#include "options/bv_options.h"
 #include "proof/proof_manager.h"
 #include "proof/sat_proof.h"
 #include "prop/cnf_stream.h"
@@ -29,7 +30,6 @@
 #include "prop/theory_proxy.h"
 #include "smt/smt_engine_scope.h"
 #include "smt_util/command.h"
-#include "theory/bv/options.h"
 #include "theory/theory.h"
 #include "theory/theory_engine.h"
 

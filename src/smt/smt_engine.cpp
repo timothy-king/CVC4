@@ -68,7 +68,7 @@
 #include "theory/booleans/circuit_propagator.h"
 #include "theory/booleans/options.h"
 #include "theory/bv/bvintropow2.h"
-#include "theory/bv/options.h"
+#include "options/bv_options.h"
 #include "theory/bv/theory_bv_rewriter.h"
 #include "theory/datatypes/options.h"
 #include "theory/logic_info.h"

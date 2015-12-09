@@ -16,11 +16,11 @@
 
 #include "decision/decision_attributes.h"
 #include "decision/options.h"
+#include "options/bv_options.h"
 #include "theory/bv/abstraction.h"
 #include "theory/bv/bitblaster_template.h"
 #include "theory/bv/bv_quick_check.h"
 #include "theory/bv/bv_subtheory_bitblast.h"
-#include "theory/bv/options.h"
 #include "theory/bv/theory_bv.h"
 #include "theory/bv/theory_bv_utils.h"
 

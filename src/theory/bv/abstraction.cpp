@@ -13,10 +13,10 @@
  ** \todo document this file
  **/
 
+#include "options/bv_options.h"
 #include "theory/bv/abstraction.h"
 #include "theory/bv/theory_bv_utils.h"
 #include "theory/rewriter.h"
-#include "theory/bv/options.h"
 #include "util/dump.h"
 
 using namespace CVC4;

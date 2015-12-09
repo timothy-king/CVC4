@@ -7,8 +7,8 @@ OPTIONS_FILES_SRCS = \
 	booleans_options.h \
 	theory_options.cpp \
 	theory_options.h \
-	../theory/bv/options.cpp \
-	../theory/bv/options.h \
+	bv_options.cpp \
+	bv_options.h \
 	../theory/datatypes/options.cpp \
 	../theory/datatypes/options.h \
 	../theory/builtin/options.cpp \
@@ -336,9 +336,9 @@ MANUAL_RM = \
 	../smt/options.lo \
 	arith_options.lo \
 	../theory/arrays/options.lo \
-	../theory/booleans/options.lo \
+	booleans_options.lo \
 	../theory/builtin/options.lo \
-	../theory/bv/options.lo \
+	bv_options.lo \
 	../theory/datatypes/options.lo \
 	../theory/fp/options.lo \
 	../theory/idl/options.lo \

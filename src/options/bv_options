@@ -3,7 +3,7 @@
 # See src/options/base_options for a description of this file format
 #
 
-module BV "theory/bv/options.h" Bitvector theory
+module BV "options/bv_options.h" Bitvector theory
 
 # Option to set the bit-blasting mode (lazy, eager)
 

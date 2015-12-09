@@ -29,7 +29,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "core/Solver.h"
 
 #include "util/utility.h"
-#include "theory/bv/options.h"
+#include "options/bv_options.h"
 #include "smt/options.h"
 #include "theory/interrupted.h"
 

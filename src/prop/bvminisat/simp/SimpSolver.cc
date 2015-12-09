@@ -19,10 +19,10 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 **************************************************************************************************/
 
 #include "mtl/Sort.h"
+#include "options/bv_options.h"
 #include "simp/SimpSolver.h"
-#include "utils/System.h"
-#include "theory/bv/options.h"
 #include "smt/options.h"
+#include "utils/System.h"
 
 namespace CVC4 {
 namespace BVMinisat {

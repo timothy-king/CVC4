@@ -13,22 +13,22 @@
  ** \todo document this file
 **/
 
+#include "options/bv_options.h"
 #include "smt/options.h"
-#include "theory/bv/theory_bv.h"
-#include "theory/bv/theory_bv_utils.h"
-#include "theory/bv/slicer.h"
-#include "theory/valuation.h"
-#include "theory/bv/options.h"
-#include "theory/bv/theory_bv_rewrite_rules_normalization.h"
-#include "theory/bv/theory_bv_rewrite_rules_simplification.h"
-#include "theory/bv/bv_subtheory_core.h"
-#include "theory/bv/bv_subtheory_inequality.h"
+#include "theory/bv/abstraction.h"
+#include "theory/bv/bv_eager_solver.h"
 #include "theory/bv/bv_subtheory_algebraic.h"
 #include "theory/bv/bv_subtheory_bitblast.h"
-#include "theory/bv/bv_eager_solver.h"
+#include "theory/bv/bv_subtheory_core.h"
+#include "theory/bv/bv_subtheory_inequality.h"
+#include "theory/bv/slicer.h"
+#include "theory/bv/theory_bv.h"
+#include "theory/bv/theory_bv_rewrite_rules_normalization.h"
+#include "theory/bv/theory_bv_rewrite_rules_simplification.h"
 #include "theory/bv/theory_bv_rewriter.h"
+#include "theory/bv/theory_bv_utils.h"
 #include "theory/theory_model.h"
-#include "theory/bv/abstraction.h"
+#include "theory/valuation.h"
 
 using namespace CVC4;
 using namespace CVC4::theory;
