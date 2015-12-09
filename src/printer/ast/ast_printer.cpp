@@ -329,14 +329,20 @@ static void toStream(std::ostream& out, const SetBenchmarkLogicCommand* c) throw
   out << "SetBenchmarkLogic(" << c->getLogic() << ")";
 }
 static void toStream(std::ostream& out, const SetInfoCommand* c) throw() {
-  out << "SetInfo(" << c->getFlag() << ", " << c->getSExpr() << ")";
+  out << "SetInfo(" << c->getFlag() << ", ";
+#warning "Check this usage."
+  Printer::getPrinter(Expr::setlanguage::getLanguage(out))->toStream(out,  c->getSExpr());
+  out << ")";
 }
 
 static void toStream(std::ostream& out, const GetInfoCommand* c) throw() {
   out << "GetInfo(" << c->getFlag() << ")";
 }
 static void toStream(std::ostream& out, const SetOptionCommand* c) throw() {
-  out << "SetOption(" << c->getFlag() << ", " << c->getSExpr() << ")";
+  out << "SetOption(" << c->getFlag() << ", ";
+#warning "Check this usage."
+  Printer::getPrinter(Expr::setlanguage::getLanguage(out))->toStream(out,  c->getSExpr());
+  out << ")";
 }
 
 static void toStream(std::ostream& out, const GetOptionCommand* c) throw() {

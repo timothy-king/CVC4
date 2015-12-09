@@ -259,9 +259,6 @@ public:
 
 };/* class SExpr */
 
-#warning "Remove this"
-std::ostream& operator<<(std::ostream& out, const SExpr& sexpr) CVC4_PUBLIC;
-
 }/* CVC4 namespace */
 
 #endif /* __CVC4__SEXPR_H */

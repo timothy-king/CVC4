@@ -25,10 +25,11 @@
 
 namespace CVC4 {
 
-std::ostream& operator<<(std::ostream& out, const SExpr& sexpr) {
-  Printer::getPrinter(Expr::setlanguage::getLanguage(out))->toStream(out, sexpr);
-  return out;
-}
+// std::ostream& operator<<(std::ostream& out, const SExpr& sexpr) {
+// # warning "check here"
+//   Printer::getPrinter(Expr::setlanguage::getLanguage(out))->toStream(out, sexpr);
+//   return out;
+// }
 
 std::string SExpr::getValue() const {
   CheckArgument( isAtom(), this );

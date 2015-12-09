@@ -413,8 +413,8 @@ libcvc4_la_LIBADD = \
 	@builddir@/base/libbase.la \
 	@builddir@/options/liboptions.la \
 	@builddir@/util/libutil.la \
-	@builddir@/smt_util/libsmtutil.la \
 	@builddir@/expr/libexpr.la \
+	@builddir@/smt_util/libsmtutil.la \
 	@builddir@/prop/minisat/libminisat.la \
 	@builddir@/prop/bvminisat/libbvminisat.la
 if CVC4_PROOF

@@ -310,6 +310,7 @@ protected:
   std::string d_output;
 public:
   EchoCommand(std::string output = "") throw();
+  EchoCommand(const SExpr& sexpr) throw();
   ~EchoCommand() throw() {}
   std::string getOutput() const throw();
   void invoke(SmtEngine* smtEngine) throw();

@@ -24,6 +24,7 @@
 #include "util/statistics.h"
 #include "base/exception.h"
 #include "lib/clock_gettime.h"
+#include "printer/printer.h"
 
 #include <sstream>
 #include <iomanip>
@@ -483,7 +484,10 @@ public:
 };/* class AverageStat */
 
 /** A statistic that contains a SExpr. */
-class SExprStat : public BackedStat<SExpr> {
+class SExprStat : public Stat {
+private:
+  SExpr d_data;
+
 public:
 
   /**
@@ -491,8 +495,14 @@ public:
    * initial value.
    */
   SExprStat(const std::string& name, const SExpr& init) :
-    BackedStat<SExpr>(name, init) {
+    Stat(name), d_data(init){}
+
+  virtual void flushInformation(std::ostream& out) const {
+#warning "Check this usage."
+    Printer::getPrinter(Expr::setlanguage::getLanguage(out))->toStream(out, d_data);
+    out << std::endl;
   }
+
 
   SExpr getValue() const {
     return d_data;

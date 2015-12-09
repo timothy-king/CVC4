@@ -995,10 +995,7 @@ smt25Command[CVC4::Command*& cmd]
     /* echo */
   | ECHO_TOK
     ( simpleSymbolicExpr[sexpr]
-      { std::stringstream ss;
-        ss << sexpr;
-        cmd = new EchoCommand(ss.str());
-      }
+      { cmd = new EchoCommand(sexpr); }
     | { cmd = new EchoCommand(); }
     )
 
