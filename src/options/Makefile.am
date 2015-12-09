@@ -5,8 +5,8 @@ OPTIONS_FILES_SRCS = \
 	expr_options.h \
 	booleans_options.cpp \
 	booleans_options.h \
-	../theory/options.cpp \
-	../theory/options.h \
+	theory_options.cpp \
+	theory_options.h \
 	../theory/bv/options.cpp \
 	../theory/bv/options.h \
 	../theory/datatypes/options.cpp \
@@ -348,7 +348,7 @@ MANUAL_RM = \
 	../theory/test_newalttheory/options.lo \
 	../theory/test_newtheory/options.lo \
 	../theory/uf/options.lo \
-	../theory/options.lo
+	theory_options.lo
 
 
 

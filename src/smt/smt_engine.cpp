@@ -72,7 +72,7 @@
 #include "theory/bv/theory_bv_rewriter.h"
 #include "theory/datatypes/options.h"
 #include "theory/logic_info.h"
-#include "theory/options.h"
+#include "options/theory_options.h"
 #include "theory/quantifiers/ce_guided_instantiation.h"
 #include "theory/quantifiers/fun_def_process.h"
 #include "theory/quantifiers/macros.h"
