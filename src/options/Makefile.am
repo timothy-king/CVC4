@@ -11,8 +11,8 @@ OPTIONS_FILES_SRCS = \
 	bv_options.h \
 	datatypes_options.cpp \
 	datatypes_options.h \
-	../theory/builtin/options.cpp \
-	../theory/builtin/options.h \
+	builtin_options.cpp \
+	builtin_options.h \
 	arith_options.cpp \
 	arith_options.h \
 	../theory/uf/options.cpp \
@@ -337,7 +337,7 @@ MANUAL_RM = \
 	arith_options.lo \
 	../theory/arrays/options.lo \
 	booleans_options.lo \
-	../theory/builtin/options.lo \
+	builtin_options.lo \
 	bv_options.lo \
 	datatypes_options.lo \
 	../theory/fp/options.lo \
