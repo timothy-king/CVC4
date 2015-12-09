@@ -12,10 +12,10 @@
  ** \brief Implementation of QuantifiersRewriter class
  **/
 
-#include "theory/quantifiers/quantifiers_rewriter.h"
-#include "theory/quantifiers/options.h"
-#include "theory/quantifiers/term_database.h"
+#include "options/quantifiers_options.h"
 #include "theory/datatypes/datatypes_rewriter.h"
+#include "theory/quantifiers/quantifiers_rewriter.h"
+#include "theory/quantifiers/term_database.h"
 #include "theory/quantifiers/trigger.h"
 
 using namespace std;

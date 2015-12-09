@@ -12,6 +12,7 @@
  ** \brief Implementation of quantifiers engine class
  **/
 
+#include "options/quantifiers_options.h"
 #include "options/uf_options.h"
 #include "theory/arrays/theory_arrays.h"
 #include "theory/datatypes/theory_datatypes.h"
@@ -28,7 +29,6 @@
 #include "theory/quantifiers/instantiation_engine.h"
 #include "theory/quantifiers/local_theory_ext.h"
 #include "theory/quantifiers/model_engine.h"
-#include "theory/quantifiers/options.h"
 #include "theory/quantifiers/quant_conflict_find.h"
 #include "theory/quantifiers/quant_equality_engine.h"
 #include "theory/quantifiers/quantifiers_rewriter.h"

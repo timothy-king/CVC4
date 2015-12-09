@@ -3,7 +3,7 @@
 # See src/options/base_options for a description of this file format
 #
 
-module QUANTIFIERS "theory/quantifiers/options.h" Quantifiers
+module QUANTIFIERS "options/quantifiers_options.h" Quantifiers
 
 #### rewriter options
 

@@ -76,7 +76,7 @@
 #include "theory/quantifiers/ce_guided_instantiation.h"
 #include "theory/quantifiers/fun_def_process.h"
 #include "theory/quantifiers/macros.h"
-#include "theory/quantifiers/options.h"
+#include "options/quantifiers_options.h"
 #include "theory/quantifiers/quantifiers_rewriter.h"
 #include "theory/strings/options.h"
 #include "theory/strings/theory_strings.h"

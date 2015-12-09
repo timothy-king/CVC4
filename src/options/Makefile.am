@@ -19,8 +19,8 @@ OPTIONS_FILES_SRCS = \
 	uf_options.h \
 	arrays_options.cpp \
 	arrays_options.h \
-	../theory/quantifiers/options.cpp \
-	../theory/quantifiers/options.h \
+	quantifiers_options.cpp \
+	quantifiers_options.h \
 	../theory/strings/options.cpp \
 	../theory/strings/options.h \
 	../prop/options.cpp \
@@ -342,7 +342,7 @@ MANUAL_RM = \
 	datatypes_options.lo \
 	../theory/fp/options.lo \
 	../theory/idl/options.lo \
-	../theory/quantifiers/options.lo \
+	quantifiers_options.lo \
 	../theory/sets/options.lo \
 	../theory/strings/options.lo \
 	../theory/test_newalttheory/options.lo \

@@ -12,17 +12,17 @@
  ** \brief Implementation of model engine class
  **/
 
+#include "options/quantifiers_options.h"
+#include "theory/quantifiers/ambqi_builder.h"
+#include "theory/quantifiers/first_order_model.h"
+#include "theory/quantifiers/full_model_check.h"
 #include "theory/quantifiers/model_engine.h"
+#include "theory/quantifiers/quantifiers_attributes.h"
+#include "theory/quantifiers/term_database.h"
 #include "theory/theory_engine.h"
 #include "theory/uf/equality_engine.h"
 #include "theory/uf/theory_uf.h"
 #include "theory/uf/theory_uf_strong_solver.h"
-#include "theory/quantifiers/options.h"
-#include "theory/quantifiers/first_order_model.h"
-#include "theory/quantifiers/term_database.h"
-#include "theory/quantifiers/quantifiers_attributes.h"
-#include "theory/quantifiers/full_model_check.h"
-#include "theory/quantifiers/ambqi_builder.h"
 
 using namespace std;
 using namespace CVC4;
@@ -326,5 +326,3 @@ ModelEngine::Statistics::~Statistics(){
   StatisticsRegistry::unregisterStat(&d_exh_inst_lemmas);
   StatisticsRegistry::unregisterStat(&d_mbqi_inst_lemmas);
 }
-
-

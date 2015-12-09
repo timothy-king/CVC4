@@ -12,8 +12,8 @@
  ** \brief Implementation of QuantifiersAttributes class
  **/
 
+#include "options/quantifiers_options.h"
 #include "theory/quantifiers/quantifiers_attributes.h"
-#include "theory/quantifiers/options.h"
 #include "theory/quantifiers/term_database.h"
 
 using namespace std;

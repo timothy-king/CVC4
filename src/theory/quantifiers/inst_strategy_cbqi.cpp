@@ -12,15 +12,15 @@
  ** \brief Implementation of counterexample-guided quantifier instantiation strategies
  **/
 
-#include "theory/quantifiers/inst_strategy_cbqi.h"
-#include "theory/arith/theory_arith.h"
+#include "options/quantifiers_options.h"
 #include "theory/arith/partial_model.h"
+#include "theory/arith/theory_arith.h"
 #include "theory/arith/theory_arith_private.h"
-#include "theory/theory_engine.h"
-#include "theory/quantifiers/options.h"
-#include "theory/quantifiers/term_database.h"
 #include "theory/quantifiers/first_order_model.h"
+#include "theory/quantifiers/inst_strategy_cbqi.h"
+#include "theory/quantifiers/term_database.h"
 #include "theory/quantifiers/trigger.h"
+#include "theory/theory_engine.h"
 #include "util/ite_removal.h"
 
 using namespace std;

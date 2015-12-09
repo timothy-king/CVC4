@@ -15,9 +15,9 @@
  ** implementations of TheoryUF should inherit from this class.
  **/
 
+#include "options/quantifiers_options.h"
 #include "options/uf_options.h"
 #include "smt/options.h"
-#include "theory/quantifiers/options.h"
 #include "theory/theory_model.h"
 #include "theory/type_enumerator.h"
 #include "theory/uf/theory_uf.h"

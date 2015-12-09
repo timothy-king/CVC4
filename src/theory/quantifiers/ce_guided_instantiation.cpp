@@ -13,12 +13,12 @@
  **
  **/
 
-#include "theory/quantifiers/ce_guided_instantiation.h"
-#include "theory/theory_engine.h"
-#include "theory/quantifiers/options.h"
-#include "theory/quantifiers/term_database.h"
-#include "theory/quantifiers/first_order_model.h"
+#include "options/quantifiers_options.h"
 #include "theory/datatypes/datatypes_rewriter.h"
+#include "theory/quantifiers/ce_guided_instantiation.h"
+#include "theory/quantifiers/first_order_model.h"
+#include "theory/quantifiers/term_database.h"
+#include "theory/theory_engine.h"
 #include "util/datatype.h"
 
 using namespace CVC4;

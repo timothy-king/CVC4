@@ -12,23 +12,23 @@
  ** \brief Implementation of term databse class
  **/
 
-#include "theory/quantifiers/term_database.h"
-#include "theory/quantifiers_engine.h"
-#include "theory/quantifiers/trigger.h"
-#include "theory/theory_engine.h"
-#include "theory/quantifiers/first_order_model.h"
-#include "theory/quantifiers/options.h"
-#include "theory/quantifiers/theory_quantifiers.h"
+#include "options/quantifiers_options.h"
 #include "theory/datatypes/datatypes_rewriter.h"
 #include "theory/quantifiers/ce_guided_instantiation.h"
-#include "theory/quantifiers/rewrite_engine.h"
+#include "theory/quantifiers/first_order_model.h"
 #include "theory/quantifiers/fun_def_engine.h"
+#include "theory/quantifiers/rewrite_engine.h"
+#include "theory/quantifiers/term_database.h"
+#include "theory/quantifiers/theory_quantifiers.h"
+#include "theory/quantifiers/trigger.h"
+#include "theory/quantifiers_engine.h"
+#include "theory/theory_engine.h"
 #include "util/datatype.h"
 
 //for sygus
 #include "base/bitvector.h"
-#include "theory/bv/theory_bv_utils.h"
 #include "smt/smt_engine_scope.h"
+#include "theory/bv/theory_bv_utils.h"
 
 using namespace std;
 using namespace CVC4;
@@ -2807,4 +2807,3 @@ void TermDbSygus::printSygusTerm( std::ostream& out, Node n, std::vector< Node >
     out << n;
   }
 }
-

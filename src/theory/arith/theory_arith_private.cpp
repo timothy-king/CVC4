@@ -61,7 +61,6 @@
 #include "theory/arith/theory_arith_private.h"
 #include "theory/ite_utilities.h"
 #include "theory/quantifiers/bounded_integers.h"
-#include "theory/quantifiers/options.h"
 #include "theory/rewriter.h"
 #include "theory/theory_model.h"
 #include "theory/valuation.h"

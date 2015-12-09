@@ -19,10 +19,10 @@
 
 #include <vector>
 
+#include "options/quantifiers_options.h"
 #include "options/uf_options.h"
 #include "proof/proof_manager.h"
 #include "smt/options.h"
-#include "theory/quantifiers/options.h"
 #include "theory/rewriter.h"
 #include "util/sort_inference.h"
 

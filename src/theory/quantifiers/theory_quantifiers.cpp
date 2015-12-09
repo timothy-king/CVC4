@@ -17,9 +17,9 @@
 
 #include "base/cvc4_assert.h"
 #include "expr/kind.h"
+#include "options/quantifiers_options.h"
 #include "theory/quantifiers/instantiation_engine.h"
 #include "theory/quantifiers/model_engine.h"
-#include "theory/quantifiers/options.h"
 #include "theory/quantifiers/quantifiers_attributes.h"
 #include "theory/quantifiers/term_database.h"
 #include "theory/quantifiers/theory_quantifiers.h"
