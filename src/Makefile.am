@@ -19,7 +19,7 @@ AM_CPPFLAGS = \
 	-I@builddir@ -I@srcdir@/include -I@srcdir@ -I@top_srcdir@/proofs/lfsc_checker
 AM_CXXFLAGS = -Wall -Wno-unknown-pragmas -Wno-parentheses $(FLAG_VISIBILITY_HIDDEN)
 
-SUBDIRS = lib base options expr util prop/minisat prop/bvminisat . parser compat bindings main
+SUBDIRS = lib base options expr util smt_util prop/minisat prop/bvminisat . parser compat bindings main
 # The THEORIES list has been moved to Makefile.theories
 include @top_srcdir@/src/Makefile.theories
 
@@ -62,7 +62,6 @@ libcvc4_la_SOURCES = \
 	decision/decision_strategy.h \
 	decision/justification_heuristic.h \
 	decision/justification_heuristic.cpp \
-	decision/options_handlers.h \
 	printer/printer.h \
 	printer/printer.cpp \
 	printer/dagification_visitor.h \
@@ -77,7 +76,6 @@ libcvc4_la_SOURCES = \
 	printer/cvc/cvc_printer.cpp \
 	printer/tptp/tptp_printer.h \
 	printer/tptp/tptp_printer.cpp \
-	printer/options_handlers.h \
 	proof/proof.h \
 	proof/sat_proof.h \
 	proof/sat_proof.cpp \
@@ -114,9 +112,6 @@ libcvc4_la_SOURCES = \
 	smt/logic_exception.h \
 	smt/logic_request.h \
 	smt/logic_request.cpp \
-	smt/options_handlers.h \
-	smt_util/command.cpp \
-	smt_util/command.h \
 	theory/logic_info.h \
 	theory/logic_info.cpp \
 	theory/output_channel.h \
@@ -151,7 +146,6 @@ libcvc4_la_SOURCES = \
 	theory/rep_set.cpp \
 	theory/atom_requests.h \
 	theory/atom_requests.cpp \
-	theory/options_handlers.h \
 	theory/uf/theory_uf.h \
 	theory/uf/theory_uf.cpp \
 	theory/uf/theory_uf_type_rules.h \
@@ -165,7 +159,6 @@ libcvc4_la_SOURCES = \
 	theory/uf/theory_uf_strong_solver.cpp \
 	theory/uf/theory_uf_model.h \
 	theory/uf/theory_uf_model.cpp \
-	theory/uf/options_handlers.h \
 	theory/bv/theory_bv_utils.h \
 	theory/bv/theory_bv_utils.cpp \
 	theory/bv/type_enumerator.h \
@@ -207,7 +200,6 @@ libcvc4_la_SOURCES = \
 	theory/bv/bv_quick_check.cpp \
 	theory/bv/bv_subtheory_algebraic.h \
 	theory/bv/bv_subtheory_algebraic.cpp \
-	theory/bv/options_handlers.h \
 	theory/bv/bitblast_utils.h \
 	theory/bv/bvintropow2.h \
 	theory/bv/bvintropow2.cpp \
@@ -336,7 +328,6 @@ libcvc4_la_SOURCES = \
 	theory/quantifiers/quant_equality_engine.cpp \
 	theory/quantifiers/ceg_instantiator.h \
 	theory/quantifiers/ceg_instantiator.cpp \
-	theory/quantifiers/options_handlers.h \
 	theory/arith/theory_arith_type_rules.h \
 	theory/arith/type_enumerator.h \
 	theory/arith/arithvar.h \
@@ -399,7 +390,6 @@ libcvc4_la_SOURCES = \
 	theory/arith/pseudoboolean_proc.cpp \
 	theory/arith/cut_log.h \
 	theory/arith/cut_log.cpp \
-	theory/arith/options_handlers.h \
 	theory/booleans/type_enumerator.h \
 	theory/booleans/theory_bool.h \
 	theory/booleans/theory_bool.cpp \
@@ -408,7 +398,6 @@ libcvc4_la_SOURCES = \
 	theory/booleans/theory_bool_rewriter.cpp \
 	theory/booleans/circuit_propagator.h \
 	theory/booleans/circuit_propagator.cpp \
-	theory/booleans/options_handlers.h \
 	theory/fp/theory_fp.h \
 	theory/fp/theory_fp.cpp \
 	theory/fp/theory_fp_rewriter.h \
@@ -424,6 +413,7 @@ libcvc4_la_LIBADD = \
 	@builddir@/base/libbase.la \
 	@builddir@/options/liboptions.la \
 	@builddir@/util/libutil.la \
+	@builddir@/smt_util/libsmtutil.la \
 	@builddir@/expr/libexpr.la \
 	@builddir@/prop/minisat/libminisat.la \
 	@builddir@/prop/bvminisat/libbvminisat.la
@@ -478,7 +468,6 @@ EXTRA_DIST = \
 	mksubdirs \
 	smt/logic_exception.i \
 	smt/smt_engine.i \
-	smt_util/command.i \
 	theory/arith/kinds \
 	theory/arrays/kinds \
 	theory/booleans/kinds \

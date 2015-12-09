@@ -58,7 +58,7 @@ ${include_all_option_headers}
 
 #include "options/options_holder.h"
 #include "cvc4autoconfig.h"
-#include "options/base_options_handlers.h"
+#include "options/base_handlers.h"
 
 ${option_handler_includes}
 

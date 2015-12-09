@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file base_options_handlers.h
+/*! \file base_handlers.h
  ** \verbatim
  ** Original author: Morgan Deters
  ** Major contributors: Kshitij Bansal
@@ -17,8 +17,8 @@
 
 #include "cvc4_private.h"
 
-#ifndef __CVC4__BASE_OPTIONS_HANDLERS_H
-#define __CVC4__BASE_OPTIONS_HANDLERS_H
+#ifndef __CVC4__BASE_HANDLERS_H
+#define __CVC4__BASE_HANDLERS_H
 
 #include <iostream>
 #include <string>
@@ -82,4 +82,4 @@ struct not_equal : public comparator<std::not_equal_to> {
 }/* CVC4::options namespace */
 }/* CVC4 namespace */
 
-#endif /* __CVC4__BASE_OPTIONS_HANDLERS_H */
+#endif /* __CVC4__BASE_HANDLERS_H */

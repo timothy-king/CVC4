@@ -91,7 +91,7 @@ noinst_LTLIBRARIES = liboptions.la
 
 liboptions_la_SOURCES = \
 	options.h \
-	base_options_handlers.h \
+	base_handlers.h \
 	options_handler_interface.h \
 	options_handler_interface.cpp \
 	decision_weight.h

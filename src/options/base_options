@@ -96,7 +96,7 @@ option languageHelp bool
 undocumented-alias --language=L = --lang=L
 undocumented-alias --output-language=L = --output-lang=L
 
-option verbosity verbosity int :read-write :default 0 :predicate CVC4::options::setVerbosity :predicate-include "options/base_options_handlers.h"
+option verbosity verbosity int :read-write :default 0 :predicate CVC4::options::setVerbosity :predicate-include "options/base_handlers.h"
  the verbosity level of CVC4
 common-option - -v --verbose void :handler CVC4::options::increaseVerbosity
  increase verbosity (may be repeated)
