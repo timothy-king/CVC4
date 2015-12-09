@@ -3,8 +3,8 @@ OPTIONS_FILES_SRCS = \
 	base_options.h \
 	expr_options.cpp \
 	expr_options.h \
-	../theory/booleans/options.cpp \
-	../theory/booleans/options.h \
+	booleans_options.cpp \
+	booleans_options.h \
 	../theory/options.cpp \
 	../theory/options.h \
 	../theory/bv/options.cpp \

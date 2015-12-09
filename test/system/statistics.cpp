@@ -21,6 +21,7 @@
 #include "expr/expr.h"
 #include "smt/smt_engine.h"
 #include "util/statistics.h"
+#include "printer/printer.h"
 
 using namespace CVC4;
 using namespace std;
@@ -42,7 +43,10 @@ int main() {
 
   Statistics stats = smt.getStatistics();
   for(Statistics::iterator i = stats.begin(); i != stats.end(); ++i) {
-    cout << "stat " << (*i).first << " is " << (*i).second << endl;
+    cout << "stat " << (*i).first << " is ";
+#warning "Check this usage."
+    Printer::getPrinter(Expr::setlanguage::getLanguage(cout))->toStream(cout, (*i).second);
+    cout << endl;
   }
 
   smt.assertFormula(em.mkExpr(kind::LT, y, em.mkConst(Rational(5))));
@@ -50,10 +54,19 @@ int main() {
   Statistics stats2 = smt.getStatistics();
   bool different = false;
   for(Statistics::iterator i = stats2.begin(); i != stats2.end(); ++i) {
-    cout << "stat1 " << (*i).first << " is " << stats.getStatistic((*i).first) << endl;
-    cout << "stat2 " << (*i).first << " is " << (*i).second << endl;
+    cout << "stat1 " << (*i).first << " is ";
+#warning "Check this usage."
+    Printer::getPrinter(Expr::setlanguage::getLanguage(cout))->toStream(cout, stats.getStatistic((*i).first));
+    cout << endl;
+    cout << "stat2 " << (*i).first << " is ";
+#warning "Check this usage."
+    Printer::getPrinter(Expr::setlanguage::getLanguage(cout))->toStream(cout,(*i).second);
+    cout << endl;
     if(smt.getStatistic((*i).first) != (*i).second) {
-      cout << "SMT engine reports different value for statistic " << (*i).first << ": " << smt.getStatistic((*i).first) << endl;
+      cout << "SMT engine reports different value for statistic " << (*i).first << ": ";
+#warning "Check this usage."
+      Printer::getPrinter(Expr::setlanguage::getLanguage(cout))->toStream(cout, smt.getStatistic((*i).first));
+      cout << endl;
       exit(1);
     }
     different = different || stats.getStatistic((*i).first) != (*i).second;
@@ -68,5 +81,3 @@ int main() {
 
   return r == Result::VALID ? 0 : 1;
 }
-
-

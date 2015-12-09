@@ -51,6 +51,7 @@
 #include "proof/theory_proof.h"
 #include "prop/options.h"
 #include "prop/prop_engine.h"
+#include "options/booleans_options.h"
 #include "options/options_handler_interface.h"
 #include "smt/boolean_terms.h"
 #include "smt/command_list.h"

@@ -26,7 +26,7 @@
 #include "expr/node_manager_attributes.h"
 #include "smt/boolean_terms.h"
 #include "smt/smt_engine.h"
-#include "theory/booleans/options.h"
+#include "options/booleans_options.h"
 #include "theory/theory_engine.h"
 #include "theory/theory_model.h"
 #include "util/ntuple.h"
