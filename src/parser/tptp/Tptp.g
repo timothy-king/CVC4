@@ -83,7 +83,7 @@ using namespace CVC4::parser;
 }/* @lexer::postinclude */
 
 @parser::includes {
-#include "expr/command.h"
+#include "smt_util/command.h"
 #include "parser/parser.h"
 #include "parser/tptp/tptp.h"
 #include "parser/antlr_tracing.h"

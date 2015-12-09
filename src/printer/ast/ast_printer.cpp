@@ -20,11 +20,11 @@
 #include <vector>
 
 #include "base/language.h" // for LANG_AST
-#include "expr/command.h"
 #include "expr/expr.h" // for ExprSetDepth etc..
 #include "expr/node_manager_attributes.h" // for VarNameAttr
 #include "printer/ast/ast_printer.h"
 #include "printer/dagification_visitor.h"
+#include "smt_util/command.h"
 #include "theory/substitutions.h"
 #include "util/node_visitor.h"
 
@@ -398,4 +398,3 @@ static bool tryToStream(std::ostream& out, const CommandStatus* s) throw() {
 }/* CVC4::printer::ast namespace */
 }/* CVC4::printer namespace */
 }/* CVC4 namespace */
-

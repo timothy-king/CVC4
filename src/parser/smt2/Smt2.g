@@ -75,9 +75,9 @@ using namespace CVC4::parser;
 }/* @lexer::postinclude */
 
 @parser::includes {
-#include "expr/command.h"
 #include "parser/parser.h"
 #include "parser/antlr_tracing.h"
+#include "smt_util/command.h"
 
 namespace CVC4 {
   class Expr;

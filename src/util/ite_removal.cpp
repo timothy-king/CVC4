@@ -17,7 +17,7 @@
 #include <vector>
 
 #include "util/ite_removal.h"
-#include "expr/command.h"
+#include "smt_util/command.h"
 #include "theory/ite_utilities.h"
 #include "proof/proof_manager.h"
 

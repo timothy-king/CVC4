@@ -20,10 +20,10 @@
 #include <vector>
 
 #include "base/language.h" // for LANG_AST
-#include "expr/command.h"
 #include "expr/expr.h" // for ExprSetDepth etc..
 #include "expr/node_manager.h" // for VarNameAttr
 #include "printer/smt1/smt1_printer.h"
+#include "smt_util/command.h"
 
 using namespace std;
 
@@ -61,4 +61,3 @@ void Smt1Printer::toStream(std::ostream& out, const Model& m, const Command* c) 
 }/* CVC4::printer::smt1 namespace */
 }/* CVC4::printer namespace */
 }/* CVC4 namespace */
-

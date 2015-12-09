@@ -80,8 +80,6 @@ smt2_tokens.h: @srcdir@/../parser/smt2/Smt2.g
 tptp_tokens.h: @srcdir@/../parser/tptp/Tptp.g
 	$(AM_V_GEN)grep "'[a-zA-Z][a-zA-Z0-9_-][a-zA-Z0-9_-]*'" $^ | sed 's/.*'\''\([a-zA-Z0-9_-]*\)'\''.*/"\1",/' | sort -u >$@
 
-EXTRA_DIST = \
-	options_handlers.h
 
 clean-local:
 	rm -f $(BUILT_SOURCES)

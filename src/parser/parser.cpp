@@ -22,7 +22,6 @@
 #include <cassert>
 
 #include "base/output.h"
-#include "expr/command.h"
 #include "expr/expr.h"
 #include "expr/kind.h"
 #include "expr/type.h"
@@ -31,6 +30,7 @@
 #include "parser/parser.h"
 #include "parser/parser_exception.h"
 #include "smt/options.h"
+#include "smt_util/command.h"
 #include "util/resource_manager.h"
 
 using namespace std;

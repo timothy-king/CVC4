@@ -25,11 +25,11 @@
 
 #include "base/cvc4_assert.h"
 #include "context/cdhashset.h"
-#include "expr/command.h"
 #include "expr/node.h"
 #include "options/options.h"
 #include "prop/prop_engine.h"
 #include "smt/options.h"
+#include "smt_util/command.h"
 #include "theory/atom_requests.h"
 #include "theory/bv/bv_to_bool.h"
 #include "theory/interrupted.h"

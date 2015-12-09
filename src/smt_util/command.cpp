@@ -14,15 +14,14 @@
  ** Implementation of command objects.
  **/
 
+#include <exception>
 #include <iostream>
-#include <vector>
-#include <utility>
 #include <iterator>
 #include <sstream>
-#include <exception>
+#include <utility>
+#include <vector>
 
 #include "base/output.h"
-#include "expr/command.h"
 #include "expr/node.h"
 #include "expr/sexpr.h"
 #include "options/options.h"
@@ -30,6 +29,7 @@
 #include "smt/options.h"
 #include "smt/smt_engine.h"
 #include "smt/smt_engine_scope.h"
+#include "smt_util/command.h"
 #include "util/dump.h"
 #include "util/model.h"
 

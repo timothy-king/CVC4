@@ -13,7 +13,7 @@
  **/
 
 #include "util/model.h"
-#include "expr/command.h"
+#include "smt_util/command.h"
 #include "smt/smt_engine_scope.h"
 #include "smt/command_list.h"
 #include "printer/printer.h"

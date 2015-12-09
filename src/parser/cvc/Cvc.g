@@ -487,10 +487,10 @@ Expr addNots(ExprManager* em, size_t n, Expr e) {
 
 #include <stdint.h>
 #include <cassert>
-#include "expr/command.h"
-#include "parser/parser.h"
-#include "util/subrange_bound.h"
 #include "parser/antlr_tracing.h"
+#include "parser/parser.h"
+#include "smt_util/command.h"
+#include "util/subrange_bound.h"
 
 namespace CVC4 {
   class Expr;

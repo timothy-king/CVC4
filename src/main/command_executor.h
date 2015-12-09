@@ -15,14 +15,16 @@
 #ifndef __CVC4__MAIN__COMMAND_EXECUTOR_H
 #define __CVC4__MAIN__COMMAND_EXECUTOR_H
 
-#include "expr/expr_manager.h"
-#include "smt/smt_engine.h"
-#include "util/statistics_registry.h"
-#include "options/options.h"
-#include "expr/command.h"
-
-#include <string>
 #include <iostream>
+#include <string>
+
+
+#include "expr/expr_manager.h"
+#include "options/options.h"
+#include "smt/smt_engine.h"
+#include "smt_util/command.h"
+#include "util/statistics_registry.h"
+
 
 namespace CVC4 {
 namespace main {

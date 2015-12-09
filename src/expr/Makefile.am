@@ -10,8 +10,6 @@ libexpr_la_SOURCES = \
 	attribute.h \
 	attribute_internals.h \
 	attribute_unique_id.h \
-	command.cpp \
-	command.h \
 	convenience_node_builders.h \
 	expr_manager_scope.h \
 	expr_stream.h \
@@ -60,14 +58,12 @@ EXTRA_DIST = \
 	expr_template.h \
 	expr_template.cpp \
 	type_checker_template.cpp \
-	options_handlers.h \
 	mkkind \
 	mkmetakind \
 	mkexpr \
 	expr_stream.i \
 	expr_manager.i \
 	symbol_table.i \
-	command.i \
 	type.i \
 	kind.i \
 	expr.i \

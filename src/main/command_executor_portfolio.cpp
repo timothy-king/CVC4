@@ -15,23 +15,22 @@
  ** threads.
  **/
 
-#include <boost/thread.hpp>
-#include <boost/thread/condition.hpp>
 #include <boost/exception_ptr.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/thread.hpp>
+#include <boost/thread/condition.hpp>
 #include <string>
 
-#include "expr/command.h"
+#include "cvc4autoconfig.h"
 #include "expr/pickler.h"
 #include "main/command_executor_portfolio.h"
 #include "main/main.h"
 #include "main/options.h"
 #include "main/portfolio.h"
 #include "options/options.h"
-#include "smt/options.h"
 #include "printer/options.h"
-
-#include "cvc4autoconfig.h"
+#include "smt/options.h"
+#include "smt_util/command.h"
 
 #if HAVE_UNISTD_H
 #  include <unistd.h>

@@ -49,10 +49,10 @@ using namespace CVC4;
 #include <cassert>
 
 #include "base/exception.h"
-#include "expr/command.h"
 #include "expr/expr.h"
 #include "expr/sexpr.h"
 #include "expr/type.h"
+#include "smt_util/command.h"
 #include "util/datatype.h"
 
 #ifdef SWIGJAVA
@@ -330,7 +330,6 @@ std::set<JavaInputStreamAdapter*> CVC4::JavaInputStreamAdapter::s_adapters;
 
 %include "expr/kind.i"
 %include "expr/expr.i"
-%include "expr/command.i"
 %include "expr/symbol_table.i"
 %include "expr/expr_manager.i"
 %include "expr/expr_stream.i"
@@ -340,6 +339,8 @@ std::set<JavaInputStreamAdapter*> CVC4::JavaInputStreamAdapter::s_adapters;
 
 %include "smt/smt_engine.i"
 %include "smt/logic_exception.i"
+
+%include "smt_util/command.i"
 
 %include "options/options.i"
 

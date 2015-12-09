@@ -19,7 +19,6 @@
 
 #include "base/cvc4_assert.h"
 #include "base/output.h"
-#include "expr/command.h"
 #include "expr/expr.h"
 #include "expr/node.h"
 #include "proof/proof_manager.h"
@@ -29,6 +28,7 @@
 #include "prop/prop_engine.h"
 #include "prop/theory_proxy.h"
 #include "smt/smt_engine_scope.h"
+#include "smt_util/command.h"
 #include "theory/bv/options.h"
 #include "theory/theory.h"
 #include "theory/theory_engine.h"

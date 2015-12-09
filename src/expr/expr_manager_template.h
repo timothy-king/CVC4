@@ -23,7 +23,6 @@
 
 #include "expr/expr.h"
 #include "expr/kind.h"
-#include "expr/sexpr.h"
 #include "expr/type.h"
 #include "util/statistics.h"
 #include "util/subrange_bound.h"

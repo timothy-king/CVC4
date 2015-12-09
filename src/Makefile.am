@@ -115,6 +115,8 @@ libcvc4_la_SOURCES = \
 	smt/logic_request.h \
 	smt/logic_request.cpp \
 	smt/options_handlers.h \
+	smt_util/command.cpp \
+	smt_util/command.h \
 	theory/logic_info.h \
 	theory/logic_info.cpp \
 	theory/output_channel.h \
@@ -465,39 +467,40 @@ CLEANFILES = \
 	$(top_builddir)/src/.subdirs
 
 EXTRA_DIST = \
+	Makefile.theories \
+	cvc4.i \
+	include/cvc4.h \
+	include/cvc4_private.h \
 	include/cvc4_private_library.h \
+	include/cvc4_public.h \
 	include/cvc4parser_private.h \
 	include/cvc4parser_public.h \
-	include/cvc4_private.h \
-	include/cvc4_public.h \
-	include/cvc4.h \
-	cvc4.i \
 	mksubdirs \
-	Makefile.theories \
 	smt/logic_exception.i \
 	smt/smt_engine.i \
-	theory/logic_info.i \
-	theory/rewriter_tables_template.h \
-	theory/theory_traits_template.h \
-	theory/type_enumerator_template.cpp \
-	theory/mktheorytraits \
-	theory/mkrewriter \
-	theory/uf/kinds \
-	theory/bv/kinds \
-	theory/idl/kinds \
+	smt_util/command.i \
+	theory/arith/kinds \
+	theory/arrays/kinds \
+	theory/booleans/kinds \
 	theory/builtin/kinds \
+	theory/bv/kinds \
 	theory/datatypes/kinds \
+	theory/example/ecdata.cpp \
+	theory/example/ecdata.h \
+	theory/example/theory_uf_tim.cpp \
+	theory/example/theory_uf_tim.h \
+	theory/fp/kinds \
+	theory/idl/kinds \
+	theory/logic_info.i \
+	theory/mkrewriter \
+	theory/mktheorytraits \
+	theory/quantifiers/kinds \
+	theory/rewriter_tables_template.h \
 	theory/sets/kinds \
 	theory/strings/kinds \
-	theory/arrays/kinds \
-	theory/quantifiers/kinds \
-	theory/arith/kinds \
-	theory/booleans/kinds \
-	theory/example/ecdata.h \
-	theory/example/ecdata.cpp \
-	theory/example/theory_uf_tim.h \
-	theory/example/theory_uf_tim.cpp \
-	theory/fp/kinds
+	theory/theory_traits_template.h \
+	theory/type_enumerator_template.cpp \
+	theory/uf/kinds
 
 svn_versioninfo.cpp: svninfo
 	$(AM_V_GEN)( \

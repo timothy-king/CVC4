@@ -18,14 +18,11 @@
 #include <fstream>
 #include <iostream>
 #include <new>
-#include <unistd.h>
-
 #include <stdio.h>
 #include <unistd.h>
 
 #include "base/output.h"
 #include "cvc4autoconfig.h"
-#include "expr/command.h"
 #include "expr/expr_manager.h"
 #include "main/command_executor.h"
 
@@ -43,6 +40,7 @@
 #include "parser/parser_exception.h"
 #include "smt/options.h"
 #include "smt/smt_options_handler.h"
+#include "smt_util/command.h"
 #include "theory/quantifiers/options.h"
 #include "util/configuration.h"
 #include "util/result.h"

@@ -23,13 +23,13 @@
 #include <vector>
 
 #include "base/language.h" // for LANG_AST
-#include "expr/command.h"
 #include "expr/expr.h" // for ExprSetDepth etc..
 #include "expr/node_manager_attributes.h" // for VarNameAttr
 #include "printer/cvc/cvc_printer.h"
 #include "printer/dagification_visitor.h"
 #include "smt/options.h"
 #include "smt/smt_engine.h"
+#include "smt_util/command.h"
 #include "theory/arrays/theory_arrays_rewriter.h"
 #include "theory/substitutions.h"
 #include "theory/theory_model.h"

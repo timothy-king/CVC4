@@ -20,7 +20,7 @@
 #include <vector>
 
 #include "base/language.h" // for LANG_AST
-#include "expr/command.h"
+#include "smt_util/command.h"
 #include "expr/expr.h" // for ExprSetDepth etc..
 #include "expr/node_manager.h" // for VarNameAttr
 #include "printer/tptp/tptp_printer.h"

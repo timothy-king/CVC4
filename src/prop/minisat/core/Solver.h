@@ -25,15 +25,14 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include <iostream>
 
-#include "prop/minisat/mtl/Vec.h"
-#include "prop/minisat/mtl/Heap.h"
-#include "prop/minisat/mtl/Alg.h"
-#include "prop/minisat/utils/Options.h"
-#include "prop/minisat/core/SolverTypes.h"
-
 #include "base/output.h"
 #include "context/context.h"
-#include "expr/command.h"
+#include "prop/minisat/core/SolverTypes.h"
+#include "prop/minisat/mtl/Alg.h"
+#include "prop/minisat/mtl/Heap.h"
+#include "prop/minisat/mtl/Vec.h"
+#include "prop/minisat/utils/Options.h"
+#include "smt_util/command.h"
 #include "theory/theory.h"
 
 

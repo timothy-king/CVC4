@@ -19,20 +19,20 @@
 #ifndef __CVC4__THEORY__THEORY_H
 #define __CVC4__THEORY__THEORY_H
 
-#include <string>
-#include <iostream>
-#include <strings.h>
 #include <ext/hash_set>
+#include <iostream>
+#include <string>
+#include <strings.h>
 
 #include "base/theoryof_mode.h"
 #include "context/cdlist.h"
 #include "context/cdo.h"
 #include "context/context.h"
-#include "expr/command.h"
 #include "expr/node.h"
 #include "lib/ffs.h"
 #include "options/options.h"
 #include "smt/logic_request.h"
+#include "smt_util/command.h"
 #include "theory/logic_info.h"
 #include "theory/options.h"
 #include "theory/output_channel.h"

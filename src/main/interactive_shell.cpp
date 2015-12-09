@@ -37,7 +37,6 @@
 #include "base/language.h"
 #include "base/output.h"
 #include "cvc4autoconfig.h"
-#include "expr/command.h"
 #include "main/interactive_shell.h"
 #include "main/options.h"
 #include "options/options.h"
@@ -45,6 +44,7 @@
 #include "parser/parser.h"
 #include "parser/parser_builder.h"
 #include "smt/options.h"
+#include "smt_util/command.h"
 
 using namespace std;
 
@@ -399,4 +399,3 @@ char* commandGenerator(const char* text, int state) {
 #endif /* HAVE_LIBREADLINE */
 
 }/* CVC4 namespace */
-
