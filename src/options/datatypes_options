@@ -3,7 +3,7 @@
 # See src/options/base_options for a description of this file format
 #
 
-module DATATYPES "theory/datatypes/options.h" Datatypes theory
+module DATATYPES "options/datatypes_options.h" Datatypes theory
 
 # How to handle selectors applied to incorrect constructors.  If this option is set,
 # then we do not rewrite such a selector term to an arbitrary ground term.  

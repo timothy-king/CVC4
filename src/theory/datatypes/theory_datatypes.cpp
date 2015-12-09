@@ -18,10 +18,10 @@
 
 #include "base/cvc4_assert.h"
 #include "expr/kind.h"
+#include "options/datatypes_options.h"
 #include "smt/boolean_terms.h"
 #include "smt/options.h"
 #include "theory/datatypes/datatypes_rewriter.h"
-#include "theory/datatypes/options.h"
 #include "theory/datatypes/theory_datatypes.h"
 #include "theory/datatypes/theory_datatypes_type_rules.h"
 #include "theory/quantifiers/options.h"

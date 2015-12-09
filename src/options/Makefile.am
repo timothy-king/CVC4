@@ -9,8 +9,8 @@ OPTIONS_FILES_SRCS = \
 	theory_options.h \
 	bv_options.cpp \
 	bv_options.h \
-	../theory/datatypes/options.cpp \
-	../theory/datatypes/options.h \
+	datatypes_options.cpp \
+	datatypes_options.h \
 	../theory/builtin/options.cpp \
 	../theory/builtin/options.h \
 	arith_options.cpp \
@@ -339,7 +339,7 @@ MANUAL_RM = \
 	booleans_options.lo \
 	../theory/builtin/options.lo \
 	bv_options.lo \
-	../theory/datatypes/options.lo \
+	datatypes_options.lo \
 	../theory/fp/options.lo \
 	../theory/idl/options.lo \
 	../theory/quantifiers/options.lo \

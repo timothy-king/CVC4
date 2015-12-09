@@ -70,7 +70,7 @@
 #include "theory/bv/bvintropow2.h"
 #include "options/bv_options.h"
 #include "theory/bv/theory_bv_rewriter.h"
-#include "theory/datatypes/options.h"
+#include "options/datatypes_options.h"
 #include "theory/logic_info.h"
 #include "options/theory_options.h"
 #include "theory/quantifiers/ce_guided_instantiation.h"
