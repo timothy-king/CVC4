@@ -33,7 +33,7 @@ ${includes}
 
 #include "base/exception.h"
 #include "base/language.h"
-#include "expr/options.h"
+#include "options/expr_options.h"
 #include "util/hash.h"
 
 // This is a hack, but an important one: if there's an error, the

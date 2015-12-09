@@ -752,7 +752,7 @@ public:
 
 #include "expr/node.h"
 #include "expr/node_manager.h"
-#include "expr/options.h"
+#include "options/expr_options.h"
 
 namespace CVC4 {
 

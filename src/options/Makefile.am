@@ -1,8 +1,8 @@
 OPTIONS_FILES_SRCS = \
 	base_options.cpp \
 	base_options.h \
-	../expr/options.cpp \
-	../expr/options.h \
+	expr_options.cpp \
+	expr_options.h \
 	../theory/booleans/options.cpp \
 	../theory/booleans/options.h \
 	../theory/options.cpp \
