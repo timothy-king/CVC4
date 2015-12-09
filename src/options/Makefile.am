@@ -15,8 +15,8 @@ OPTIONS_FILES_SRCS = \
 	builtin_options.h \
 	arith_options.cpp \
 	arith_options.h \
-	../theory/uf/options.cpp \
-	../theory/uf/options.h \
+	uf_options.cpp \
+	uf_options.h \
 	../theory/arrays/options.cpp \
 	../theory/arrays/options.h \
 	../theory/quantifiers/options.cpp \
@@ -347,7 +347,7 @@ MANUAL_RM = \
 	../theory/strings/options.lo \
 	../theory/test_newalttheory/options.lo \
 	../theory/test_newtheory/options.lo \
-	../theory/uf/options.lo \
+	uf_options.lo \
 	theory_options.lo
 
 

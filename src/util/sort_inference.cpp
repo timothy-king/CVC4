@@ -19,12 +19,12 @@
 
 #include <vector>
 
-#include "util/sort_inference.h"
-#include "theory/uf/options.h"
-#include "smt/options.h"
-#include "theory/rewriter.h"
-#include "theory/quantifiers/options.h"
+#include "options/uf_options.h"
 #include "proof/proof_manager.h"
+#include "smt/options.h"
+#include "theory/quantifiers/options.h"
+#include "theory/rewriter.h"
+#include "util/sort_inference.h"
 
 using namespace CVC4;
 using namespace std;

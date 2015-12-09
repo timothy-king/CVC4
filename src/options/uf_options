@@ -3,7 +3,7 @@
 # See src/options/base_options for a description of this file format
 #
 
-module UF "theory/uf/options.h" Uninterpreted functions theory
+module UF "options/uf_options.h" Uninterpreted functions theory
 
 option ufSymmetryBreaker uf-symmetry-breaker --symmetry-breaker bool :read-write :default true
  use UF symmetry breaker (Deharbe et al., CADE 2011)

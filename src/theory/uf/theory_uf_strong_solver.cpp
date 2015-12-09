@@ -18,7 +18,7 @@
 #include "theory/theory_engine.h"
 #include "theory/quantifiers_engine.h"
 #include "theory/quantifiers/term_database.h"
-#include "theory/uf/options.h"
+#include "options/uf_options.h"
 #include "theory/theory_model.h"
 #include "theory/quantifiers/symmetry_breaking.h"
 
