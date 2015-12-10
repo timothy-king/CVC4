@@ -18,8 +18,8 @@
 #include "decision/decision_attributes.h"
 #include "decision/decision_engine.h"
 #include "decision/justification_heuristic.h"
-#include "decision/options.h"
 #include "expr/node.h"
+#include "options/decision_options.h"
 #include "smt/options.h"
 
 using namespace std;

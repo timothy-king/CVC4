@@ -17,12 +17,11 @@
  ** It needs access to the simplified but non-clausal formula.
  **/
 
-#include "justification_heuristic.h"
-
-#include "expr/node_manager.h"
 #include "expr/kind.h"
+#include "expr/node_manager.h"
+#include "justification_heuristic.h"
+#include "options/decision_options.h"
 #include "theory/rewriter.h"
-#include "decision/options.h"
 #include "util/ite_removal.h"
 
 

@@ -29,10 +29,8 @@ OPTIONS_FILES_SRCS = \
 	proof_options.h \
 	printer_options.cpp \
 	printer_options.h \
-	../smt/options.cpp \
-	../smt/options.h \
-	../decision/options.cpp \
-	../decision/options.h \
+	decision_options.cpp \
+	decision_options.h \
 	../main/options.cpp \
 	../main/options.h \
 	../parser/options.cpp \
@@ -42,7 +40,9 @@ OPTIONS_FILES_SRCS = \
 	../theory/sets/options.cpp \
 	../theory/sets/options.h \
 	../theory/fp/options.cpp \
-	../theory/fp/options.h
+	../theory/fp/options.h \
+	../smt/options.cpp \
+	../smt/options.h
 
 OPTIONS_FILES = \
 	$(patsubst %.cpp,%,$(filter %.cpp,$(OPTIONS_FILES_SRCS)))
@@ -330,7 +330,7 @@ MANUAL_RM = \
 	../main/.deps/options.Plo \
 	../parser/.deps/options.Plo \
 	prop_options.lo \
-	../decision/options.lo \
+	decision_options.lo \
 	printer_options.lo \
 	proof_options.lo \
 	../smt/options.lo \

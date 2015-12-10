@@ -15,7 +15,7 @@
  **/
 
 #include "decision/decision_attributes.h"
-#include "decision/options.h"
+#include "options/decision_options.h"
 #include "options/bv_options.h"
 #include "theory/bv/abstraction.h"
 #include "theory/bv/bitblaster_template.h"

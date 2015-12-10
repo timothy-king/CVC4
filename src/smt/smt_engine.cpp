@@ -34,7 +34,7 @@
 #include "context/cdlist.h"
 #include "context/context.h"
 #include "decision/decision_engine.h"
-#include "decision/options.h"
+#include "options/decision_options.h"
 #include "expr/attribute.h"
 #include "expr/expr.h"
 #include "expr/kind.h"

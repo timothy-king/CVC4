@@ -16,7 +16,7 @@
  ** Implementation of the minisat interface for cvc4.
  **/
 
-#include "decision/options.h"
+#include "options/decision_options.h"
 #include "options/prop_options.h"
 #include "prop/minisat/minisat.h"
 #include "prop/minisat/simp/SimpSolver.h"
