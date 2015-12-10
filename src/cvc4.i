@@ -301,30 +301,15 @@ std::set<JavaInputStreamAdapter*> CVC4::JavaInputStreamAdapter::s_adapters;
 #endif /* SWIGJAVA */
 
 // TIM:
-// At the moment, these four need to come before "expr/expr_manager.i".
-// Don't know why.
+// At the moment, the header includes seem to need to follow a special order.
+// I don't know why. I am following the build order 
+%include "base/exception.i"
+%include "base/modal_exception.i"
+
 %include "util/cardinality.i"
 %include "util/statistics.i"
 %include "util/subrange_bound.i"
-%include "expr/type.i"
-
-%include "base/exception.i"
-%include "base/modal_exception.i"
-%include "expr/expr.i"
-%include "expr/expr_manager.i"
-%include "expr/expr_stream.i"
-%include "expr/kind.i"
-%include "expr/sexpr.i"
-%include "expr/symbol_table.i"
-%include "expr/variable_type_map.i"
-%include "options/language.i"
-%include "options/option_exception.i"
-%include "options/options.i"
-%include "parser/cvc4parser.i"
-%include "smt/logic_exception.i"
-%include "smt/smt_engine.i"
-%include "smt_util/command.i"
-%include "theory/logic_info.i"
+%include "util/result.i"
 %include "util/array.i"
 %include "util/array_store_all.i"
 %include "util/ascription_type.i"
@@ -340,10 +325,32 @@ std::set<JavaInputStreamAdapter*> CVC4::JavaInputStreamAdapter::s_adapters;
 %include "util/record.i"
 %include "util/regexp.i"
 %include "util/resource_manager.i"
-%include "util/result.i"
 %include "util/tuple.i"
 %include "util/uninterpreted_constant.i"
 %include "util/configuration.i"
 %include "util/unsafe_interrupt_exception.i"
 %include "util/unsat_core.i"
 //%include "util/floatingpoint.i"
+
+// TIM:
+// Have these before the rest of expr/.
+// Again, no clue why.
+%include "expr/kind.i"
+%include "expr/type.i"
+
+// TIM:
+// The remainder of the includes:
+%include "expr/expr.i"
+%include "expr/expr_manager.i"
+%include "expr/expr_stream.i"
+%include "expr/sexpr.i"
+%include "expr/symbol_table.i"
+%include "expr/variable_type_map.i"
+%include "options/language.i"
+%include "options/option_exception.i"
+%include "options/options.i"
+%include "parser/cvc4parser.i"
+%include "smt/logic_exception.i"
+%include "smt/smt_engine.i"
+%include "smt_util/command.i"
+%include "theory/logic_info.i"
