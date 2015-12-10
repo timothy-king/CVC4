@@ -43,7 +43,7 @@
 #include "expr/node_builder.h"
 #include "expr/node_self_iterator.h"
 #include "main/options.h"
-#include "printer/options.h"
+#include "options/printer_options.h"
 #include "printer/printer.h"
 #include "proof/proof.h"
 #include "proof/proof_manager.h"

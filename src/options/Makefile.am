@@ -27,8 +27,8 @@ OPTIONS_FILES_SRCS = \
 	prop_options.h \
 	proof_options.cpp \
 	proof_options.h \
-	../printer/options.cpp \
-	../printer/options.h \
+	printer_options.cpp \
+	printer_options.h \
 	../smt/options.cpp \
 	../smt/options.h \
 	../decision/options.cpp \
@@ -331,7 +331,7 @@ MANUAL_RM = \
 	../parser/.deps/options.Plo \
 	prop_options.lo \
 	../decision/options.lo \
-	../printer/options.lo \
+	printer_options.lo \
 	proof_options.lo \
 	../smt/options.lo \
 	arith_options.lo \

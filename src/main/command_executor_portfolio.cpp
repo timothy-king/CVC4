@@ -21,6 +21,10 @@
 #include <boost/thread/condition.hpp>
 #include <string>
 
+#if HAVE_UNISTD_H
+#  include <unistd.h>
+#endif /* HAVE_UNISTD_H */
+
 #include "cvc4autoconfig.h"
 #include "expr/pickler.h"
 #include "main/command_executor_portfolio.h"
@@ -28,13 +32,10 @@
 #include "main/options.h"
 #include "main/portfolio.h"
 #include "options/options.h"
-#include "printer/options.h"
+#include "options/printer_options.h"
 #include "smt/options.h"
 #include "smt_util/command.h"
 
-#if HAVE_UNISTD_H
-#  include <unistd.h>
-#endif /* HAVE_UNISTD_H */
 
 using namespace std;
 
