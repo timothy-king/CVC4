@@ -25,8 +25,8 @@ OPTIONS_FILES_SRCS = \
 	strings_options.h \
 	prop_options.cpp \
 	prop_options.h \
-	../proof/options.cpp \
-	../proof/options.h \
+	proof_options.cpp \
+	proof_options.h \
 	../printer/options.cpp \
 	../printer/options.h \
 	../smt/options.cpp \
@@ -329,10 +329,10 @@ MANUAL_RM = \
 	../expr/.deps/options.Plo \
 	../main/.deps/options.Plo \
 	../parser/.deps/options.Plo \
-	../prop/options.lo \
+	prop_options.lo \
 	../decision/options.lo \
 	../printer/options.lo \
-	../proof/options.lo \
+	proof_options.lo \
 	../smt/options.lo \
 	arith_options.lo \
 	arrays_options.lo \
