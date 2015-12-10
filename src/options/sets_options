@@ -3,7 +3,7 @@
 # See src/options/base_options for a description of this file format
 #
 
-module SETS "theory/sets/options.h" Sets
+module SETS "options/sets_options.h" Sets
 
 option setsPropagate --sets-propagate bool :default true
  determines whether to propagate learnt facts to Theory Engine / SAT solver

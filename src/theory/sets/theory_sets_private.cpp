@@ -16,14 +16,12 @@
 
 #include <boost/foreach.hpp>
 
-#include "theory/theory_model.h"
+#include "options/sets_options.h"
+#include "theory/sets/expr_patterns.h" // ONLY included here
 #include "theory/sets/scrutinize.h"
 #include "theory/sets/theory_sets.h"
 #include "theory/sets/theory_sets_private.h"
-
-#include "theory/sets/options.h"
-#include "theory/sets/expr_patterns.h" // ONLY included here
-
+#include "theory/theory_model.h"
 #include "util/emptyset.h"
 #include "util/result.h"
 
