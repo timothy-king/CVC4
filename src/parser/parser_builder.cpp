@@ -13,15 +13,15 @@
  **
  ** A builder for parsers.
  **/
+#include "parser/parser_builder.h"
 
 #include <string>
 
 #include "expr/expr_manager.h"
 #include "options/parser_options.h"
+#include "options/smt_options.h"
 #include "parser/input.h"
 #include "parser/parser.h"
-#include "parser/parser_builder.h"
-#include "smt/options.h"
 #include "smt1/smt1.h"
 #include "smt2/smt2.h"
 #include "tptp/tptp.h"

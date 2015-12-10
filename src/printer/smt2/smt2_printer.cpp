@@ -17,14 +17,14 @@
 #include "printer/smt2/smt2_printer.h"
 
 #include <iostream>
-#include <vector>
 #include <string>
 #include <typeinfo>
+#include <vector>
 
 #include "base/language.h"
 #include "expr/node_manager_attributes.h"
+#include "options/smt_options.h"
 #include "printer/dagification_visitor.h"
-#include "smt/options.h"
 #include "smt/smt_engine.h"
 #include "theory/arrays/theory_arrays_rewriter.h"
 #include "theory/quantifiers/term_database.h"

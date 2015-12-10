@@ -23,7 +23,7 @@
 #include "base/output.h"
 #include "base/tls.h"
 #include "expr/node_manager.h"
-#include "smt/options.h"
+#include "options/smt_options.h"
 #include "smt/smt_engine.h"
 #include "util/configuration_private.h"
 

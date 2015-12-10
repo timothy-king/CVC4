@@ -15,10 +15,13 @@
  ** \todo document this file
  **/
 
+#include "theory/arith/theory_arith_private.h"
+
 #include <stdint.h>
-#include <vector>
+
 #include <map>
 #include <queue>
+#include <vector>
 
 #include "base/integer.h"
 #include "base/output.h"
@@ -33,9 +36,9 @@
 #include "expr/node.h"
 #include "expr/node_builder.h"
 #include "options/arith_options.h"
+#include "options/smt_options.h"  // for incrementalSolving()
 #include "smt/logic_exception.h"
 #include "smt/logic_request.h"
-#include "smt/options.h"  // for incrementalSolving()
 #include "theory/arith/approx_simplex.h"
 #include "theory/arith/arith_ite_utils.h"
 #include "theory/arith/arith_rewriter.h"
@@ -58,7 +61,6 @@
 #include "theory/arith/partial_model.h"
 #include "theory/arith/simplex.h"
 #include "theory/arith/theory_arith.h"
-#include "theory/arith/theory_arith_private.h"
 #include "theory/ite_utilities.h"
 #include "theory/quantifiers/bounded_integers.h"
 #include "theory/rewriter.h"

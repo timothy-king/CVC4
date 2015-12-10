@@ -18,10 +18,11 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 **************************************************************************************************/
 
+#include "simp/SimpSolver.h"
+
 #include "mtl/Sort.h"
 #include "options/bv_options.h"
-#include "simp/SimpSolver.h"
-#include "smt/options.h"
+#include "options/smt_options.h"
 #include "utils/System.h"
 
 namespace CVC4 {

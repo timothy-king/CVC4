@@ -14,6 +14,8 @@
  ** CVC3 compatibility layer for CVC4.
  **/
 
+#include "compat/cvc3_compat.h"
+
 #include <algorithm>
 #include <cassert>
 #include <iostream>
@@ -25,14 +27,13 @@
 #include "base/integer.h"
 #include "base/output.h"
 #include "base/rational.h"
-#include "compat/cvc3_compat.h"
 #include "expr/kind.h"
 #include "expr/sexpr.h"
 #include "options/expr_options.h"
 #include "options/parser_options.h"
+#include "options/smt_options.h"
 #include "parser/parser.h"
 #include "parser/parser_builder.h"
-#include "smt/options.h"
 #include "smt_util/command.h"
 #include "util/hash.h"
 #include "util/predicate.h"

@@ -15,11 +15,12 @@
  ** \todo document this file
  **/
 
+#include "theory/arith/arith_ite_utils.h"
+
 #include <ostream>
 
 #include "base/output.h"
-#include "smt/options.h"
-#include "theory/arith/arith_ite_utils.h"
+#include "options/smt_options.h"
 #include "theory/arith/arith_utilities.h"
 #include "theory/arith/normal_form.h"
 #include "theory/ite_utilities.h"

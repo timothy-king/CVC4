@@ -1,48 +1,48 @@
 OPTIONS_FILES_SRCS = \
+	arith_options.cpp \
+	arith_options.h \
+	arrays_options.cpp \
+	arrays_options.h \
 	base_options.cpp \
 	base_options.h \
-	expr_options.cpp \
-	expr_options.h \
 	booleans_options.cpp \
 	booleans_options.h \
-	theory_options.cpp \
-	theory_options.h \
+	builtin_options.cpp \
+	builtin_options.h \
 	bv_options.cpp \
 	bv_options.h \
 	datatypes_options.cpp \
 	datatypes_options.h \
-	builtin_options.cpp \
-	builtin_options.h \
-	arith_options.cpp \
-	arith_options.h \
-	uf_options.cpp \
-	uf_options.h \
-	arrays_options.cpp \
-	arrays_options.h \
-	quantifiers_options.cpp \
-	quantifiers_options.h \
-	strings_options.cpp \
-	strings_options.h \
-	prop_options.cpp \
-	prop_options.h \
-	proof_options.cpp \
-	proof_options.h \
-	printer_options.cpp \
-	printer_options.h \
 	decision_options.cpp \
 	decision_options.h \
+	expr_options.cpp \
+	expr_options.h \
+	fp_options.cpp \
+	fp_options.h \
+	idl_options.cpp \
+	idl_options.h \
 	main_options.cpp \
 	main_options.h \
 	parser_options.cpp \
 	parser_options.h \
-	idl_options.cpp \
-	idl_options.h \
+	printer_options.cpp \
+	printer_options.h \
+	proof_options.cpp \
+	proof_options.h \
+	prop_options.cpp \
+	prop_options.h \
+	quantifiers_options.cpp \
+	quantifiers_options.h \
 	sets_options.cpp \
 	sets_options.h \
-	fp_options.cpp \
-	fp_options.h \
-	../smt/options.cpp \
-	../smt/options.h
+	smt_options.cpp \
+	smt_options.h \
+	strings_options.cpp \
+	strings_options.h \
+	theory_options.cpp \
+	theory_options.h \
+	uf_options.cpp \
+	uf_options.h
 
 OPTIONS_FILES = \
 	$(patsubst %.cpp,%,$(filter %.cpp,$(OPTIONS_FILES_SRCS)))
@@ -353,7 +353,7 @@ MANUAL_RM = \
 	decision_options.lo \
 	printer_options.lo \
 	proof_options.lo \
-	../smt/options.lo \
+	smt_options.lo \
 	arith_options.lo \
 	arrays_options.lo \
 	booleans_options.lo \

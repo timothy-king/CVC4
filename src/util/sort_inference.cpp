@@ -17,16 +17,16 @@
  ** maintains necessary information regarding constraints on these types.
  **/
 
+#include "util/sort_inference.h"
+
 #include <vector>
 
 #include "options/quantifiers_options.h"
+#include "options/smt_options.h"
 #include "options/uf_options.h"
 #include "proof/proof_manager.h"
-#include "smt/options.h"
 #include "theory/rewriter.h"
-#include "util/sort_inference.h"
 
-using namespace CVC4;
 using namespace std;
 
 namespace CVC4 {
@@ -40,6 +40,7 @@ void SortInference::UnionFind::print(const char * c){
   }
   Trace(c) << std::endl;
 }
+
 void SortInference::UnionFind::set( UnionFind& c ) {
   clear();
   for( std::map< int, int >::iterator it = c.d_eqc.begin(); it != c.d_eqc.end(); ++it ){
@@ -47,6 +48,7 @@ void SortInference::UnionFind::set( UnionFind& c ) {
   }
   d_deq.insert( d_deq.end(), c.d_deq.begin(), c.d_deq.end() );
 }
+
 int SortInference::UnionFind::getRepresentative( int t ){
   std::map< int, int >::iterator it = d_eqc.find( t );
   if( it==d_eqc.end() || it->second==t ){
@@ -57,6 +59,7 @@ int SortInference::UnionFind::getRepresentative( int t ){
     return rt;
   }
 }
+
 void SortInference::UnionFind::setEqual( int t1, int t2 ){
   if( t1!=t2 ){
     int rt1 = getRepresentative( t1 );
@@ -68,6 +71,7 @@ void SortInference::UnionFind::setEqual( int t1, int t2 ){
     }
   }
 }
+
 bool SortInference::UnionFind::isValid() {
   for( unsigned i=0; i<d_deq.size(); i++ ){
     if( areEqual( d_deq[i].first, d_deq[i].second ) ){

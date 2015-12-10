@@ -12,18 +12,19 @@
  ** \brief An additional layer between commands and invoking them.
  **/
 
-#include <iostream>
-#include <string>
+#include "main/command_executor.h"
 
 #ifndef __WIN32__
 #  include <sys/resource.h>
 #endif /* ! __WIN32__ */
 
-#include "main/command_executor.h"
+#include <iostream>
+#include <string>
+
 #include "main/main.h"
 #include "options/main_options.h"
 #include "options/printer_options.h"
-#include "smt/options.h"
+#include "options/smt_options.h"
 #include "smt_util/command.h"
 
 

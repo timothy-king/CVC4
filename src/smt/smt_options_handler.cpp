@@ -14,6 +14,8 @@
  ** Interface for custom handlers and predicates options.
  **/
 
+#include "smt/smt_options_handler.h"
+
 #include <cerrno>
 #include <cstring>
 #include <ostream>
@@ -45,11 +47,10 @@
 #include "options/decision_options.h"
 #include "options/main_options.h"
 #include "options/options_handler_interface.h"
-#include "options/theory_options.h"
 #include "options/parser_options.h"
-#include "smt/options.h"
+#include "options/smt_options.h"
+#include "options/theory_options.h"
 #include "smt/smt_engine.h"
-#include "smt/smt_options_handler.h"
 #include "smt_util/command.h"
 #include "theory/logic_info.h"
 #include "util/configuration.h"

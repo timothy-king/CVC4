@@ -14,22 +14,24 @@
  ** Parser state implementation.
  **/
 
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <iterator>
+#include "parser/parser.h"
+
 #include <stdint.h>
+
 #include <cassert>
+#include <fstream>
+#include <iostream>
+#include <iterator>
+#include <sstream>
 
 #include "base/output.h"
 #include "expr/expr.h"
 #include "expr/kind.h"
 #include "expr/type.h"
 #include "options/options.h"
+#include "options/smt_options.h"
 #include "parser/input.h"
-#include "parser/parser.h"
 #include "parser/parser_exception.h"
-#include "smt/options.h"
 #include "smt_util/command.h"
 #include "util/resource_manager.h"
 

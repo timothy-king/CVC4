@@ -13,6 +13,7 @@
  **
  ** Implementation of the theory of datatypes.
  **/
+#include "theory/datatypes/theory_datatypes.h"
 
 #include <map>
 
@@ -20,10 +21,9 @@
 #include "expr/kind.h"
 #include "options/datatypes_options.h"
 #include "options/quantifiers_options.h"
+#include "options/smt_options.h"
 #include "smt/boolean_terms.h"
-#include "smt/options.h"
 #include "theory/datatypes/datatypes_rewriter.h"
-#include "theory/datatypes/theory_datatypes.h"
 #include "theory/datatypes/theory_datatypes_type_rules.h"
 #include "theory/quantifiers_engine.h"
 #include "theory/theory_model.h"

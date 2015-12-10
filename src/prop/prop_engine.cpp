@@ -14,9 +14,11 @@
  ** Implementation of the propositional engine of CVC4.
  **/
 
-#include <utility>
-#include <map>
+#include "prop/prop_engine.h"
+
 #include <iomanip>
+#include <map>
+#include <utility>
 
 #include "base/cvc4_assert.h"
 #include "base/output.h"
@@ -25,14 +27,13 @@
 #include "options/decision_options.h"
 #include "options/main_options.h"
 #include "options/options.h"
+#include "options/smt_options.h"
 #include "proof/proof_manager.h"
 #include "proof/proof_manager.h"
 #include "prop/cnf_stream.h"
-#include "prop/prop_engine.h"
 #include "prop/sat_solver.h"
 #include "prop/sat_solver_factory.h"
 #include "prop/theory_proxy.h"
-#include "smt/options.h"
 #include "smt_util/command.h"
 #include "theory/theory_engine.h"
 #include "theory/theory_registrar.h"

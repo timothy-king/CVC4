@@ -12,7 +12,7 @@
  ** \brief Forward declaration of LemmaInputChannel.
  **
  ** This forward declaration of LemmaInputChannel is needed for the option
- ** lemmaInputChannel (defined in smt/options) can be a LemmaInputChannel*
+ ** lemmaInputChannel (defined in smt_options) can be a LemmaInputChannel*
  ** without including expr.h.
  **/
 

@@ -3,7 +3,7 @@
 # See src/options/base_options for a description of this file format
 #
 
-module SMT "smt/options.h" SMT layer
+module SMT "options/smt_options.h" SMT layer
 
 common-option - dump --dump=MODE argument :handler CVC4::options::dumpMode :handler-include "options/options_handler_interface.h"
  dump preprocessed assertions, etc., see --dump=help

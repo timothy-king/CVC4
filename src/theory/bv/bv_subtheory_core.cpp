@@ -14,9 +14,10 @@
  ** Algebraic solver.
  **/
 
-#include "options/bv_options.h"
-#include "smt/options.h"
 #include "theory/bv/bv_subtheory_core.h"
+
+#include "options/bv_options.h"
+#include "options/smt_options.h"
 #include "theory/bv/slicer.h"
 #include "theory/bv/theory_bv.h"
 #include "theory/bv/theory_bv_utils.h"

@@ -14,6 +14,8 @@
  ** Implementation of command objects.
  **/
 
+#include "smt_util/command.h"
+
 #include <exception>
 #include <iostream>
 #include <iterator>
@@ -25,11 +27,10 @@
 #include "expr/node.h"
 #include "expr/sexpr.h"
 #include "options/options.h"
+#include "options/smt_options.h"
 #include "printer/printer.h"
-#include "smt/options.h"
 #include "smt/smt_engine.h"
 #include "smt/smt_engine_scope.h"
-#include "smt_util/command.h"
 #include "util/dump.h"
 #include "util/model.h"
 

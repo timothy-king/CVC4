@@ -13,15 +13,16 @@
 **
 ** Manages and updates various resource and time limits.
 **/
+#include "util/resource_manager.h"
 
 #include "base/output.h"
-#include "util/resource_manager.h"
+#include "options/smt_options.h"
 #include "smt/smt_engine_scope.h"
-#include "smt/options.h"
 #include "theory/rewriter.h"
 
-using namespace CVC4;
 using namespace std;
+
+namespace CVC4 {
 
 void Timer::set(uint64_t millis, bool wallTime) {
   d_ms = millis;
@@ -283,3 +284,5 @@ void ResourceManager::enable(bool on) {
   Trace("limit") << "ResourceManager::enable("<< on <<")\n";
   d_on = on;
 }
+
+} /* namespace CVC4 */

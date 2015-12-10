@@ -20,7 +20,7 @@
 #include "decision/justification_heuristic.h"
 #include "expr/node.h"
 #include "options/decision_options.h"
-#include "smt/options.h"
+#include "options/smt_options.h"
 
 using namespace std;
 

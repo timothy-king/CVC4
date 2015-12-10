@@ -12,14 +12,15 @@
  ** \brief Code relevant only for portfolio builds
  **/
 
+#include <unistd.h>
+
 #include <cassert>
 #include <vector>
-#include <unistd.h>
 
 #include "options/main_options.h"
 #include "options/options.h"
 #include "options/prop_options.h"
-#include "smt/options.h"
+#include "options/smt_options.h"
 #include "smt/smt_options_handler.h"
 
 using namespace std;

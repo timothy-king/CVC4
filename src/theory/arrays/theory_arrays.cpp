@@ -14,14 +14,15 @@
  ** Implementation of the theory of arrays.
  **/
 
+#include "theory/arrays/theory_arrays.h"
+
 #include <map>
 
 #include "expr/kind.h"
 #include "options/arrays_options.h"
+#include "options/smt_options.h"
 #include "smt/logic_exception.h"
-#include "smt/options.h"
 #include "smt_util/command.h"
-#include "theory/arrays/theory_arrays.h"
 #include "theory/rewriter.h"
 #include "theory/theory_model.h"
 #include "theory/valuation.h"

@@ -13,13 +13,14 @@
  ** sequential and portfolio versions
  **/
 
+#include <stdio.h>
+#include <unistd.h>
+
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <iostream>
 #include <new>
-#include <stdio.h>
-#include <unistd.h>
 
 #include "base/output.h"
 #include "cvc4autoconfig.h"
@@ -35,10 +36,10 @@
 #include "options/main_options.h"
 #include "options/options.h"
 #include "options/quantifiers_options.h"
+#include "options/smt_options.h"
 #include "parser/parser.h"
 #include "parser/parser_builder.h"
 #include "parser/parser_exception.h"
-#include "smt/options.h"
 #include "smt/smt_options_handler.h"
 #include "smt_util/command.h"
 #include "util/configuration.h"

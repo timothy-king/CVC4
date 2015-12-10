@@ -14,6 +14,8 @@
  ** The pretty-printer interface for the CVC output language.
  **/
 
+#include "printer/cvc/cvc_printer.h"
+
 #include <algorithm>
 #include <iostream>
 #include <iterator>
@@ -25,9 +27,8 @@
 #include "base/language.h" // for LANG_AST
 #include "expr/expr.h" // for ExprSetDepth etc..
 #include "expr/node_manager_attributes.h" // for VarNameAttr
-#include "printer/cvc/cvc_printer.h"
 #include "printer/dagification_visitor.h"
-#include "smt/options.h"
+#include "options/smt_options.h"
 #include "smt/smt_engine.h"
 #include "smt_util/command.h"
 #include "theory/arrays/theory_arrays_rewriter.h"
