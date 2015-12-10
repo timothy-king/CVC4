@@ -19,9 +19,9 @@
 #include <sstream>
 
 #include "expr/expr_manager.h"
+#include "options/smt_options.h"
 #include "parser/parser.h"
 #include "parser/parser_builder.h"
-#include "smt/options.h"
 #include "smt/smt_engine.h"
 #include "smt_util/command.h"
 
