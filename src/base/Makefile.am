@@ -24,7 +24,6 @@ libbase_la_SOURCES = \
 	lemma_input_channel_forward.h \
 	lemma_output_channel_forward.h \
 	modal_exception.h \
-	option_exception.h \
 	output.cpp \
 	output.h \
 	printer_modes.cpp \
@@ -70,8 +69,7 @@ EXTRA_DIST = \
 	integer.i \
 	rational.i \
 	tls.h.in \
-	modal_exception.i \
-	option_exception.i
+	modal_exception.i
 
 DISTCLEANFILES = \
 	integer.h.tmp \

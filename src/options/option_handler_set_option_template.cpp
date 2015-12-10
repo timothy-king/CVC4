@@ -23,7 +23,7 @@
 
 #include "base/output.h"
 #include "base/modal_exception.h"
-#include "base/option_exception.h"
+#include "options/option_exception.h"
 #include "options/options_handler_interface.h"
 
 

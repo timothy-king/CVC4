@@ -24,8 +24,8 @@
 #include <string>
 #include <vector>
 
-#include "base/option_exception.h"
 #include "base/tls.h"
+#include "options/option_exception.h"
 
 namespace CVC4 {
 

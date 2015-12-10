@@ -297,7 +297,7 @@ std::set<JavaInputStreamAdapter*> CVC4::JavaInputStreamAdapter::s_adapters;
 %include "base/exception.i"
 %include "base/integer.i"
 %include "base/modal_exception.i"
-%include "base/option_exception.i"
+%include "options/option_exception.i"
 %include "base/rational.i"
 %include "expr/expr.i"
 %include "expr/expr_manager.i"

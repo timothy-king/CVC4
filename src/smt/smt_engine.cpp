@@ -30,7 +30,7 @@
 #include "options/decision_mode.h"
 #include "base/exception.h"
 #include "base/modal_exception.h"
-#include "base/option_exception.h"
+#include "options/option_exception.h"
 #include "base/output.h"
 #include "context/cdhashset.h"
 #include "context/cdlist.h"

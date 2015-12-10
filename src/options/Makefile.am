@@ -217,6 +217,7 @@ liboptions_la_SOURCES = \
 	bv_bitblast_mode.h \
 	decision_weight.h \
 	options.h \
+	option_exception.h \
 	options_handler_interface.cpp \
 	options_handler_interface.h \
 	language.cpp \
@@ -275,6 +276,7 @@ EXTRA_DIST = \
 	mktagheaders \
 	mktags \
 	language.i \
+	option_exception.i \
 	$(DOCUMENTATION_FILES)
 
 

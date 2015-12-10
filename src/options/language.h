@@ -23,7 +23,7 @@
 #include <string>
 
 #include "base/exception.h"
-#include "base/option_exception.h"
+#include "options/option_exception.h"
 
 namespace CVC4 {
 namespace language {

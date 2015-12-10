@@ -30,7 +30,7 @@
 #include "options/decision_mode.h"
 #include "options/language.h"
 #include "base/modal_exception.h"
-#include "base/option_exception.h"
+#include "options/option_exception.h"
 #include "base/printer_modes.h"
 #include "base/quantifiers_modes.h"
 #include "base/simplification_mode.h"
