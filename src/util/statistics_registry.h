@@ -21,18 +21,18 @@
 #ifndef __CVC4__STATISTICS_REGISTRY_H
 #define __CVC4__STATISTICS_REGISTRY_H
 
-#include "util/statistics.h"
+#include <stdint.h>
+
+#include <cassert>
+#include <ctime>
+#include <iomanip>
+#include <map>
+#include <sstream>
+#include <vector>
+
 #include "base/exception.h"
 #include "lib/clock_gettime.h"
-#include "printer/printer.h"
-
-#include <sstream>
-#include <iomanip>
-#include <ctime>
-#include <vector>
-#include <map>
-#include <stdint.h>
-#include <cassert>
+#include "util/statistics.h"
 
 namespace CVC4 {
 
@@ -497,12 +497,7 @@ public:
   SExprStat(const std::string& name, const SExpr& init) :
     Stat(name), d_data(init){}
 
-  virtual void flushInformation(std::ostream& out) const {
-#warning "Check this usage."
-    Printer::getPrinter(Expr::setlanguage::getLanguage(out))->toStream(out, d_data);
-    out << std::endl;
-  }
-
+  virtual void flushInformation(std::ostream& out) const;
 
   SExpr getValue() const {
     return d_data;

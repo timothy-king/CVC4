@@ -16,8 +16,10 @@
  **/
 
 #include "util/statistics_registry.h"
+
 #include "expr/expr_manager.h"
 #include "lib/clock_gettime.h"
+#include "printer/printer.h"
 #include "smt/smt_engine.h"
 
 #ifndef __BUILDING_STATISTICS_FOR_EXPORT
@@ -156,6 +158,13 @@ RegisterStatistic::RegisterStatistic(SmtEngine& smt, Stat* stat) :
   d_stat(stat) {
   d_reg->registerStat_(d_stat);
 }
+
+void SExprStat::flushInformation(std::ostream& out) const {
+#warning "Check this usage."
+  Printer::getPrinter(Expr::setlanguage::getLanguage(out))->toStream(out, d_data);
+  out << std::endl;
+}
+
 
 }/* CVC4 namespace */
 
