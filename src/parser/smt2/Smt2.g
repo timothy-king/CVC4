@@ -102,21 +102,22 @@ namespace CVC4 {
 
 @parser::postinclude {
 
-#include "base/integer.h"
+#include <set>
+#include <sstream>
+#include <string>
+#include <vector>
+
 #include "base/output.h"
-#include "base/rational.h"
 #include "expr/expr.h"
 #include "expr/kind.h"
 #include "expr/type.h"
 #include "parser/antlr_input.h"
 #include "parser/parser.h"
 #include "parser/smt2/smt2.h"
-#include "util/hash.h"
 #include "util/floatingpoint.h"
-#include <vector>
-#include <set>
-#include <string>
-#include <sstream>
+#include "util/hash.h"
+#include "util/integer.h"
+#include "util/rational.h"
 // \todo Review the need for this header
 #include "math.h"
 

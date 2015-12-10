@@ -24,13 +24,13 @@
 #include <vector>
 
 #include "base/output.h"
-#include "base/rational.h"
 #include "context/context.h"
 #include "context/cdo.h"
 #include "context/cdlist.h"
 #include "context/cdqueue.h"
 #include "theory/arith/normal_form.h"
 #include "theory/arith/partial_model.h"
+#include "util/rational.h"
 #include "util/statistics_registry.h"
 
 namespace CVC4 {

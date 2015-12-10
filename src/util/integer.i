@@ -1,5 +1,5 @@
 %{
-#include "base/integer.h"
+#include "util/integer.h"
 %}
 
 %ignore CVC4::Integer::Integer(int);
@@ -30,4 +30,4 @@
 
 %ignore CVC4::operator<<(std::ostream&, const Integer&);
 
-%include "base/integer.h"
+%include "util/integer.h"

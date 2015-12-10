@@ -22,13 +22,13 @@
 #include <ext/hash_map>
 #include <vector>
 
-#include "base/integer.h"
-#include "base/rational.h"
 #include "context/cdhashset.h"
 #include "expr/node.h"
 #include "theory/arith/arithvar.h"
 #include "theory/arith/delta_rational.h"
 #include "util/dense_map.h"
+#include "util/integer.h"
+#include "util/rational.h"
 
 namespace CVC4 {
 namespace theory {

@@ -23,9 +23,7 @@
 #include <sstream>
 #include <string>
 
-#include "base/integer.h"
 #include "base/output.h"
-#include "base/rational.h"
 #include "expr/kind.h"
 #include "expr/sexpr.h"
 #include "options/expr_options.h"
@@ -36,7 +34,9 @@
 #include "smt_util/command.h"
 #include "util/bitvector.h"
 #include "util/hash.h"
+#include "util/integer.h"
 #include "util/predicate.h"
+#include "util/rational.h"
 #include "util/subrange_bound.h"
 
 

@@ -13,12 +13,14 @@
  **
  ** A multi-precision rational constant.
  **/
+#include "util/integer.h"
+
+#include <cmath>
+#include <sstream>
+#include <string>
 
 #include "cvc4autoconfig.h"
-#include "base/rational.h"
-#include <string>
-#include <sstream>
-#include <cmath>
+#include "util/rational.h"
 
 #ifndef CVC4_GMP_IMP
 #  error "This source should only ever be built if CVC4_GMP_IMP is on !"

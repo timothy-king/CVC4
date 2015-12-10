@@ -19,7 +19,6 @@
 
 #include <vector>
 
-#include "base/rational.h"
 #include "context/context.h"
 #include "expr/node.h"
 #include "expr/node_manager.h"
@@ -30,6 +29,7 @@
 #include "theory/theory.h"
 #include "theory/theory_engine.h"
 #include "theory/theory_test_utils.h"
+#include "util/rational.h"
 
 using namespace CVC4;
 using namespace CVC4::theory;

@@ -8,111 +8,152 @@ noinst_LTLIBRARIES = libutil.la libstatistics.la
 libstatistics_la_CPPFLAGS = $(CPPFLAGS) $(AM_CPPFLAGS) -D__BUILDING_STATISTICS_FOR_EXPORT
 
 
+# Do not list built sources (like integer.h, rational.h) here!
+# Rather, list them under BUILT_SOURCES, and their .in versions under
+# EXTRA_DIST.  Otherwise, they're packaged up in the tarball, which is
+# no good---they belong in the configured builds/ directory.  If they
+# end up in the source directory, they build the cvc4 that was
+# configured at the time of the "make dist", which (1) may not be the
+# configuration that the user wants, and (2) might cause link errors.
 libutil_la_SOURCES = \
-	backtrackable.h \
 	Makefile.am \
 	Makefile.in \
-	debug.h \
-	hash.h \
-	bool.h \
+	abstract_value.cpp \
+	abstract_value.h \
+	array.h \
+	array_store_all.cpp \
+	array_store_all.h \
+	ascription_type.h \
+	backtrackable.h \
+	bin_heap.h \
 	bitvector.h \
-	proof.h \
-	result.h \
-	result.cpp \
+	bool.h \
+	boolean_simplification.cpp \
+	boolean_simplification.h \
+	cache.h \
+	cardinality.cpp \
+	cardinality.h \
+	chain.h \
+	channel.h \
+	configuration.cpp \
 	configuration.h \
 	configuration_private.h \
-	configuration.cpp \
-	ascription_type.h \
-	array.h \
-	datatype.h \
 	datatype.cpp \
-	tuple.h \
-	record.h \
-	record.cpp \
-	divisible.h \
+	datatype.h \
+	debug.h \
+	dense_map.h \
 	divisible.cpp \
-	maybe.h \
-	matcher.h \
-	statistics.h \
-	statistics.cpp \
-	statistics_registry.h \
-	statistics_registry.cpp \
+	divisible.h \
+	dump.cpp \
+	dump.h \
 	dynamic_array.h \
+	emptyset.cpp \
+	emptyset.h \
+	floatingpoint.cpp \
+	floatingpoint.h \
+	gmp_util.h \
+	hash.h \
+	index.h \
+	ite_removal.cpp \
+	ite_removal.h \
 	lemma_input_channel.h \
 	lemma_output_channel.h \
-	dense_map.h \
-	channel.h \
-	ntuple.h \
-	subrange_bound.h \
-	dump.h \
-	dump.cpp \
-	predicate.h \
-	predicate.cpp \
-	cardinality.h \
-	cardinality.cpp \
-	cache.h \
-	utility.h \
-	boolean_simplification.h \
-	boolean_simplification.cpp \
-	ite_removal.h \
-	ite_removal.cpp \
-	nary_builder.h \
-	nary_builder.cpp \
-	node_visitor.h \
-	chain.h \
-	index.h \
-	uninterpreted_constant.h \
-	uninterpreted_constant.cpp \
-	abstract_value.h \
-	abstract_value.cpp \
-	array_store_all.h \
-	array_store_all.cpp \
-	emptyset.h \
-	emptyset.cpp \
-	model.h \
+	matcher.h \
+	maybe.h \
 	model.cpp \
-	sort_inference.h \
-	sort_inference.cpp \
-	regexp.h \
+	model.h \
+	nary_builder.cpp \
+	nary_builder.h \
+	node_visitor.h \
+	ntuple.h \
+	predicate.cpp \
+	predicate.h \
+	proof.h \
+	record.cpp \
+	record.h \
 	regexp.cpp \
-	bin_heap.h \
-	unsat_core.h \
-	unsat_core.cpp \
-	floatingpoint.h \
-	floatingpoint.cpp \
-	resource_manager.h \
+	regexp.h \
 	resource_manager.cpp \
-	unsafe_interrupt_exception.h
+	resource_manager.h \
+	result.cpp \
+	result.h \
+	sort_inference.cpp \
+	sort_inference.h \
+	statistics.cpp \
+	statistics.h \
+	statistics_registry.cpp \
+	statistics_registry.h \
+	subrange_bound.h \
+	tuple.h \
+	uninterpreted_constant.cpp \
+	uninterpreted_constant.h \
+	unsafe_interrupt_exception.h \
+	unsat_core.cpp \
+	unsat_core.h \
+	utility.h
 
 libstatistics_la_SOURCES = \
 	statistics_registry.h \
 	statistics_registry.cpp
 
+BUILT_SOURCES = \
+	rational.h \
+	integer.h
+
+if CVC4_CLN_IMP
+libutil_la_SOURCES += \
+	rational_cln_imp.cpp \
+	integer_cln_imp.cpp
+endif
+if CVC4_GMP_IMP
+libutil_la_SOURCES += \
+	rational_gmp_imp.cpp \
+	integer_gmp_imp.cpp
+endif
 
 
 EXTRA_DIST = \
-	statistics.i \
-	bool.i \
-	datatype.i \
-	tuple.i \
-	record.i \
-	divisible.i \
-	cardinality.i \
-	result.i \
-	configuration.i \
-	subrange_bound.i \
 	array.i \
 	array_store_all.i \
-	emptyset.i \
 	ascription_type.i \
-	hash.i \
-	predicate.i \
-	uninterpreted_constant.i \
+	bitvector.i \
+	bool.i \
+	cardinality.i \
 	chain.i \
+	configuration.i \
+	datatype.i \
+	divisible.i \
+	emptyset.i \
+	floatingpoint.i \
+	hash.i \
+	integer.h.in \
+	integer.i \
+	integer_cln_imp.cpp \
+	integer_cln_imp.h \
+	integer_gmp_imp.cpp \
+	integer_gmp_imp.h \
+	predicate.i \
+	proof.i \
+	rational.h.in \
+	rational.i \
+	rational_cln_imp.cpp \
+	rational_cln_imp.h \
+	rational_gmp_imp.cpp \
+	rational_gmp_imp.h \
+	record.i \
 	regexp.i \
 	resource_manager.i \
+	result.i \
+	statistics.i \
+	subrange_bound.i \
+	tuple.i \
+	uninterpreted_constant.i \
 	unsafe_interrupt_exception.i \
-	proof.i \
-	unsat_core.i \
-	floatingpoint.i \
-	bitvector.i
+	unsat_core.i
+
+
+DISTCLEANFILES = \
+	integer.h.tmp \
+	rational.h.tmp \
+	integer.h \
+	rational.h

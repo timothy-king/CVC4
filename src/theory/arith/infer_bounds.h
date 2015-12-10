@@ -21,12 +21,12 @@
 
 #include <ostream>
 
-#include "base/integer.h"
-#include "base/rational.h"
-#include "util/maybe.h"
 #include "expr/node.h"
 #include "theory/arith/delta_rational.h"
 #include "theory/theory.h"
+#include "util/integer.h"
+#include "util/maybe.h"
+#include "util/rational.h"
 
 
 namespace CVC4 {

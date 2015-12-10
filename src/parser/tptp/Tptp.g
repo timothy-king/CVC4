@@ -96,15 +96,15 @@ using namespace CVC4::parser;
 #include <iterator>
 #include <vector>
 
-#include "base/integer.h"
 #include "base/output.h"
-#include "base/rational.h"
 #include "expr/expr.h"
 #include "expr/kind.h"
 #include "expr/type.h"
 #include "parser/antlr_input.h"
 #include "parser/parser.h"
 #include "parser/tptp/tptp.h"
+#include "util/integer.h"
+#include "util/rational.h"
 
 using namespace CVC4;
 using namespace CVC4::parser;

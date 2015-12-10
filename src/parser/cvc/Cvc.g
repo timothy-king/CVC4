@@ -476,10 +476,10 @@ Expr addNots(ExprManager* em, size_t n, Expr e) {
 #  define ANTLR3_INLINE_INPUT_8BIT
 #endif /* CVC4_COMPETITION_MODE && !CVC4_SMTCOMP_APPLICATION_TRACK */
 
-#include "base/integer.h"
 #include "parser/antlr_input.h"
 #include "parser/antlr_tracing.h"
 #include "parser/parser.h"
+#include "util/integer.h"
 
 }/* @lexer::includes */
 

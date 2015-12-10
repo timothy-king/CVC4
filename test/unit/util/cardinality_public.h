@@ -17,7 +17,7 @@
 #include <sstream>
 #include <string>
 
-#include "base/integer.h"
+#include "util/integer.h"
 #include "util/cardinality.h"
 
 using namespace CVC4;

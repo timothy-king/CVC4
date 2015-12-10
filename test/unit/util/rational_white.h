@@ -17,7 +17,7 @@
 #include <cxxtest/TestSuite.h>
 #include <sstream>
 
-#include "base/rational.h"
+#include "util/rational.h"
 
 using namespace CVC4;
 using namespace std;

@@ -23,9 +23,7 @@
 #include <queue>
 #include <vector>
 
-#include "base/integer.h"
 #include "base/output.h"
-#include "base/rational.h"
 #include "context/cdhashset.h"
 #include "context/cdinsert_hashmap.h"
 #include "context/cdlist.h"
@@ -68,8 +66,11 @@
 #include "theory/valuation.h"
 #include "util/boolean_simplification.h"
 #include "util/dense_map.h"
+#include "util/integer.h"
+#include "util/rational.h"
 #include "util/result.h"
 #include "util/statistics_registry.h"
+
 
 using namespace std;
 using namespace CVC4::kind;

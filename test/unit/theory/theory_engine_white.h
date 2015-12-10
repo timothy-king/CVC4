@@ -25,8 +25,6 @@
 #include <string>
 
 #include "base/cvc4_assert.h"
-#include "base/integer.h"
-#include "base/rational.h"
 #include "context/context.h"
 #include "expr/kind.h"
 #include "expr/node.h"
@@ -38,6 +36,8 @@
 #include "theory/theory.h"
 #include "theory/theory_engine.h"
 #include "theory/valuation.h"
+#include "util/integer.h"
+#include "util/rational.h"
 
 using namespace CVC4;
 using namespace CVC4::theory;

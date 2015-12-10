@@ -19,7 +19,7 @@
 #include <limits>
 #include <sstream>
 
-#include "base/integer.h"
+#include "util/integer.h"
 
 using namespace CVC4;
 using namespace std;

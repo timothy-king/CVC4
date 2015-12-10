@@ -22,14 +22,13 @@
 #include <ext/hash_set>
 #include <vector>
 
-#include "base/rational.h"
 #include "context/cdhashmap.h"
 #include "context/cdo.h"
 #include "context/context.h"
 #include "expr/node.h"
 #include "theory/substitutions.h"
 #include "util/maybe.h"
-
+#include "util/rational.h"
 
 namespace CVC4 {
 namespace theory {
@@ -107,4 +106,3 @@ private:
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */
 }/* CVC4 namespace */
-

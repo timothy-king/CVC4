@@ -22,8 +22,8 @@
 #include <ostream>
 
 #include "base/exception.h"
-#include "base/integer.h"
-#include "base/rational.h"
+#include "util/integer.h"
+#include "util/rational.h"
 
 namespace CVC4 {
 

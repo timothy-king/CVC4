@@ -21,10 +21,10 @@
 
 #include <vector>
 
-#include "base/rational.h"
 #include "theory/arith/arithvar.h"
 #include "theory/arith/matrix.h"
 #include "util/dense_map.h"
+#include "util/rational.h"
 
 namespace CVC4 {
 namespace theory {
@@ -162,4 +162,3 @@ private:
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */
 }/* CVC4 namespace */
-

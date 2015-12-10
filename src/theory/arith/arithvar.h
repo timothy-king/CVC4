@@ -23,8 +23,8 @@
 
 #include <vector>
 
-#include "base/rational.h"
 #include "util/index.h"
+#include "util/rational.h"
 
 namespace CVC4 {
 namespace theory {
@@ -43,4 +43,3 @@ extern bool debugIsASet(const ArithVarVec& variables);
 }/* CVC4::theory::arith namespace */
 }/* CVC4::theory namespace */
 }/* CVC4 namespace */
-

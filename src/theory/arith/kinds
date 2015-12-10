@@ -61,7 +61,7 @@ well-founded SUBRANGE_TYPE \
 constant CONST_RATIONAL \
     ::CVC4::Rational \
     ::CVC4::RationalHashFunction \
-    "base/rational.h" \
+    "util/rational.h" \
     "a multiple-precision rational constant; payload is an instance of the CVC4::Rational class"
 
 enumerator REAL_TYPE \

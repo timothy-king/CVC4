@@ -21,12 +21,12 @@
 #include <sstream>
 
 #include "base/cvc4_assert.h"
-#include "base/rational.h"
 #include "expr/convenience_node_builders.h"
 #include "expr/kind.h"
 #include "expr/node.h"
 #include "expr/node_builder.h"
 #include "expr/node_manager.h"
+#include "util/rational.h"
 
 using namespace CVC4;
 using namespace CVC4::kind;

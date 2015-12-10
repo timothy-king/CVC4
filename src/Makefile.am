@@ -551,9 +551,9 @@ install-data-local:
 	(echo include/cvc4.h; \
 	 echo include/cvc4_public.h; \
 	 echo include/cvc4parser_public.h; \
-	 echo base/integer.h; \
-	 echo base/rational.h; \
 	 echo base/tls.h; \
+	 echo util/integer.h; \
+	 echo util/rational.h; \
 	 find * -name '*.h' | \
 		xargs grep -l '^# *include  *"cvc4.*_public\.h"'; \
 	(cd "$(srcdir)" && find * -name '*.h' | \
@@ -584,9 +584,9 @@ uninstall-local:
 	-(echo include/cvc4.h; \
 	  echo include/cvc4_public.h; \
 	  echo include/cvc4parser_public.h; \
-	  echo base/integer.h; \
-	  echo base/rational.h; \
 	  echo base/tls.h; \
+	  echo util/integer.h; \
+	  echo util/rational.h; \
 	  find * -name '*.h' | \
 		xargs grep -l '^# *include  *"cvc4.*_public\.h"'; \
 	(cd "$(srcdir)" && find * -name '*.h' | \

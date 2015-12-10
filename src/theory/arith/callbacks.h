@@ -18,12 +18,12 @@
 
 #pragma once
 
-#include "base/rational.h"
 #include "expr/node.h"
 #include "theory/arith/arithvar.h"
 #include "theory/arith/bound_counts.h"
 #include "theory/arith/constraint_forward.h"
 #include "theory/arith/theory_arith_private_forward.h"
+#include "util/rational.h"
 
 namespace CVC4 {
 namespace theory {

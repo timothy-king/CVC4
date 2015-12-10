@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file rational_gmp_imp.cpp
+/*! \file rational_cln_imp.cpp
  ** \verbatim
  ** Original author: Tim King
  ** Major contributors: Morgan Deters, Christopher L. Conway
@@ -13,28 +13,24 @@
  **
  ** A multi-precision rational constant.
  **/
+#include "util/rational.h"
+
+#include <sstream>
+#include <string>
 
 #include "cvc4autoconfig.h"
-#include "base/rational.h"
-#include <string>
-#include <sstream>
-#include <cmath>
 
-#ifndef CVC4_GMP_IMP
-#  error "This source should only ever be built if CVC4_GMP_IMP is on !"
-#endif /* CVC4_GMP_IMP */
+#ifndef CVC4_CLN_IMP
+#  error "This source should only ever be built if CVC4_CLN_IMP is on !"
+#endif /* CVC4_CLN_IMP */
 
-std::ostream& CVC4::operator<<(std::ostream& os, const Rational& q){
-  return os << q.toString();
-}
-
-namespace CVC4 {
+using namespace std;
+using namespace CVC4;
 
 /* Computes a rational given a decimal string. The rational
  * version of <code>xxx.yyy</code> is <code>xxxyyy/(10^3)</code>.
  */
 Rational Rational::fromDecimal(const std::string& dec) {
-  using std::string;
   // Find the decimal point, if there is one
   string::size_type i( dec.find(".") );
   if( i != string::npos ) {
@@ -50,6 +46,10 @@ Rational Rational::fromDecimal(const std::string& dec) {
     /* No decimal point, assume it's just an integer. */
     return Rational( dec );
   }
+}
+
+std::ostream& CVC4::operator<<(std::ostream& os, const Rational& q){
+  return os << q.toString();
 }
 
 
@@ -81,17 +81,19 @@ int Rational::absCmp(const Rational& q) const{
   }
 }
 
-
-/** Return an exact rational for a double d. */
 Rational Rational::fromDouble(double d) throw(RationalFromDoubleException){
-  using namespace std;
-  if(isfinite(d)){
+  try{
+    cln::cl_DF fromD = d;
     Rational q;
-    mpq_set_d(q.d_value.get_mpq_t(), d);
+    q.d_value = cln::rationalize(fromD);
     return q;
+  }catch(cln::floating_point_underflow_exception& fpue){
+    throw RationalFromDoubleException(d);
+  }catch(cln::floating_point_nan_exception& fpne){
+    throw RationalFromDoubleException(d);
+  }catch(cln::floating_point_overflow_exception& fpoe){
+    throw RationalFromDoubleException(d);
   }
-
-  throw RationalFromDoubleException(d);
 }
 
 RationalFromDoubleException::RationalFromDoubleException(double d) throw()
@@ -103,5 +105,3 @@ RationalFromDoubleException::RationalFromDoubleException(double d) throw()
   ss << ")";
   setMessage(ss.str());
 }
-
-} /* namespace CVC4 */

@@ -17,7 +17,7 @@
 #include <sstream>
 #include <string>
 
-#include "base/integer.h"
+#include "util/integer.h"
 #include "util/subrange_bound.h"
 
 using namespace CVC4;
@@ -72,4 +72,3 @@ public:
   }
 
 };/* class SubrangeBoundWhite */
-

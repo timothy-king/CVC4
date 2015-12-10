@@ -21,10 +21,10 @@
 #pragma once
 #include <vector>
 
-#include "base/rational.h"
 #include "theory/arith/arithvar.h"
 #include "theory/arith/delta_rational.h"
 #include "util/dense_map.h"
+#include "util/rational.h"
 #include "util/statistics_registry.h"
 
 namespace CVC4 {

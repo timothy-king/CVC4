@@ -31,9 +31,9 @@
 #include <string>
 #include <vector>
 
-#include "base/integer.h"
-#include "base/rational.h"
 #include "base/exception.h"
+#include "util/integer.h"
+#include "util/rational.h"
 
 namespace CVC4 {
 
