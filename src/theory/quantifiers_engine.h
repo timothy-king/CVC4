@@ -21,10 +21,10 @@
 #include <iostream>
 #include <map>
 
-#include "base/quantifiers_modes.h"
 #include "context/cdchunk_list.h"
 #include "context/cdhashset.h"
 #include "expr/attribute.h"
+#include "options/quantifiers_modes.h"
 #include "theory/quantifiers/inst_match.h"
 #include "theory/quantifiers/quant_util.h"
 #include "theory/theory.h"

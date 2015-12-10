@@ -22,21 +22,21 @@
 #include <ostream>
 #include <string>
 
+#include "base/modal_exception.h"
 #include "options/arith_heuristic_pivot_rule.h"
 #include "options/arith_propagation_mode.h"
 #include "options/arith_unate_lemma_mode.h"
-#include "options/bv_bitblast_mode.h"
 #include "options/boolean_term_conversion_mode.h"
+#include "options/bv_bitblast_mode.h"
 #include "options/decision_mode.h"
 #include "options/language.h"
-#include "base/modal_exception.h"
 #include "options/option_exception.h"
-#include "base/printer_modes.h"
-#include "base/quantifiers_modes.h"
-#include "base/simplification_mode.h"
-#include "base/theoryof_mode.h"
-#include "base/ufss_mode.h"
 #include "options/options_handler_interface.h"
+#include "options/printer_modes.h"
+#include "options/quantifiers_modes.h"
+#include "options/simplification_mode.h"
+#include "options/theoryof_mode.h"
+#include "options/ufss_mode.h"
 #include "smt/smt_engine.h"
 #include "theory/logic_info.h"
 

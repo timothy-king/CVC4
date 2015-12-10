@@ -14,9 +14,9 @@
  ** [[ Add lengthier description here ]]
  ** \todo document this file
  **/
+#include "options/quantifiers_modes.h"
 
 #include <iostream>
-#include "base/quantifiers_modes.h"
 
 namespace CVC4 {
 
@@ -83,4 +83,3 @@ std::ostream& operator<<(std::ostream& out, theory::quantifiers::MbqiMode mode) 
 }
 
 }/* CVC4 namespace */
-

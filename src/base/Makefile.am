@@ -25,16 +25,7 @@ libbase_la_SOURCES = \
 	lemma_output_channel_forward.h \
 	modal_exception.h \
 	output.cpp \
-	output.h \
-	printer_modes.cpp \
-	printer_modes.h \
-	quantifiers_modes.cpp \
-	quantifiers_modes.h \
-	simplification_mode.cpp \
-	simplification_mode.h \
-	theoryof_mode.cpp \
-	theoryof_mode.h \
-	ufss_mode.h
+	output.h
 
 
 

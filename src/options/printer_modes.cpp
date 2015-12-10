@@ -15,7 +15,7 @@
  ** \todo document this file
  **/
 
-#include "base/printer_modes.h"
+#include "options/printer_modes.h"
 
 namespace CVC4 {
 

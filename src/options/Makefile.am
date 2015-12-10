@@ -206,22 +206,31 @@ liboptions_la_SOURCES = \
 	arith_propagation_mode.h \
 	arith_unate_lemma_mode.cpp \
 	arith_unate_lemma_mode.h \
+	base_handlers.h \
 	boolean_term_conversion_mode.cpp \
 	boolean_term_conversion_mode.h \
-	decision_mode.cpp \
-	decision_mode.h \
-	didyoumean.cpp \
-	didyoumean.h \
-	base_handlers.h \
 	bv_bitblast_mode.cpp \
 	bv_bitblast_mode.h \
+	decision_mode.cpp \
+	decision_mode.h \
 	decision_weight.h \
-	options.h \
+	didyoumean.cpp \
+	didyoumean.h \
+	language.cpp \
+	language.h \
 	option_exception.h \
+	options.h \
 	options_handler_interface.cpp \
 	options_handler_interface.h \
-	language.cpp \
-	language.h
+	printer_modes.cpp \
+	printer_modes.h \
+	quantifiers_modes.cpp \
+	quantifiers_modes.h \
+	simplification_mode.cpp \
+	simplification_mode.h \
+	theoryof_mode.cpp \
+	theoryof_mode.h \
+	ufss_mode.h
 
 
 nodist_liboptions_la_SOURCES = \
@@ -385,21 +394,6 @@ options_holder.h : options_holder_template.h options_holder_template.h.sed summa
 		"$<" \
 	) > "$@"
 
-
-# # Bit of a hack here. The .h file needs to always be built before the .cpp file is compiled.
-# $(OPTIONS_CPPS) : %.cpp : %.sed mkoptions base_options_template.cpp base_options_template.cpp.sed gen_heads_stamp
-# #	echo "cpps"
-# #	echo "$@"
-# #	echo "$<"
-# #	echo $(OPTIONS_CPPS)
-# #	echo $(OPTIONS_FILES_SRCS)
-# 	$(AM_V_at)chmod +x @srcdir@/mkoptions
-# 	$(AM_V_at)mkdir -p `dirname "$@"`
-# 	$(AM_V_GEN)(@srcdir@/mkoptions apply-sed-files-to-template \
-# 		@srcdir@/base_options_template.cpp \
-# 		base_options_template.cpp.sed \
-# 		"$<" \
-# 	) > "$@"
 
 
 

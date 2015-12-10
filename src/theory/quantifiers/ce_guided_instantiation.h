@@ -17,9 +17,9 @@
 #ifndef __CVC4__THEORY__QUANTIFIERS__CE_GUIDED_INSTANTIATION_H
 #define __CVC4__THEORY__QUANTIFIERS__CE_GUIDED_INSTANTIATION_H
 
-#include "base/quantifiers_modes.h"
 #include "context/cdchunk_list.h"
 #include "context/cdhashmap.h"
+#include "options/quantifiers_modes.h"
 #include "theory/quantifiers/ce_guided_single_inv.h"
 #include "theory/quantifiers_engine.h"
 

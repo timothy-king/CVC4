@@ -1,6 +1,8 @@
+
+#include "options/theoryof_mode.h"
+
 #include <ostream>
 #include "base/cvc4_assert.h"
-#include "base/theoryof_mode.h"
 
 namespace CVC4 {
 namespace theory {
@@ -17,4 +19,3 @@ std::ostream& operator<<(std::ostream& out, TheoryOfMode m) throw() {
 
 }/* CVC4::theory namespace */
 }/* CVC4 namespace */
-

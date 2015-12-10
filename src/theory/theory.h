@@ -24,7 +24,6 @@
 #include <string>
 #include <strings.h>
 
-#include "base/theoryof_mode.h"
 #include "context/cdlist.h"
 #include "context/cdo.h"
 #include "context/context.h"
@@ -32,6 +31,7 @@
 #include "lib/ffs.h"
 #include "options/options.h"
 #include "options/theory_options.h"
+#include "options/theoryof_mode.h"
 #include "smt/logic_request.h"
 #include "smt_util/command.h"
 #include "theory/logic_info.h"

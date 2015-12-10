@@ -16,7 +16,7 @@
 
 #include <vector>
 
-#include "base/quantifiers_modes.h"
+#include "options/quantifiers_modes.h"
 #include "options/quantifiers_options.h"
 #include "proof/proof_manager.h"
 #include "smt/smt_engine_scope.h"
