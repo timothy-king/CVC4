@@ -29,7 +29,7 @@
 #include "expr/kind.h"
 #include "expr/sexpr.h"
 #include "options/expr_options.h"
-#include "parser/options.h"
+#include "options/parser_options.h"
 #include "parser/parser.h"
 #include "parser/parser_builder.h"
 #include "smt/options.h"

@@ -3,7 +3,7 @@
 # See src/options/base_options for a description of this file format
 #
 
-module PARSER "parser/options.h" Parser
+module PARSER "options/parser_options.h" Parser
 
 common-option strictParsing --strict-parsing bool
  be less tolerant of non-conforming inputs

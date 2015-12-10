@@ -33,8 +33,8 @@ OPTIONS_FILES_SRCS = \
 	decision_options.h \
 	main_options.cpp \
 	main_options.h \
-	../parser/options.cpp \
-	../parser/options.h \
+	parser_options.cpp \
+	parser_options.h \
 	../theory/idl/options.cpp \
 	../theory/idl/options.h \
 	../theory/sets/options.cpp \

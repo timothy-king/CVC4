@@ -22,8 +22,8 @@
 #include <cassert>
 #include <ext/hash_set>
 
+#include "options/parser_options.h"
 #include "parser/antlr_input.h"
-#include "parser/options.h"
 #include "parser/parser.h"
 #include "smt_util/command.h"
 #include "util/hash.h"
