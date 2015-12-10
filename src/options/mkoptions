@@ -12,11 +12,12 @@
 #   mkoptions template-sed template-file
 #   mkoptions apply-sed-files-to-template template-file (sed-file)*
 #
-# The primary purpose of this script is to create options.{h,cpp}
+# The primary purpose of this script is to create options/*_options.{h,cpp}
 # from template files and a list of options. This additionally generates
-# the several documentation files, smt/smt_options.{h,cpp}, and
-# options_holder.{h,cpp}. This script can in broad terms be thought of
-# as an interpreter for a domain specific language within bash.
+# the several documentation files, option_handler_get_option.cpp,
+# option_handler_set_option.cpp, and options_holder.{h,cpp}. This script can in
+# broad terms be thought of as an interpreter for a domain specific language
+# within bash.
 #
 # The process for generating the files is as follows.
 # 1) Scan all of the option files that are of interest.

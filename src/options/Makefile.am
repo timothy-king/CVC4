@@ -73,7 +73,8 @@ TEMPLATE_FILES = \
 	base_options_template.cpp \
 	options_holder_template.h \
 	options_template.cpp \
-	smt_options_template.cpp \
+	option_handler_get_option_template.cpp \
+	option_handler_set_option_template.cpp \
 	../../doc/cvc4.1_template \
 	../../doc/libcvc4.3_template \
 	../../doc/SmtEngine.3cvc_template \
@@ -100,12 +101,14 @@ nodist_liboptions_la_SOURCES = \
 	options.cpp \
 	options_holder.h \
 	$(OPTIONS_FILES_SRCS) \
-	smt_options.cpp
+	option_handler_get_option.cpp \
+	option_handler_set_option.cpp
 
 
 BUILT_SOURCES = \
 	exprs-builts \
-	smt_options.cpp \
+	option_handler_get_option.cpp \
+	option_handler_set_option.cpp \
 	options.cpp \
 	options_holder.h \
 	$(OPTIONS_FILES_SRCS) \
@@ -134,7 +137,8 @@ EXTRA_DIST = \
 	options_holder_template.h \
 	options.i \
 	options_handler_interface.i \
-	smt_options_template.cpp \
+	option_handler_get_option_template.cpp \
+	option_handler_set_option_template.cpp \
 	$(OPTIONS_FILES) \
 	mktagheaders \
 	mktags \
@@ -183,7 +187,7 @@ MOSTLYCLEANFILES = \
 #   mkoptions apply-sed-files-to-template sed-file template-file filename
 
 $(OPTIONS_FILES):;
-options_holder_template.h options_template.cpp smt_options_template.cpp base_options_template.h base_options_template.cpp :;
+options_holder_template.h options_template.cpp option_handler_get_option_template.cpp option_handler_set_option_template.cpp base_options_template.h base_options_template.cpp :;
 
 
 $(TEMPLATE_SEDS) : %.sed : % mkoptions
@@ -265,14 +269,30 @@ options.cpp : options_template.cpp options_template.cpp.sed mkoptions summary.se
 
 
 #   mkoptions apply-sed-to-template sed-file template-file
-smt_options.cpp : smt_options_template.cpp smt_options_template.cpp.sed mkoptions summary.sed gen-heads-stamp
-#	echo "$(OPTIONS_FILES)"
+option_handler_get_option.cpp : option_handler_get_option_template.cpp option_handler_get_option_template.cpp.sed mkoptions summary.sed gen-heads-stamp
 	$(AM_V_at)chmod +x @srcdir@/mkoptions
 	$(AM_V_GEN)(@srcdir@/mkoptions apply-sed-files-to-template \
-		@srcdir@/smt_options_template.cpp \
-		@builddir@/smt_options_template.cpp.sed \
+		@srcdir@/option_handler_get_option_template.cpp \
+		@builddir@/option_handler_get_option_template.cpp.sed \
 		summary.sed \
 	) > "$@"
+
+option_handler_set_option.cpp : option_handler_set_option_template.cpp option_handler_set_option_template.cpp.sed mkoptions summary.sed gen-heads-stamp
+	$(AM_V_at)chmod +x @srcdir@/mkoptions
+	$(AM_V_GEN)(@srcdir@/mkoptions apply-sed-files-to-template \
+		@srcdir@/option_handler_set_option_template.cpp \
+		@builddir@/option_handler_set_option_template.cpp.sed \
+		summary.sed \
+	) > "$@"
+
+# smt_options.cpp : smt_options_template.cpp smt_options_template.cpp.sed mkoptions summary.sed gen-heads-stamp
+# #	echo "$(OPTIONS_FILES)"
+# 	$(AM_V_at)chmod +x @srcdir@/mkoptions
+# 	$(AM_V_GEN)(@srcdir@/mkoptions apply-sed-files-to-template \
+# 		@srcdir@/smt_options_template.cpp \
+# 		@builddir@/smt_options_template.cpp.sed \
+# 		summary.sed \
+# 	) > "$@"
 
 
 
