@@ -23,12 +23,12 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <iostream>
 
 #include "base/output.h"
+#include "options/prop_options.h"
 #include "proof/proof_manager.h"
 #include "proof/sat_proof.h"
 #include "prop/minisat/core/Solver.h"
 #include "prop/minisat/minisat.h"
 #include "prop/minisat/mtl/Sort.h"
-#include "prop/options.h"
 #include "prop/theory_proxy.h"
 #include "smt_util/command.h"
 

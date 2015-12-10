@@ -23,8 +23,8 @@ OPTIONS_FILES_SRCS = \
 	quantifiers_options.h \
 	strings_options.cpp \
 	strings_options.h \
-	../prop/options.cpp \
-	../prop/options.h \
+	prop_options.cpp \
+	prop_options.h \
 	../proof/options.cpp \
 	../proof/options.h \
 	../printer/options.cpp \

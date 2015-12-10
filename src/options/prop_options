@@ -3,7 +3,7 @@
 # See src/options/base_options for a description of this file format
 #
 
-module PROP "prop/options.h" SAT layer
+module PROP "options/prop_options.h" SAT layer
 
 option satRandomFreq random-frequency --random-freq=P double :default 0.0 :predicate options::greater_equal(0.0) options::less_equal(1.0)
  sets the frequency of random decisions in the sat solver (P=0.0 by default)

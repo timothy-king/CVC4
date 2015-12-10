@@ -16,9 +16,9 @@
 #include <vector>
 #include <unistd.h>
 
-#include "options/options.h"
 #include "main/options.h"
-#include "prop/options.h"
+#include "options/options.h"
+#include "options/prop_options.h"
 #include "smt/options.h"
 #include "smt/smt_options_handler.h"
 
