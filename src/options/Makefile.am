@@ -206,6 +206,12 @@ liboptions_la_SOURCES = \
 	arith_propagation_mode.h \
 	arith_unate_lemma_mode.cpp \
 	arith_unate_lemma_mode.h \
+	boolean_term_conversion_mode.cpp \
+	boolean_term_conversion_mode.h \
+	decision_mode.cpp \
+	decision_mode.h \
+	didyoumean.cpp \
+	didyoumean.h \
 	base_handlers.h \
 	bv_bitblast_mode.cpp \
 	bv_bitblast_mode.h \
@@ -301,7 +307,7 @@ options_holder_template.h options_template.cpp option_handler_get_option_templat
 
 
 
-# This is phony to force them to be made everytime
+# These are phony to force them to be made everytime.
 .PHONY: arith_options.tmp arrays_options.tmp base_options.tmp booleans_options.tmp builtin_options.tmp bv_options.tmp datatypes_options.tmp decision_options.tmp expr_options.tmp fp_options.tmp idl_options.tmp main_options.tmp parser_options.tmp printer_options.tmp proof_options.tmp prop_options.tmp quantifiers_options.tmp sets_options.tmp smt_options.tmp strings_options.tmp theory_options.tmp uf_options.tmp
 
 # Make is happier being listed explictly. Not sure why.
@@ -313,13 +319,13 @@ arith_options.tmp arrays_options.tmp base_options.tmp booleans_options.tmp built
 	$(AM_V_GEN)\
 	diff -q "$^" "$@" &>/dev/null || mv "$^" "$@" || true
 
-# If any options file, has been modified update the any_option_file_stamp
-any_option_file_stamp : arith_options.options arrays_options.options base_options.options booleans_options.options builtin_options.options bv_options.options datatypes_options.options decision_options.options expr_options.options fp_options.options idl_options.options main_options.options parser_options.options printer_options.options proof_options.options prop_options.options quantifiers_options.options sets_options.options smt_options.options strings_options.options theory_options.options uf_options.options
-	touch any_option_file_stamp
 
+# This bit is kinda tricky.
+# We use the updating of %_options.options to signal that the options file updated.
+# However, we use the original file in src to generate the file.
 %_options.sed: %_options.options mkoptions
 	$(AM_V_at)chmod +x @srcdir@/mkoptions
-	$(AM_V_GEN)(@srcdir@/mkoptions module-sed "$<" ) > "$@"
+	$(AM_V_GEN)(@srcdir@/mkoptions module-sed "@srcdir@/$(@:.sed=)" ) > "$@"
 
 
 $(CPP_TEMPLATE_SEDS): %.sed : % mkoptions
@@ -347,7 +353,7 @@ $(DOCUMENTATION_TEMPLATE_SEDS): %.sed : % mkoptions
 		"$<" \
 	) > "$@"
 
-summary.sed : mkoptions any_option_file_stamp
+summary.sed : mkoptions $(OPTIONS_OPTIONS_FILES)
 	$(AM_V_at)chmod +x @srcdir@/mkoptions
 	$(AM_V_GEN)(@srcdir@/mkoptions summary-sed \
 		arith_options.options arrays_options.options base_options.options booleans_options.options builtin_options.options bv_options.options datatypes_options.options decision_options.options expr_options.options fp_options.options idl_options.options main_options.options parser_options.options printer_options.options proof_options.options prop_options.options quantifiers_options.options sets_options.options smt_options.options strings_options.options theory_options.options uf_options.options \

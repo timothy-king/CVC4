@@ -26,8 +26,8 @@
 #include <utility>
 #include <vector>
 
-#include "base/boolean_term_conversion_mode.h"
-#include "base/decision_mode.h"
+#include "options/boolean_term_conversion_mode.h"
+#include "options/decision_mode.h"
 #include "base/exception.h"
 #include "base/modal_exception.h"
 #include "base/option_exception.h"

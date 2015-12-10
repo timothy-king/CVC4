@@ -14,9 +14,10 @@
  ** [[ Add lengthier description here ]]
  ** \todo document this file
  **/
+#include "options/boolean_term_conversion_mode.h"
 
 #include <iostream>
-#include "base/boolean_term_conversion_mode.h"
+
 
 namespace CVC4 {
 

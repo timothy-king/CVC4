@@ -15,7 +15,7 @@
  ** \todo document this file
  **/
 
-#include "base/decision_mode.h"
+#include "options/decision_mode.h"
 
 namespace CVC4 {
 
@@ -35,4 +35,3 @@ std::ostream& operator<<(std::ostream& out, decision::DecisionMode mode) {
 }
 
 }/* CVC4 namespace */
-

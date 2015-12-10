@@ -45,11 +45,11 @@ extern int optreset;
 #include <stdint.h>
 #include <time.h>
 
-#include "base/didyoumean.h"
 #include "base/exception.h"
 #include "base/language.h"
 #include "base/output.h"
 #include "base/tls.h"
+#include "options/didyoumean.h"
 #include "options/options_handler_interface.h"
 
 ${include_all_option_headers}

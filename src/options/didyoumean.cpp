@@ -17,7 +17,8 @@
  ** There are no dependencies on CVC4 (except namespace).
  **/
 
-#include "base/didyoumean.h"
+#include "options/didyoumean.h"
+
 #include <iostream>
 #include <sstream>
 

@@ -16,14 +16,8 @@ libbase_la_SOURCES = \
 	Makefile.am \
 	Makefile.in \
 	bitvector.h \
-	boolean_term_conversion_mode.cpp \
-	boolean_term_conversion_mode.h \
 	cvc4_assert.cpp \
 	cvc4_assert.h \
-	decision_mode.cpp \
-	decision_mode.h \
-	didyoumean.cpp \
-	didyoumean.h \
 	exception.cpp \
 	exception.h \
 	gmp_util.h \

@@ -14,6 +14,8 @@
  ** Interface for custom handlers and predicates options.
  **/
 
+#include "options/options_handler_interface.h"
+
 #include <ostream>
 #include <string>
 
@@ -21,8 +23,8 @@
 #include "options/arith_propagation_mode.h"
 #include "options/arith_unate_lemma_mode.h"
 #include "options/bv_bitblast_mode.h"
-#include "base/boolean_term_conversion_mode.h"
-#include "base/decision_mode.h"
+#include "options/boolean_term_conversion_mode.h"
+#include "options/decision_mode.h"
 #include "base/exception.h"
 #include "base/language.h"
 #include "base/modal_exception.h"
@@ -32,7 +34,6 @@
 #include "base/simplification_mode.h"
 #include "base/theoryof_mode.h"
 #include "base/ufss_mode.h"
-#include "options/options_handler_interface.h"
 
 namespace CVC4 {
 namespace options {

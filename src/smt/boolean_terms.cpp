@@ -14,6 +14,7 @@
  ** [[ Add lengthier description here ]]
  ** \todo document this file
  **/
+#include "smt/boolean_terms.h"
 
 #include <algorithm>
 #include <map>
@@ -21,12 +22,11 @@
 #include <stack>
 #include <string>
 
-#include "base/boolean_term_conversion_mode.h"
 #include "expr/kind.h"
 #include "expr/node_manager_attributes.h"
-#include "smt/boolean_terms.h"
-#include "smt/smt_engine.h"
+#include "options/boolean_term_conversion_mode.h"
 #include "options/booleans_options.h"
+#include "smt/smt_engine.h"
 #include "theory/theory_engine.h"
 #include "theory/theory_model.h"
 #include "util/ntuple.h"
