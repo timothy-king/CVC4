@@ -39,8 +39,8 @@ OPTIONS_FILES_SRCS = \
 	idl_options.h \
 	sets_options.cpp \
 	sets_options.h \
-	../theory/fp/options.cpp \
-	../theory/fp/options.h \
+	fp_options.cpp \
+	fp_options.h \
 	../smt/options.cpp \
 	../smt/options.h
 
@@ -340,7 +340,7 @@ MANUAL_RM = \
 	builtin_options.lo \
 	bv_options.lo \
 	datatypes_options.lo \
-	../theory/fp/options.lo \
+	fp_options.lo \
 	idl_options.lo \
 	quantifiers_options.lo \
 	sets_options.lo \

@@ -3,6 +3,6 @@
 # See src/options/base_options for a description of this file format
 #
 
-module FP "theory/fp/options.h" Fp
+module FP "options/fp_options.h" Fp
 
 endmodule
