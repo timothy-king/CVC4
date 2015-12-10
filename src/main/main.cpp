@@ -27,7 +27,7 @@
 #include "main/command_executor.h"
 #include "main/interactive_shell.h"
 #include "main/main.h"
-#include "main/options.h"
+#include "options/main_options.h"
 #include "parser/parser.h"
 #include "parser/parser_builder.h"
 #include "parser/parser_exception.h"

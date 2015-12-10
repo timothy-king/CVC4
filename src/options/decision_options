@@ -3,7 +3,7 @@
 # See src/options/base_options for a description of this file format
 #
 
-module DECISION "decision/options.h" Decision heuristics
+module DECISION "options/decision_options.h" Decision heuristics
 
 # When/whether to use any decision strategies
 option decisionMode decision-mode --decision=MODE decision::DecisionMode :handler CVC4::options::stringToDecisionMode :default decision::DECISION_STRATEGY_INTERNAL :read-write :include "base/decision_mode.h" :handler-include "options/options_handler_interface.h"

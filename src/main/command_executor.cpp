@@ -21,7 +21,7 @@
 
 #include "main/command_executor.h"
 #include "main/main.h"
-#include "main/options.h"
+#include "options/main_options.h"
 #include "options/printer_options.h"
 #include "smt/options.h"
 #include "smt_util/command.h"

@@ -31,8 +31,8 @@ OPTIONS_FILES_SRCS = \
 	printer_options.h \
 	decision_options.cpp \
 	decision_options.h \
-	../main/options.cpp \
-	../main/options.h \
+	main_options.cpp \
+	main_options.h \
 	../parser/options.cpp \
 	../parser/options.h \
 	../theory/idl/options.cpp \

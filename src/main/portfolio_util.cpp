@@ -16,7 +16,7 @@
 #include <vector>
 #include <unistd.h>
 
-#include "main/options.h"
+#include "options/main_options.h"
 #include "options/options.h"
 #include "options/prop_options.h"
 #include "smt/options.h"

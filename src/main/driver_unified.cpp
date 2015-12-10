@@ -32,8 +32,7 @@
 
 #include "main/interactive_shell.h"
 #include "main/main.h"
-#include "main/options.h"
-#include "main/options.h"
+#include "options/main_options.h"
 #include "options/options.h"
 #include "options/quantifiers_options.h"
 #include "parser/parser.h"

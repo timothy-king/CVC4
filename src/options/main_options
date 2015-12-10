@@ -3,7 +3,7 @@
 # See src/options/base_options for a description of this file format
 #
 
-module DRIVER "main/options.h" Driver
+module DRIVER "options/main_options.h" Driver
 
 common-option version -V --version/ bool
  identify this CVC4 binary

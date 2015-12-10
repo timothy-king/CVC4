@@ -38,7 +38,7 @@
 #include "base/output.h"
 #include "cvc4autoconfig.h"
 #include "main/interactive_shell.h"
-#include "main/options.h"
+#include "options/main_options.h"
 #include "options/options.h"
 #include "parser/input.h"
 #include "parser/parser.h"

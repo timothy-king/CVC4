@@ -14,23 +14,20 @@
  ** Interface for custom handlers and predicates options.
  **/
 
-#include <ostream>
-#include <string>
 #include <cerrno>
 #include <cstring>
+#include <ostream>
 #include <sstream>
+#include <string>
 
 #include "base/arith_heuristic_pivot_rule.h"
 #include "base/arith_propagation_mode.h"
 #include "base/arith_unate_lemma_mode.h"
 #include "base/bitblast_mode.h"
-#include "base/bitblast_mode.h"
 #include "base/boolean_term_conversion_mode.h"
 #include "base/decision_mode.h"
 #include "base/didyoumean.h"
 #include "base/language.h"
-#include "base/language.h"
-#include "base/modal_exception.h"
 #include "base/modal_exception.h"
 #include "base/option_exception.h"
 #include "base/output.h"
@@ -41,33 +38,24 @@
 #include "base/theoryof_mode.h"
 #include "base/ufss_mode.h"
 #include "cvc4autoconfig.h"
+#include "expr/metakind.h"
 #include "expr/node_manager.h"
 #include "lib/strtok_r.h"
-#include "options/options_handler_interface.h"
+#include "options/decision_options.h"
+#include "options/main_options.h"
 #include "options/options_handler_interface.h"
 #include "parser/options.h"
 #include "smt/options.h"
 #include "smt/smt_engine.h"
-#include "smt/smt_engine.h"
 #include "smt/smt_options_handler.h"
 #include "smt_util/command.h"
+#include "theory/bv/options.h"
 #include "theory/logic_info.h"
+#include "theory/options.h"
 #include "util/configuration.h"
 #include "util/configuration_private.h"
 #include "util/dump.h"
-#include "util/dump.h"
 #include "util/resource_manager.h"
-
-#include "base/theoryof_mode.h"
-#include "expr/metakind.h"
-#include "base/decision_mode.h"
-#include "main/options.h"
-#include "decision/options.h"
-#include "theory/options.h"
-
-#include "base/bitblast_mode.h"
-#include "main/options.h"
-#include "theory/bv/options.h"
 
 
 namespace CVC4 {
