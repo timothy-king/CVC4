@@ -15,14 +15,6 @@ noinst_LTLIBRARIES = libbase.la
 libbase_la_SOURCES = \
 	Makefile.am \
 	Makefile.in \
-	arith_heuristic_pivot_rule.cpp \
-	arith_heuristic_pivot_rule.h \
-	arith_propagation_mode.cpp \
-	arith_propagation_mode.h \
-	arith_unate_lemma_mode.cpp \
-	arith_unate_lemma_mode.h \
-	bitblast_mode.cpp \
-	bitblast_mode.h \
 	bitvector.h \
 	boolean_term_conversion_mode.cpp \
 	boolean_term_conversion_mode.h \

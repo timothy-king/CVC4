@@ -15,7 +15,7 @@
  ** \todo document this file
  **/
 
-#include "base/arith_heuristic_pivot_rule.h"
+#include "options/arith_heuristic_pivot_rule.h"
 
 namespace CVC4 {
 
@@ -38,4 +38,3 @@ std::ostream& operator<<(std::ostream& out, ErrorSelectionRule rule) {
 }
 
 }/* CVC4 namespace */
-

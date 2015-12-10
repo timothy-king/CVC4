@@ -14,14 +14,14 @@
  ** Bitblast modes for bit-vector solver.
  **/
 
-#include "base/bitblast_mode.h"
+#include "options/bv_bitblast_mode.h"
 
 namespace CVC4 {
 
 std::ostream& operator<<(std::ostream& out, theory::bv::BitblastMode mode) {
   switch(mode) {
   case theory::bv::BITBLAST_MODE_LAZY:
-    out << "BITBLAST_MODE_LAZY"; 
+    out << "BITBLAST_MODE_LAZY";
     break;
   case theory::bv::BITBLAST_MODE_EAGER:
     out << "BITBLAST_MODE_EAGER";
@@ -36,7 +36,7 @@ std::ostream& operator<<(std::ostream& out, theory::bv::BitblastMode mode) {
 std::ostream& operator<<(std::ostream& out, theory::bv::BvSlicerMode mode) {
   switch(mode) {
   case theory::bv::BITVECTOR_SLICER_ON:
-    out << "BITVECTOR_SLICER_ON"; 
+    out << "BITVECTOR_SLICER_ON";
     break;
   case theory::bv::BITVECTOR_SLICER_OFF:
     out << "BITVECTOR_SLICER_OFF";
@@ -50,6 +50,5 @@ std::ostream& operator<<(std::ostream& out, theory::bv::BvSlicerMode mode) {
 
   return out;
 }
-
 
 }/* CVC4 namespace */

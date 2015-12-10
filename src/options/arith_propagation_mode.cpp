@@ -15,7 +15,7 @@
  ** \todo document this file
  **/
 
-#include "base/arith_propagation_mode.h"
+#include "options/arith_propagation_mode.h"
 
 namespace CVC4 {
 
@@ -41,4 +41,3 @@ std::ostream& operator<<(std::ostream& out, ArithPropagationMode mode) {
 }
 
 }/* CVC4 namespace */
-

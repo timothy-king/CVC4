@@ -5,10 +5,10 @@
 
 module ARITH "options/arith_options.h" Arithmetic theory
 
-option arithUnateLemmaMode --unate-lemmas=MODE ArithUnateLemmaMode :handler CVC4::options::stringToArithUnateLemmaMode :default ALL_PRESOLVE_LEMMAS :handler-include "options/options_handler_interface.h" :include "base/arith_unate_lemma_mode.h"
+option arithUnateLemmaMode --unate-lemmas=MODE ArithUnateLemmaMode :handler CVC4::options::stringToArithUnateLemmaMode :default ALL_PRESOLVE_LEMMAS :handler-include "options/options_handler_interface.h" :include "options/arith_unate_lemma_mode.h"
  determines which lemmas to add before solving (default is 'all', see --unate-lemmas=help)
 
-option arithPropagationMode --arith-prop=MODE ArithPropagationMode :handler CVC4::options::stringToArithPropagationMode :default BOTH_PROP :handler-include "options/options_handler_interface.h" :include "base/arith_propagation_mode.h"
+option arithPropagationMode --arith-prop=MODE ArithPropagationMode :handler CVC4::options::stringToArithPropagationMode :default BOTH_PROP :handler-include "options/options_handler_interface.h" :include "options/arith_propagation_mode.h"
  turns on arithmetic propagation (default is 'old', see --arith-prop=help)
 
 # The maximum number of difference pivots to do per invocation of simplex.
@@ -25,7 +25,7 @@ option arithHeuristicPivots --heuristic-pivots=N int16_t :default 0 :read-write
 expert-option arithStandardCheckVarOrderPivots --standard-effort-variable-order-pivots=N int16_t :default -1 :read-write
  limits the number of pivots in a single invocation of check() at a non-full effort level using Bland's pivot rule
 
-option arithErrorSelectionRule --error-selection-rule=RULE ErrorSelectionRule :handler CVC4::options::stringToErrorSelectionRule :default MINIMUM_AMOUNT :handler-include "options/options_handler_interface.h" :include "base/arith_heuristic_pivot_rule.h"
+option arithErrorSelectionRule --error-selection-rule=RULE ErrorSelectionRule :handler CVC4::options::stringToErrorSelectionRule :default MINIMUM_AMOUNT :handler-include "options/options_handler_interface.h" :include "options/arith_heuristic_pivot_rule.h"
  change the pivot rule for the basic variable (default is 'min', see --pivot-rule help)
 
 # The number of pivots before simplex rechecks every basic variable for a conflict

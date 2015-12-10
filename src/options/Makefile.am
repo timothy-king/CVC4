@@ -200,11 +200,19 @@ AM_CXXFLAGS = -Wall $(FLAG_VISIBILITY_HIDDEN)
 noinst_LTLIBRARIES = liboptions.la
 
 liboptions_la_SOURCES = \
-	options.h \
+	arith_heuristic_pivot_rule.cpp \
+	arith_heuristic_pivot_rule.h \
+	arith_propagation_mode.cpp \
+	arith_propagation_mode.h \
+	arith_unate_lemma_mode.cpp \
+	arith_unate_lemma_mode.h \
 	base_handlers.h \
-	options_handler_interface.h \
+	bv_bitblast_mode.cpp \
+	bv_bitblast_mode.h \
+	decision_weight.h \
+	options.h \
 	options_handler_interface.cpp \
-	decision_weight.h
+	options_handler_interface.h
 
 nodist_liboptions_la_SOURCES = \
 	options.cpp \

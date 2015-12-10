@@ -17,11 +17,10 @@
 #include <ostream>
 #include <string>
 
-#include "base/arith_heuristic_pivot_rule.h"
-#include "base/arith_propagation_mode.h"
-#include "base/arith_unate_lemma_mode.h"
-#include "base/bitblast_mode.h"
-#include "base/bitblast_mode.h"
+#include "options/arith_heuristic_pivot_rule.h"
+#include "options/arith_propagation_mode.h"
+#include "options/arith_unate_lemma_mode.h"
+#include "options/bv_bitblast_mode.h"
 #include "base/boolean_term_conversion_mode.h"
 #include "base/decision_mode.h"
 #include "base/exception.h"
