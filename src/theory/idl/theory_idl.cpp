@@ -16,7 +16,7 @@
  **/
 
 #include "theory/idl/theory_idl.h"
-#include "theory/idl/options.h"
+#include "options/idl_options.h"
 #include "theory/rewriter.h"
 
 #include <set>

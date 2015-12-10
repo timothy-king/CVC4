@@ -35,8 +35,8 @@ OPTIONS_FILES_SRCS = \
 	main_options.h \
 	parser_options.cpp \
 	parser_options.h \
-	../theory/idl/options.cpp \
-	../theory/idl/options.h \
+	idl_options.cpp \
+	idl_options.h \
 	../theory/sets/options.cpp \
 	../theory/sets/options.h \
 	../theory/fp/options.cpp \
@@ -341,7 +341,7 @@ MANUAL_RM = \
 	bv_options.lo \
 	datatypes_options.lo \
 	../theory/fp/options.lo \
-	../theory/idl/options.lo \
+	idl_options.lo \
 	quantifiers_options.lo \
 	../theory/sets/options.lo \
 	strings_options.lo \
