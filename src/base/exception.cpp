@@ -23,8 +23,8 @@
 #include "base/cvc4_assert.h"
 
 using namespace std;
-using namespace CVC4;
 
+namespace CVC4 {
 void IllegalArgumentException::construct(const char* header, const char* extra,
                                          const char* function, const char* fmt,
                                          va_list args) {
@@ -114,3 +114,5 @@ void IllegalArgumentException::construct(const char* header, const char* extra,
   delete [] buf;
 #endif /* CVC4_DEBUG */
 }
+
+} /* namespace CVC4 */

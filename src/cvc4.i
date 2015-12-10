@@ -49,11 +49,14 @@ using namespace CVC4;
 #include <cassert>
 
 #include "base/exception.h"
+#include "base/modal_exception.h"
 #include "expr/expr.h"
 #include "expr/sexpr.h"
 #include "expr/type.h"
+#include "options/option_exception.h"
 #include "smt_util/command.h"
 #include "util/datatype.h"
+#include "util/unsafe_interrupt_exception.h"
 
 #ifdef SWIGJAVA
 #include "bindings/java_stream_adapters.h"
@@ -143,17 +146,21 @@ std::set<JavaInputStreamAdapter*> CVC4::JavaInputStreamAdapter::s_adapters;
   assert(status == 0);
 %}
 
-%typemap(throws) ModalException = Exception;
-%typemap(throws) LogicException = Exception;
-%typemap(throws) OptionException = Exception;
-%typemap(throws) IllegalArgumentException = Exception;
-%typemap(throws) AssertionException = Exception;
+%typemap(throws) CVC4::ModalException = CVC4::Exception;
+%typemap(throws) CVC4::LogicException = CVC4::Exception;
+%typemap(throws) CVC4::OptionException = CVC4::Exception;
+%typemap(throws) CVC4::IllegalArgumentException = CVC4::Exception;
+%typemap(throws) CVC4::AssertionException = CVC4::Exception;
 
 %typemap(throws) CVC4::TypeCheckingException = CVC4::Exception;
 %typemap(throws) CVC4::ScopeException = CVC4::Exception;
 %typemap(throws) CVC4::IllegalArgumentException = CVC4::Exception;
+%typemap(throws) IllegalArgumentException = Exception;
 %typemap(throws) CVC4::AssertionException = CVC4::Exception;
+
+// TIM: Really unclear why both of these are required
 %typemap(throws) CVC4::UnsafeInterruptException = CVC4::Exception;
+%typemap(throws) UnsafeInterruptException = CVC4::Exception;
 %typemap(throws) CVC4::parser::InputStreamException = CVC4::Exception;
 %typemap(throws) CVC4::parser::ParserException = CVC4::Exception;
 
@@ -293,6 +300,14 @@ std::set<JavaInputStreamAdapter*> CVC4::JavaInputStreamAdapter::s_adapters;
 
 #endif /* SWIGJAVA */
 
+// TIM:
+// At the moment, these four need to come before "expr/expr_manager.i".
+// Don't know why.
+%include "util/cardinality.i"
+%include "util/statistics.i"
+%include "util/subrange_bound.i"
+%include "expr/type.i"
+
 %include "base/exception.i"
 %include "base/modal_exception.i"
 %include "expr/expr.i"
@@ -301,11 +316,9 @@ std::set<JavaInputStreamAdapter*> CVC4::JavaInputStreamAdapter::s_adapters;
 %include "expr/kind.i"
 %include "expr/sexpr.i"
 %include "expr/symbol_table.i"
-%include "expr/type.i"
 %include "expr/variable_type_map.i"
 %include "options/language.i"
 %include "options/option_exception.i"
-%include "options/options.i"
 %include "options/options.i"
 %include "parser/cvc4parser.i"
 %include "smt/logic_exception.i"
@@ -317,8 +330,6 @@ std::set<JavaInputStreamAdapter*> CVC4::JavaInputStreamAdapter::s_adapters;
 %include "util/ascription_type.i"
 %include "util/bitvector.i"
 %include "util/bool.i"
-%include "util/cardinality.i"
-%include "util/configuration.i"
 %include "util/datatype.i"
 %include "util/emptyset.i"
 %include "util/hash.i"
@@ -330,10 +341,9 @@ std::set<JavaInputStreamAdapter*> CVC4::JavaInputStreamAdapter::s_adapters;
 %include "util/regexp.i"
 %include "util/resource_manager.i"
 %include "util/result.i"
-%include "util/statistics.i"
-%include "util/subrange_bound.i"
 %include "util/tuple.i"
 %include "util/uninterpreted_constant.i"
+%include "util/configuration.i"
 %include "util/unsafe_interrupt_exception.i"
 %include "util/unsat_core.i"
 //%include "util/floatingpoint.i"

@@ -162,16 +162,16 @@ CPP_TEMPLATE_FILES = \
 	base_options_template.cpp \
 	options_holder_template.h \
 	options_template.cpp \
-	option_handler_get_option_template.cpp \
-	option_handler_set_option_template.cpp
+	options_handler_get_option_template.cpp \
+	options_handler_set_option_template.cpp
 
 CPP_TEMPLATE_SEDS = \
 	base_options_template.h.sed \
 	base_options_template.cpp.sed \
 	options_holder_template.h.sed \
 	options_template.cpp.sed \
-	option_handler_get_option_template.cpp.sed \
-	option_handler_set_option_template.cpp.sed
+	options_handler_get_option_template.cpp.sed \
+	options_handler_set_option_template.cpp.sed
 
 
 DOCUMENTATION_FILES = \
@@ -238,14 +238,14 @@ nodist_liboptions_la_SOURCES = \
 	options_holder.h \
 	$(OPTIONS_HEADS) \
 	$(OPTIONS_CPPS) \
-	option_handler_get_option.cpp \
-	option_handler_set_option.cpp
+	options_handler_get_option.cpp \
+	options_handler_set_option.cpp
 
 
 BUILT_SOURCES = \
 	exprs-builts \
-	option_handler_get_option.cpp \
-	option_handler_set_option.cpp \
+	options_handler_get_option.cpp \
+	options_handler_set_option.cpp \
 	options.cpp \
 	options_holder.h \
 	$(OPTIONS_HEADS) \
@@ -279,8 +279,8 @@ EXTRA_DIST = \
 	options_holder_template.h \
 	options.i \
 	options_handler_interface.i \
-	option_handler_get_option_template.cpp \
-	option_handler_set_option_template.cpp \
+	options_handler_get_option_template.cpp \
+	options_handler_set_option_template.cpp \
 	$(OPTIONS_FILES_SRCS) \
 	mktagheaders \
 	mktags \
@@ -318,7 +318,7 @@ MOSTLYCLEANFILES = \
 	Trace_tags.h
 
 # Make sure the implicit rules never mistake a _template.cpp or _template.h file for source file.
-options_holder_template.h options_template.cpp option_handler_get_option_template.cpp option_handler_set_option_template.cpp base_options_template.h base_options_template.cpp :;
+options_holder_template.h options_template.cpp options_handler_get_option_template.cpp options_handler_set_option_template.cpp base_options_template.h base_options_template.cpp :;
 
 
 
@@ -408,19 +408,19 @@ options.cpp : options_template.cpp options_template.cpp.sed mkoptions summary.se
 
 
 #   mkoptions apply-sed-to-template sed-file template-file
-option_handler_get_option.cpp : option_handler_get_option_template.cpp option_handler_get_option_template.cpp.sed mkoptions summary.sed $(OPTIONS_HEADS)
+options_handler_get_option.cpp : options_handler_get_option_template.cpp options_handler_get_option_template.cpp.sed mkoptions summary.sed $(OPTIONS_HEADS)
 	$(AM_V_at)chmod +x @srcdir@/mkoptions
 	$(AM_V_GEN)(@srcdir@/mkoptions apply-sed-files-to-template \
-		@srcdir@/option_handler_get_option_template.cpp \
-		@builddir@/option_handler_get_option_template.cpp.sed \
+		@srcdir@/options_handler_get_option_template.cpp \
+		@builddir@/options_handler_get_option_template.cpp.sed \
 		summary.sed \
 	) > "$@"
 
-option_handler_set_option.cpp : option_handler_set_option_template.cpp option_handler_set_option_template.cpp.sed mkoptions summary.sed $(OPTIONS_HEADS)
+options_handler_set_option.cpp : options_handler_set_option_template.cpp options_handler_set_option_template.cpp.sed mkoptions summary.sed $(OPTIONS_HEADS)
 	$(AM_V_at)chmod +x @srcdir@/mkoptions
 	$(AM_V_GEN)(@srcdir@/mkoptions apply-sed-files-to-template \
-		@srcdir@/option_handler_set_option_template.cpp \
-		@builddir@/option_handler_set_option_template.cpp.sed \
+		@srcdir@/options_handler_set_option_template.cpp \
+		@builddir@/options_handler_set_option_template.cpp.sed \
 		summary.sed \
 	) > "$@"
 
