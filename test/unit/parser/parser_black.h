@@ -19,10 +19,10 @@
 #include <cxxtest/TestSuite.h>
 #include <sstream>
 
-#include "base/language.h"
 #include "base/output.h"
 #include "expr/expr.h"
 #include "expr/expr_manager.h"
+#include "options/language.h"
 #include "options/options.h"
 #include "parser/parser.h"
 #include "parser/parser_builder.h"

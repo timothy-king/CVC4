@@ -22,9 +22,9 @@
 #include <cstdlib>
 #include <cerrno>
 
-#include "base/language.h"
 #include "expr/command.h"
 #include "expr/expr.h"
+#include "options/language.h"
 #include "parser/parser.h"
 #include "parser/parser_builder.h"
 #include "smt/smt_engine.h"

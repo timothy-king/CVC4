@@ -26,14 +26,15 @@ ${includes}
 #ifndef __CVC4__EXPR_H
 #define __CVC4__EXPR_H
 
+#include <stdint.h>
 #include <iostream>
 #include <iterator>
-#include <stdint.h>
+
 #include <string>
 
 #include "base/exception.h"
-#include "base/language.h"
 #include "options/expr_options.h"
+#include "options/language.h"
 #include "util/hash.h"
 
 // This is a hack, but an important one: if there's an error, the

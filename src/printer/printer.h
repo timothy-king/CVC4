@@ -22,9 +22,9 @@
 #include <map>
 #include <string>
 
-#include "base/language.h"
 #include "expr/node.h"
 #include "expr/sexpr.h"
+#include "options/language.h"
 #include "smt_util/command.h"
 #include "util/model.h"
 

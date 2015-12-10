@@ -21,8 +21,6 @@ libbase_la_SOURCES = \
 	exception.cpp \
 	exception.h \
 	gmp_util.h \
-	language.cpp \
-	language.h \
 	lemma_input_channel_forward.h \
 	lemma_output_channel_forward.h \
 	modal_exception.h \
@@ -73,8 +71,7 @@ EXTRA_DIST = \
 	rational.i \
 	tls.h.in \
 	modal_exception.i \
-	option_exception.i \
-	language.i
+	option_exception.i
 
 DISTCLEANFILES = \
 	integer.h.tmp \

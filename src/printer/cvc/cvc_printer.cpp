@@ -24,9 +24,9 @@
 #include <typeinfo>
 #include <vector>
 
-#include "base/language.h" // for LANG_AST
 #include "expr/expr.h" // for ExprSetDepth etc..
 #include "expr/node_manager_attributes.h" // for VarNameAttr
+#include "options/language.h" // for LANG_AST
 #include "printer/dagification_visitor.h"
 #include "options/smt_options.h"
 #include "smt/smt_engine.h"

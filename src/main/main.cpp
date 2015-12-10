@@ -13,6 +13,7 @@
  **
  ** Main driver for CVC4 executable.
  **/
+#include "main/main.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -21,12 +22,11 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include "base/language.h"
 #include "base/output.h"
 #include "expr/expr_manager.h"
 #include "main/command_executor.h"
 #include "main/interactive_shell.h"
-#include "main/main.h"
+#include "options/language.h"
 #include "options/main_options.h"
 #include "parser/parser.h"
 #include "parser/parser_builder.h"

@@ -24,7 +24,7 @@
 #include <string>
 #include <vector>
 
-#include "base/language.h"
+#include "options/language.h"
 #include "expr/expr.h"
 #include "expr/expr_manager.h"
 #include "parser/parser_exception.h"

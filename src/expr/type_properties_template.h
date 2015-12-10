@@ -21,13 +21,14 @@
 
 #line 23 "${template}"
 
+#include <sstream>
+
 #include "base/cvc4_assert.h"
-#include "base/language.h"
+#include "options/language.h"
 #include "expr/type_node.h"
 #include "expr/kind.h"
 #include "expr/expr.h"
 
-#include <sstream>
 
 ${type_properties_includes}
 

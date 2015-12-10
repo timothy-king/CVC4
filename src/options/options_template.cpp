@@ -34,22 +34,23 @@ extern int optreset;
 #  undef _BSD_SOURCE
 #endif /* CVC4_IS_NOT_REALLY_BSD */
 
+#include <unistd.h>
+#include <string.h>
+#include <stdint.h>
+#include <time.h>
+
 #include <cstdio>
 #include <cstdlib>
 #include <new>
 #include <string>
 #include <sstream>
 #include <limits>
-#include <unistd.h>
-#include <string.h>
-#include <stdint.h>
-#include <time.h>
 
 #include "base/exception.h"
-#include "base/language.h"
 #include "base/output.h"
 #include "base/tls.h"
 #include "options/didyoumean.h"
+#include "options/language.h"
 #include "options/options_handler_interface.h"
 
 ${include_all_option_headers}

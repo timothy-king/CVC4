@@ -17,11 +17,11 @@
 
 #include <cxxtest/TestSuite.h>
 
-#include "base/language.h"
 #include "expr/expr_manager.h"
 #include "expr/kind.h"
 #include "expr/node_manager.h"
 #include "expr/type_node.h"
+#include "options/language.h"
 #include "theory/type_enumerator.h"
 #include "util/array_store_all.h"
 

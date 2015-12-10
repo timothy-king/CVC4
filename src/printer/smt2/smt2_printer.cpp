@@ -21,8 +21,8 @@
 #include <typeinfo>
 #include <vector>
 
-#include "base/language.h"
 #include "expr/node_manager_attributes.h"
+#include "options/language.h"
 #include "options/smt_options.h"
 #include "printer/dagification_visitor.h"
 #include "smt/smt_engine.h"

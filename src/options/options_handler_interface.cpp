@@ -26,7 +26,7 @@
 #include "options/boolean_term_conversion_mode.h"
 #include "options/decision_mode.h"
 #include "base/exception.h"
-#include "base/language.h"
+#include "options/language.h"
 #include "base/modal_exception.h"
 #include "base/option_exception.h"
 #include "base/printer_modes.h"

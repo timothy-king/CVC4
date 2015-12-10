@@ -13,13 +13,14 @@
  **
  ** Reference-counted encapsulation of a pointer to node information.
  **/
-
-#include "base/output.h"
 #include "expr/node.h"
-#include "expr/attribute.h"
 
 #include <iostream>
 #include <cstring>
+
+#include "base/output.h"
+#include "expr/attribute.h"
+
 
 using namespace std;
 

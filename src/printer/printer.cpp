@@ -13,13 +13,13 @@
  **
  ** Base of the pretty-printer interface.
  **/
+#include "printer/printer.h"
 
 #include <string>
 
-#include "base/language.h"
+#include "options/language.h"
 #include "printer/ast/ast_printer.h"
 #include "printer/cvc/cvc_printer.h"
-#include "printer/printer.h"
 #include "printer/smt1/smt1_printer.h"
 #include "printer/smt2/smt2_printer.h"
 #include "printer/tptp/tptp_printer.h"
@@ -55,7 +55,7 @@ Printer* Printer::makePrinter(OutputLanguage lang) throw() {
 
   case LANG_SYGUS:
     return new printer::smt2::Smt2Printer(printer::smt2::sygus_variant);
-    
+
   case LANG_AST:
     return new printer::ast::AstPrinter();
 

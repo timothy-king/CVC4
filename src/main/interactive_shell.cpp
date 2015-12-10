@@ -14,6 +14,7 @@
  ** This file is the implementation for the CVC4 interactive shell.
  ** The shell supports the readline library.
  **/
+#include "main/interactive_shell.h"
 
 #include <algorithm>
 #include <cassert>
@@ -34,10 +35,9 @@
 #endif /* HAVE_LIBREADLINE */
 
 
-#include "base/language.h"
 #include "base/output.h"
 #include "cvc4autoconfig.h"
-#include "main/interactive_shell.h"
+#include "options/language.h"
 #include "options/main_options.h"
 #include "options/options.h"
 #include "options/smt_options.h"

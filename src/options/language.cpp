@@ -14,7 +14,7 @@
  ** Definition of input and output languages.
  **/
 
-#include "base/language.h"
+#include "options/language.h"
 
 namespace CVC4 {
 namespace language {

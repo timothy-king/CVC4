@@ -26,12 +26,13 @@
 #ifndef __CVC4__EXPR__NODE_VALUE_H
 #define __CVC4__EXPR__NODE_VALUE_H
 
-#include <iterator>
 #include <stdint.h>
+
+#include <iterator>
 #include <string>
 
-#include "base/language.h"
 #include "expr/kind.h"
+#include "options/language.h"
 
 namespace CVC4 {
 

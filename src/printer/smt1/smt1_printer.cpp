@@ -13,16 +13,16 @@
  **
  ** The pretty-printer interface for the SMT output language.
  **/
+#include "printer/smt1/smt1_printer.h"
 
 #include <iostream>
 #include <string>
 #include <typeinfo>
 #include <vector>
 
-#include "base/language.h" // for LANG_AST
 #include "expr/expr.h" // for ExprSetDepth etc..
 #include "expr/node_manager.h" // for VarNameAttr
-#include "printer/smt1/smt1_printer.h"
+#include "options/language.h" // for LANG_AST
 #include "smt_util/command.h"
 
 using namespace std;

@@ -18,10 +18,10 @@
 #include <set>
 #include <vector>
 
-#include "base/language.h"
 #include "expr/kind.h"
 #include "expr/node.h"
 #include "expr/node_manager.h"
+#include "options/language.h"
 #include "util/boolean_simplification.h"
 
 using namespace CVC4;
@@ -214,4 +214,3 @@ public:
   }
 
 };/* class BooleanSimplificationBlack */
-

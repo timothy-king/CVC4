@@ -218,7 +218,10 @@ liboptions_la_SOURCES = \
 	decision_weight.h \
 	options.h \
 	options_handler_interface.cpp \
-	options_handler_interface.h
+	options_handler_interface.h \
+	language.cpp \
+	language.h
+
 
 nodist_liboptions_la_SOURCES = \
 	options.cpp \
@@ -271,6 +274,7 @@ EXTRA_DIST = \
 	$(OPTIONS_FILES_SRCS) \
 	mktagheaders \
 	mktags \
+	language.i \
 	$(DOCUMENTATION_FILES)
 
 
