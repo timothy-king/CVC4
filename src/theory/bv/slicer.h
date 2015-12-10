@@ -16,15 +16,15 @@
 
 #include "cvc4_private.h"
 
+#include <math.h>
 
 #include <vector>
 #include <list>
 #include <ext/hash_map>
-#include <math.h>
 
-#include "base/bitvector.h"
 #include "expr/node.h"
 #include "theory/bv/theory_bv_utils.h"
+#include "util/bitvector.h"
 #include "util/index.h"
 #include "util/statistics_registry.h"
 

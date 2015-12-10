@@ -19,7 +19,7 @@
 
 #include "cvc4_public.h"
 
-#include "base/bitvector.h"
+#include "util/bitvector.h"
 
 
 #ifndef __CVC4__FLOATINGPOINT_H

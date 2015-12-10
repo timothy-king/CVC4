@@ -1,5 +1,5 @@
 %{
-#include "base/bitvector.h"
+#include "util/bitvector.h"
 %}
 
 %ignore CVC4::BitVector::BitVector(unsigned, unsigned);
@@ -40,4 +40,4 @@
 %ignore CVC4::operator<<(std::ostream&, const BitVectorBitOf&);
 %ignore CVC4::operator<<(std::ostream&, const IntToBitVector&);
 
-%include "base/bitvector.h"
+%include "util/bitvector.h"

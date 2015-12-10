@@ -23,7 +23,6 @@
 #include <sstream>
 #include <string>
 
-#include "base/bitvector.h"
 #include "base/integer.h"
 #include "base/output.h"
 #include "base/rational.h"
@@ -35,6 +34,7 @@
 #include "parser/parser.h"
 #include "parser/parser_builder.h"
 #include "smt_util/command.h"
+#include "util/bitvector.h"
 #include "util/hash.h"
 #include "util/predicate.h"
 #include "util/subrange_bound.h"

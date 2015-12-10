@@ -15,6 +15,7 @@ libutil_la_SOURCES = \
 	debug.h \
 	hash.h \
 	bool.h \
+	bitvector.h \
 	proof.h \
 	result.h \
 	result.cpp \
@@ -113,4 +114,5 @@ EXTRA_DIST = \
 	unsafe_interrupt_exception.i \
 	proof.i \
 	unsat_core.i \
-	floatingpoint.i
+	floatingpoint.i \
+	bitvector.i

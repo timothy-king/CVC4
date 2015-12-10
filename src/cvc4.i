@@ -293,7 +293,7 @@ std::set<JavaInputStreamAdapter*> CVC4::JavaInputStreamAdapter::s_adapters;
 
 #endif /* SWIGJAVA */
 
-%include "base/bitvector.i"
+%include "util/bitvector.i"
 %include "base/exception.i"
 %include "base/integer.i"
 %include "base/modal_exception.i"

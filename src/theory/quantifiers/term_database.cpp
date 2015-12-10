@@ -26,9 +26,9 @@
 #include "util/datatype.h"
 
 //for sygus
-#include "base/bitvector.h"
 #include "smt/smt_engine_scope.h"
 #include "theory/bv/theory_bv_utils.h"
+#include "util/bitvector.h"
 
 using namespace std;
 using namespace CVC4;

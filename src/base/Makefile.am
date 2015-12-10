@@ -15,7 +15,6 @@ noinst_LTLIBRARIES = libbase.la
 libbase_la_SOURCES = \
 	Makefile.am \
 	Makefile.in \
-	bitvector.h \
 	cvc4_assert.cpp \
 	cvc4_assert.h \
 	exception.cpp \
