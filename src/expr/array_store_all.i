@@ -1,5 +1,5 @@
 %{
-#include "util/array_store_all.h"
+#include "expr/array_store_all.h"
 %}
 
 %rename(equals) CVC4::ArrayStoreAll::operator==(const ArrayStoreAll&) const;
@@ -14,4 +14,4 @@
 %ignore CVC4::operator<<(std::ostream&, const ArrayStoreAll&);
 
 %include "expr/type.i"
-%include "util/array_store_all.h"
+%include "expr/array_store_all.h"

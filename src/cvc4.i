@@ -305,14 +305,12 @@ std::set<JavaInputStreamAdapter*> CVC4::JavaInputStreamAdapter::s_adapters;
 // I don't know why. I am following the build order 
 %include "base/exception.i"
 %include "base/modal_exception.i"
-
 %include "util/cardinality.i"
 %include "util/statistics.i"
 %include "util/subrange_bound.i"
 %include "util/result.i"
-%include "util/array.i"
-%include "util/array_store_all.i"
-%include "util/ascription_type.i"
+%include "expr/array_store_all.i"
+%include "expr/ascription_type.i"
 %include "util/bitvector.i"
 %include "util/bool.i"
 %include "util/datatype.i"
@@ -335,6 +333,7 @@ std::set<JavaInputStreamAdapter*> CVC4::JavaInputStreamAdapter::s_adapters;
 // TIM:
 // Have these before the rest of expr/.
 // Again, no clue why.
+%include "expr/array.i"
 %include "expr/kind.i"
 %include "expr/type.i"
 

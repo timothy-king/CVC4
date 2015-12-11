@@ -20,10 +20,6 @@ libutil_la_SOURCES = \
 	Makefile.in \
 	abstract_value.cpp \
 	abstract_value.h \
-	array.h \
-	array_store_all.cpp \
-	array_store_all.h \
-	ascription_type.h \
 	backtrackable.h \
 	bin_heap.h \
 	bitvector.h \
@@ -115,9 +111,6 @@ endif
 
 
 EXTRA_DIST = \
-	array.i \
-	array_store_all.i \
-	ascription_type.i \
 	bitvector.i \
 	bool.i \
 	cardinality.i \

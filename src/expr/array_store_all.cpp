@@ -16,7 +16,8 @@
  ** the same for all indices).
  **/
 
-#include "util/array_store_all.h"
+#include "expr/array_store_all.h"
+
 #include <iostream>
 
 using namespace std;

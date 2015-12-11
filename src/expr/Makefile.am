@@ -6,8 +6,11 @@ AM_CXXFLAGS = -Wall -Wno-unknown-pragmas $(FLAG_VISIBILITY_HIDDEN)
 noinst_LTLIBRARIES = libexpr.la
 
 libexpr_la_SOURCES = \
+	array.h \
+	array_store_all.cpp \
+	array_store_all.h \
+	ascription_type.h \
 	attribute.cpp \
-	attribute.h \
 	attribute_internals.h \
 	attribute_unique_id.h \
 	convenience_node_builders.h \
@@ -50,6 +53,8 @@ nodist_libexpr_la_SOURCES = \
 	type_checker.cpp
 
 EXTRA_DIST = \
+	array.i \
+	ascription_type.i \
 	kind_template.h \
 	metakind_template.h \
 	type_properties_template.h \
