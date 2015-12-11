@@ -244,17 +244,18 @@ nodist_liboptions_la_SOURCES = \
 
 
 BUILT_SOURCES = \
-	options_handler_get_option.cpp \
-	options_handler_set_option.cpp \
-	options.cpp \
-	options_holder.h \
-	$(OPTIONS_HEADS) \
+	$(CPP_TEMPLATE_SEDS) \
+	$(DOCUMENTATION_FILES) \
+	$(DOCUMENTATION_TEMPLATE_SEDS) \
 	$(OPTIONS_CPPS) \
+	$(OPTIONS_HEADS) \
 	$(OPTIONS_OPTIONS_FILES) \
 	$(OPTIONS_SEDS) \
-	$(CPP_TEMPLATE_SEDS) \
-	$(DOCUMENTATION_TEMPLATE_SEDS) \
-	$(DOCUMENTATION_FILES)
+	options.cpp \
+	options_handler_get_option.cpp \
+	options_handler_set_option.cpp \
+	options_holder.h \
+	summary.sed
 
 # listing {Debug,Trace}_tags too ensures that make doesn't auto-remove it
 # after building (if it does, we don't get the "cached" effect with
@@ -267,26 +268,28 @@ BUILT_SOURCES += \
 	Trace_tags
 
 CLEANFILES = \
-	$(OPTIONS_FILES_SRCS) \
 	$(BUILT_SOURCES) \
-	$(DOCUMENTATION_FILES)
+	$(DOCUMENTATION_FILES) \
+	$(OPTIONS_TEMPS)
 
 EXTRA_DIST = \
-	mkoptions \
-	base_options_template.h \
+	$(DOCUMENTATION_FILES) \
+	$(OPTIONS_CPPS) \
+	$(OPTIONS_HEADS) \
+	$(OPTIONS_SRC_FILES) \
 	base_options_template.cpp \
-	options_template.cpp \
-	options_holder_template.h \
-	options.i \
-	options_handler_interface.i \
-	options_handler_get_option_template.cpp \
-	options_handler_set_option_template.cpp \
-	$(OPTIONS_FILES_SRCS) \
+	base_options_template.h \
+	language.i \
+	mkoptions \
 	mktagheaders \
 	mktags \
-	language.i \
 	option_exception.i \
-	$(DOCUMENTATION_FILES)
+	options.i \
+	options_handler_get_option_template.cpp \
+	options_handler_interface.i \
+	options_handler_set_option_template.cpp \
+	options_holder_template.h \
+	options_template.cpp
 
 
 %_tags.h: %_tags mktagheaders
@@ -320,6 +323,9 @@ MOSTLYCLEANFILES = \
 # Make sure the implicit rules never mistake a _template.cpp or _template.h file for source file.
 options_holder_template.h options_template.cpp options_handler_get_option_template.cpp options_handler_set_option_template.cpp base_options_template.h base_options_template.cpp :;
 
+# Make sure the implicit rules never mistake X_options for the -o file for a
+# CPP file.
+arith_options arrays_options base_options booleans_options builtin_options bv_options datatypes_options decision_options expr_options fp_options idl_options main_options parser_options printer_options proof_options prop_options quantifiers_options sets_options smt_options strings_options theory_options uf_options:;
 
 
 # These are phony to force them to be made everytime.
@@ -328,7 +334,9 @@ options_holder_template.h options_template.cpp options_handler_get_option_templa
 # Make is happier being listed explictly. Not sure why.
 arith_options.tmp arrays_options.tmp base_options.tmp booleans_options.tmp builtin_options.tmp bv_options.tmp datatypes_options.tmp decision_options.tmp expr_options.tmp fp_options.tmp idl_options.tmp main_options.tmp parser_options.tmp printer_options.tmp proof_options.tmp prop_options.tmp quantifiers_options.tmp sets_options.tmp smt_options.tmp strings_options.tmp theory_options.tmp uf_options.tmp:
 	echo "$@" "$(@:.tmp=)"
-	$(AM_V_GEN)(cp "@srcdir@/$(@:.tmp=)" "$@")
+	$(AM_V_GEN)(cp "@srcdir@/$(@:.tmp=)" "$@" || true)
+#TIM:
+#The (... || true) here is to make distcheck not fail.
 
 %_options.options: %_options.tmp
 	$(AM_V_GEN)\
@@ -446,64 +454,4 @@ $(DOCUMENTATION_FILES) : % : %_template %_template.sed mkoptions summary.sed
 # directories that are cleaned first.  Without this rule, "distclean"
 # fails.
 %.Plo:; $(MKDIR_P) "$(dir $@)" && : > "$@"
-
-# Tim:
-# This is insanely ugly and brittle!
-# *Any* proposal to clean this up is welcomed!
-# We are overloading automake's default distclean here. We have to overload
-# distclean because otherwise it deletes the dependency directory
-# "src/expr/.deps", then when running make distclean in src/expr it attempts to
-# include .Plo files "defined in src/expr/.deps".
-# An example from src/expr/Makefile.ina :
-# @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/attribute.Plo@am__quote@
-# The include must fail because this make file deleted that directory and
-# distclean cannot proceed. So we override distclean to only remove
-# "-rm -rf ./$(DEPDIR)". We then do manual massaging to finish up removing the
-# extra files. To reproduce this, you can comment out the distclean below, run
-# a distcheck and repeat this process.
-# Why was this not a problem before? I do not know.
-MANUAL_RM = \
-	$(CLEANFILES) \
-	../main/.dirstamp \
-	../expr/.dirstamp \
-	../options/options.lo \
-	../options/base_options.lo \
-	../options/.libs/options.o \
-	../options/.libs/base_options.o \
-	../options/.libs/liboptions.a \
-	../options/Trace_tags.tmp \
-	../options/Debug_tags.tmp \
-	../options/liboptions.la \
-	../parser/.dirstamp \
-	../expr/.deps/options.Plo \
-	../main/.deps/options.Plo \
-	../parser/.deps/options.Plo \
-	prop_options.lo \
-	decision_options.lo \
-	printer_options.lo \
-	proof_options.lo \
-	smt_options.lo \
-	arith_options.lo \
-	arrays_options.lo \
-	booleans_options.lo \
-	builtin_options.lo \
-	bv_options.lo \
-	datatypes_options.lo \
-	fp_options.lo \
-	idl_options.lo \
-	quantifiers_options.lo \
-	sets_options.lo \
-	strings_options.lo \
-	../theory/test_newalttheory/options.lo \
-	../theory/test_newtheory/options.lo \
-	uf_options.lo \
-	theory_options.lo
-
-
-
-distclean:
-	-rm -rf ./$(DEPDIR)
-	-rm -f Makefile
-	-rm -f $(MANUAL_RM)
-
 

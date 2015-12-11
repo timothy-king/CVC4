@@ -29,7 +29,6 @@
 #include "expr/kind.h"
 #include "expr/expr.h"
 
-
 ${type_properties_includes}
 
 #line 35 "${template}"
