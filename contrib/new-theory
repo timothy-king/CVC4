@@ -172,7 +172,7 @@ perl -e '
     while(<>) { if(!/\\$/) { chomp; print "$_ \\\n\ttheory/'"$dir"'/theory_'"$dir"'.h \\\n\ttheory/'"$dir"'/theory_'"$dir"'.cpp \\\n\ttheory/'"$dir"'/theory_'"$dir"'_rewriter.h \\\n\ttheory/'"$dir"'/theory_'"$dir"'_type_rules.h\n"; last; } else { print; } }
   }
   while(<>) { print; last if /^EXTRA_DIST = /; }
-  while(<>) { if(!/\\$/) { chomp; print "$_ \\\n\ttheory/'"$dir"'/kinds"; last; } else { print; } }
+  while(<>) { if(!/\\$/) { chomp; print "$_ \\\n\ttheory/'"$dir"'/kinds\n"; last; } else { print; } }
   while(<>) { print; }' src/Makefile.am > src/Makefile.am.new-theory
 if ! mv -f src/Makefile.am.new-theory src/Makefile.am; then
   echo "ERROR: cannot replace src/Makefile.am !" >&2
