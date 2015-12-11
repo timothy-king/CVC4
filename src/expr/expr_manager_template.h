@@ -33,7 +33,7 @@ ${includes}
 // compiler directs the user to the template file instead of the
 // generated one.  We don't want the user to modify the generated one,
 // since it'll get overwritten on a later build.
-#line 38 "${template}"
+#line 37 "${template}"
 
 namespace CVC4 {
 

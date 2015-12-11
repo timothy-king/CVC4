@@ -44,6 +44,7 @@
 #include "parser/input.h"
 #include "parser/parser.h"
 #include "parser/parser_builder.h"
+#include "theory/logic_info.h"
 #include "smt_util/command.h"
 
 using namespace std;

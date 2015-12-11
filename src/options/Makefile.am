@@ -218,6 +218,7 @@ liboptions_la_SOURCES = \
 	didyoumean.h \
 	language.cpp \
 	language.h \
+	logic_info_forward.h \
 	option_exception.h \
 	options.h \
 	options_handler_interface.cpp \
@@ -243,7 +244,6 @@ nodist_liboptions_la_SOURCES = \
 
 
 BUILT_SOURCES = \
-	exprs-builts \
 	options_handler_get_option.cpp \
 	options_handler_set_option.cpp \
 	options.cpp \
@@ -506,6 +506,4 @@ distclean:
 	-rm -f Makefile
 	-rm -f $(MANUAL_RM)
 
-.PHONY: exprs-builts
-exprs-builts:; $(AM_V_at)[ "$(FROM_EXPR)" != 1 ] && $(MAKE) -C ../expr builts || true
 

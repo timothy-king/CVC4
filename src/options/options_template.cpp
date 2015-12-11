@@ -41,10 +41,13 @@ extern int optreset;
 
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
+#include <iomanip>
 #include <new>
 #include <string>
 #include <sstream>
 #include <limits>
+
 
 #include "base/exception.h"
 #include "base/output.h"
@@ -90,11 +93,29 @@ struct OptionHandler {
 /** Variant for integral C++ types */
 template <class T>
 struct OptionHandler<T, true, true> {
-  static T handle(std::string option, std::string optionarg) {
-    try {
-      Integer i(optionarg, 10);
+  static bool stringToInt(T& t, const std::string& str) {
+    std::istringstream ss(str);
+    ss >> t;
+    char tmp;
+    return !(ss.fail() || ss.get(tmp));
+  }
 
-      if(! std::numeric_limits<T>::is_signed && i < 0) {
+  static bool containsMinus(const std::string& str) {
+    return str.find('-') != std::string::npos;
+  }
+
+  static T handle(const std::string& option, const std::string& optionarg) {
+    try {
+      T i;
+      bool success = stringToInt(i, optionarg);
+
+      if(!success){
+        throw OptionException(option + ": failed to parse "+ optionarg +" as an integer of the appropraite type.");
+      }
+
+      // Depending in the platform unsigned numbers with '-' signs may parse.
+      // Reject these by looking for any minus if it is not signed.
+      if( (! std::numeric_limits<T>::is_signed) && containsMinus(optionarg) ) {
         // unsigned type but user gave negative argument
         throw OptionException(option + " requires a nonnegative argument");
       } else if(i < std::numeric_limits<T>::min()) {
@@ -109,11 +130,13 @@ struct OptionHandler<T, true, true> {
         throw OptionException(ss.str());
       }
 
-      if(std::numeric_limits<T>::is_signed) {
-        return T(i.getLong());
-      } else {
-        return T(i.getUnsignedLong());
-      }
+      return i;
+
+      // if(std::numeric_limits<T>::is_signed) {
+      //   return T(i.getLong());
+      // } else {
+      //   return T(i.getUnsignedLong());
+      // }
     } catch(std::invalid_argument&) {
       // user gave something other than an integer
       throw OptionException(option + " requires an integer argument");

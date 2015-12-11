@@ -15,6 +15,7 @@
  ** A class giving information about a logic (group of theory modules and
  ** configuration information).
  **/
+#include "theory/logic_info.h"
 
 #include <string>
 #include <cstring>
@@ -22,7 +23,8 @@
 
 #include "base/cvc4_assert.h"
 #include "expr/kind.h"
-#include "theory/logic_info.h"
+
+#warning "Remove logic_info_forward.h"
 
 
 using namespace std;

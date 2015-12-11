@@ -18,8 +18,10 @@
  ** first generate options/summary.sed.
  **/
 
+#include <iomanip>
 #include <string>
 #include <sstream>
+
 
 #include "base/output.h"
 #include "base/modal_exception.h"
