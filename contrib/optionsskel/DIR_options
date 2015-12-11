@@ -3,6 +3,6 @@
 # See src/options/base_options for a description of this file format
 #
 
-module $id "theory/$dir/options.h" $camel
+module $id "options/$dir_options.h" $camel
 
 endmodule
