@@ -166,11 +166,7 @@ EchoCommand::EchoCommand(std::string output) throw() :
   d_output(output) {
 }
 EchoCommand::EchoCommand(const SExpr& sexpr) throw() :
-  d_output() {
-  std::stringstream ss;
-#warning "Check this usage."
-  Printer::getPrinter(Expr::setlanguage::getLanguage(ss))->toStream(ss, sexpr);
-  d_output = ss.str();
+    d_output(sexpr.toString()) {
 }
 
 std::string EchoCommand::getOutput() const throw() {
@@ -1038,9 +1034,7 @@ void GetAssignmentCommand::printResult(std::ostream& out, uint32_t verbosity) co
   if(! ok()) {
     this->Command::printResult(out, verbosity);
   } else {
-    #warning "Check this usage."
-    Printer::getPrinter(Expr::setlanguage::getLanguage(out))->toStream(out, d_result);
-    out << endl;
+    out << d_result << endl;
   }
 }
 
@@ -1451,10 +1445,7 @@ void GetInfoCommand::invoke(SmtEngine* smtEngine) throw() {
     if(d_flag == "all-options" || d_flag == "all-statistics") {
       ss << PrettySExprs(true);
     }
-    SExpr v_asSExpr(v);
-#warning "Check this usage."
-    Printer::getPrinter(Expr::setlanguage::getLanguage(ss))->toStream(ss, v_asSExpr);
-    
+    ss << SExpr(v);
     d_result = ss.str();
     d_commandStatus = CommandSuccess::instance();
   } catch(UnrecognizedOptionException&) {
@@ -1543,10 +1534,7 @@ std::string GetOptionCommand::getFlag() const throw() {
 void GetOptionCommand::invoke(SmtEngine* smtEngine) throw() {
   try {
     SExpr res = smtEngine->getOption(d_flag);
-    stringstream ss;
-#warning "Check this usage."
-    Printer::getPrinter(Expr::setlanguage::getLanguage(ss))->toStream(ss, res);
-    d_result = ss.str();
+    d_result = res.toString();
     d_commandStatus = CommandSuccess::instance();
   } catch(UnrecognizedOptionException&) {
     d_commandStatus = new CommandUnsupported();

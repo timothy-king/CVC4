@@ -32,6 +32,7 @@
 #include <vector>
 
 #include "base/exception.h"
+#include "options/language.h"
 #include "util/integer.h"
 #include "util/rational.h"
 
@@ -205,6 +206,12 @@ public:
     return d_sexprType == SEXPR_KEYWORD;
   }
 
+  /**
+   * This wraps the toStream() printer.
+   * NOTE: toString() and getValue() may differ on Keywords based on
+   * the current language set in expr.
+   */
+  std::string toString() const;
 
   /**
    * Get the string value of this S-expression. This will cause an
@@ -257,7 +264,118 @@ public:
    */
   static SExpr parseListOfListOfAtoms(const std::vector< std::vector<std::string> >& atoms_lists);
 
+
+  /**
+   * Outputs the SExpr onto the ostream out. This version reads defaults to the
+   * OutputLanguage, Expr::setlanguage::getLanguage(out). The indent level is
+   * set to 2 if PrettySExprs::getPrettySExprs() is on and is 0 otherwise.
+   */
+  static void toStream(std::ostream& out, const SExpr& sexpr) throw();
+
+  /**
+   * Outputs the SExpr onto the ostream out. This version sets the indent level
+   * to 2 if PrettySExprs::getPrettySExprs() is on.
+   */
+  static void toStream(std::ostream& out, const SExpr& sexpr, OutputLanguage language) throw();
+
+  /**
+   * Outputs the SExpr onto the ostream out.
+   * If the languageQuotesKeywords(language), then a top level keyword, " X",
+   * that needs quoting according to the SMT2 language standard is printed with
+   * quotes, "| X|".
+   * Otherwise this prints using toStreamRec().
+   *
+   * TIM: Keywords that are children are not currently quoted. This seems
+   * incorrect but I am just reproduicing the old behavior even if it does not make
+   * sense.
+   */
+  static void toStream(std::ostream& out, const SExpr& sexpr, OutputLanguage language, int indent) throw();
+
+private:
+
+  /**
+   * Simple printer for SExpr to an ostream.
+   * The current implementation is language independent.
+   */
+  static void toStreamRec(std::ostream& out, const SExpr& sexpr, OutputLanguage language, int indent) throw();
+
+
+  /** Returns true if this language quotes Keywords when printing. */
+  static bool languageQuotesKeywords(OutputLanguage language);
+
 };/* class SExpr */
+
+/** Prints an SExpr. */
+std::ostream& operator<<(std::ostream& out, const SExpr& sexpr);
+
+/**
+ * IOStream manipulator to pretty-print SExprs.
+ */
+class PrettySExprs {
+  /**
+   * The allocated index in ios_base for our setting.
+   */
+  static const int s_iosIndex;
+
+  /**
+   * When this manipulator is used, the setting is stored here.
+   */
+  bool d_prettySExprs;
+
+public:
+  /**
+   * Construct a PrettySExprs with the given setting.
+   */
+  PrettySExprs(bool prettySExprs) : d_prettySExprs(prettySExprs) {}
+
+  inline void applyPrettySExprs(std::ostream& out) {
+    out.iword(s_iosIndex) = d_prettySExprs;
+  }
+
+  static inline bool getPrettySExprs(std::ostream& out) {
+    return out.iword(s_iosIndex);
+  }
+
+  static inline void setPrettySExprs(std::ostream& out, bool prettySExprs) {
+    out.iword(s_iosIndex) = prettySExprs;
+  }
+
+  /**
+   * Set the pretty-sexprs state on the output stream for the current
+   * stack scope.  This makes sure the old state is reset on the
+   * stream after normal OR exceptional exit from the scope, using the
+   * RAII C++ idiom.
+   */
+  class Scope {
+    std::ostream& d_out;
+    bool d_oldPrettySExprs;
+
+  public:
+
+    inline Scope(std::ostream& out, bool prettySExprs) :
+      d_out(out),
+      d_oldPrettySExprs(PrettySExprs::getPrettySExprs(out)) {
+      PrettySExprs::setPrettySExprs(out, prettySExprs);
+    }
+
+    inline ~Scope() {
+      PrettySExprs::setPrettySExprs(d_out, d_oldPrettySExprs);
+    }
+
+  };/* class PrettySExprs::Scope */
+
+};/* class PrettySExprs */
+
+/**
+ * Sets the default pretty-sexprs setting for an ostream.  Use like this:
+ *
+ *   // let out be an ostream, s an SExpr
+ *   out << PrettySExprs(true) << s << endl;
+ *
+ * The setting stays permanently (until set again) with the stream.
+ */
+std::ostream& operator<<(std::ostream& out, PrettySExprs ps);
+
 
 }/* CVC4 namespace */
 

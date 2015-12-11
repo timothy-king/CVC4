@@ -45,9 +45,6 @@ void Smt1Printer::toStream(std::ostream& out, const CommandStatus* s) const thro
   s->toStream(out, language::output::LANG_SMTLIB_V2_5);
 }/* Smt1Printer::toStream() */
 
-void Smt1Printer::toStream(std::ostream& out, const SExpr& sexpr) const throw() {
-  Printer::getPrinter(language::output::LANG_SMTLIB_V2_5)->toStream(out, sexpr);
-}/* Smt1Printer::toStream() */
 
 void Smt1Printer::toStream(std::ostream& out, const Model& m) const throw() {
   Printer::getPrinter(language::output::LANG_SMTLIB_V2_5)->toStream(out, m);

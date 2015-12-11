@@ -29,7 +29,6 @@ using namespace std;
 namespace CVC4 {
 
 Printer* Printer::d_printers[language::output::LANG_MAX];
-const int PrettySExprs::s_iosIndex = std::ios_base::xalloc();
 
 Printer* Printer::makePrinter(OutputLanguage lang) throw() {
   using namespace CVC4::language::output;
@@ -101,55 +100,6 @@ void Printer::toStream(std::ostream& out, const Result& r) const throw() {
   }
 }/* Printer::toStream() */
 
-static void toStreamRec(std::ostream& out, const SExpr& sexpr, int indent) throw() {
-  if(sexpr.isInteger()) {
-    out << sexpr.getIntegerValue();
-  } else if(sexpr.isRational()) {
-    out << fixed << sexpr.getRationalValue().getDouble();
-  } else if(sexpr.isKeyword()) {
-    out << sexpr.getValue();
-  } else if(sexpr.isString()) {
-    string s = sexpr.getValue();
-    // escape backslash and quote
-    for(size_t i = 0; i < s.length(); ++i) {
-      if(s[i] == '"') {
-        s.replace(i, 1, "\\\"");
-        ++i;
-      } else if(s[i] == '\\') {
-        s.replace(i, 1, "\\\\");
-        ++i;
-      }
-    }
-    out << "\"" << s << "\"";
-  } else {
-    const vector<SExpr>& kids = sexpr.getChildren();
-    out << (indent > 0 && kids.size() > 1 ? "( " : "(");
-    bool first = true;
-    for(vector<SExpr>::const_iterator i = kids.begin(); i != kids.end(); ++i) {
-      if(first) {
-        first = false;
-      } else {
-        if(indent > 0) {
-          out << "\n" << string(indent, ' ');
-        } else {
-          out << ' ';
-        }
-      }
-      toStreamRec(out, *i, indent <= 0 || indent > 2 ? 0 : indent + 2);
-    }
-    if(indent > 0 && kids.size() > 1) {
-      out << '\n';
-      if(indent > 2) {
-        out << string(indent - 2, ' ');
-      }
-    }
-    out << ')';
-  }
-}/* toStreamRec() */
-
-void Printer::toStream(std::ostream& out, const SExpr& sexpr) const throw() {
-  toStreamRec(out, sexpr, PrettySExprs::getPrettySExprs(out) ? 2 : 0);
-}/* Printer::toStream(SExpr) */
 
 void Printer::toStream(std::ostream& out, const Model& m) const throw() {
   for(size_t i = 0; i < m.getNumCommands(); ++i) {

@@ -895,10 +895,6 @@ void CvcPrinter::toStream(std::ostream& out, const Command* c,
 
 }/* CvcPrinter::toStream(Command*) */
 
-static inline void toStream(std::ostream& out, const SExpr& sexpr) throw() {
-  Printer::getPrinter(language::output::LANG_CVC4)->toStream(out, sexpr);
-}
-
 template <class T>
 static bool tryToStream(std::ostream& out, const CommandStatus* s, bool cvc3Mode) throw();
 
@@ -1171,7 +1167,9 @@ static void toStream(std::ostream& out, const SetBenchmarkLogicCommand* c, bool 
 
 static void toStream(std::ostream& out, const SetInfoCommand* c, bool cvc3Mode) throw() {
   out << "% (set-info " << c->getFlag() << " ";
-  toStream(out, c->getSExpr());
+  OutputLanguage language =
+      cvc3Mode ? language::output::LANG_CVC3 : language::output::LANG_CVC4;
+  SExpr::toStream(out, c->getSExpr(), language);
   out << ")";
 }
 
@@ -1181,7 +1179,7 @@ static void toStream(std::ostream& out, const GetInfoCommand* c, bool cvc3Mode) 
 
 static void toStream(std::ostream& out, const SetOptionCommand* c, bool cvc3Mode) throw() {
   out << "OPTION \"" << c->getFlag() << "\" ";
-  toStream(out, c->getSExpr());
+  SExpr::toStream(out, c->getSExpr(), language::output::LANG_CVC4);
   out << ";";
 }
 

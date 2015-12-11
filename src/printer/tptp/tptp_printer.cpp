@@ -45,9 +45,9 @@ void TptpPrinter::toStream(std::ostream& out, const CommandStatus* s) const thro
   s->toStream(out, language::output::LANG_SMTLIB_V2_5);
 }/* TptpPrinter::toStream() */
 
-void TptpPrinter::toStream(std::ostream& out, const SExpr& sexpr) const throw() {
-  Printer::getPrinter(language::output::LANG_SMTLIB_V2_5)->toStream(out, sexpr);
-}/* TptpPrinter::toStream() */
+// void TptpPrinter::toStream(std::ostream& out, const SExpr& sexpr) const throw() {
+//   Printer::getPrinter(language::output::LANG_SMTLIB_V2_5)->toStream(out, sexpr);
+// }/* TptpPrinter::toStream() */
 
 void TptpPrinter::toStream(std::ostream& out, const Model& m) const throw() {
   out << "% SZS output start FiniteModel for " << m.getInputName() << endl;

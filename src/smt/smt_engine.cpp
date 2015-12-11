@@ -1602,12 +1602,8 @@ void SmtEngine::setInfo(const std::string& key, const CVC4::SExpr& value)
 
   SmtScope smts(this);
 
-  if(Trace.isOn("smt")){
-    Trace("smt") << "SMT setInfo(" << key << ", ";
-#warning "Check this usage."
-    Printer::getPrinter(Expr::setlanguage::getLanguage(Trace("smt")))->toStream(Trace("smt"), value);
-    Trace("smt") << ")" << endl;
-  }
+  Trace("smt") << "SMT setInfo(" << key << ", " << value << ")" << endl;
+
   if(Dump.isOn("benchmark")) {
     if(key == "status") {
       string s = value.getValue();
@@ -1671,10 +1667,7 @@ void SmtEngine::setInfo(const std::string& key, const CVC4::SExpr& value)
       }
       return;
     }
-    Warning() << "Warning: unsupported smt-lib-version: ";
-#warning "Check this usage."
-    Printer::getPrinter(Expr::setlanguage::getLanguage(Warning()))->toStream(Warning(), value);
-      Warning() << endl;
+    Warning() << "Warning: unsupported smt-lib-version: " << value << endl;
     throw UnrecognizedOptionException();
   } else if(key == "status") {
     string s;
@@ -4700,12 +4693,8 @@ void SmtEngine::setOption(const std::string& key, const CVC4::SExpr& value)
   throw(OptionException, ModalException) {
 
   NodeManagerScope nms(d_nodeManager);
+  Trace("smt") << "SMT setOption(" << key << ", " << value << ")" << endl;
 
-  Trace("smt") << "SMT setOption(" << key << ", ";
-#warning "Check this usage."
-  Printer::getPrinter(Expr::setlanguage::getLanguage(Trace("smt")))->toStream(Trace("smt"), value);
-
-  Trace("smt") << ")" << endl;
   if(Dump.isOn("benchmark")) {
     Dump("benchmark") << SetOptionCommand(key, value);
   }
