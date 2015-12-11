@@ -33,6 +33,7 @@ nodist_EXTRA_libcvc4_la_SOURCES = dummy.cpp
 libcvc4_la_SOURCES = \
 	git_versioninfo.cpp \
 	svn_versioninfo.cpp \
+	context/backtrackable.h \
 	context/context.cpp \
 	context/context.h \
 	context/context_mm.cpp \

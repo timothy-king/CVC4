@@ -20,7 +20,6 @@ libutil_la_SOURCES = \
 	Makefile.in \
 	abstract_value.cpp \
 	abstract_value.h \
-	backtrackable.h \
 	bin_heap.h \
 	bitvector.h \
 	bool.h \
