@@ -379,7 +379,7 @@ $(DOCUMENTATION_TEMPLATE_SEDS): %.sed : % mkoptions
 summary.sed : mkoptions $(OPTIONS_OPTIONS_FILES)
 	$(AM_V_at)chmod +x @srcdir@/mkoptions
 	$(AM_V_GEN)(@srcdir@/mkoptions summary-sed \
-		arith_options.options arrays_options.options base_options.options booleans_options.options builtin_options.options bv_options.options datatypes_options.options decision_options.options expr_options.options fp_options.options idl_options.options main_options.options parser_options.options printer_options.options proof_options.options prop_options.options quantifiers_options.options sets_options.options smt_options.options strings_options.options theory_options.options uf_options.options \
+		$(OPTIONS_OPTIONS_FILES) \
 	) > summary.sed
 
 
