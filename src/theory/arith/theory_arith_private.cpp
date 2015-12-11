@@ -37,6 +37,7 @@
 #include "options/smt_options.h"  // for incrementalSolving()
 #include "smt/logic_exception.h"
 #include "smt/logic_request.h"
+#include "smt_util/boolean_simplification.h"
 #include "theory/arith/approx_simplex.h"
 #include "theory/arith/arith_ite_utils.h"
 #include "theory/arith/arith_rewriter.h"
@@ -64,7 +65,6 @@
 #include "theory/rewriter.h"
 #include "theory/theory_model.h"
 #include "theory/valuation.h"
-#include "util/boolean_simplification.h"
 #include "util/dense_map.h"
 #include "util/integer.h"
 #include "util/rational.h"

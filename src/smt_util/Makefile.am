@@ -8,8 +8,11 @@ noinst_LTLIBRARIES = libsmtutil.la
 libsmtutil_la_SOURCES = \
 	Makefile.am \
 	Makefile.in \
+	boolean_simplification.cpp \
+	boolean_simplification.h \
 	command.cpp \
 	command.h
+
 
 
 EXTRA_DIST = \

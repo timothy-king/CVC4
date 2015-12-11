@@ -23,8 +23,6 @@ libutil_la_SOURCES = \
 	bin_heap.h \
 	bitvector.h \
 	bool.h \
-	boolean_simplification.cpp \
-	boolean_simplification.h \
 	cache.h \
 	cardinality.cpp \
 	cardinality.h \

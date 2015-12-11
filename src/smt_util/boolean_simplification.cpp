@@ -14,7 +14,7 @@
  ** Simple, commonly-used routines for Boolean simplification.
  **/
 
-#include "util/boolean_simplification.h"
+#include "smt_util/boolean_simplification.h"
 
 namespace CVC4 {
 
@@ -63,4 +63,3 @@ BooleanSimplification::push_back_associative_commute_recursive
 }/* BooleanSimplification::push_back_associative_commute_recursive() */
 
 }/* CVC4 namespace */
-
