@@ -52,7 +52,9 @@ libexpr_la_SOURCES = \
 	record.cpp \
 	record.h \
 	result.cpp \
-	result.h
+	result.h \
+	uninterpreted_constant.cpp \
+	uninterpreted_constant.h
 
 nodist_libexpr_la_SOURCES = \
 	kind.h \
@@ -92,7 +94,8 @@ EXTRA_DIST = \
 	record.i \
 	result.i \
 	predicate.i \
-	variable_type_map.i
+	variable_type_map.i \
+	uninterpreted_constant.i
 
 BUILT_SOURCES = \
 	kind.h \

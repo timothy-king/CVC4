@@ -14,7 +14,8 @@
  ** Representation of constants of uninterpreted sorts.
  **/
 
-#include "util/uninterpreted_constant.h"
+#include "expr/uninterpreted_constant.h"
+
 #include <iostream>
 #include <sstream>
 #include <string>

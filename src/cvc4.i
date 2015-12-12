@@ -318,7 +318,7 @@ std::set<JavaInputStreamAdapter*> CVC4::JavaInputStreamAdapter::s_adapters;
 %include "util/statistics.i"
 %include "util/subrange_bound.i"
 %include "util/tuple.i"
-%include "util/uninterpreted_constant.i"
+%include "expr/uninterpreted_constant.i"
 %include "util/unsafe_interrupt_exception.i"
 %include "proof/unsat_core.i"
 //%include "util/floatingpoint.i"

@@ -1,5 +1,5 @@
 %{
-#include "util/uninterpreted_constant.h"
+#include "expr/uninterpreted_constant.h"
 %}
 
 %rename(less) CVC4::UninterpretedConstant::operator<(const UninterpretedConstant&) const;
@@ -14,4 +14,4 @@
 
 %ignore CVC4::operator<<(std::ostream&, const UninterpretedConstant&);
 
-%include "util/uninterpreted_constant.h"
+%include "expr/uninterpreted_constant.h"
