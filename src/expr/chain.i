@@ -1,5 +1,5 @@
 %{
-#include "util/chain.h"
+#include "expr/chain.h"
 %}
 
 %rename(equals) CVC4::Chain::operator==(const Chain&) const;
@@ -9,4 +9,4 @@
 
 %rename(apply) CVC4::ChainHashFunction::operator()(const CVC4::Chain&) const;
 
-%include "util/chain.h"
+%include "expr/chain.h"

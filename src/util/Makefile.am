@@ -26,7 +26,6 @@ libutil_la_SOURCES = \
 	cache.h \
 	cardinality.cpp \
 	cardinality.h \
-	chain.h \
 	channel.h \
 	configuration.cpp \
 	configuration.h \
@@ -111,7 +110,6 @@ EXTRA_DIST = \
 	bitvector.i \
 	bool.i \
 	cardinality.i \
-	chain.i \
 	configuration.i \
 	datatype.i \
 	divisible.i \

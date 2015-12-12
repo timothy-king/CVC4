@@ -306,7 +306,7 @@ parameterized CHAIN CHAIN_OP 2: "chained operator (N-ary), turned into a conjuct
 constant CHAIN_OP \
     ::CVC4::Chain \
     ::CVC4::ChainHashFunction \
-    "util/chain.h" \
+    "expr/chain.h" \
     "the chained operator; payload is an instance of the CVC4::Chain class"
 
 constant TYPE_CONSTANT \
