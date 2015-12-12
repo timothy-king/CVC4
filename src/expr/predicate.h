@@ -35,6 +35,8 @@ struct CVC4_PUBLIC PredicateHashFunction {
 
 }/* CVC4 namespace */
 
+// TIM: This needs to be here due to a circular dependency.
+// TODO: Track this down.
 #include "expr/expr.h"
 
 namespace CVC4 {

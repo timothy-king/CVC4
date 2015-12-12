@@ -25,6 +25,7 @@
 
 #include "base/output.h"
 #include "expr/kind.h"
+#include "expr/predicate.h"
 #include "expr/sexpr.h"
 #include "options/expr_options.h"
 #include "options/parser_options.h"
@@ -35,7 +36,6 @@
 #include "util/bitvector.h"
 #include "util/hash.h"
 #include "util/integer.h"
-#include "util/predicate.h"
 #include "util/rational.h"
 #include "util/subrange_bound.h"
 

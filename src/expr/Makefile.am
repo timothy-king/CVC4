@@ -46,7 +46,9 @@ libexpr_la_SOURCES = \
 	type_node.h \
 	variable_type_map.h \
 	datatype.h \
-	datatype.cpp
+	datatype.cpp \
+	predicate.h \
+	predicate.cpp
 
 nodist_libexpr_la_SOURCES = \
 	kind.h \

@@ -1,5 +1,5 @@
 %{
-#include "util/predicate.h"
+#include "expr/predicate.h"
 %}
 
 %rename(equals) CVC4::Predicate::operator==(const Predicate&) const;
@@ -9,4 +9,4 @@
 
 %ignore CVC4::operator<<(std::ostream&, const Predicate&);
 
-%include "util/predicate.h"
+%include "expr/predicate.h"

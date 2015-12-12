@@ -42,8 +42,6 @@ libutil_la_SOURCES = \
 	index.h \
 	maybe.h \
 	ntuple.h \
-	predicate.cpp \
-	predicate.h \
 	proof.h \
 	record.cpp \
 	record.h \

@@ -15,10 +15,11 @@
  ** Instances of this class are carried as the payload of
  ** the CONSTANT-metakinded SUBTYPE_TYPE types.
  **/
+#include "expr/predicate.h"
 
 #include "base/cvc4_assert.h"
 #include "expr/expr.h"
-#include "util/predicate.h"
+
 
 using namespace std;
 

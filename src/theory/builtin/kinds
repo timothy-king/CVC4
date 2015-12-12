@@ -339,7 +339,7 @@ typerule CHAIN_OP ::CVC4::theory::builtin::ChainedOperatorTypeRule
 constant SUBTYPE_TYPE \
     ::CVC4::Predicate \
     ::CVC4::PredicateHashFunction \
-    "util/predicate.h" \
+    "expr/predicate.h" \
     "predicate subtype; payload is an instance of the CVC4::Predicate class"
 cardinality SUBTYPE_TYPE \
     "::CVC4::theory::builtin::SubtypeProperties::computeCardinality(%TYPE%)" \
