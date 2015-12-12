@@ -29,6 +29,7 @@
 #include "smt/logic_exception.h"
 #include "smt_util/ite_removal.h"
 #include "smt_util/lemma_output_channel.h"
+#include "smt_util/node_visitor.h"
 #include "theory/arith/arith_ite_utils.h"
 #include "theory/bv/theory_bv_utils.h"
 #include "theory/ite_utilities.h"
@@ -43,7 +44,6 @@
 #include "theory/theory_traits.h"
 #include "theory/uf/equality_engine.h"
 #include "theory/unconstrained_simplifier.h"
-#include "util/node_visitor.h"
 #include "util/resource_manager.h"
 
 using namespace std;

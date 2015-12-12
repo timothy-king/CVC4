@@ -21,8 +21,8 @@ libsmtutil_la_SOURCES = \
 	model.cpp \
 	model.h \
 	nary_builder.cpp \
-	nary_builder.h
-
+	nary_builder.h \
+	node_visitor.h
 
 
 EXTRA_DIST = \

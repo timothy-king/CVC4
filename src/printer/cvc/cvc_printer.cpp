@@ -31,10 +31,10 @@
 #include "options/smt_options.h"
 #include "smt/smt_engine.h"
 #include "smt_util/command.h"
+#include "smt_util/node_visitor.h"
 #include "theory/arrays/theory_arrays_rewriter.h"
 #include "theory/substitutions.h"
 #include "theory/theory_model.h"
-#include "util/node_visitor.h"
 
 using namespace std;
 

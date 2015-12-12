@@ -19,6 +19,7 @@
 #include "cvc4_private.h"
 
 #include <vector>
+
 #include "expr/node.h"
 
 namespace CVC4 {

@@ -13,6 +13,7 @@
  **
  ** The pretty-printer interface for the AST output language.
  **/
+#include "printer/ast/ast_printer.h"
 
 #include <iostream>
 #include <string>
@@ -22,11 +23,10 @@
 #include "expr/expr.h" // for ExprSetDepth etc..
 #include "expr/node_manager_attributes.h" // for VarNameAttr
 #include "options/language.h" // for LANG_AST
-#include "printer/ast/ast_printer.h"
 #include "printer/dagification_visitor.h"
 #include "smt_util/command.h"
+#include "smt_util/node_visitor.h"
 #include "theory/substitutions.h"
-#include "util/node_visitor.h"
 
 using namespace std;
 

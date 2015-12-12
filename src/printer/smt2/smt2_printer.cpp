@@ -27,11 +27,11 @@
 #include "printer/dagification_visitor.h"
 #include "smt/smt_engine.h"
 #include "smt_util/boolean_simplification.h"
+#include "smt_util/node_visitor.h"
 #include "theory/arrays/theory_arrays_rewriter.h"
 #include "theory/quantifiers/term_database.h"
 #include "theory/substitutions.h"
 #include "theory/theory_model.h"
-#include "util/node_visitor.h"
 #include "util/smt2_quote_string.h"
 
 using namespace std;

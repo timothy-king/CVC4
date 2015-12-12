@@ -41,7 +41,6 @@ libutil_la_SOURCES = \
 	hash.h \
 	index.h \
 	maybe.h \
-	node_visitor.h \
 	ntuple.h \
 	predicate.cpp \
 	predicate.h \
