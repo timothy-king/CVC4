@@ -43,8 +43,6 @@ libutil_la_SOURCES = \
 	maybe.h \
 	ntuple.h \
 	proof.h \
-	record.cpp \
-	record.h \
 	regexp.cpp \
 	regexp.h \
 	resource_manager.cpp \
@@ -102,7 +100,6 @@ EXTRA_DIST = \
 	integer_cln_imp.h \
 	integer_gmp_imp.cpp \
 	integer_gmp_imp.h \
-	predicate.i \
 	proof.i \
 	rational.h.in \
 	rational.i \
@@ -110,7 +107,6 @@ EXTRA_DIST = \
 	rational_cln_imp.h \
 	rational_gmp_imp.cpp \
 	rational_gmp_imp.h \
-	record.i \
 	regexp.i \
 	resource_manager.i \
 	result.i \

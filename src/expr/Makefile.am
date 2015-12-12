@@ -48,7 +48,9 @@ libexpr_la_SOURCES = \
 	datatype.h \
 	datatype.cpp \
 	predicate.h \
-	predicate.cpp
+	predicate.cpp \
+	record.cpp \
+	record.h
 
 nodist_libexpr_la_SOURCES = \
 	kind.h \
@@ -85,6 +87,8 @@ EXTRA_DIST = \
 	kind.i \
 	expr.i \
 	sexpr.i \
+	record.i \
+	predicate.i \
 	variable_type_map.i
 
 BUILT_SOURCES = \

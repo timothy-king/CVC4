@@ -1,5 +1,5 @@
 %{
-#include "util/record.h"
+#include "expr/record.h"
 
 #ifdef SWIGJAVA
 
@@ -98,7 +98,7 @@
 
 #endif /* SWIGJAVA */
 
-%include "util/record.h"
+%include "expr/record.h"
 
 #ifdef SWIGJAVA
 

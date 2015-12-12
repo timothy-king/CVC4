@@ -14,9 +14,7 @@
  ** A class representing a record definition.
  **/
 
-#include "util/record.h"
-
-using namespace std;
+#include "expr/record.h"
 
 namespace CVC4 {
 

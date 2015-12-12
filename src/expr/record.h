@@ -74,6 +74,7 @@ inline std::ostream& operator<<(std::ostream& out, const RecordUpdate& t) {
 
 }/* CVC4 namespace */
 
+// TODO: Why are these here?
 #include "expr/expr.h"
 #include "expr/type.h"
 
