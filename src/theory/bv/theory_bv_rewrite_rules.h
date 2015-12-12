@@ -15,17 +15,17 @@
  ** \todo document this file
  **/
 
+#include "cvc4_private.h"
+
 #pragma once
 
 #include <sstream>
 
 #include "context/context.h"
-#include "cvc4_private.h"
+#include "expr/statistics_registry.h"
 #include "smt_util/command.h"
 #include "theory/bv/theory_bv_utils.h"
 #include "theory/theory.h"
-#include "util/statistics_registry.h"
-
 
 namespace CVC4 {
 namespace theory {

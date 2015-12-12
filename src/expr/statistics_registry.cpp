@@ -15,7 +15,7 @@
  ** \todo document this file
  **/
 
-#include "util/statistics_registry.h"
+#include "expr/statistics_registry.h"
 
 #include "expr/expr_manager.h"
 #include "lib/clock_gettime.h"

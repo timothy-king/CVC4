@@ -26,6 +26,7 @@
 #include "cvc4autoconfig.h"
 #include "expr/expr_manager.h"
 #include "expr/result.h"
+#include "expr/statistics_registry.h"
 #include "main/command_executor.h"
 
 #ifdef PORTFOLIO_BUILD
@@ -44,7 +45,6 @@
 #include "smt/smt_options_handler.h"
 #include "smt_util/command.h"
 #include "util/configuration.h"
-#include "util/statistics_registry.h"
 
 using namespace std;
 using namespace CVC4;

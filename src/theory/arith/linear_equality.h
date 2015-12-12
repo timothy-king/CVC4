@@ -29,6 +29,7 @@
 
 #pragma once
 
+#include "expr/statistics_registry.h"
 #include "options/arith_options.h"
 #include "theory/arith/arithvar.h"
 #include "theory/arith/constraint_forward.h"
@@ -37,7 +38,6 @@
 #include "theory/arith/simplex_update.h"
 #include "theory/arith/tableau.h"
 #include "util/maybe.h"
-#include "util/statistics_registry.h"
 
 namespace CVC4 {
 namespace theory {

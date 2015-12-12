@@ -314,14 +314,13 @@ std::set<JavaInputStreamAdapter*> CVC4::JavaInputStreamAdapter::s_adapters;
 %include "util/proof.i"
 %include "util/rational.i"
 %include "util/regexp.i"
-%include "util/statistics.i"
 %include "util/subrange_bound.i"
 %include "util/tuple.i"
-%include "expr/uninterpreted_constant.i"
 %include "util/unsafe_interrupt_exception.i"
-%include "proof/unsat_core.i"
 //%include "util/floatingpoint.i"
 
+%include "expr/uninterpreted_constant.i"
+%include "expr/statistics.i"
 %include "expr/array_store_all.i"
 %include "expr/ascription_type.i"
 %include "expr/emptyset.i"
@@ -330,6 +329,7 @@ std::set<JavaInputStreamAdapter*> CVC4::JavaInputStreamAdapter::s_adapters;
 %include "expr/record.i"
 %include "expr/resource_manager.i"
 %include "expr/result.i"
+%include "proof/unsat_core.i"
 
 // TIM:
 // Have these before the rest of expr/.

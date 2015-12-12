@@ -1,5 +1,5 @@
 %{
-#include "util/statistics.h"
+#include "expr/statistics.h"
 
 #ifdef SWIGJAVA
 
@@ -67,7 +67,7 @@
 
 #endif /* SWIGJAVA */
 
-%include "util/statistics.h"
+%include "expr/statistics.h"
 
 #ifdef SWIGJAVA
 

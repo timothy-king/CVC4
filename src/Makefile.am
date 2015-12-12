@@ -19,7 +19,7 @@ AM_CPPFLAGS = \
 	-I@builddir@ -I@srcdir@/include -I@srcdir@ -I@top_srcdir@/proofs/lfsc_checker
 AM_CXXFLAGS = -Wall -Wno-unknown-pragmas -Wno-parentheses $(FLAG_VISIBILITY_HIDDEN)
 
-SUBDIRS = lib base options expr util smt_util prop/minisat prop/bvminisat . parser compat bindings main
+SUBDIRS = lib base options util expr smt_util prop/minisat prop/bvminisat . parser compat bindings main
 # The THEORIES list has been moved to Makefile.theories
 include @top_srcdir@/src/Makefile.theories
 

@@ -24,7 +24,7 @@
 #include "expr/expr.h"
 #include "expr/kind.h"
 #include "expr/type.h"
-#include "util/statistics.h"
+#include "expr/statistics.h"
 #include "util/subrange_bound.h"
 
 ${includes}

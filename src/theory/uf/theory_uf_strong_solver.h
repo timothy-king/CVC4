@@ -19,12 +19,11 @@
 
 #include "theory/theory.h"
 
+#include "context/cdchunk_list.h"
+#include "context/cdhashmap.h"
 #include "context/context.h"
 #include "context/context_mm.h"
-#include "context/cdhashmap.h"
-#include "context/cdchunk_list.h"
-
-#include "util/statistics_registry.h"
+#include "expr/statistics_registry.h"
 
 namespace CVC4 {
 

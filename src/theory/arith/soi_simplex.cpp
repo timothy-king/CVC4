@@ -14,15 +14,14 @@
  ** [[ Add lengthier description here ]]
  ** \todo document this file
  **/
-
+#include "theory/arith/soi_simplex.h"
 
 #include <algorithm>
 
 #include "base/output.h"
+#include "expr/statistics_registry.h"
 #include "options/arith_options.h"
 #include "theory/arith/constraint.h"
-#include "theory/arith/soi_simplex.h"
-#include "util/statistics_registry.h"
 
 
 using namespace std;

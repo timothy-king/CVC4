@@ -3,9 +3,7 @@ AM_CPPFLAGS = \
 	-I@builddir@/.. -I@srcdir@/../include -I@srcdir@/..
 AM_CXXFLAGS = -Wall -Wno-unknown-pragmas $(FLAG_VISIBILITY_HIDDEN)
 
-noinst_LTLIBRARIES = libutil.la libstatistics.la
-
-libstatistics_la_CPPFLAGS = $(CPPFLAGS) $(AM_CPPFLAGS) -D__BUILDING_STATISTICS_FOR_EXPORT
+noinst_LTLIBRARIES = libutil.la
 
 
 # Do not list built sources (like integer.h, rational.h) here!
@@ -47,18 +45,10 @@ libutil_la_SOURCES = \
 	regexp.h \
 	smt2_quote_string.cpp \
 	smt2_quote_string.h \
-	statistics.cpp \
-	statistics.h \
-	statistics_registry.cpp \
-	statistics_registry.h \
 	subrange_bound.h \
 	tuple.h \
 	unsafe_interrupt_exception.h \
 	utility.h
-
-libstatistics_la_SOURCES = \
-	statistics_registry.h \
-	statistics_registry.cpp
 
 BUILT_SOURCES = \
 	rational.h \
@@ -98,7 +88,6 @@ EXTRA_DIST = \
 	rational_gmp_imp.cpp \
 	rational_gmp_imp.h \
 	regexp.i \
-	statistics.i \
 	subrange_bound.i \
 	tuple.i \
 	unsafe_interrupt_exception.i

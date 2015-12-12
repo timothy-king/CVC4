@@ -32,6 +32,7 @@
 #include "expr/node.h"
 #include "expr/node_builder.h"
 #include "expr/result.h"
+#include "expr/statistics_registry.h"
 #include "options/arith_options.h"
 #include "smt/logic_exception.h"
 #include "smt_util/boolean_simplification.h"
@@ -65,11 +66,7 @@
 #include "theory/valuation.h"
 #include "util/dense_map.h"
 #include "util/integer.h"
-#include "util/rational.h"
-#include "util/statistics_registry.h"
-
-
-
+#include "util/rational.h""
 
 namespace CVC4 {
 namespace theory {

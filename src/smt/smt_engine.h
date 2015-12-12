@@ -30,13 +30,13 @@
 #include "expr/expr_manager.h"
 #include "expr/result.h"
 #include "expr/sexpr.h"
+#include "expr/statistics.h"
 #include "options/options.h"
 #include "proof/unsat_core.h"
 #include "smt/logic_exception.h"
 #include "theory/logic_info.h"
 #include "util/hash.h"
 #include "util/proof.h"
-#include "util/statistics.h"
 #include "util/unsafe_interrupt_exception.h"
 
 // In terms of abstraction, this is below (and provides services to)

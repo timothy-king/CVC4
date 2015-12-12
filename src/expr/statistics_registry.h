@@ -31,8 +31,8 @@
 #include <vector>
 
 #include "base/exception.h"
+#include "expr/statistics.h"
 #include "lib/clock_gettime.h"
-#include "util/statistics.h"
 
 namespace CVC4 {
 
