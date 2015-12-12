@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file resource_manager.h
+/*! \file resource_manager.cpp
 ** \verbatim
 ** Original author: Liana Hadarean
 ** Major contributors: none
@@ -13,12 +13,15 @@
 **
 ** Manages and updates various resource and time limits.
 **/
-#include "util/resource_manager.h"
+#include "expr/resource_manager.h"
 
 #include "base/output.h"
 #include "options/smt_options.h"
 #include "smt/smt_engine_scope.h"
 #include "theory/rewriter.h"
+
+#warning "Break the dependence on the theory rewriter and scope."
+#warning "Move this back into util later."
 
 using namespace std;
 

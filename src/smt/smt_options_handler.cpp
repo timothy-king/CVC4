@@ -27,6 +27,7 @@
 #include "cvc4autoconfig.h"
 #include "expr/metakind.h"
 #include "expr/node_manager.h"
+#include "expr/resource_manager.h"
 #include "lib/strtok_r.h"
 #include "options/arith_heuristic_pivot_rule.h"
 #include "options/arith_propagation_mode.h"
@@ -55,7 +56,6 @@
 #include "theory/logic_info.h"
 #include "util/configuration.h"
 #include "util/configuration_private.h"
-#include "util/resource_manager.h"
 
 
 namespace CVC4 {

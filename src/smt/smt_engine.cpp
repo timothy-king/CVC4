@@ -43,6 +43,7 @@
 #include "expr/node.h"
 #include "expr/node_builder.h"
 #include "expr/node_self_iterator.h"
+#include "expr/resource_manager.h"
 #include "options/arith_options.h"
 #include "options/arrays_options.h"
 #include "options/booleans_options.h"
@@ -95,7 +96,6 @@
 #include "util/configuration_private.h"
 #include "util/hash.h"
 #include "util/proof.h"
-#include "util/resource_manager.h"
 #include "util/sort_inference.h"
 
 using namespace std;
