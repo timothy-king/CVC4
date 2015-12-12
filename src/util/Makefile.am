@@ -34,7 +34,6 @@ libutil_la_SOURCES = \
 	dense_map.h \
 	divisible.cpp \
 	divisible.h \
-	dump.cpp \
 	dynamic_array.h \
 	floatingpoint.cpp \
 	floatingpoint.h \

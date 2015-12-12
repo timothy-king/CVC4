@@ -13,6 +13,7 @@ libsmtutil_la_SOURCES = \
 	command.cpp \
 	command.h \
 	dump.h \
+	dump.cpp \
 	ite_removal.cpp \
 	ite_removal.h
 

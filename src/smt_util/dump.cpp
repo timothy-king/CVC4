@@ -13,11 +13,9 @@
  **
  ** Dump utility classes and functions.
  **/
+#include "smt_util/dump.h"
 
 #include "base/output.h"
-#include "util/dump.h"
-
-using namespace std;
 
 namespace CVC4 {
 
