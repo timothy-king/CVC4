@@ -15,10 +15,9 @@
  ** \todo document this file
  **/
 
-#include "util/emptyset.h"
-#include <iostream>
+#include "expr/emptyset.h"
 
-using namespace std;
+#include <iostream>
 
 namespace CVC4 {
 

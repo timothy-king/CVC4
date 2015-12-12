@@ -314,7 +314,7 @@ std::set<JavaInputStreamAdapter*> CVC4::JavaInputStreamAdapter::s_adapters;
 %include "util/bitvector.i"
 %include "util/bool.i"
 %include "util/datatype.i"
-%include "util/emptyset.i"
+%include "expr/emptyset.i"
 %include "util/hash.i"
 %include "util/integer.i"
 %include "util/predicate.i"

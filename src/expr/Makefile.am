@@ -15,6 +15,8 @@ libexpr_la_SOURCES = \
 	attribute_unique_id.h \
 	convenience_node_builders.h \
 	chain.h \
+	emptyset.cpp \
+	emptyset.h \
 	expr_manager_scope.h \
 	expr_stream.h \
 	kind_map.h \
@@ -61,6 +63,7 @@ EXTRA_DIST = \
 	array_store_all.i \
 	ascription_type.i \
 	datatype.i \
+	emptyset.i \
 	kind_template.h \
 	metakind_template.h \
 	type_properties_template.h \

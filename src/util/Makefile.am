@@ -36,8 +36,6 @@ libutil_la_SOURCES = \
 	divisible.h \
 	dump.cpp \
 	dynamic_array.h \
-	emptyset.cpp \
-	emptyset.h \
 	floatingpoint.cpp \
 	floatingpoint.h \
 	gmp_util.h \
@@ -107,7 +105,6 @@ EXTRA_DIST = \
 	cardinality.i \
 	configuration.i \
 	divisible.i \
-	emptyset.i \
 	floatingpoint.i \
 	hash.i \
 	integer.h.in \

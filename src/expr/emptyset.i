@@ -1,5 +1,5 @@
 %{
-#include "util/emptyset.h"
+#include "expr/emptyset.h"
 %}
 
 %rename(equals) CVC4::EmptySet::operator==(const EmptySet&) const;
@@ -14,4 +14,4 @@
 
 %ignore CVC4::operator<<(std::ostream& out, const EmptySet& es);
 
-%include "util/emptyset.h"
+%include "expr/emptyset.h"
