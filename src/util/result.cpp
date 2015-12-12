@@ -13,6 +13,7 @@
  **
  ** Encapsulation of the result of a query.
  **/
+#include "util/result.h"
 
 #include <iostream>
 #include <algorithm>
@@ -20,8 +21,7 @@
 #include <cctype>
 
 #include "base/cvc4_assert.h"
-#include "printer/printer.h"
-#include "util/result.h"
+#include "expr/node.h"
 
 using namespace std;
 
@@ -185,8 +185,7 @@ ostream& operator<<(ostream& out, enum Result::Validity v) {
   return out;
 }
 
-ostream& operator<<(ostream& out,
-                    enum Result::UnknownExplanation e) {
+ostream& operator<<(ostream& out, enum Result::UnknownExplanation e) {
   switch(e) {
   case Result::REQUIRES_FULL_CHECK: out << "REQUIRES_FULL_CHECK"; break;
   case Result::INCOMPLETE: out << "INCOMPLETE"; break;
@@ -204,8 +203,91 @@ ostream& operator<<(ostream& out,
 }
 
 ostream& operator<<(ostream& out, const Result& r) {
-  Printer::getPrinter(Node::setlanguage::getLanguage(out))->toStream(out, r);
+  r.toStream(out, Node::setlanguage::getLanguage(out));
   return out;
 }/* operator<<(ostream&, const Result&) */
+
+
+void Result::toStreamDefault(std::ostream& out) const throw() {
+  if(getType() == Result::TYPE_SAT) {
+    switch(isSat()) {
+    case Result::UNSAT:
+      out << "unsat";
+      break;
+    case Result::SAT:
+      out << "sat";
+      break;
+    case Result::SAT_UNKNOWN:
+      out << "unknown";
+      if(whyUnknown() != Result::UNKNOWN_REASON) {
+        out << " (" << whyUnknown() << ")";
+      }
+      break;
+    }
+  } else {
+    switch(isValid()) {
+    case Result::INVALID:
+      out << "invalid";
+      break;
+    case Result::VALID:
+      out << "valid";
+      break;
+    case Result::VALIDITY_UNKNOWN:
+      out << "unknown";
+      if(whyUnknown() != Result::UNKNOWN_REASON) {
+        out << " (" << whyUnknown() << ")";
+      }
+      break;
+    }
+  }
+}/* Result::toStreamDefault() */
+
+
+void Result::toStreamSmt2(ostream& out) const throw(){
+  if(getType() == Result::TYPE_SAT && isSat() == Result::SAT_UNKNOWN) {
+    out << "unknown";
+  } else {
+    toStreamDefault(out);
+  }
+}
+
+void Result::toStreamTptp(std::ostream& out) const throw() {
+  out << "% SZS status ";
+  if(isSat() == Result::SAT) {
+    out << "Satisfiable";
+  } else if(isSat() == Result::UNSAT) {
+    out << "Unsatisfiable";
+  } else if(isValid() == Result::VALID) {
+    out << "Theorem";
+  } else if(isValid() == Result::INVALID) {
+    out << "CounterSatisfiable";
+  } else {
+    out << "GaveUp";
+  }
+  out << " for " << getInputName();
+}
+
+void Result::toStream(std::ostream& out, OutputLanguage language) const throw() {
+  switch(language) {
+  case language::output::LANG_SMTLIB_V2_0:
+  case language::output::LANG_SMTLIB_V2_5:
+  case language::output::LANG_SYGUS:
+  case language::output::LANG_Z3STR:
+    toStreamSmt2(out);
+    break;
+  case language::output::LANG_TPTP:
+    toStreamTptp(out);
+    break;
+  case language::output::LANG_AST:
+  case language::output::LANG_AUTO:
+  case language::output::LANG_CVC3:
+  case language::output::LANG_CVC4:
+  case language::output::LANG_MAX:
+  case language::output::LANG_SMTLIB_V1:
+  default:
+    toStreamDefault(out);
+    break;
+  };
+}
 
 }/* CVC4 namespace */

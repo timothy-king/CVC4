@@ -94,15 +94,6 @@ public:
   /** Write an SExpr out to a stream with this Printer. */
   //virtual void toStream(std::ostream& out, const SExpr& sexpr) const throw();
 
-  /**
-   * Write a Result out to a stream with this Printer.
-   *
-   * The default implementation writes a reasonable string in lowercase
-   * for sat, unsat, valid, invalid, or unknown results.  This behavior
-   * is overridable by each Printer, since sometimes an output language
-   * has a particular preference for how results should appear.
-   */
-  virtual void toStream(std::ostream& out, const Result& r) const throw();
 
   /** Write a Model out to a stream with this Printer. */
   virtual void toStream(std::ostream& out, const Model& m) const throw();

@@ -62,21 +62,7 @@ void TptpPrinter::toStream(std::ostream& out, const Model& m, const Command* c) 
   Unreachable();
 }
 
-void TptpPrinter::toStream(std::ostream& out, const Result& r) const throw() {
-  out << "% SZS status ";
-  if(r.isSat() == Result::SAT) {
-    out << "Satisfiable";
-  } else if(r.isSat() == Result::UNSAT) {
-    out << "Unsatisfiable";
-  } else if(r.isValid() == Result::VALID) {
-    out << "Theorem";
-  } else if(r.isValid() == Result::INVALID) {
-    out << "CounterSatisfiable";
-  } else {
-    out << "GaveUp";
-  }
-  out << " for " << r.getInputName();
-}
+
 
 }/* CVC4::printer::tptp namespace */
 }/* CVC4::printer namespace */

@@ -23,6 +23,7 @@
 #include <string>
 
 #include "base/exception.h"
+#include "options/language.h"
 
 namespace CVC4 {
 
@@ -155,6 +156,32 @@ public:
 
   std::string getInputName() const { return d_inputName; }
 
+  /**
+   * Write a Result out to a stream in this language.
+   */
+  void toStream(std::ostream& out, OutputLanguage language) const throw();
+
+  /**
+   * This is mostly the same the default
+   * If getType() == Result::TYPE_SAT && isSat() == Result::SAT_UNKNOWN,
+   *
+   */
+  void toStreamSmt2(std::ostream& out) const throw();
+
+  /**
+   * Write a Result out to a stream in the Tptp format
+   */
+  void toStreamTptp(std::ostream& out) const throw();
+
+  /**
+   * Write a Result out to a stream.
+   *
+   * The default implementation writes a reasonable string in lowercase
+   * for sat, unsat, valid, invalid, or unknown results.  This behavior
+   * is overridable by each Printer, since sometimes an output language
+   * has a particular preference for how results should appear.
+   */
+  void toStreamDefault(std::ostream& out) const throw();
 };/* class Result */
 
 inline bool Result::operator!=(const Result& r) const throw() {
