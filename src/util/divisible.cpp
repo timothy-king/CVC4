@@ -14,10 +14,9 @@
  ** [[ Add lengthier description here ]]
  ** \todo document this file
  **/
-
-#include "base/exception.h"
 #include "util/divisible.h"
 
+#include "base/exception.h"
 
 using namespace std;
 

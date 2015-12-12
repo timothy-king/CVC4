@@ -44,8 +44,6 @@ libutil_la_SOURCES = \
 	gmp_util.h \
 	hash.h \
 	index.h \
-	ite_removal.cpp \
-	ite_removal.h \
 	lemma_input_channel.h \
 	lemma_output_channel.h \
 	matcher.h \

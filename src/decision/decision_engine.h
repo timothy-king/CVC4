@@ -28,7 +28,7 @@
 #include "prop/prop_engine.h"
 #include "prop/sat_solver_types.h"
 #include "smt/smt_engine_scope.h"
-#include "util/ite_removal.h"
+#include "smt_util/ite_removal.h"
 
 using namespace std;
 using namespace CVC4::prop;

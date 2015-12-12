@@ -16,16 +16,16 @@
  **
  ** It needs access to the simplified but non-clausal formula.
  **/
+#include "justification_heuristic.h"
 
 #include "expr/kind.h"
 #include "expr/node_manager.h"
-#include "justification_heuristic.h"
 #include "options/decision_options.h"
 #include "theory/rewriter.h"
-#include "util/ite_removal.h"
+#include "smt_util/ite_removal.h"
 
 
-using namespace CVC4;
+namespace CVC4 {
 
 JustificationHeuristic::JustificationHeuristic(CVC4::DecisionEngine* de,
                                                context::UserContext *uc,
@@ -710,3 +710,5 @@ JustificationHeuristic::SearchResult JustificationHeuristic::handleEmbeddedITEs(
   }
   return noSplitter ? NO_SPLITTER : DONT_KNOW;
 }
+
+} /* namespace CVC4 */
