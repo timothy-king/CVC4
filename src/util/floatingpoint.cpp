@@ -12,9 +12,9 @@
  ** \brief [[ Implementations of the utility functions for working with floating point theories. ]]
  **
  **/
+#include "util/floatingpoint.h"
 
 #include "base/cvc4_assert.h"
-#include "util/floatingpoint.h"
 
 namespace CVC4 {
 
@@ -35,4 +35,3 @@ namespace CVC4 {
   }
 
 }/* CVC4 namespace */
-
