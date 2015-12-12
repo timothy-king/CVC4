@@ -40,8 +40,6 @@ libutil_la_SOURCES = \
 	gmp_util.h \
 	hash.h \
 	index.h \
-	lemma_input_channel.h \
-	lemma_output_channel.h \
 	matcher.h \
 	maybe.h \
 	model.cpp \

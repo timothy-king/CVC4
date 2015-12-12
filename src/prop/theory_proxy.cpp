@@ -14,6 +14,7 @@
  ** [[ Add lengthier description here ]]
  ** \todo document this file
  **/
+#include "prop/theory_proxy.h"
 
 #include "context/context.h"
 #include "decision/decision_engine.h"
@@ -21,11 +22,10 @@
 #include "options/decision_options.h"
 #include "prop/cnf_stream.h"
 #include "prop/prop_engine.h"
-#include "prop/theory_proxy.h"
+#include "smt_util/lemma_input_channel.h"
+#include "smt_util/lemma_output_channel.h"
 #include "theory/rewriter.h"
 #include "theory/theory_engine.h"
-#include "util/lemma_input_channel.h"
-#include "util/lemma_output_channel.h"
 #include "util/statistics_registry.h"
 
 namespace CVC4 {
