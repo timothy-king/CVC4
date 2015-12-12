@@ -20,6 +20,7 @@ libexpr_la_SOURCES = \
 	expr_manager_scope.h \
 	expr_stream.h \
 	kind_map.h \
+	matcher.h \
 	node.cpp \
 	node.h \
 	node_builder.h \

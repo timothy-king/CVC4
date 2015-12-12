@@ -23,10 +23,10 @@
 #include "expr/attribute.h"
 #include "expr/expr_manager.h"
 #include "expr/expr_manager_scope.h"
+#include "expr/matcher.h"
 #include "expr/node.h"
 #include "expr/node_manager.h"
 #include "expr/type.h"
-#include "util/matcher.h"
 
 using namespace std;
 

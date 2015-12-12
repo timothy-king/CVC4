@@ -40,7 +40,6 @@ libutil_la_SOURCES = \
 	gmp_util.h \
 	hash.h \
 	index.h \
-	matcher.h \
 	maybe.h \
 	model.cpp \
 	model.h \
