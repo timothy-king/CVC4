@@ -18,6 +18,7 @@
 #include <map>
 
 #include "base/cvc4_assert.h"
+#include "expr/datatype.h"
 #include "expr/kind.h"
 #include "options/datatypes_options.h"
 #include "options/quantifiers_options.h"
@@ -29,7 +30,6 @@
 #include "theory/theory_model.h"
 #include "theory/type_enumerator.h"
 #include "theory/valuation.h"
-#include "util/datatype.h"
 
 
 using namespace std;

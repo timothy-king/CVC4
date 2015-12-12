@@ -1,5 +1,5 @@
 %{
-#include "util/datatype.h"
+#include "expr/datatype.h"
 
 #ifdef SWIGJAVA
 
@@ -162,7 +162,7 @@
 
 #endif /* SWIGJAVA */
 
-%include "util/datatype.h"
+%include "expr/datatype.h"
 
 #ifdef SWIGJAVA
 

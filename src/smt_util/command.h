@@ -28,11 +28,11 @@
 #include <vector>
 #include <map>
 
+#include "expr/datatype.h"
 #include "expr/expr.h"
 #include "expr/sexpr.h"
 #include "expr/type.h"
 #include "expr/variable_type_map.h"
-#include "util/datatype.h"
 #include "util/proof.h"
 #include "util/result.h"
 #include "util/unsat_core.h"

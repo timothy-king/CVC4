@@ -41,7 +41,9 @@ libexpr_la_SOURCES = \
 	type_checker.h \
 	type_node.cpp \
 	type_node.h \
-	variable_type_map.h
+	variable_type_map.h \
+	datatype.h \
+	datatype.cpp
 
 nodist_libexpr_la_SOURCES = \
 	kind.h \
@@ -58,6 +60,7 @@ EXTRA_DIST = \
 	chain.i \
 	array_store_all.i \
 	ascription_type.i \
+	datatype.i \
 	kind_template.h \
 	metakind_template.h \
 	type_properties_template.h \

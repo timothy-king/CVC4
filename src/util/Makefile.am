@@ -30,8 +30,6 @@ libutil_la_SOURCES = \
 	configuration.cpp \
 	configuration.h \
 	configuration_private.h \
-	datatype.cpp \
-	datatype.h \
 	debug.h \
 	dense_map.h \
 	divisible.cpp \
@@ -111,7 +109,6 @@ EXTRA_DIST = \
 	bool.i \
 	cardinality.i \
 	configuration.i \
-	datatype.i \
 	divisible.i \
 	emptyset.i \
 	floatingpoint.i \

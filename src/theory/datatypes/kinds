@@ -41,15 +41,15 @@ parameterized APPLY_TESTER TESTER_TYPE 1 "tester application; first parameter is
 constant DATATYPE_TYPE \
     ::CVC4::Datatype \
     "::CVC4::DatatypeHashFunction" \
-    "util/datatype.h" \
+    "expr/datatype.h" \
     "a datatype type"
 cardinality DATATYPE_TYPE \
     "%TYPE%.getConst<Datatype>().getCardinality()" \
-    "util/datatype.h"
+    "expr/datatype.h"
 well-founded DATATYPE_TYPE \
     "%TYPE%.getConst<Datatype>().isWellFounded()" \
     "%TYPE%.getConst<Datatype>().mkGroundTerm(%TYPE%.toType())" \
-    "util/datatype.h"
+    "expr/datatype.h"
 
 enumerator DATATYPE_TYPE \
     "::CVC4::theory::datatypes::DatatypesEnumerator" \
@@ -58,11 +58,11 @@ enumerator DATATYPE_TYPE \
 operator PARAMETRIC_DATATYPE 1: "parametric datatype"
 cardinality PARAMETRIC_DATATYPE \
     "DatatypeType(%TYPE%.toType()).getDatatype().getCardinality()" \
-    "util/datatype.h"
+    "expr/datatype.h"
 well-founded PARAMETRIC_DATATYPE \
     "DatatypeType(%TYPE%.toType()).getDatatype().isWellFounded()" \
     "DatatypeType(%TYPE%.toType()).getDatatype().mkGroundTerm(%TYPE%.toType())" \
-    "util/datatype.h"
+    "expr/datatype.h"
 
 enumerator PARAMETRIC_DATATYPE \
     "::CVC4::theory::datatypes::DatatypesEnumerator" \

@@ -14,18 +14,18 @@
  ** A class representing a Datatype definition for the theory of
  ** inductive datatypes.
  **/
+#include "expr/datatype.h"
 
 #include <string>
 #include <sstream>
 
 #include "base/cvc4_assert.h"
-#include "expr/type.h"
+#include "expr/attribute.h"
 #include "expr/expr_manager.h"
 #include "expr/expr_manager_scope.h"
-#include "expr/node_manager.h"
 #include "expr/node.h"
-#include "expr/attribute.h"
-#include "util/datatype.h"
+#include "expr/node_manager.h"
+#include "expr/type.h"
 #include "util/matcher.h"
 
 using namespace std;

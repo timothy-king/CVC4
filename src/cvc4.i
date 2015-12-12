@@ -50,12 +50,12 @@ using namespace CVC4;
 
 #include "base/exception.h"
 #include "base/modal_exception.h"
+#include "expr/datatype.h"
 #include "expr/expr.h"
 #include "expr/sexpr.h"
 #include "expr/type.h"
 #include "options/option_exception.h"
 #include "smt_util/command.h"
-#include "util/datatype.h"
 #include "util/unsafe_interrupt_exception.h"
 
 #ifdef SWIGJAVA
