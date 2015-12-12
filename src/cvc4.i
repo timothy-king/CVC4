@@ -315,7 +315,6 @@ std::set<JavaInputStreamAdapter*> CVC4::JavaInputStreamAdapter::s_adapters;
 %include "util/rational.i"
 %include "util/regexp.i"
 %include "util/resource_manager.i"
-%include "util/result.i"
 %include "util/statistics.i"
 %include "util/subrange_bound.i"
 %include "util/tuple.i"
@@ -330,6 +329,7 @@ std::set<JavaInputStreamAdapter*> CVC4::JavaInputStreamAdapter::s_adapters;
 %include "expr/datatype.i"
 %include "expr/predicate.i"
 %include "expr/record.i"
+%include "expr/result.i"
 
 // TIM:
 // Have these before the rest of expr/.

@@ -24,6 +24,7 @@
 
 #include "base/output.h"
 #include "expr/expr_manager.h"
+#include "expr/result.h"
 #include "main/command_executor.h"
 #include "main/interactive_shell.h"
 #include "options/language.h"
@@ -34,7 +35,6 @@
 #include "smt/smt_engine.h"
 #include "smt_util/command.h"
 #include "util/configuration.h"
-#include "util/result.h"
 #include "util/statistics.h"
 
 using namespace std;

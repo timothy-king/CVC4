@@ -47,8 +47,6 @@ libutil_la_SOURCES = \
 	regexp.h \
 	resource_manager.cpp \
 	resource_manager.h \
-	result.cpp \
-	result.h \
 	sort_inference.cpp \
 	sort_inference.h \
 	smt2_quote_string.cpp \
@@ -109,7 +107,6 @@ EXTRA_DIST = \
 	rational_gmp_imp.h \
 	regexp.i \
 	resource_manager.i \
-	result.i \
 	statistics.i \
 	subrange_bound.i \
 	tuple.i \

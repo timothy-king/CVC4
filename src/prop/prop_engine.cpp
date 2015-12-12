@@ -24,6 +24,7 @@
 #include "base/output.h"
 #include "decision/decision_engine.h"
 #include "expr/expr.h"
+#include "expr/result.h"
 #include "options/decision_options.h"
 #include "options/main_options.h"
 #include "options/options.h"
@@ -38,7 +39,7 @@
 #include "theory/theory_engine.h"
 #include "theory/theory_registrar.h"
 #include "util/resource_manager.h"
-#include "util/result.h"
+
 
 using namespace std;
 using namespace CVC4::context;

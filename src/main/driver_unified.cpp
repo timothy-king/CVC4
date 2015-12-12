@@ -25,6 +25,7 @@
 #include "base/output.h"
 #include "cvc4autoconfig.h"
 #include "expr/expr_manager.h"
+#include "expr/result.h"
 #include "main/command_executor.h"
 
 #ifdef PORTFOLIO_BUILD
@@ -43,7 +44,6 @@
 #include "smt/smt_options_handler.h"
 #include "smt_util/command.h"
 #include "util/configuration.h"
-#include "util/result.h"
 #include "util/statistics_registry.h"
 
 using namespace std;

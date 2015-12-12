@@ -13,12 +13,12 @@
  **
  ** Encapsulation of the result of a query.
  **/
-#include "util/result.h"
+#include "expr/result.h"
 
-#include <iostream>
 #include <algorithm>
-#include <string>
 #include <cctype>
+#include <iostream>
+#include <string>
 
 #include "base/cvc4_assert.h"
 #include "expr/node.h"

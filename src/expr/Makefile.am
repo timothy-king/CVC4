@@ -50,7 +50,9 @@ libexpr_la_SOURCES = \
 	predicate.h \
 	predicate.cpp \
 	record.cpp \
-	record.h
+	record.h \
+	result.cpp \
+	result.h
 
 nodist_libexpr_la_SOURCES = \
 	kind.h \
@@ -88,6 +90,7 @@ EXTRA_DIST = \
 	expr.i \
 	sexpr.i \
 	record.i \
+	result.i \
 	predicate.i \
 	variable_type_map.i
 

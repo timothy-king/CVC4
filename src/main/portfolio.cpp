@@ -20,9 +20,9 @@
 #include <boost/exception_ptr.hpp>
 
 #include "base/output.h"
+#include "expr/result.h"
 #include "options/options.h"
 #include "smt/smt_engine.h"
-#include "util/result.h"
 #include "util/statistics_registry.h"
 
 

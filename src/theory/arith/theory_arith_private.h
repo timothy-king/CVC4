@@ -31,6 +31,7 @@
 #include "expr/metakind.h"
 #include "expr/node.h"
 #include "expr/node_builder.h"
+#include "expr/result.h"
 #include "options/arith_options.h"
 #include "smt/logic_exception.h"
 #include "smt_util/boolean_simplification.h"
@@ -65,7 +66,6 @@
 #include "util/dense_map.h"
 #include "util/integer.h"
 #include "util/rational.h"
-#include "util/result.h"
 #include "util/statistics_registry.h"
 
 
