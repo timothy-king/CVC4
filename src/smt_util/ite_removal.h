@@ -19,12 +19,13 @@
 #pragma once
 
 #include <vector>
-#include "expr/node.h"
-#include "util/dump.h"
-#include "context/context.h"
+
 #include "context/cdinsert_hashmap.h"
-#include "util/hash.h"
+#include "context/context.h"
+#include "expr/node.h"
+#include "smt_util/dump.h"
 #include "util/bool.h"
+#include "util/hash.h"
 
 namespace CVC4 {
 

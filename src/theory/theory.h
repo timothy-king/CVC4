@@ -34,10 +34,10 @@
 #include "options/theoryof_mode.h"
 #include "smt/logic_request.h"
 #include "smt_util/command.h"
+#include "smt_util/dump.h"
 #include "theory/logic_info.h"
 #include "theory/output_channel.h"
 #include "theory/valuation.h"
-#include "util/dump.h"
 #include "util/statistics_registry.h"
 
 namespace CVC4 {

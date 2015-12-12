@@ -31,7 +31,7 @@
 #include "printer/printer.h"
 #include "smt/smt_engine.h"
 #include "smt/smt_engine_scope.h"
-#include "util/dump.h"
+#include "smt_util/dump.h"
 #include "util/model.h"
 
 using namespace std;

@@ -51,10 +51,10 @@
 #include "options/ufss_mode.h"
 #include "smt/smt_engine.h"
 #include "smt_util/command.h"
+#include "smt_util/dump.h"
 #include "theory/logic_info.h"
 #include "util/configuration.h"
 #include "util/configuration_private.h"
-#include "util/dump.h"
 #include "util/resource_manager.h"
 
 

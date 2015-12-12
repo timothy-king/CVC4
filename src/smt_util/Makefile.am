@@ -12,6 +12,7 @@ libsmtutil_la_SOURCES = \
 	boolean_simplification.h \
 	command.cpp \
 	command.h \
+	dump.h \
 	ite_removal.cpp \
 	ite_removal.h
 

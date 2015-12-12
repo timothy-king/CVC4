@@ -35,7 +35,6 @@ libutil_la_SOURCES = \
 	divisible.cpp \
 	divisible.h \
 	dump.cpp \
-	dump.h \
 	dynamic_array.h \
 	emptyset.cpp \
 	emptyset.h \
