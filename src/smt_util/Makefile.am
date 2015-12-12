@@ -19,9 +19,9 @@ libsmtutil_la_SOURCES = \
 	ite_removal.cpp \
 	ite_removal.h \
 	model.cpp \
-	model.h
-
-
+	model.h \
+	nary_builder.cpp \
+	nary_builder.h
 
 
 

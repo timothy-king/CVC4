@@ -14,10 +14,10 @@
  ** [[ Add lengthier description here ]]
  ** \todo document this file
  **/
+#include "smt_util/nary_builder.h"
 
-
-#include "util/nary_builder.h"
 #include "expr/metakind.h"
+
 using namespace std;
 
 namespace CVC4 {
