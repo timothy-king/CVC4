@@ -22,7 +22,7 @@
 #include "expr/node.h"
 #include "expr/node_manager.h"
 #include "options/language.h"
-#include "util/boolean_simplification.h"
+#include "smt_util/boolean_simplification.h"
 
 using namespace CVC4;
 using namespace std;
