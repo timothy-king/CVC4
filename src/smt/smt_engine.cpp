@@ -63,6 +63,7 @@
 #include "proof/proof.h"
 #include "proof/proof_manager.h"
 #include "proof/proof_manager.h"
+#include "proof/unsat_core.h"
 #include "proof/theory_proof.h"
 #include "prop/prop_engine.h"
 #include "smt/boolean_terms.h"
@@ -96,7 +97,6 @@
 #include "util/proof.h"
 #include "util/resource_manager.h"
 #include "util/sort_inference.h"
-#include "util/unsat_core.h"
 
 using namespace std;
 using namespace CVC4;

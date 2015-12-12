@@ -1,5 +1,5 @@
 %{
-#include "util/unsat_core.h"
+#include "proof/unsat_core.h"
 
 #ifdef SWIGJAVA
 
@@ -57,7 +57,7 @@
 
 #endif /* SWIGJAVA */
 
-%include "util/unsat_core.h"
+%include "proof/unsat_core.h"
 
 #ifdef SWIGJAVA
 

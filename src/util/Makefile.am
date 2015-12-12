@@ -60,8 +60,6 @@ libutil_la_SOURCES = \
 	uninterpreted_constant.cpp \
 	uninterpreted_constant.h \
 	unsafe_interrupt_exception.h \
-	unsat_core.cpp \
-	unsat_core.h \
 	utility.h
 
 libstatistics_la_SOURCES = \
@@ -111,8 +109,7 @@ EXTRA_DIST = \
 	subrange_bound.i \
 	tuple.i \
 	uninterpreted_constant.i \
-	unsafe_interrupt_exception.i \
-	unsat_core.i
+	unsafe_interrupt_exception.i
 
 
 DISTCLEANFILES = \

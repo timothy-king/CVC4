@@ -31,13 +31,13 @@
 #include "expr/result.h"
 #include "expr/sexpr.h"
 #include "options/options.h"
+#include "proof/unsat_core.h"
 #include "smt/logic_exception.h"
 #include "theory/logic_info.h"
 #include "util/hash.h"
 #include "util/proof.h"
 #include "util/statistics.h"
 #include "util/unsafe_interrupt_exception.h"
-#include "util/unsat_core.h"
 
 // In terms of abstraction, this is below (and provides services to)
 // ValidityChecker and above (and requires the services of)

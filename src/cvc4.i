@@ -320,7 +320,7 @@ std::set<JavaInputStreamAdapter*> CVC4::JavaInputStreamAdapter::s_adapters;
 %include "util/tuple.i"
 %include "util/uninterpreted_constant.i"
 %include "util/unsafe_interrupt_exception.i"
-%include "util/unsat_core.i"
+%include "proof/unsat_core.i"
 //%include "util/floatingpoint.i"
 
 %include "expr/array_store_all.i"

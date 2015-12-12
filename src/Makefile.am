@@ -86,6 +86,8 @@ libcvc4_la_SOURCES = \
 	proof/theory_proof.cpp \
 	proof/proof_manager.h \
 	proof/proof_manager.cpp \
+	proof/unsat_core.cpp \
+	proof/unsat_core.h \
 	prop/registrar.h \
 	prop/prop_engine.cpp \
 	prop/prop_engine.h \
@@ -469,6 +471,7 @@ EXTRA_DIST = \
 	mksubdirs \
 	smt/logic_exception.i \
 	smt/smt_engine.i \
+	proof/unsat_core.i \
 	theory/arith/kinds \
 	theory/arrays/kinds \
 	theory/booleans/kinds \
