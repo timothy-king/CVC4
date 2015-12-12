@@ -87,6 +87,7 @@
 #include "theory/quantifiers/fun_def_process.h"
 #include "theory/quantifiers/macros.h"
 #include "theory/quantifiers/quantifiers_rewriter.h"
+#include "theory/sort_inference.h"
 #include "theory/strings/theory_strings.h"
 #include "theory/substitutions.h"
 #include "theory/theory_engine.h"
@@ -96,7 +97,6 @@
 #include "util/configuration_private.h"
 #include "util/hash.h"
 #include "util/proof.h"
-#include "util/sort_inference.h"
 
 using namespace std;
 using namespace CVC4;

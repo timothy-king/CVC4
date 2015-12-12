@@ -17,7 +17,7 @@
  ** maintains necessary information regarding constraints on these types.
  **/
 
-#include "util/sort_inference.h"
+#include "theory/sort_inference.h"
 
 #include <vector>
 

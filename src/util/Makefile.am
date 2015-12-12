@@ -45,8 +45,6 @@ libutil_la_SOURCES = \
 	proof.h \
 	regexp.cpp \
 	regexp.h \
-	sort_inference.cpp \
-	sort_inference.h \
 	smt2_quote_string.cpp \
 	smt2_quote_string.h \
 	statistics.cpp \

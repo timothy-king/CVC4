@@ -119,6 +119,8 @@ libcvc4_la_SOURCES = \
 	theory/logic_info.cpp \
 	theory/output_channel.h \
 	theory/interrupted.h \
+	theory/sort_inference.cpp \
+	theory/sort_inference.h \
 	theory/type_enumerator.h \
 	theory/theory_engine.h \
 	theory/theory_engine.cpp \

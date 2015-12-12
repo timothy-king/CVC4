@@ -36,12 +36,12 @@
 #include "theory/quantifiers/quant_conflict_find.h"
 #include "theory/rewriter.h"
 #include "theory/shared_terms_database.h"
+#include "theory/sort_inference.h"
 #include "theory/substitutions.h"
 #include "theory/term_registration_visitor.h"
 #include "theory/theory.h"
 #include "theory/uf/equality_engine.h"
 #include "theory/valuation.h"
-#include "util/sort_inference.h"
 #include "util/statistics_registry.h"
 #include "util/unsafe_interrupt_exception.h"
 
