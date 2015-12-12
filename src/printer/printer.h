@@ -26,7 +26,7 @@
 #include "expr/sexpr.h"
 #include "options/language.h"
 #include "smt_util/command.h"
-#include "util/model.h"
+#include "smt_util/model.h"
 
 namespace CVC4 {
 

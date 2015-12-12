@@ -12,7 +12,7 @@
  ** \brief implementation of Model class
  **/
 
-#include "util/model.h"
+#include "smt_util/model.h"
 
 #include <vector>
 

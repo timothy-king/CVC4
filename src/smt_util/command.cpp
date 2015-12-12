@@ -32,7 +32,7 @@
 #include "smt/smt_engine.h"
 #include "smt/smt_engine_scope.h"
 #include "smt_util/dump.h"
-#include "util/model.h"
+#include "smt_util/model.h"
 
 using namespace std;
 
