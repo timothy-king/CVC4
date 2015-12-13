@@ -497,7 +497,9 @@ public:
   SExprStat(const std::string& name, const SExpr& init) :
     Stat(name), d_data(init){}
 
-  virtual void flushInformation(std::ostream& out) const;
+  virtual void flushInformation(std::ostream& out) const {
+    out << d_data << std::endl;
+  }
 
   SExpr getValue() const {
     return d_data;

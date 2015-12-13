@@ -158,9 +158,6 @@ RegisterStatistic::RegisterStatistic(SmtEngine& smt, Stat* stat) :
   d_reg->registerStat_(d_stat);
 }
 
-void SExprStat::flushInformation(std::ostream& out) const {
-  out << d_data << std::endl;
-}
 
 
 }/* CVC4 namespace */
