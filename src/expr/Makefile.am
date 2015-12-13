@@ -23,6 +23,7 @@ libexpr_la_SOURCES = \
 	array_store_all.cpp \
 	array_store_all.h \
 	ascription_type.h \
+	attribute.h \
 	attribute.cpp \
 	attribute_internals.h \
 	attribute_unique_id.h \
