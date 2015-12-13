@@ -996,7 +996,7 @@ smt25Command[CVC4::Command*& cmd]
     /* echo */
   | ECHO_TOK
     ( simpleSymbolicExpr[sexpr]
-      { cmd = new EchoCommand(sexpr); }
+      { cmd = new EchoCommand(sexpr.toString()); }
     | { cmd = new EchoCommand(); }
     )
 

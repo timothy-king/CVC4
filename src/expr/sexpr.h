@@ -83,7 +83,7 @@ public:
     d_children() {
   }
 
-  explicit SExpr(const CVC4::Integer& value) :
+  SExpr(const CVC4::Integer& value) :
     d_sexprType(SEXPR_INTEGER),
     d_integerValue(value),
     d_rationalValue(0),
@@ -91,7 +91,7 @@ public:
     d_children() {
   }
 
-  explicit SExpr(int value) :
+  SExpr(int value) :
     d_sexprType(SEXPR_INTEGER),
     d_integerValue(value),
     d_rationalValue(0),
@@ -99,7 +99,7 @@ public:
     d_children() {
   }
 
-  explicit SExpr(long int value) :
+  SExpr(long int value) :
     d_sexprType(SEXPR_INTEGER),
     d_integerValue(value),
     d_rationalValue(0),
@@ -107,7 +107,7 @@ public:
     d_children() {
   }
 
-  explicit SExpr(unsigned int value) :
+  SExpr(unsigned int value) :
     d_sexprType(SEXPR_INTEGER),
     d_integerValue(value),
     d_rationalValue(0),
@@ -115,7 +115,7 @@ public:
     d_children() {
   }
 
-  explicit SExpr(unsigned long int value) :
+  SExpr(unsigned long int value) :
     d_sexprType(SEXPR_INTEGER),
     d_integerValue(value),
     d_rationalValue(0),
@@ -123,7 +123,7 @@ public:
     d_children() {
   }
 
-  explicit SExpr(const CVC4::Rational& value) :
+  SExpr(const CVC4::Rational& value) :
     d_sexprType(SEXPR_RATIONAL),
     d_integerValue(0),
     d_rationalValue(value),
@@ -131,7 +131,7 @@ public:
     d_children() {
   }
 
-  explicit SExpr(const std::string& value) :
+  SExpr(const std::string& value) :
     d_sexprType(SEXPR_STRING),
     d_integerValue(0),
     d_rationalValue(0),
@@ -145,7 +145,7 @@ public:
    * Given the other constructors this SExpr("foo") converts to bool.
    * instead of SExpr(string("foo")).
    */
-  explicit SExpr(const char* value) :
+  SExpr(const char* value) :
     d_sexprType(SEXPR_STRING),
     d_integerValue(0),
     d_rationalValue(0),
@@ -157,7 +157,7 @@ public:
    * This adds a convenience wrapper to SExpr to cast from bools.
    * This is internally handled as the strings "true" and "false"
    */
-  explicit SExpr(bool value) :
+  SExpr(bool value) :
     d_sexprType(SEXPR_KEYWORD),
     d_integerValue(0),
     d_rationalValue(0),
@@ -165,7 +165,7 @@ public:
     d_children() {
   }
 
-  explicit SExpr(const Keyword& value) :
+  SExpr(const Keyword& value) :
     d_sexprType(SEXPR_KEYWORD),
     d_integerValue(0),
     d_rationalValue(0),
@@ -173,7 +173,7 @@ public:
     d_children() {
   }
 
-  explicit SExpr(const std::vector<SExpr>& children) :
+  SExpr(const std::vector<SExpr>& children) :
     d_sexprType(SEXPR_NOT_ATOM),
     d_integerValue(0),
     d_rationalValue(0),

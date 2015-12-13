@@ -165,9 +165,6 @@ std::string EmptyCommand::getCommandName() const throw() {
 EchoCommand::EchoCommand(std::string output) throw() :
   d_output(output) {
 }
-EchoCommand::EchoCommand(const SExpr& sexpr) throw() :
-    d_output(sexpr.toString()) {
-}
 
 std::string EchoCommand::getOutput() const throw() {
   return d_output;
