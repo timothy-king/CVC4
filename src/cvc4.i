@@ -56,6 +56,8 @@ using namespace CVC4;
 #include "expr/type.h"
 #include "options/option_exception.h"
 #include "smt_util/command.h"
+#include "util/integer.h"
+#include "util/bitvector.h"
 #include "util/unsafe_interrupt_exception.h"
 
 #ifdef SWIGJAVA
@@ -304,19 +306,24 @@ std::set<JavaInputStreamAdapter*> CVC4::JavaInputStreamAdapter::s_adapters;
 // At the moment, the header includes seem to need to follow a special order.
 // I don't know why. I am following the build order 
 %include "base/exception.i"
-%include "base/modal_exception.i"
-%include "util/bitvector.i"
+%include "util/unsafe_interrupt_exception.i"
+%include "util/integer.i"
+%include "util/rational.i"
+%include "options/language.i"
+%include "util/configuration.i"
 %include "util/bool.i"
 %include "util/cardinality.i"
-%include "util/configuration.i"
+%include "base/modal_exception.i"
+%include "expr/sexpr.i"
+
+%include "util/bitvector.i"
+
+
 %include "util/hash.i"
-%include "util/integer.i"
 %include "util/proof.i"
-%include "util/rational.i"
 %include "util/regexp.i"
 %include "util/subrange_bound.i"
 %include "util/tuple.i"
-%include "util/unsafe_interrupt_exception.i"
 //%include "util/floatingpoint.i"
 
 %include "expr/uninterpreted_constant.i"
@@ -343,10 +350,8 @@ std::set<JavaInputStreamAdapter*> CVC4::JavaInputStreamAdapter::s_adapters;
 %include "expr/expr.i"
 %include "expr/expr_manager.i"
 %include "expr/expr_stream.i"
-%include "expr/sexpr.i"
 %include "expr/symbol_table.i"
 %include "expr/variable_type_map.i"
-%include "options/language.i"
 %include "options/option_exception.i"
 %include "options/options.i"
 %include "parser/cvc4parser.i"
