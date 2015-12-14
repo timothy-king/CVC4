@@ -306,12 +306,12 @@ private:
 };/* class SExpr */
 
 /** Prints an SExpr. */
-std::ostream& operator<<(std::ostream& out, const SExpr& sexpr);
+std::ostream& operator<<(std::ostream& out, const SExpr& sexpr) CVC4_PUBLIC;
 
 /**
  * IOStream manipulator to pretty-print SExprs.
  */
-class PrettySExprs {
+class CVC4_PUBLIC PrettySExprs {
   /**
    * The allocated index in ios_base for our setting.
    */
