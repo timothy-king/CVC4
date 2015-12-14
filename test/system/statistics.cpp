@@ -19,6 +19,7 @@
 #include <sstream>
 
 #include "expr/expr.h"
+#include "expr/sexpr.h"
 #include "expr/statistics.h"
 #include "smt/smt_engine.h"
 
