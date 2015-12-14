@@ -27,6 +27,8 @@
 #include <cstdlib>
 #include <cstdarg>
 
+#include "base/cvc4_assert.h"
+
 namespace CVC4 {
 
 class CVC4_PUBLIC Exception : public std::exception {
@@ -126,44 +128,6 @@ inline std::ostream& operator<<(std::ostream& os, const Exception& e) throw() {
   e.toStream(os);
   return os;
 }
-
-}/* CVC4 namespace */
-
-#if (defined(__BUILDING_CVC4LIB) || defined(__BUILDING_CVC4LIB_UNIT_TEST)) && !defined(__BUILDING_STATISTICS_FOR_EXPORT)
-#  include "base/cvc4_assert.h"
-#endif /* (__BUILDING_CVC4LIB || __BUILDING_CVC4LIB_UNIT_TEST) && !__BUILDING_STATISTICS_FOR_EXPORT */
-
-namespace CVC4 {
-
-#ifndef CheckArgument
-template <class T> inline void CheckArgument(bool cond, const T& arg, const char* fmt, ...) CVC4_PUBLIC;
-template <class T> inline void CheckArgument(bool cond, const T& arg, const char* fmt, ...) {
-  if(__builtin_expect( ( !cond ), false )) { \
-    throw ::CVC4::IllegalArgumentException("", "", ""); \
-  } \
-}
-template <class T> inline void CheckArgument(bool cond, const T& arg) CVC4_PUBLIC;
-template <class T> inline void CheckArgument(bool cond, const T& arg) {
-  if(__builtin_expect( ( !cond ), false )) { \
-    throw ::CVC4::IllegalArgumentException("", "", ""); \
-  } \
-}
-#endif /* CheckArgument */
-
-#ifndef DebugCheckArgument
-template <class T> inline void DebugCheckArgument(bool cond, const T& arg, const char* fmt, ...) CVC4_PUBLIC;
-template <class T> inline void DebugCheckArgument(bool cond, const T& arg, const char* fmt, ...) {
-  if(__builtin_expect( ( !cond ), false )) { \
-    throw ::CVC4::IllegalArgumentException("", "", ""); \
-  } \
-}
-template <class T> inline void DebugCheckArgument(bool cond, const T& arg) CVC4_PUBLIC;
-template <class T> inline void DebugCheckArgument(bool cond, const T& arg) {
-  if(__builtin_expect( ( !cond ), false )) { \
-    throw ::CVC4::IllegalArgumentException("", "", ""); \
-  } \
-}
-#endif /* DebugCheckArgument */
 
 }/* CVC4 namespace */
 
