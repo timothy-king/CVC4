@@ -594,7 +594,8 @@ public:
  * The main statistics registry.  This registry maintains the list of
  * currently active statistics and is able to "flush" them all.
  */
-class StatisticsRegistry : public StatisticsBase, public Stat {
+#warning "Make this non-public."
+class CVC4_PUBLIC StatisticsRegistry : public StatisticsBase, public Stat {
 private:
 
   /** Private copy constructor undefined (no copy permitted). */
@@ -781,7 +782,8 @@ class CodeTimer;
  * arbitrarily, like a stopwatch; the value of the statistic at the
  * end is the accumulated time over all (start,stop) pairs.
  */
-class TimerStat : public BackedStat<timespec> {
+#warning "Make this non-public."
+class CVC4_PUBLIC TimerStat : public BackedStat<timespec> {
 
   // strange: timespec isn't placed in 'std' namespace ?!
   /** The last start time of this timer */

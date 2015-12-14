@@ -66,7 +66,7 @@
 #include "theory/valuation.h"
 #include "util/dense_map.h"
 #include "util/integer.h"
-#include "util/rational.h""
+#include "util/rational.h"
 
 namespace CVC4 {
 namespace theory {
