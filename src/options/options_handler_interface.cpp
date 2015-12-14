@@ -19,6 +19,7 @@
 #include <ostream>
 #include <string>
 
+#include "base/cvc4_assert.h"
 #include "base/exception.h"
 #include "base/modal_exception.h"
 #include "options/arith_heuristic_pivot_rule.h"

@@ -54,7 +54,6 @@ cvc4_LDADD = \
 	libmain.a \
 	@builddir@/../parser/libcvc4parser.la \
 	@builddir@/../libcvc4.la \
-	@builddir@/../expr/libstatistics.la \
 	$(READLINE_LIBS)
 if CVC4_NEEDS_REPLACEMENT_FUNCTIONS
 cvc4_LDADD += \

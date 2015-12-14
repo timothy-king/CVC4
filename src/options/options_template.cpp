@@ -49,6 +49,7 @@ extern int optreset;
 #include <limits>
 
 
+#include "base/cvc4_assert.h"
 #include "base/exception.h"
 #include "base/output.h"
 #include "base/tls.h"
