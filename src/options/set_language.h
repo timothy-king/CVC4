@@ -86,7 +86,7 @@ private:
  *
  * The setting stays permanently (until set again) with the stream.
  */
-std::ostream& operator<<(std::ostream& out, SetLanguage l);
+std::ostream& operator<<(std::ostream& out, SetLanguage l) CVC4_PUBLIC;
 
 }/* CVC4::language namespace */
 }/* CVC4 namespace */
