@@ -30,6 +30,7 @@
 
 #include "base/cvc4_assert.h"
 #include "expr/expr.h"
+#include "options/set_language.h"
 #include "util/smt2_quote_string.h"
 
 
@@ -63,7 +64,7 @@ std::ostream& operator<<(std::ostream& out, const SExpr& sexpr) {
 }
 
 void SExpr::toStream(std::ostream& out, const SExpr& sexpr) throw() {
-  toStream(out, sexpr, Expr::setlanguage::getLanguage(out));
+  toStream(out, sexpr, language::SetLanguage::getLanguage(out));
 }
 
 void SExpr::toStream(std::ostream& out, const SExpr& sexpr, OutputLanguage language) throw() {
