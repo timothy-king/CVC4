@@ -162,7 +162,7 @@ public:
 
   /**
    * Outputs the SExpr onto the ostream out. This version reads defaults to the
-   * OutputLanguage, Expr::setlanguage::getLanguage(out). The indent level is
+   * OutputLanguage, language::SetLanguage::getLanguage(out). The indent level is
    * set to 2 if PrettySExprs::getPrettySExprs() is on and is 0 otherwise.
    */
   static void toStream(std::ostream& out, const SExpr& sexpr) throw();
