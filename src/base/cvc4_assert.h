@@ -282,13 +282,10 @@ void debugAssertionFailed(const AssertionException& thisException, const char* l
 #define InternalError(msg...) \
   throw ::CVC4::InternalErrorException(__PRETTY_FUNCTION__, __FILE__, __LINE__, ## msg)
 #define IllegalArgument(arg, msg...) \
-  throw ::CVC4::IllegalArgumentException("", #arg, __PRETTY_FUNCTION__, ## msg)
-#define CheckArgument(cond, arg, msg...)         \
-  do { \
-    if(__builtin_expect( ( ! (cond) ), false )) { \
-      throw ::CVC4::IllegalArgumentException(#cond, #arg, __PRETTY_FUNCTION__, ## msg); \
-    } \
-  } while(0)
+  throw ::CVC4::IllegalArgumentException("", #arg, __PRETTY_FUNCTION__, \
+                                         ::CVC4::IllegalArgumentException::formatVariadic(msg).c_str());
+#define PrettyCheckArgument(cond, arg, msg...)         \
+  CVC4::TmpCheckArgument(#cond, cond, #arg, arg, __PRETTY_FUNCTION__, ## msg);
 #define AlwaysAssertArgument(cond, arg, msg...)  \
   do { \
     if(__builtin_expect( ( ! (cond) ), false )) { \
@@ -299,7 +296,7 @@ void debugAssertionFailed(const AssertionException& thisException, const char* l
 #ifdef CVC4_ASSERTIONS
 #  define Assert(cond, msg...) AlwaysAssert(cond, ## msg)
 #  define AssertArgument(cond, arg, msg...) AlwaysAssertArgument(cond, arg, ## msg)
-#  define DebugCheckArgument(cond, arg, msg...) CheckArgument(cond, arg, ## msg)
+#  define DebugCheckArgument(cond, arg, msg...) TmpCheckArgument(cond, arg, ## msg)
 #else /* ! CVC4_ASSERTIONS */
 #  define Assert(cond, msg...) /*__builtin_expect( ( cond ), true )*/
 #  define AssertArgument(cond, arg, msg...) /*__builtin_expect( ( cond ), true )*/

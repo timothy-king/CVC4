@@ -62,7 +62,7 @@ const Datatype& Datatype::datatypeOf(Expr item) {
 
 size_t Datatype::indexOf(Expr item) {
   ExprManagerScope ems(item);
-  CheckArgument(item.getType().isConstructor() ||
+  PrettyCheckArgument(item.getType().isConstructor() ||
                 item.getType().isTester() ||
                 item.getType().isSelector(),
                 item,
@@ -78,7 +78,7 @@ size_t Datatype::indexOf(Expr item) {
 
 size_t Datatype::cindexOf(Expr item) {
   ExprManagerScope ems(item);
-  CheckArgument(item.getType().isSelector(),
+  PrettyCheckArgument(item.getType().isSelector(),
                 item,
                 "arg must be a datatype selector");
   TNode n = Node::fromExpr(item);
@@ -98,17 +98,17 @@ void Datatype::resolve(ExprManager* em,
                        const std::vector< DatatypeType >& paramReplacements)
   throw(IllegalArgumentException, DatatypeResolutionException) {
 
-  CheckArgument(em != NULL, em, "cannot resolve a Datatype with a NULL expression manager");
-  CheckArgument(!d_resolved, this, "cannot resolve a Datatype twice");
-  CheckArgument(resolutions.find(d_name) != resolutions.end(), resolutions,
+  PrettyCheckArgument(em != NULL, em, "cannot resolve a Datatype with a NULL expression manager");
+  PrettyCheckArgument(!d_resolved, this, "cannot resolve a Datatype twice");
+  PrettyCheckArgument(resolutions.find(d_name) != resolutions.end(), resolutions,
                 "Datatype::resolve(): resolutions doesn't contain me!");
-  CheckArgument(placeholders.size() == replacements.size(), placeholders,
+  PrettyCheckArgument(placeholders.size() == replacements.size(), placeholders,
                 "placeholders and replacements must be the same size");
-  CheckArgument(paramTypes.size() == paramReplacements.size(), paramTypes,
+  PrettyCheckArgument(paramTypes.size() == paramReplacements.size(), paramTypes,
                 "paramTypes and paramReplacements must be the same size");
-  CheckArgument(getNumConstructors() > 0, *this, "cannot resolve a Datatype that has no constructors");
+  PrettyCheckArgument(getNumConstructors() > 0, *this, "cannot resolve a Datatype that has no constructors");
   DatatypeType self = (*resolutions.find(d_name)).second;
-  CheckArgument(&self.getDatatype() == this, resolutions, "Datatype::resolve(): resolutions doesn't contain me!");
+  PrettyCheckArgument(&self.getDatatype() == this, resolutions, "Datatype::resolve(): resolutions doesn't contain me!");
   d_resolved = true;
   size_t index = 0;
   for(std::vector<DatatypeConstructor>::iterator i = d_constructors.begin(), i_end = d_constructors.end(); i != i_end; ++i) {
@@ -128,14 +128,14 @@ void Datatype::resolve(ExprManager* em,
 }
 
 void Datatype::addConstructor(const DatatypeConstructor& c) {
-  CheckArgument(!d_resolved, this,
+  PrettyCheckArgument(!d_resolved, this,
                 "cannot add a constructor to a finalized Datatype");
   d_constructors.push_back(c);
 }
 
 
 void Datatype::setSygus( Type st, Expr bvl, bool allow_const, bool allow_all ){
-  CheckArgument(!d_resolved, this,
+  PrettyCheckArgument(!d_resolved, this,
                 "cannot set sygus type to a finalized Datatype");
   d_sygus_type = st;
   d_sygus_bvl = bvl;
@@ -145,14 +145,14 @@ void Datatype::setSygus( Type st, Expr bvl, bool allow_const, bool allow_all ){
 
 
 Cardinality Datatype::getCardinality() const throw(IllegalArgumentException) {
-  CheckArgument(isResolved(), this, "this datatype is not yet resolved");
+  PrettyCheckArgument(isResolved(), this, "this datatype is not yet resolved");
   std::vector< Type > processing;
   computeCardinality( processing );
   return d_card;
 }
 
 Cardinality Datatype::computeCardinality( std::vector< Type >& processing ) const throw(IllegalArgumentException){
-  CheckArgument(isResolved(), this, "this datatype is not yet resolved");
+  PrettyCheckArgument(isResolved(), this, "this datatype is not yet resolved");
   if( std::find( processing.begin(), processing.end(), d_self )!=processing.end() ){
     d_card = Cardinality::INTEGERS;
   }else{
@@ -168,7 +168,7 @@ Cardinality Datatype::computeCardinality( std::vector< Type >& processing ) cons
 }
 
 bool Datatype::isRecursiveSingleton() const throw(IllegalArgumentException) {
-  CheckArgument(isResolved(), this, "this datatype is not yet resolved");
+  PrettyCheckArgument(isResolved(), this, "this datatype is not yet resolved");
   if( d_card_rec_singleton==0 ){
     Assert( d_card_u_assume.empty() );
     std::vector< Type > processing;
@@ -243,7 +243,7 @@ bool Datatype::computeCardinalityRecSingleton( std::vector< Type >& processing, 
 }
 
 bool Datatype::isFinite() const throw(IllegalArgumentException) {
-  CheckArgument(isResolved(), this, "this datatype is not yet resolved");
+  PrettyCheckArgument(isResolved(), this, "this datatype is not yet resolved");
 
   // we're using some internals, so we have to set up this library context
   ExprManagerScope ems(d_self);
@@ -269,7 +269,7 @@ bool Datatype::isFinite() const throw(IllegalArgumentException) {
 }
 
 bool Datatype::isWellFounded() const throw(IllegalArgumentException) {
-  CheckArgument(isResolved(), this, "this datatype is not yet resolved");
+  PrettyCheckArgument(isResolved(), this, "this datatype is not yet resolved");
   if( d_well_founded==0 ){
     // we're using some internals, so we have to set up this library context
     ExprManagerScope ems(d_self);
@@ -284,7 +284,7 @@ bool Datatype::isWellFounded() const throw(IllegalArgumentException) {
 }
 
 bool Datatype::computeWellFounded( std::vector< Type >& processing ) const throw(IllegalArgumentException) {
-  CheckArgument(isResolved(), this, "this datatype is not yet resolved");
+  PrettyCheckArgument(isResolved(), this, "this datatype is not yet resolved");
   if( std::find( processing.begin(), processing.end(), d_self )!=processing.end() ){
     return d_isCo;
   }else{
@@ -304,7 +304,7 @@ bool Datatype::computeWellFounded( std::vector< Type >& processing ) const throw
 }
 
 Expr Datatype::mkGroundTerm( Type t ) const throw(IllegalArgumentException) {
-  CheckArgument(isResolved(), this, "this datatype is not yet resolved");
+  PrettyCheckArgument(isResolved(), this, "this datatype is not yet resolved");
   ExprManagerScope ems(d_self);
 
 
@@ -324,7 +324,7 @@ Expr Datatype::mkGroundTerm( Type t ) const throw(IllegalArgumentException) {
     if( groundTerm.isNull() ){
       if( !d_isCo ){
         // if we get all the way here, we aren't well-founded
-        CheckArgument(false, *this, "datatype is not well-founded, cannot construct a ground term!");
+        IllegalArgument(*this, "datatype is not well-founded, cannot construct a ground term!");
       }else{
         return groundTerm;
       }
@@ -380,15 +380,15 @@ Expr Datatype::computeGroundTerm( Type t, std::vector< Type >& processing ) cons
 }
 
 DatatypeType Datatype::getDatatypeType() const throw(IllegalArgumentException) {
-  CheckArgument(isResolved(), *this, "Datatype must be resolved to get its DatatypeType");
-  CheckArgument(!d_self.isNull(), *this);
+  PrettyCheckArgument(isResolved(), *this, "Datatype must be resolved to get its DatatypeType");
+  PrettyCheckArgument(!d_self.isNull(), *this);
   return DatatypeType(d_self);
 }
 
 DatatypeType Datatype::getDatatypeType(const std::vector<Type>& params)
   const throw(IllegalArgumentException) {
-  CheckArgument(isResolved(), *this, "Datatype must be resolved to get its DatatypeType");
-  CheckArgument(!d_self.isNull() && DatatypeType(d_self).isParametric(), this);
+  PrettyCheckArgument(isResolved(), *this, "Datatype must be resolved to get its DatatypeType");
+  PrettyCheckArgument(!d_self.isNull() && DatatypeType(d_self).isParametric(), this);
   return DatatypeType(d_self).instantiate(params);
 }
 
@@ -467,7 +467,7 @@ bool Datatype::operator==(const Datatype& other) const throw() {
 }
 
 const DatatypeConstructor& Datatype::operator[](size_t index) const {
-  CheckArgument(index < getNumConstructors(), index, "index out of bounds");
+  PrettyCheckArgument(index < getNumConstructors(), index, "index out of bounds");
   return d_constructors[index];
 }
 
@@ -477,7 +477,7 @@ const DatatypeConstructor& Datatype::operator[](std::string name) const {
       return *i;
     }
   }
-  CheckArgument(false, name, "No such constructor `%s' of datatype `%s'", name.c_str(), d_name.c_str());
+  IllegalArgument(name, "No such constructor `%s' of datatype `%s'", name.c_str(), d_name.c_str());
 }
 
 Expr Datatype::getConstructor(std::string name) const {
@@ -512,8 +512,8 @@ void DatatypeConstructor::resolve(ExprManager* em, DatatypeType self,
                                   const std::vector< DatatypeType >& paramReplacements, size_t cindex)
   throw(IllegalArgumentException, DatatypeResolutionException) {
 
-  CheckArgument(em != NULL, em, "cannot resolve a Datatype with a NULL expression manager");
-  CheckArgument(!isResolved(),
+  PrettyCheckArgument(em != NULL, em, "cannot resolve a Datatype with a NULL expression manager");
+  PrettyCheckArgument(!isResolved(),
                 "cannot resolve a Datatype constructor twice; "
                 "perhaps the same constructor was added twice, "
                 "or to two datatypes?");
@@ -612,7 +612,7 @@ DatatypeConstructor::DatatypeConstructor(std::string name) :
   d_name(name + '\0' + "is_" + name), // default tester name is "is_FOO"
   d_tester(),
   d_args() {
-  CheckArgument(name != "", name, "cannot construct a datatype constructor without a name");
+  PrettyCheckArgument(name != "", name, "cannot construct a datatype constructor without a name");
 }
 
 DatatypeConstructor::DatatypeConstructor(std::string name, std::string tester) :
@@ -623,8 +623,8 @@ DatatypeConstructor::DatatypeConstructor(std::string name, std::string tester) :
   d_name(name + '\0' + tester),
   d_tester(),
   d_args() {
-  CheckArgument(name != "", name, "cannot construct a datatype constructor without a name");
-  CheckArgument(!tester.empty(), tester, "cannot construct a datatype constructor without a tester");
+  PrettyCheckArgument(name != "", name, "cannot construct a datatype constructor without a name");
+  PrettyCheckArgument(!tester.empty(), tester, "cannot construct a datatype constructor without a tester");
 }
 
 void DatatypeConstructor::setSygus( Expr op, Expr let_body, std::vector< Expr >& let_args, unsigned num_let_input_args ){
@@ -640,8 +640,8 @@ void DatatypeConstructor::addArg(std::string selectorName, Type selectorType) {
   // we're going to be a constant stuffed inside a node.  So we stow
   // the selector type away inside a var until resolution (when we can
   // create the proper selector type)
-  CheckArgument(!isResolved(), this, "cannot modify a finalized Datatype constructor");
-  CheckArgument(!selectorType.isNull(), selectorType, "cannot add a null selector type");
+  PrettyCheckArgument(!isResolved(), this, "cannot modify a finalized Datatype constructor");
+  PrettyCheckArgument(!selectorType.isNull(), selectorType, "cannot add a null selector type");
 
   // we're using some internals, so we have to set up this library context
   ExprManagerScope ems(selectorType);
@@ -656,8 +656,8 @@ void DatatypeConstructor::addArg(std::string selectorName, DatatypeUnresolvedTyp
   // we're going to be a constant stuffed inside a node.  So we stow
   // the selector type away after a NUL in the name string until
   // resolution (when we can create the proper selector type)
-  CheckArgument(!isResolved(), this, "cannot modify a finalized Datatype constructor");
-  CheckArgument(selectorType.getName() != "", selectorType, "cannot add a null selector type");
+  PrettyCheckArgument(!isResolved(), this, "cannot modify a finalized Datatype constructor");
+  PrettyCheckArgument(selectorType.getName() != "", selectorType, "cannot add a null selector type");
   d_args.push_back(DatatypeConstructorArg(selectorName + '\0' + selectorType.getName(), Expr()));
 }
 
@@ -667,7 +667,7 @@ void DatatypeConstructor::addArg(std::string selectorName, DatatypeSelfType) {
   // the name string with a NUL to indicate that we have a
   // self-selecting selector until resolution (when we can create the
   // proper selector type)
-  CheckArgument(!isResolved(), this, "cannot modify a finalized Datatype constructor");
+  PrettyCheckArgument(!isResolved(), this, "cannot modify a finalized Datatype constructor");
   d_args.push_back(DatatypeConstructorArg(selectorName + '\0', Expr()));
 }
 
@@ -680,15 +680,15 @@ std::string DatatypeConstructor::getTesterName() const throw() {
 }
 
 Expr DatatypeConstructor::getConstructor() const {
-  CheckArgument(isResolved(), this, "this datatype constructor is not yet resolved");
+  PrettyCheckArgument(isResolved(), this, "this datatype constructor is not yet resolved");
   return d_constructor;
 }
 
 Type DatatypeConstructor::getSpecializedConstructorType(Type returnType) const {
-  CheckArgument(isResolved(), this, "this datatype constructor is not yet resolved");
+  PrettyCheckArgument(isResolved(), this, "this datatype constructor is not yet resolved");
   ExprManagerScope ems(d_constructor);
   const Datatype& dt = Datatype::datatypeOf(d_constructor);
-  CheckArgument(dt.isParametric(), this, "this datatype constructor is not parametric");
+  PrettyCheckArgument(dt.isParametric(), this, "this datatype constructor is not parametric");
   DatatypeType dtt = dt.getDatatypeType();
   Matcher m(dtt);
   m.doMatching( TypeNode::fromType(dtt), TypeNode::fromType(returnType) );
@@ -699,42 +699,42 @@ Type DatatypeConstructor::getSpecializedConstructorType(Type returnType) const {
 }
 
 Expr DatatypeConstructor::getTester() const {
-  CheckArgument(isResolved(), this, "this datatype constructor is not yet resolved");
+  PrettyCheckArgument(isResolved(), this, "this datatype constructor is not yet resolved");
   return d_tester;
 }
 
 Expr DatatypeConstructor::getSygusOp() const {
-  CheckArgument(isResolved(), this, "this datatype constructor is not yet resolved");
+  PrettyCheckArgument(isResolved(), this, "this datatype constructor is not yet resolved");
   return d_sygus_op;
 }
 
 Expr DatatypeConstructor::getSygusLetBody() const {
-  CheckArgument(isResolved(), this, "this datatype constructor is not yet resolved");
+  PrettyCheckArgument(isResolved(), this, "this datatype constructor is not yet resolved");
   return d_sygus_let_body;
 }
 
 unsigned DatatypeConstructor::getNumSygusLetArgs() const {
-  CheckArgument(isResolved(), this, "this datatype constructor is not yet resolved");
+  PrettyCheckArgument(isResolved(), this, "this datatype constructor is not yet resolved");
   return d_sygus_let_args.size();
 }
 
 Expr DatatypeConstructor::getSygusLetArg( unsigned i ) const {
-  CheckArgument(isResolved(), this, "this datatype constructor is not yet resolved");
+  PrettyCheckArgument(isResolved(), this, "this datatype constructor is not yet resolved");
   return d_sygus_let_args[i];
-} 
+}
 
 unsigned DatatypeConstructor::getNumSygusLetInputArgs() const {
-  CheckArgument(isResolved(), this, "this datatype constructor is not yet resolved");
+  PrettyCheckArgument(isResolved(), this, "this datatype constructor is not yet resolved");
   return d_sygus_num_let_input_args;
 }
 
 bool DatatypeConstructor::isSygusIdFunc() const {
-  CheckArgument(isResolved(), this, "this datatype constructor is not yet resolved");
+  PrettyCheckArgument(isResolved(), this, "this datatype constructor is not yet resolved");
   return d_sygus_let_args.size()==1 && d_sygus_let_args[0]==d_sygus_let_body;
 }
   
 Cardinality DatatypeConstructor::getCardinality() const throw(IllegalArgumentException) {
-  CheckArgument(isResolved(), this, "this datatype constructor is not yet resolved");
+  PrettyCheckArgument(isResolved(), this, "this datatype constructor is not yet resolved");
 
   Cardinality c = 1;
 
@@ -775,7 +775,7 @@ bool DatatypeConstructor::computeWellFounded( std::vector< Type >& processing ) 
 
 
 bool DatatypeConstructor::isFinite() const throw(IllegalArgumentException) {
-  CheckArgument(isResolved(), this, "this datatype constructor is not yet resolved");
+  PrettyCheckArgument(isResolved(), this, "this datatype constructor is not yet resolved");
 
   // we're using some internals, so we have to set up this library context
   ExprManagerScope ems(d_constructor);
@@ -855,7 +855,7 @@ Expr DatatypeConstructor::computeGroundTerm( Type t, std::vector< Type >& proces
 
 
 const DatatypeConstructorArg& DatatypeConstructor::operator[](size_t index) const {
-  CheckArgument(index < getNumArgs(), index, "index out of bounds");
+  PrettyCheckArgument(index < getNumArgs(), index, "index out of bounds");
   return d_args[index];
 }
 
@@ -865,7 +865,7 @@ const DatatypeConstructorArg& DatatypeConstructor::operator[](std::string name) 
       return *i;
     }
   }
-  CheckArgument(false, name, "No such arg `%s' of constructor `%s'", name.c_str(), d_name.c_str());
+  IllegalArgument(name, "No such arg `%s' of constructor `%s'", name.c_str(), d_name.c_str());
 }
 
 Expr DatatypeConstructor::getSelector(std::string name) const {
@@ -885,7 +885,7 @@ DatatypeConstructorArg::DatatypeConstructorArg(std::string name, Expr selector) 
   d_name(name),
   d_selector(selector),
   d_resolved(false) {
-  CheckArgument(name != "", name, "cannot construct a datatype constructor arg without a name");
+  PrettyCheckArgument(name != "", name, "cannot construct a datatype constructor arg without a name");
 }
 
 std::string DatatypeConstructorArg::getName() const throw() {
@@ -898,12 +898,12 @@ std::string DatatypeConstructorArg::getName() const throw() {
 }
 
 Expr DatatypeConstructorArg::getSelector() const {
-  CheckArgument(isResolved(), this, "cannot get a selector for an unresolved datatype constructor");
+  PrettyCheckArgument(isResolved(), this, "cannot get a selector for an unresolved datatype constructor");
   return d_selector;
 }
 
 Expr DatatypeConstructorArg::getConstructor() const {
-  CheckArgument(isResolved(), this,
+  PrettyCheckArgument(isResolved(), this,
                 "cannot get a associated constructor for argument of an unresolved datatype constructor");
   return d_constructor;
 }

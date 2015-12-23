@@ -40,7 +40,7 @@ namespace std {
 namespace CVC4 {}
 using namespace CVC4;
 
-#include <iostream>
+#include <iofwd>
 #include <vector>
 #include <set>
 #include <string>
