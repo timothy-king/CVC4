@@ -73,8 +73,8 @@ public:
   Stat(const std::string& name) throw(CVC4::IllegalArgumentException) :
     d_name(name) {
     if(__CVC4_USE_STATISTICS) {
-      TmpCheckArgument(d_name.find(", ") == std::string::npos, name,
-                       "Statistics names cannot include a comma (',')");
+      CheckArgument(d_name.find(", ") == std::string::npos, name,
+                    "Statistics names cannot include a comma (',')");
     }
   }
 
@@ -611,9 +611,9 @@ public:
     Stat(name) {
     d_prefix = name;
     if(__CVC4_USE_STATISTICS) {
-      TmpCheckArgument(d_name.find(s_regDelim) == std::string::npos, name,
-                       "StatisticsRegistry names cannot contain the string \"%s\"",
-                       s_regDelim.c_str());
+      CheckArgument(d_name.find(s_regDelim) == std::string::npos, name,
+                    "StatisticsRegistry names cannot contain the string \"%s\"",
+                    s_regDelim.c_str());
     }
   }
 
@@ -675,8 +675,8 @@ inline timespec& operator+=(timespec& a, const timespec& b) {
   using namespace CVC4;
   // assumes a.tv_nsec and b.tv_nsec are in range
   const long nsec_per_sec = 1000000000L; // one thousand million
-  TmpCheckArgument(a.tv_nsec >= 0 && a.tv_nsec < nsec_per_sec, a);
-  TmpCheckArgument(b.tv_nsec >= 0 && b.tv_nsec < nsec_per_sec, b);
+  CheckArgument(a.tv_nsec >= 0 && a.tv_nsec < nsec_per_sec, a);
+  CheckArgument(b.tv_nsec >= 0 && b.tv_nsec < nsec_per_sec, b);
   a.tv_sec += b.tv_sec;
   long nsec = a.tv_nsec + b.tv_nsec;
   assert(nsec >= 0);
@@ -698,8 +698,8 @@ inline timespec& operator-=(timespec& a, const timespec& b) {
   using namespace CVC4;
   // assumes a.tv_nsec and b.tv_nsec are in range
   const long nsec_per_sec = 1000000000L; // one thousand million
-  TmpCheckArgument(a.tv_nsec >= 0 && a.tv_nsec < nsec_per_sec, a);
-  TmpCheckArgument(b.tv_nsec >= 0 && b.tv_nsec < nsec_per_sec, b);
+  CheckArgument(a.tv_nsec >= 0 && a.tv_nsec < nsec_per_sec, a);
+  CheckArgument(b.tv_nsec >= 0 && b.tv_nsec < nsec_per_sec, b);
   a.tv_sec -= b.tv_sec;
   long nsec = a.tv_nsec - b.tv_nsec;
   if(nsec < 0) {
@@ -909,9 +909,9 @@ public:
   RegisterStatistic(StatisticsRegistry* reg, Stat* stat) :
     d_reg(reg),
     d_stat(stat) {
-    TmpCheckArgument(reg != NULL, reg,
-                     "You need to specify a statistics registry"
-                     "on which to set the statistic");
+    CheckArgument(reg != NULL, reg,
+                  "You need to specify a statistics registry"
+                  "on which to set the statistic");
     d_reg->registerStat_(d_stat);
   }
 

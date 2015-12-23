@@ -1034,8 +1034,8 @@ NodeManager::mkFunctionType(const std::vector<TypeNode>& sorts) {
   Assert(sorts.size() >= 2);
   std::vector<TypeNode> sortNodes;
   for (unsigned i = 0; i < sorts.size(); ++ i) {
-    TmpCheckArgument(!sorts[i].isFunctionLike(), sorts,
-                     "cannot create higher-order function types");
+    CheckArgument(!sorts[i].isFunctionLike(), sorts,
+                  "cannot create higher-order function types");
     sortNodes.push_back(sorts[i]);
   }
   return mkTypeNode(kind::FUNCTION_TYPE, sortNodes);
@@ -1046,8 +1046,8 @@ NodeManager::mkPredicateType(const std::vector<TypeNode>& sorts) {
   Assert(sorts.size() >= 1);
   std::vector<TypeNode> sortNodes;
   for (unsigned i = 0; i < sorts.size(); ++ i) {
-    TmpCheckArgument(!sorts[i].isFunctionLike(), sorts,
-                     "cannot create higher-order function types");
+    CheckArgument(!sorts[i].isFunctionLike(), sorts,
+                  "cannot create higher-order function types");
     sortNodes.push_back(sorts[i]);
   }
   sortNodes.push_back(booleanType());
@@ -1057,8 +1057,8 @@ NodeManager::mkPredicateType(const std::vector<TypeNode>& sorts) {
 inline TypeNode NodeManager::mkTupleType(const std::vector<TypeNode>& types) {
   std::vector<TypeNode> typeNodes;
   for (unsigned i = 0; i < types.size(); ++ i) {
-    TmpCheckArgument(!types[i].isFunctionLike(), types,
-                     "cannot put function-like types in tuples");
+    CheckArgument(!types[i].isFunctionLike(), types,
+                  "cannot put function-like types in tuples");
     typeNodes.push_back(types[i]);
   }
   return mkTypeNode(kind::TUPLE_TYPE, typeNodes);
@@ -1090,38 +1090,39 @@ inline TypeNode NodeManager::mkFloatingPointType(FloatingPointSize fs) {
 
 inline TypeNode NodeManager::mkArrayType(TypeNode indexType,
                                          TypeNode constituentType) {
-  TmpCheckArgument(!indexType.isNull(), indexType,
+  CheckArgument(!indexType.isNull(), indexType,
                 "unexpected NULL index type");
-  TmpCheckArgument(!constituentType.isNull(), constituentType,
+  CheckArgument(!constituentType.isNull(), constituentType,
                 "unexpected NULL constituent type");
-  TmpCheckArgument(!indexType.isFunctionLike(), indexType,
+  CheckArgument(!indexType.isFunctionLike(), indexType,
                 "cannot index arrays by a function-like type");
-  TmpCheckArgument(!constituentType.isFunctionLike(), constituentType,
+  CheckArgument(!constituentType.isFunctionLike(), constituentType,
                 "cannot store function-like types in arrays");
-  Debug("arrays") << "making array type " << indexType << " " << constituentType << std::endl;
+  Debug("arrays") << "making array type " << indexType << " "
+                  << constituentType << std::endl;
   return mkTypeNode(kind::ARRAY_TYPE, indexType, constituentType);
 }
 
 inline TypeNode NodeManager::mkSetType(TypeNode elementType) {
-  TmpCheckArgument(!elementType.isNull(), elementType,
+  CheckArgument(!elementType.isNull(), elementType,
                 "unexpected NULL element type");
   // TODO: Confirm meaning of isFunctionLike(). --K
-  TmpCheckArgument(!elementType.isFunctionLike(), elementType,
+  CheckArgument(!elementType.isFunctionLike(), elementType,
                 "cannot store function-like types in sets");
   Debug("sets") << "making sets type " << elementType << std::endl;
   return mkTypeNode(kind::SET_TYPE, elementType);
 }
 
 inline TypeNode NodeManager::mkSelectorType(TypeNode domain, TypeNode range) {
-  TmpCheckArgument(!domain.isFunctionLike(), domain,
+  CheckArgument(!domain.isFunctionLike(), domain,
                 "cannot create higher-order function types");
-  TmpCheckArgument(!range.isFunctionLike(), range,
+  CheckArgument(!range.isFunctionLike(), range,
                 "cannot create higher-order function types");
   return mkTypeNode(kind::SELECTOR_TYPE, domain, range);
 }
 
 inline TypeNode NodeManager::mkTesterType(TypeNode domain) {
-  TmpCheckArgument(!domain.isFunctionLike(), domain,
+  CheckArgument(!domain.isFunctionLike(), domain,
                 "cannot create higher-order function types");
   return mkTypeNode(kind::TESTER_TYPE, domain );
 }

@@ -91,19 +91,19 @@ public:
 
   // xor
   BitVector operator ^(const BitVector& y) const {
-    TmpCheckArgument(d_size == y.d_size, y);
+    CheckArgument(d_size == y.d_size, y);
     return BitVector(d_size, d_value.bitwiseXor(y.d_value));
   }
 
   // or
   BitVector operator |(const BitVector& y) const {
-    TmpCheckArgument(d_size == y.d_size, y);
+    CheckArgument(d_size == y.d_size, y);
     return BitVector(d_size, d_value.bitwiseOr(y.d_value));
   }
 
   // and
   BitVector operator &(const BitVector& y) const {
-    TmpCheckArgument(d_size == y.d_size, y);
+    CheckArgument(d_size == y.d_size, y);
     return BitVector(d_size, d_value.bitwiseAnd(y.d_value));
   }
 
@@ -135,13 +135,13 @@ public:
 
 
   BitVector operator +(const BitVector& y) const {
-    TmpCheckArgument(d_size == y.d_size, y);
+    CheckArgument(d_size == y.d_size, y);
     Integer sum = d_value +  y.d_value;
     return BitVector(d_size, sum);
   }
 
   BitVector operator -(const BitVector& y) const {
-    TmpCheckArgument(d_size == y.d_size, y);
+    CheckArgument(d_size == y.d_size, y);
     // to maintain the invariant that we are only adding BitVectors of the
     // same size
     BitVector one(d_size, Integer(1));
@@ -154,19 +154,19 @@ public:
   }
 
   BitVector operator *(const BitVector& y) const {
-    TmpCheckArgument(d_size == y.d_size, y);
+    CheckArgument(d_size == y.d_size, y);
     Integer prod = d_value * y.d_value;
     return BitVector(d_size, prod);
   }
 
   BitVector setBit(uint32_t i) const {
-    TmpCheckArgument(i < d_size, i);
+    CheckArgument(i < d_size, i);
     Integer res = d_value.setBit(i);
     return BitVector(d_size, res);
   }
 
   bool isBitSet(uint32_t i) const {
-    TmpCheckArgument(i < d_size, i);
+    CheckArgument(i < d_size, i);
     return d_value.isBitSet(i);
   }
 
@@ -175,13 +175,13 @@ public:
    */
   BitVector unsignedDivTotal (const BitVector& y) const {
 
-    TmpCheckArgument(d_size == y.d_size, y);
+    CheckArgument(d_size == y.d_size, y);
     if (y.d_value == 0) {
       // under division by zero return -1
       return BitVector(d_size, Integer(1).oneExtend(1, d_size - 1));
     }
-    TmpCheckArgument(d_value >= 0, this);
-    TmpCheckArgument(y.d_value > 0, y);
+    CheckArgument(d_value >= 0, this);
+    CheckArgument(y.d_value > 0, y);
     return BitVector(d_size, d_value.floorDivideQuotient(y.d_value));
   }
 
@@ -189,20 +189,20 @@ public:
    * Total division function that returns 0 when the denominator is 0.
    */
   BitVector unsignedRemTotal(const BitVector& y) const {
-    TmpCheckArgument(d_size == y.d_size, y);
+    CheckArgument(d_size == y.d_size, y);
     if (y.d_value == 0) {
       return BitVector(d_size, d_value);
     }
-    TmpCheckArgument(d_value >= 0, this);
-    TmpCheckArgument(y.d_value > 0, y);
+    CheckArgument(d_value >= 0, this);
+    CheckArgument(y.d_value > 0, y);
     return BitVector(d_size, d_value.floorDivideRemainder(y.d_value));
   }
 
 
   bool signedLessThan(const BitVector& y) const {
-    TmpCheckArgument(d_size == y.d_size, y);
-    TmpCheckArgument(d_value >= 0, this);
-    TmpCheckArgument(y.d_value >= 0, y);
+    CheckArgument(d_size == y.d_size, y);
+    CheckArgument(d_value >= 0, this);
+    CheckArgument(y.d_value >= 0, y);
     Integer a = (*this).toSignedInt();
     Integer b = y.toSignedInt();
 
@@ -210,16 +210,16 @@ public:
   }
 
   bool unsignedLessThan(const BitVector& y) const {
-    TmpCheckArgument(d_size == y.d_size, y);
-    TmpCheckArgument(d_value >= 0, this);
-    TmpCheckArgument(y.d_value >= 0, y);
+    CheckArgument(d_size == y.d_size, y);
+    CheckArgument(d_value >= 0, this);
+    CheckArgument(y.d_value >= 0, y);
     return d_value < y.d_value;
   }
 
   bool signedLessThanEq(const BitVector& y) const {
-    TmpCheckArgument(d_size == y.d_size, y);
-    TmpCheckArgument(d_value >= 0, this);
-    TmpCheckArgument(y.d_value >= 0, y);
+    CheckArgument(d_size == y.d_size, y);
+    CheckArgument(d_value >= 0, this);
+    CheckArgument(y.d_value >= 0, y);
     Integer a = (*this).toSignedInt();
     Integer b = y.toSignedInt();
 
@@ -227,9 +227,9 @@ public:
   }
 
   bool unsignedLessThanEq(const BitVector& y) const {
-    TmpCheckArgument(d_size == y.d_size, this);
-    TmpCheckArgument(d_value >= 0, this);
-    TmpCheckArgument(y.d_value >= 0, y);
+    CheckArgument(d_size == y.d_size, this);
+    CheckArgument(d_value >= 0, this);
+    CheckArgument(y.d_value >= 0, y);
     return d_value <= y.d_value;
   }
 
@@ -263,7 +263,7 @@ public:
     }
 
     // making sure we don't lose information casting
-    TmpCheckArgument(y.d_value < Integer(1).multiplyByPow2(32), y);
+    CheckArgument(y.d_value < Integer(1).multiplyByPow2(32), y);
     uint32_t amount = y.d_value.toUnsignedInt();
     Integer res = d_value.multiplyByPow2(amount);
     return BitVector(d_size, res);
@@ -275,7 +275,7 @@ public:
     }
 
     // making sure we don't lose information casting
-    TmpCheckArgument(y.d_value < Integer(1).multiplyByPow2(32), y);
+    CheckArgument(y.d_value < Integer(1).multiplyByPow2(32), y);
     uint32_t amount = y.d_value.toUnsignedInt();
     Integer res = d_value.divByPow2(amount);
     return BitVector(d_size, res);
@@ -296,7 +296,7 @@ public:
     }
 
     // making sure we don't lose information casting
-    TmpCheckArgument(y.d_value < Integer(1).multiplyByPow2(32), y);
+    CheckArgument(y.d_value < Integer(1).multiplyByPow2(32), y);
 
     uint32_t amount  = y.d_value.toUnsignedInt();
     Integer rest = d_value.divByPow2(amount);
@@ -369,7 +369,7 @@ private:
 
 
 inline BitVector::BitVector(const std::string& num, unsigned base) {
-  TmpCheckArgument(base == 2 || base == 16, base);
+  CheckArgument(base == 2 || base == 16, base);
 
   if( base == 2 ) {
     d_size = num.size();

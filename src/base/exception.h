@@ -140,11 +140,11 @@ inline std::ostream& operator<<(std::ostream& os, const Exception& e) throw() {
 
 namespace CVC4 {
 
-template <class T> inline void TmpCheckArgument(const char* condDesc, bool cond,
+template <class T> inline void CheckArgument(const char* condDesc, bool cond,
                                              const char* argDesc, const T& arg,
                                              const char* functionDesc,
                                              const char* fmt, ...) CVC4_PUBLIC;
-template <class T> inline void TmpCheckArgument(const char* condDesc, bool cond,
+template <class T> inline void CheckArgument(const char* condDesc, bool cond,
                                              const char* argDesc, const T& arg,
                                              const char* functionDesc,
                                              const char* fmt, ...) {
@@ -158,10 +158,11 @@ template <class T> inline void TmpCheckArgument(const char* condDesc, bool cond,
   }
 }
 
-template <class T> inline void TmpCheckArgument(const char* condDesc, bool cond,
+template <class T> inline void CheckArgument(const char* condDesc, bool cond,
                                              const char* argDesc, const T& arg,
-                                             const char* functionDesc) CVC4_PUBLIC;
-template <class T> inline void TmpCheckArgument(const char* condDesc, bool cond,
+                                             const char* functionDesc
+                                             ) CVC4_PUBLIC;
+template <class T> inline void CheckArgument(const char* condDesc, bool cond,
                                              const char* argDesc, const T& arg,
                                              const char* functionDesc) {
   if(__builtin_expect( ( !cond ), false )) {
@@ -169,14 +170,17 @@ template <class T> inline void TmpCheckArgument(const char* condDesc, bool cond,
   }
 }
 
-template <class T> inline void TmpCheckArgument(bool cond, const T& arg, const char* fmt, ...) CVC4_PUBLIC;
-template <class T> inline void TmpCheckArgument(bool cond, const T& arg, const char* fmt, ...) {
+template <class T> inline void CheckArgument(bool cond, const T& arg,
+                                             const char* fmt, ...) CVC4_PUBLIC;
+template <class T> inline void CheckArgument(bool cond, const T& arg,
+                                             const char* fmt, ...) {
   if(__builtin_expect( ( !cond ), false )) { \
     throw ::CVC4::IllegalArgumentException("", "", ""); \
   } \
 }
-template <class T> inline void TmpCheckArgument(bool cond, const T& arg) CVC4_PUBLIC;
-template <class T> inline void TmpCheckArgument(bool cond, const T& arg) {
+template <class T> inline void CheckArgument(bool cond, const T& arg)
+  CVC4_PUBLIC;
+template <class T> inline void CheckArgument(bool cond, const T& arg) {
   if(__builtin_expect( ( !cond ), false )) { \
     throw ::CVC4::IllegalArgumentException("", "", ""); \
   } \

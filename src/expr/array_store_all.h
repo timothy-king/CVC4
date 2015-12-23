@@ -20,16 +20,17 @@
 
 #pragma once
 
-namespace CVC4 {
-  // messy; Expr needs ArrayStoreAll (because it's the payload of a
-  // CONSTANT-kinded expression), and ArrayStoreAll needs Expr.
-  class CVC4_PUBLIC Expr;
-  class CVC4_PUBLIC ArrayType;
-}/* CVC4 namespace */
-
 #include <iosfwd>
 
 #include "base/exception.h"
+
+namespace CVC4 {
+  // messy; Expr needs ArrayStoreAll (because it's the payload of a
+  // CONSTANT-kinded expression), and ArrayStoreAll needs Expr.
+  class Expr;
+  class ArrayType;
+}/* CVC4 namespace */
+
 
 namespace CVC4 {
 

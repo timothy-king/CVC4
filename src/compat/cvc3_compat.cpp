@@ -474,12 +474,12 @@ std::string Expr::getUid() const {
 }
 
 std::string Expr::getString() const {
-  CVC4::TmpCheckArgument(getKind() == CVC4::kind::CONST_STRING, *this, "CVC3::Expr::getString(): not a string Expr: `%s'", toString().c_str());
+  CVC4::CheckArgument(getKind() == CVC4::kind::CONST_STRING, *this, "CVC3::Expr::getString(): not a string Expr: `%s'", toString().c_str());
   return getConst<CVC4::String>().toString();
 }
 
 std::vector<Expr> Expr::getVars() const {
-  CVC4::TmpCheckArgument(isClosure(), *this, "CVC3::Expr::getVars(): not a closure Expr: `%s'", toString().c_str());
+  CVC4::CheckArgument(isClosure(), *this, "CVC3::Expr::getVars(): not a closure Expr: `%s'", toString().c_str());
   const vector<CVC4::Expr>& kids = (*this)[0].getChildren();
   vector<Expr> v;
   for(vector<CVC4::Expr>::const_iterator i = kids.begin(); i != kids.end(); ++i) {
@@ -497,7 +497,7 @@ int Expr::getBoundIndex() const {
 }
 
 Expr Expr::getBody() const {
-  CVC4::TmpCheckArgument(isClosure(), *this, "CVC3::Expr::getBody(): not a closure Expr: `%s'", toString().c_str());
+  CVC4::CheckArgument(isClosure(), *this, "CVC3::Expr::getBody(): not a closure Expr: `%s'", toString().c_str());
   return (*this)[1];
 }
 
@@ -546,7 +546,7 @@ bool Expr::isSkolem() const {
 }
 
 const Rational& Expr::getRational() const {
-  CVC4::TmpCheckArgument(isRational(), *this, "CVC3::Expr::getRational(): not a rational Expr: `%s'", toString().c_str());
+  CVC4::CheckArgument(isRational(), *this, "CVC3::Expr::getRational(): not a rational Expr: `%s'", toString().c_str());
   return getConst<CVC4::Rational>();
 }
 
@@ -573,7 +573,8 @@ Expr Expr::getExpr() const {
 }
 
 std::vector< std::vector<Expr> > Expr::getTriggers() const {
-  CVC4::TmpCheckArgument(isClosure(), *this, "getTriggers() called on non-closure expr");
+  CVC4::CheckArgument(isClosure(), *this,
+                      "getTriggers() called on non-closure expr");
   if(getNumChildren() < 3) {
     // no triggers for this quantifier
     return vector< vector<Expr> >();
@@ -756,37 +757,37 @@ CLFlag& CLFlag::operator=(const CLFlag& f) {
 }
 
 CLFlag& CLFlag::operator=(bool b) {
-  CVC4::TmpCheckArgument(d_tp == CLFLAG_BOOL, this);
+  CVC4::CheckArgument(d_tp == CLFLAG_BOOL, this);
   d_data.b = b;
   return *this;
 }
 
 CLFlag& CLFlag::operator=(int i) {
-  CVC4::TmpCheckArgument(d_tp == CLFLAG_INT, this);
+  CVC4::CheckArgument(d_tp == CLFLAG_INT, this);
   d_data.i = i;
   return *this;
 }
 
 CLFlag& CLFlag::operator=(const std::string& s) {
-  CVC4::TmpCheckArgument(d_tp == CLFLAG_STRING, this);
+  CVC4::CheckArgument(d_tp == CLFLAG_STRING, this);
   *d_data.s = s;
   return *this;
 }
 
 CLFlag& CLFlag::operator=(const char* s) {
-  CVC4::TmpCheckArgument(d_tp == CLFLAG_STRING, this);
+  CVC4::CheckArgument(d_tp == CLFLAG_STRING, this);
   *d_data.s = s;
   return *this;
 }
 
 CLFlag& CLFlag::operator=(const std::pair<string, bool>& p) {
-  CVC4::TmpCheckArgument(d_tp == CLFLAG_STRVEC, this);
+  CVC4::CheckArgument(d_tp == CLFLAG_STRVEC, this);
   d_data.sv->push_back(p);
   return *this;
 }
 
 CLFlag& CLFlag::operator=(const std::vector<std::pair<string, bool> >& sv) {
-  CVC4::TmpCheckArgument(d_tp == CLFLAG_STRVEC, this);
+  CVC4::CheckArgument(d_tp == CLFLAG_STRVEC, this);
   *d_data.sv = sv;
   return *this;
 }
@@ -804,22 +805,22 @@ bool CLFlag::display() const {
 }
 
 const bool& CLFlag::getBool() const {
-  CVC4::TmpCheckArgument(d_tp == CLFLAG_BOOL, this);
+  CVC4::CheckArgument(d_tp == CLFLAG_BOOL, this);
   return d_data.b;
 }
 
 const int& CLFlag::getInt() const {
-  CVC4::TmpCheckArgument(d_tp == CLFLAG_INT, this);
+  CVC4::CheckArgument(d_tp == CLFLAG_INT, this);
   return d_data.i;
 }
 
 const std::string& CLFlag::getString() const {
-  CVC4::TmpCheckArgument(d_tp == CLFLAG_STRING, this);
+  CVC4::CheckArgument(d_tp == CLFLAG_STRING, this);
   return *d_data.s;
 }
 
 const std::vector<std::pair<string, bool> >& CLFlag::getStrVec() const {
-  CVC4::TmpCheckArgument(d_tp == CLFLAG_STRVEC, this);
+  CVC4::CheckArgument(d_tp == CLFLAG_STRVEC, this);
   return *d_data.sv;
 }
 
@@ -842,7 +843,7 @@ size_t CLFlags::countFlags(const std::string& name,
 
 const CLFlag& CLFlags::getFlag(const std::string& name) const {
   FlagMap::const_iterator i = d_map.find(name);
-  CVC4::TmpCheckArgument(i != d_map.end(), name, "No command-line flag by that name, or not supported.");
+  CVC4::CheckArgument(i != d_map.end(), name, "No command-line flag by that name, or not supported.");
   return (*i).second;
 }
 
@@ -852,8 +853,8 @@ const CLFlag& CLFlags::operator[](const std::string& name) const {
 
 void CLFlags::setFlag(const std::string& name, const CLFlag& f) {
   FlagMap::iterator i = d_map.find(name);
-  CVC4::TmpCheckArgument(i != d_map.end(), name, "No command-line flag by that name, or not supported.");
-  CVC4::TmpCheckArgument((*i).second.getType() == f.getType(), f,
+  CVC4::CheckArgument(i != d_map.end(), name, "No command-line flag by that name, or not supported.");
+  CVC4::CheckArgument((*i).second.getType() == f.getType(), f,
                       "Command-line flag `%s' has type %s, but caller tried to set to a %s.",
                       name.c_str(),
                       toString((*i).second.getType()).c_str(),
@@ -863,38 +864,38 @@ void CLFlags::setFlag(const std::string& name, const CLFlag& f) {
 
 void CLFlags::setFlag(const std::string& name, bool b) {
   FlagMap::iterator i = d_map.find(name);
-  CVC4::TmpCheckArgument(i != d_map.end(), name, "No command-line flag by that name, or not supported.");
+  CVC4::CheckArgument(i != d_map.end(), name, "No command-line flag by that name, or not supported.");
   (*i).second = b;
 }
 
 void CLFlags::setFlag(const std::string& name, int i) {
   FlagMap::iterator it = d_map.find(name);
-  CVC4::TmpCheckArgument(it != d_map.end(), name, "No command-line flag by that name, or not supported.");
+  CVC4::CheckArgument(it != d_map.end(), name, "No command-line flag by that name, or not supported.");
   (*it).second = i;
 }
 
 void CLFlags::setFlag(const std::string& name, const std::string& s) {
   FlagMap::iterator i = d_map.find(name);
-  CVC4::TmpCheckArgument(i != d_map.end(), name, "No command-line flag by that name, or not supported.");
+  CVC4::CheckArgument(i != d_map.end(), name, "No command-line flag by that name, or not supported.");
   (*i).second = s;
 }
 
 void CLFlags::setFlag(const std::string& name, const char* s) {
   FlagMap::iterator i = d_map.find(name);
-  CVC4::TmpCheckArgument(i != d_map.end(), name, "No command-line flag by that name, or not supported.");
+  CVC4::CheckArgument(i != d_map.end(), name, "No command-line flag by that name, or not supported.");
   (*i).second = s;
 }
 
 void CLFlags::setFlag(const std::string& name, const std::pair<string, bool>& p) {
   FlagMap::iterator i = d_map.find(name);
-  CVC4::TmpCheckArgument(i != d_map.end(), name, "No command-line flag by that name, or not supported.");
+  CVC4::CheckArgument(i != d_map.end(), name, "No command-line flag by that name, or not supported.");
   (*i).second = p;
 }
 
 void CLFlags::setFlag(const std::string& name,
                       const std::vector<std::pair<string, bool> >& sv) {
   FlagMap::iterator i = d_map.find(name);
-  CVC4::TmpCheckArgument(i != d_map.end(), name, "No command-line flag by that name, or not supported.");
+  CVC4::CheckArgument(i != d_map.end(), name, "No command-line flag by that name, or not supported.");
   (*i).second = sv;
 }
 
@@ -1233,8 +1234,8 @@ Type ValidityChecker::intType() {
 Type ValidityChecker::subrangeType(const Expr& l, const Expr& r) {
   bool noLowerBound = l.getType().isString() && l.getConst<CVC4::String>() == "_NEGINF";
   bool noUpperBound = r.getType().isString() && r.getConst<CVC4::String>() == "_POSINF";
-  CVC4::TmpCheckArgument(noLowerBound || (l.getKind() == CVC4::kind::CONST_RATIONAL && l.getConst<Rational>().isIntegral()), l);
-  CVC4::TmpCheckArgument(noUpperBound || (r.getKind() == CVC4::kind::CONST_RATIONAL && r.getConst<Rational>().isIntegral()), r);
+  CVC4::CheckArgument(noLowerBound || (l.getKind() == CVC4::kind::CONST_RATIONAL && l.getConst<Rational>().isIntegral()), l);
+  CVC4::CheckArgument(noUpperBound || (r.getKind() == CVC4::kind::CONST_RATIONAL && r.getConst<Rational>().isIntegral()), r);
   CVC4::SubrangeBound bl = noLowerBound ? CVC4::SubrangeBound() : CVC4::SubrangeBound(l.getConst<Rational>().getNumerator());
   CVC4::SubrangeBound br = noUpperBound ? CVC4::SubrangeBound() : CVC4::SubrangeBound(r.getConst<Rational>().getNumerator());
   return d_em->mkSubrangeType(CVC4::SubrangeBounds(bl, br));
@@ -1298,7 +1299,7 @@ Type ValidityChecker::recordType(const std::string& field0, const Type& type0,
 
 Type ValidityChecker::recordType(const std::vector<std::string>& fields,
                                  const std::vector<Type>& types) {
-  CVC4::TmpCheckArgument(fields.size() == types.size() && fields.size() > 0,
+  CVC4::CheckArgument(fields.size() == types.size() && fields.size() > 0,
                       "invalid vector length(s) in recordType()");
   std::vector< std::pair<std::string, CVC4::Type> > fieldSpecs;
   for(unsigned i = 0; i < fields.size(); ++i) {
@@ -1311,7 +1312,9 @@ Type ValidityChecker::dataType(const std::string& name,
                                const std::string& constructor,
                                const std::vector<std::string>& selectors,
                                const std::vector<Expr>& types) {
-  CVC4::TmpCheckArgument(selectors.size() == types.size(), types, "expected selectors and types vectors to be of equal length");
+  CVC4::CheckArgument(selectors.size() == types.size(), types,
+                      "expected selectors and types vectors to be of equal"
+                      "length");
   vector<string> cv;
   vector< vector<string> > sv;
   vector< vector<Expr> > tv;
@@ -1325,8 +1328,12 @@ Type ValidityChecker::dataType(const std::string& name,
                                const std::vector<std::string>& constructors,
                                const std::vector<std::vector<std::string> >& selectors,
                                const std::vector<std::vector<Expr> >& types) {
-  CVC4::TmpCheckArgument(constructors.size() == selectors.size(), selectors, "expected constructors and selectors vectors to be of equal length");
-  CVC4::TmpCheckArgument(constructors.size() == types.size(), types, "expected constructors and types vectors to be of equal length");
+  CVC4::CheckArgument(constructors.size() == selectors.size(), selectors,
+                      "Expected constructors and selectors vectors to be of "
+                      "equal length.");
+  CVC4::CheckArgument(constructors.size() == types.size(), types,
+                      "Expected constructors and types vectors to be of equal "
+                      "length.");
   vector<string> nv;
   vector< vector<string> > cv;
   vector< vector< vector<string> > > sv;
@@ -1347,22 +1354,36 @@ void ValidityChecker::dataType(const std::vector<std::string>& names,
                                const std::vector<std::vector<std::vector<Expr> > >& types,
                                std::vector<Type>& returnTypes) {
 
-  CVC4::TmpCheckArgument(names.size() == constructors.size(), constructors, "expected names and constructors vectors to be of equal length");
-  CVC4::TmpCheckArgument(names.size() == selectors.size(), selectors, "expected names and selectors vectors to be of equal length");
-  CVC4::TmpCheckArgument(names.size() == types.size(), types, "expected names and types vectors to be of equal length");
+  CVC4::CheckArgument(names.size() == constructors.size(), constructors,
+                      "Expected names and constructors vectors to be of equal "
+                      "length.");
+  CVC4::CheckArgument(names.size() == selectors.size(), selectors,
+                      "Expected names and selectors vectors to be of equal "
+                      "length.");
+  CVC4::CheckArgument(names.size() == types.size(), types,
+                      "Expected names and types vectors to be of equal "
+                      "length.");
   vector<CVC4::Datatype> dv;
 
   // Set up the datatype specifications.
   for(unsigned i = 0; i < names.size(); ++i) {
     CVC4::Datatype dt(names[i], false);
-    CVC4::TmpCheckArgument(constructors[i].size() == selectors[i].size(), "expected sub-vectors in constructors and selectors vectors to match in size");
-    CVC4::TmpCheckArgument(constructors[i].size() == types[i].size(), "expected sub-vectors in constructors and types vectors to match in size");
+    CVC4::CheckArgument(constructors[i].size() == selectors[i].size(),
+                        "Expected sub-vectors in constructors and selectors "
+                        "vectors to match in size.");
+    CVC4::CheckArgument(constructors[i].size() == types[i].size(),
+                        "Expected sub-vectors in constructors and types "
+                        "vectors to match in size.");
     for(unsigned j = 0; j < constructors[i].size(); ++j) {
       CVC4::DatatypeConstructor ctor(constructors[i][j]);
-      CVC4::TmpCheckArgument(selectors[i][j].size() == types[i][j].size(), types, "expected sub-vectors in selectors and types vectors to match in size");
+      CVC4::CheckArgument(selectors[i][j].size() == types[i][j].size(), types,
+                          "Expected sub-vectors in selectors and types vectors "
+                          "to match in size.");
       for(unsigned k = 0; k < selectors[i][j].size(); ++k) {
         if(types[i][j][k].getType().isString()) {
-          ctor.addArg(selectors[i][j][k], CVC4::DatatypeUnresolvedType(types[i][j][k].getConst<CVC4::String>().toString()));
+          CVC4::DatatypeUnresolvedType unresolvedName = 
+            types[i][j][k].getConst<CVC4::String>().toString();
+          ctor.addArg(selectors[i][j][k], unresolvedName);
         } else {
           ctor.addArg(selectors[i][j][k], exprToType(types[i][j][k]));
         }
@@ -1388,10 +1409,17 @@ void ValidityChecker::dataType(const std::vector<std::string>& names,
     }
     for(CVC4::Datatype::const_iterator j = dt.begin(); j != dt.end(); ++j) {
       // For each constructor, register its name and its selectors names.
-      CVC4::TmpCheckArgument(d_constructors.find((*j).getName()) == d_constructors.end(), constructors, "cannot have two constructors with the same name in a ValidityChecker");
+      CVC4::CheckArgument(
+          d_constructors.find((*j).getName()) == d_constructors.end(),
+          constructors,
+          "Cannot have two constructors with the same name in a "
+          "ValidityChecker.");
       d_constructors[(*j).getName()] = &dt;
       for(CVC4::DatatypeConstructor::const_iterator k = (*j).begin(); k != (*j).end(); ++k) {
-        CVC4::TmpCheckArgument(d_selectors.find((*k).getName()) == d_selectors.end(), selectors, "cannot have two selectors with the same name in a ValidityChecker");
+        CVC4::CheckArgument(
+            d_selectors.find((*k).getName()) == d_selectors.end(), selectors,
+            "Cannot have two selectors with the same name in a "
+            "ValidityChecker.");
         d_selectors[(*k).getName()] = make_pair(&dt, (*j).getName());
       }
     }
@@ -1407,7 +1435,8 @@ Type ValidityChecker::arrayType(const Type& typeIndex, const Type& typeData) {
 }
 
 Type ValidityChecker::bitvecType(int n) {
-  CVC4::TmpCheckArgument(n >= 0, n, "cannot construct a bitvector type of negative size");
+  CVC4::CheckArgument(n >= 0, n,
+                      "Cannot construct a bitvector type of negative size.");
   return d_em->mkBitVectorType(n);
 }
 
@@ -1444,7 +1473,7 @@ Expr ValidityChecker::varExpr(const std::string& name, const Type& type) {
 
 Expr ValidityChecker::varExpr(const std::string& name, const Type& type,
                               const Expr& def) {
-  CVC4::TmpCheckArgument(def.getType() == type, def, "expected types to match");
+  CVC4::CheckArgument(def.getType() == type, def, "expected types to match");
   d_parserContext->defineVar(name, def);
   return def;
 }
@@ -1595,7 +1624,7 @@ Expr ValidityChecker::andExpr(const Expr& left, const Expr& right) {
 
 Expr ValidityChecker::andExpr(const std::vector<Expr>& children) {
   // AND must have at least 2 children
-  CVC4::TmpCheckArgument(children.size() > 0, children);
+  CVC4::CheckArgument(children.size() > 0, children);
   return (children.size() == 1) ? children[0] : Expr(d_em->mkExpr(CVC4::kind::AND, *reinterpret_cast<const vector<CVC4::Expr>*>(&children)));
 }
 
@@ -1605,7 +1634,7 @@ Expr ValidityChecker::orExpr(const Expr& left, const Expr& right) {
 
 Expr ValidityChecker::orExpr(const std::vector<Expr>& children) {
   // OR must have at least 2 children
-  CVC4::TmpCheckArgument(children.size() > 0, children);
+  CVC4::CheckArgument(children.size() > 0, children);
   return (children.size() == 1) ? children[0] : Expr(d_em->mkExpr(CVC4::kind::OR, *reinterpret_cast<const vector<CVC4::Expr>*>(&children)));
 }
 
@@ -1627,7 +1656,7 @@ Expr ValidityChecker::iteExpr(const Expr& ifpart, const Expr& thenpart,
 }
 
 Expr ValidityChecker::distinctExpr(const std::vector<Expr>& children) {
-  CVC4::TmpCheckArgument(children.size() > 1, children, "it makes no sense to create a `distinct' expression with only one child");
+  CVC4::CheckArgument(children.size() > 1, children, "it makes no sense to create a `distinct' expression with only one child");
   const vector<CVC4::Expr>& v =
     *reinterpret_cast<const vector<CVC4::Expr>*>(&children);
   return d_em->mkExpr(CVC4::kind::DISTINCT, v);
@@ -1639,7 +1668,7 @@ Op ValidityChecker::createOp(const std::string& name, const Type& type) {
 
 Op ValidityChecker::createOp(const std::string& name, const Type& type,
                              const Expr& def) {
-  CVC4::TmpCheckArgument(def.getType() == type, type,
+  CVC4::CheckArgument(def.getType() == type, type,
       "Type mismatch in ValidityChecker::createOp(): `%s' defined to an "
       "expression of type %s but ascribed as type %s", name.c_str(),
       def.getType().toString().c_str(), type.toString().c_str());
@@ -1689,7 +1718,7 @@ Expr ValidityChecker::ratExpr(const std::string& n, int base) {
   if(n.find(".") == string::npos) {
     return d_em->mkConst(Rational(n, base));
   } else {
-    CVC4::TmpCheckArgument(base == 10, base, "unsupported base for decimal parsing");
+    CVC4::CheckArgument(base == 10, base, "unsupported base for decimal parsing");
     return d_em->mkConst(Rational::fromDecimal(n));
   }
 }
@@ -1704,7 +1733,7 @@ Expr ValidityChecker::plusExpr(const Expr& left, const Expr& right) {
 
 Expr ValidityChecker::plusExpr(const std::vector<Expr>& children) {
   // PLUS must have at least 2 children
-  CVC4::TmpCheckArgument(children.size() > 0, children);
+  CVC4::CheckArgument(children.size() > 0, children);
   return (children.size() == 1) ? children[0] : Expr(d_em->mkExpr(CVC4::kind::PLUS, *reinterpret_cast<const vector<CVC4::Expr>*>(&children)));
 }
 
@@ -1806,10 +1835,11 @@ Expr ValidityChecker::newBVConstExpr(const std::vector<bool>& bits) {
 Expr ValidityChecker::newBVConstExpr(const Rational& r, int len) {
   // implementation based on CVC3's TheoryBitvector::newBVConstExpr()
 
-  CVC4::TmpCheckArgument(r.getDenominator() == 1, r, "ValidityChecker::newBVConstExpr: "
-                "not an integer: `%s'", r.toString().c_str());
-  CVC4::TmpCheckArgument(len > 0, len, "ValidityChecker::newBVConstExpr: "
-                "len = %d", len);
+  CVC4::CheckArgument(r.getDenominator() == 1, r,
+                      "ValidityChecker::newBVConstExpr: "
+                      "not an integer: `%s'", r.toString().c_str());
+  CVC4::CheckArgument(len > 0, len, "ValidityChecker::newBVConstExpr: "
+                      "len = %d", len);
 
   string s(r.toString(2));
   size_t strsize = s.size();
@@ -1831,8 +1861,8 @@ Expr ValidityChecker::newBVConstExpr(const Rational& r, int len) {
 }
 
 Expr ValidityChecker::newConcatExpr(const Expr& t1, const Expr& t2) {
-  CVC4::TmpCheckArgument(t1.getType().isBitVector(), t1, "can only concat a bitvector, not a `%s'", t1.getType().toString().c_str());
-  CVC4::TmpCheckArgument(t2.getType().isBitVector(), t2, "can only concat a bitvector, not a `%s'", t2.getType().toString().c_str());
+  CVC4::CheckArgument(t1.getType().isBitVector(), t1, "can only concat a bitvector, not a `%s'", t1.getType().toString().c_str());
+  CVC4::CheckArgument(t2.getType().isBitVector(), t2, "can only concat a bitvector, not a `%s'", t2.getType().toString().c_str());
   return d_em->mkExpr(CVC4::kind::BITVECTOR_CONCAT, t1, t2);
 }
 
@@ -1843,29 +1873,43 @@ Expr ValidityChecker::newConcatExpr(const std::vector<Expr>& kids) {
 }
 
 Expr ValidityChecker::newBVExtractExpr(const Expr& e, int hi, int low) {
-  CVC4::TmpCheckArgument(e.getType().isBitVector(), e, "can only bvextract from a bitvector, not a `%s'", e.getType().toString().c_str());
-  CVC4::TmpCheckArgument(hi >= low, hi, "extraction [%d:%d] is bad; possibly inverted?", hi, low);
-  CVC4::TmpCheckArgument(low >= 0, low, "extraction [%d:%d] is bad (negative)", hi, low);
-  CVC4::TmpCheckArgument(CVC4::BitVectorType(e.getType()).getSize() > unsigned(hi), hi, "bitvector is of size %u, extraction [%d:%d] is off-the-end", CVC4::BitVectorType(e.getType()).getSize(), hi, low);
+  CVC4::CheckArgument(e.getType().isBitVector(), e,
+                      "can only bvextract from a bitvector, not a `%s'",
+                      e.getType().toString().c_str());
+  CVC4::CheckArgument(hi >= low, hi,
+                      "extraction [%d:%d] is bad; possibly inverted?", hi, low);
+  CVC4::CheckArgument(low >= 0, low,
+                      "extraction [%d:%d] is bad (negative)", hi, low);
+  CVC4::CheckArgument(CVC4::BitVectorType(e.getType()).getSize() > unsigned(hi),
+                      hi,
+                      "bitvector is of size %u, extraction [%d:%d] is off-the-end",
+                      CVC4::BitVectorType(e.getType()).getSize(), hi, low);
   return d_em->mkExpr(CVC4::kind::BITVECTOR_EXTRACT,
-                     d_em->mkConst(CVC4::BitVectorExtract(hi, low)), e);
+                      d_em->mkConst(CVC4::BitVectorExtract(hi, low)), e);
 }
 
 Expr ValidityChecker::newBVNegExpr(const Expr& t1) {
   // CVC3's BVNEG => SMT-LIBv2 bvnot
-  CVC4::TmpCheckArgument(t1.getType().isBitVector(), t1, "can only bvneg a bitvector, not a `%s'", t1.getType().toString().c_str());
+  CVC4::CheckArgument(t1.getType().isBitVector(), t1,
+                      "can only bvneg a bitvector, not a `%s'",
+                      t1.getType().toString().c_str());
   return d_em->mkExpr(CVC4::kind::BITVECTOR_NOT, t1);
 }
 
 Expr ValidityChecker::newBVAndExpr(const Expr& t1, const Expr& t2) {
-  CVC4::TmpCheckArgument(t1.getType().isBitVector(), t1, "can only bvand a bitvector, not a `%s'", t1.getType().toString().c_str());
-  CVC4::TmpCheckArgument(t2.getType().isBitVector(), t2, "can only bvand a bitvector, not a `%s'", t2.getType().toString().c_str());
+  CVC4::CheckArgument(t1.getType().isBitVector(), t1,
+                      "can only bvand a bitvector, not a `%s'",
+                      t1.getType().toString().c_str());
+  CVC4::CheckArgument(t2.getType().isBitVector(), t2,
+                      "can only bvand a bitvector, not a `%s'",
+                      t2.getType().toString().c_str());
   return d_em->mkExpr(CVC4::kind::BITVECTOR_AND, t1, t2);
 }
 
 Expr ValidityChecker::newBVAndExpr(const std::vector<Expr>& kids) {
   // BITVECTOR_AND is not N-ary in CVC4
-  CVC4::TmpCheckArgument(kids.size() > 1, kids, "BITVECTOR_AND must have at least 2 children");
+  CVC4::CheckArgument(kids.size() > 1, kids,
+                      "BITVECTOR_AND must have at least 2 children");
   std::vector<Expr>::const_reverse_iterator i = kids.rbegin();
   Expr e = *i++;
   while(i != kids.rend()) {
@@ -1875,14 +1919,19 @@ Expr ValidityChecker::newBVAndExpr(const std::vector<Expr>& kids) {
 }
 
 Expr ValidityChecker::newBVOrExpr(const Expr& t1, const Expr& t2) {
-  CVC4::TmpCheckArgument(t1.getType().isBitVector(), t1, "can only bvor a bitvector, not a `%s'", t1.getType().toString().c_str());
-  CVC4::TmpCheckArgument(t2.getType().isBitVector(), t2, "can only bvor a bitvector, not a `%s'", t2.getType().toString().c_str());
+  CVC4::CheckArgument(t1.getType().isBitVector(), t1,
+                      "can only bvor a bitvector, not a `%s'",
+                      t1.getType().toString().c_str());
+  CVC4::CheckArgument(t2.getType().isBitVector(), t2,
+                      "can only bvor a bitvector, not a `%s'",
+                      t2.getType().toString().c_str());
   return d_em->mkExpr(CVC4::kind::BITVECTOR_OR, t1, t2);
 }
 
 Expr ValidityChecker::newBVOrExpr(const std::vector<Expr>& kids) {
   // BITVECTOR_OR is not N-ary in CVC4
-  CVC4::TmpCheckArgument(kids.size() > 1, kids, "BITVECTOR_OR must have at least 2 children");
+  CVC4::CheckArgument(kids.size() > 1, kids,
+                      "BITVECTOR_OR must have at least 2 children");
   std::vector<Expr>::const_reverse_iterator i = kids.rbegin();
   Expr e = *i++;
   while(i != kids.rend()) {
@@ -1892,14 +1941,19 @@ Expr ValidityChecker::newBVOrExpr(const std::vector<Expr>& kids) {
 }
 
 Expr ValidityChecker::newBVXorExpr(const Expr& t1, const Expr& t2) {
-  CVC4::TmpCheckArgument(t1.getType().isBitVector(), t1, "can only bvxor a bitvector, not a `%s'", t1.getType().toString().c_str());
-  CVC4::TmpCheckArgument(t2.getType().isBitVector(), t2, "can only bvxor a bitvector, not a `%s'", t2.getType().toString().c_str());
+  CVC4::CheckArgument(t1.getType().isBitVector(), t1,
+                      "can only bvxor a bitvector, not a `%s'",
+                      t1.getType().toString().c_str());
+  CVC4::CheckArgument(t2.getType().isBitVector(), t2,
+                      "can only bvxor a bitvector, not a `%s'",
+                      t2.getType().toString().c_str());
   return d_em->mkExpr(CVC4::kind::BITVECTOR_XOR, t1, t2);
 }
 
 Expr ValidityChecker::newBVXorExpr(const std::vector<Expr>& kids) {
   // BITVECTOR_XOR is not N-ary in CVC4
-  CVC4::TmpCheckArgument(kids.size() > 1, kids, "BITVECTOR_XOR must have at least 2 children");
+  CVC4::CheckArgument(kids.size() > 1, kids,
+                      "BITVECTOR_XOR must have at least 2 children");
   std::vector<Expr>::const_reverse_iterator i = kids.rbegin();
   Expr e = *i++;
   while(i != kids.rend()) {
@@ -1909,14 +1963,19 @@ Expr ValidityChecker::newBVXorExpr(const std::vector<Expr>& kids) {
 }
 
 Expr ValidityChecker::newBVXnorExpr(const Expr& t1, const Expr& t2) {
-  CVC4::TmpCheckArgument(t1.getType().isBitVector(), t1, "can only bvxnor a bitvector, not a `%s'", t1.getType().toString().c_str());
-  CVC4::TmpCheckArgument(t2.getType().isBitVector(), t2, "can only bvxnor a bitvector, not a `%s'", t2.getType().toString().c_str());
+  CVC4::CheckArgument(t1.getType().isBitVector(), t1,
+                      "can only bvxnor a bitvector, not a `%s'",
+                      t1.getType().toString().c_str());
+  CVC4::CheckArgument(t2.getType().isBitVector(), t2,
+                      "can only bvxnor a bitvector, not a `%s'",
+                      t2.getType().toString().c_str());
   return d_em->mkExpr(CVC4::kind::BITVECTOR_XNOR, t1, t2);
 }
 
 Expr ValidityChecker::newBVXnorExpr(const std::vector<Expr>& kids) {
   // BITVECTOR_XNOR is not N-ary in CVC4
-  CVC4::TmpCheckArgument(kids.size() > 1, kids, "BITVECTOR_XNOR must have at least 2 children");
+  CVC4::CheckArgument(kids.size() > 1, kids,
+                      "BITVECTOR_XNOR must have at least 2 children");
   std::vector<Expr>::const_reverse_iterator i = kids.rbegin();
   Expr e = *i++;
   while(i != kids.rend()) {
@@ -1926,73 +1985,81 @@ Expr ValidityChecker::newBVXnorExpr(const std::vector<Expr>& kids) {
 }
 
 Expr ValidityChecker::newBVNandExpr(const Expr& t1, const Expr& t2) {
-  CVC4::TmpCheckArgument(t1.getType().isBitVector(), t1, "can only bvnand a bitvector, not a `%s'", t1.getType().toString().c_str());
-  CVC4::TmpCheckArgument(t2.getType().isBitVector(), t2, "can only bvnand a bitvector, not a `%s'", t2.getType().toString().c_str());
+  CVC4::CheckArgument(t1.getType().isBitVector(), t1,
+                      "can only bvnand a bitvector, not a `%s'",
+                      t1.getType().toString().c_str());
+  CVC4::CheckArgument(t2.getType().isBitVector(), t2,
+                      "can only bvnand a bitvector, not a `%s'",
+                      t2.getType().toString().c_str());
   return d_em->mkExpr(CVC4::kind::BITVECTOR_NAND, t1, t2);
 }
 
 Expr ValidityChecker::newBVNorExpr(const Expr& t1, const Expr& t2) {
-  CVC4::TmpCheckArgument(t1.getType().isBitVector(), t1, "can only bvnor a bitvector, not a `%s'", t1.getType().toString().c_str());
-  CVC4::TmpCheckArgument(t2.getType().isBitVector(), t2, "can only bvnor a bitvector, not a `%s'", t2.getType().toString().c_str());
+  CVC4::CheckArgument(t1.getType().isBitVector(), t1,
+                      "can only bvnor a bitvector, not a `%s'",
+                      t1.getType().toString().c_str());
+  CVC4::CheckArgument(t2.getType().isBitVector(), t2,
+                      "can only bvnor a bitvector, not a `%s'",
+                      t2.getType().toString().c_str());
   return d_em->mkExpr(CVC4::kind::BITVECTOR_NOR, t1, t2);
 }
 
 Expr ValidityChecker::newBVCompExpr(const Expr& t1, const Expr& t2) {
-  CVC4::TmpCheckArgument(t1.getType().isBitVector(), t1, "can only bvcomp a bitvector, not a `%s'", t1.getType().toString().c_str());
-  CVC4::TmpCheckArgument(t2.getType().isBitVector(), t2, "can only bvcomp a bitvector, not a `%s'", t2.getType().toString().c_str());
+  CVC4::CheckArgument(t1.getType().isBitVector(), t1, "can only bvcomp a bitvector, not a `%s'", t1.getType().toString().c_str());
+  CVC4::CheckArgument(t2.getType().isBitVector(), t2, "can only bvcomp a bitvector, not a `%s'", t2.getType().toString().c_str());
   return d_em->mkExpr(CVC4::kind::BITVECTOR_COMP, t1, t2);
 }
 
 Expr ValidityChecker::newBVLTExpr(const Expr& t1, const Expr& t2) {
-  CVC4::TmpCheckArgument(t1.getType().isBitVector(), t1, "can only bvlt a bitvector, not a `%s'", t1.getType().toString().c_str());
-  CVC4::TmpCheckArgument(t2.getType().isBitVector(), t2, "can only bvlt a bitvector, not a `%s'", t2.getType().toString().c_str());
+  CVC4::CheckArgument(t1.getType().isBitVector(), t1, "can only bvlt a bitvector, not a `%s'", t1.getType().toString().c_str());
+  CVC4::CheckArgument(t2.getType().isBitVector(), t2, "can only bvlt a bitvector, not a `%s'", t2.getType().toString().c_str());
   return d_em->mkExpr(CVC4::kind::BITVECTOR_ULT, t1, t2);
 }
 
 Expr ValidityChecker::newBVLEExpr(const Expr& t1, const Expr& t2) {
-  CVC4::TmpCheckArgument(t1.getType().isBitVector(), t1, "can only bvle a bitvector, not a `%s'", t1.getType().toString().c_str());
-  CVC4::TmpCheckArgument(t2.getType().isBitVector(), t2, "can only bvle a bitvector, not a `%s'", t2.getType().toString().c_str());
+  CVC4::CheckArgument(t1.getType().isBitVector(), t1, "can only bvle a bitvector, not a `%s'", t1.getType().toString().c_str());
+  CVC4::CheckArgument(t2.getType().isBitVector(), t2, "can only bvle a bitvector, not a `%s'", t2.getType().toString().c_str());
   return d_em->mkExpr(CVC4::kind::BITVECTOR_ULE, t1, t2);
 }
 
 Expr ValidityChecker::newBVSLTExpr(const Expr& t1, const Expr& t2) {
-  CVC4::TmpCheckArgument(t1.getType().isBitVector(), t1, "can only bvslt a bitvector, not a `%s'", t1.getType().toString().c_str());
-  CVC4::TmpCheckArgument(t2.getType().isBitVector(), t2, "can only bvslt a bitvector, not a `%s'", t2.getType().toString().c_str());
+  CVC4::CheckArgument(t1.getType().isBitVector(), t1, "can only bvslt a bitvector, not a `%s'", t1.getType().toString().c_str());
+  CVC4::CheckArgument(t2.getType().isBitVector(), t2, "can only bvslt a bitvector, not a `%s'", t2.getType().toString().c_str());
   return d_em->mkExpr(CVC4::kind::BITVECTOR_SLT, t1, t2);
 }
 
 Expr ValidityChecker::newBVSLEExpr(const Expr& t1, const Expr& t2) {
-  CVC4::TmpCheckArgument(t1.getType().isBitVector(), t1, "can only bvsle a bitvector, not a `%s'", t1.getType().toString().c_str());
-  CVC4::TmpCheckArgument(t2.getType().isBitVector(), t2, "can only bvsle a bitvector, not a `%s'", t2.getType().toString().c_str());
+  CVC4::CheckArgument(t1.getType().isBitVector(), t1, "can only bvsle a bitvector, not a `%s'", t1.getType().toString().c_str());
+  CVC4::CheckArgument(t2.getType().isBitVector(), t2, "can only bvsle a bitvector, not a `%s'", t2.getType().toString().c_str());
   return d_em->mkExpr(CVC4::kind::BITVECTOR_SLE, t1, t2);
 }
 
 Expr ValidityChecker::newSXExpr(const Expr& t1, int len) {
-  CVC4::TmpCheckArgument(t1.getType().isBitVector(), t1, "can only sx a bitvector, not a `%s'", t1.getType().toString().c_str());
-  CVC4::TmpCheckArgument(len >= 0, len, "must sx by a positive integer");
-  CVC4::TmpCheckArgument(unsigned(len) >= CVC4::BitVectorType(t1.getType()).getSize(), len, "cannot sx by something smaller than the bitvector (%d < %u)", len, CVC4::BitVectorType(t1.getType()).getSize());
+  CVC4::CheckArgument(t1.getType().isBitVector(), t1, "can only sx a bitvector, not a `%s'", t1.getType().toString().c_str());
+  CVC4::CheckArgument(len >= 0, len, "must sx by a positive integer");
+  CVC4::CheckArgument(unsigned(len) >= CVC4::BitVectorType(t1.getType()).getSize(), len, "cannot sx by something smaller than the bitvector (%d < %u)", len, CVC4::BitVectorType(t1.getType()).getSize());
   return d_em->mkExpr(CVC4::kind::BITVECTOR_SIGN_EXTEND,
                      d_em->mkConst(CVC4::BitVectorSignExtend(len)), t1);
 }
 
 Expr ValidityChecker::newBVUminusExpr(const Expr& t1) {
   // CVC3's BVUMINUS => SMT-LIBv2 bvneg
-  CVC4::TmpCheckArgument(t1.getType().isBitVector(), t1, "can only bvuminus a bitvector, not a `%s'", t1.getType().toString().c_str());
+  CVC4::CheckArgument(t1.getType().isBitVector(), t1, "can only bvuminus a bitvector, not a `%s'", t1.getType().toString().c_str());
   return d_em->mkExpr(CVC4::kind::BITVECTOR_NEG, t1);
 }
 
 Expr ValidityChecker::newBVSubExpr(const Expr& t1, const Expr& t2) {
-  CVC4::TmpCheckArgument(t1.getType().isBitVector(), t1, "can only bvsub a bitvector, not a `%s'", t1.getType().toString().c_str());
-  CVC4::TmpCheckArgument(t2.getType().isBitVector(), t2, "can only bvsub by a bitvector, not a `%s'", t2.getType().toString().c_str());
+  CVC4::CheckArgument(t1.getType().isBitVector(), t1, "can only bvsub a bitvector, not a `%s'", t1.getType().toString().c_str());
+  CVC4::CheckArgument(t2.getType().isBitVector(), t2, "can only bvsub by a bitvector, not a `%s'", t2.getType().toString().c_str());
   return d_em->mkExpr(CVC4::kind::BITVECTOR_SUB, t1, t2);
 }
 
 // Copied from CVC3's bitvector theory: makes bitvector expression "e"
 // into "len" bits, by zero-padding, or extracting least-significant bits.
 Expr ValidityChecker::bvpad(int len, const Expr& e) {
-  CVC4::TmpCheckArgument(len >= 0, len,
+  CVC4::CheckArgument(len >= 0, len,
                 "padding length must be a non-negative integer, not %d", len);
-  CVC4::TmpCheckArgument(e.getType().isBitVector(), e,
+  CVC4::CheckArgument(e.getType().isBitVector(), e,
                 "input to bitvector operation must be a bitvector");
 
   unsigned size = CVC4::BitVectorType(e.getType()).getSize();
@@ -2011,89 +2078,89 @@ Expr ValidityChecker::bvpad(int len, const Expr& e) {
 
 Expr ValidityChecker::newBVPlusExpr(int numbits, const std::vector<Expr>& kids) {
   // BITVECTOR_PLUS is not N-ary in CVC4
-  CVC4::TmpCheckArgument(kids.size() > 1, kids, "BITVECTOR_PLUS must have at least 2 children");
+  CVC4::CheckArgument(kids.size() > 1, kids, "BITVECTOR_PLUS must have at least 2 children");
   std::vector<Expr>::const_reverse_iterator i = kids.rbegin();
   Expr e = *i++;
   while(i != kids.rend()) {
     e = d_em->mkExpr(CVC4::kind::BITVECTOR_PLUS, bvpad(numbits, *i++), e);
   }
   unsigned size = CVC4::BitVectorType(e.getType()).getSize();
-  CVC4::TmpCheckArgument(unsigned(numbits) == size, numbits,
+  CVC4::CheckArgument(unsigned(numbits) == size, numbits,
                 "argument must match computed size of bitvector sum: "
                 "passed size == %u, computed size == %u", numbits, size);
   return e;
 }
 
 Expr ValidityChecker::newBVPlusExpr(int numbits, const Expr& t1, const Expr& t2) {
-  CVC4::TmpCheckArgument(t1.getType().isBitVector(), t1, "can only bvplus a bitvector, not a `%s'", t1.getType().toString().c_str());
-  CVC4::TmpCheckArgument(t2.getType().isBitVector(), t2, "can only bvplus a bitvector, not a `%s'", t2.getType().toString().c_str());
+  CVC4::CheckArgument(t1.getType().isBitVector(), t1, "can only bvplus a bitvector, not a `%s'", t1.getType().toString().c_str());
+  CVC4::CheckArgument(t2.getType().isBitVector(), t2, "can only bvplus a bitvector, not a `%s'", t2.getType().toString().c_str());
   Expr e = d_em->mkExpr(CVC4::kind::BITVECTOR_PLUS, bvpad(numbits, t1), bvpad(numbits, t2));
   unsigned size = CVC4::BitVectorType(e.getType()).getSize();
-  CVC4::TmpCheckArgument(unsigned(numbits) == size, numbits,
+  CVC4::CheckArgument(unsigned(numbits) == size, numbits,
                 "argument must match computed size of bitvector sum: "
                 "passed size == %u, computed size == %u", numbits, size);
   return e;
 }
 
 Expr ValidityChecker::newBVMultExpr(int numbits, const Expr& t1, const Expr& t2) {
-  CVC4::TmpCheckArgument(t1.getType().isBitVector(), t1, "can only bvmult a bitvector, not a `%s'", t1.getType().toString().c_str());
-  CVC4::TmpCheckArgument(t2.getType().isBitVector(), t2, "can only bvmult by a bitvector, not a `%s'", t2.getType().toString().c_str());
+  CVC4::CheckArgument(t1.getType().isBitVector(), t1, "can only bvmult a bitvector, not a `%s'", t1.getType().toString().c_str());
+  CVC4::CheckArgument(t2.getType().isBitVector(), t2, "can only bvmult by a bitvector, not a `%s'", t2.getType().toString().c_str());
   Expr e = d_em->mkExpr(CVC4::kind::BITVECTOR_MULT, bvpad(numbits, t1), bvpad(numbits, t2));
   unsigned size = CVC4::BitVectorType(e.getType()).getSize();
-  CVC4::TmpCheckArgument(unsigned(numbits) == size, numbits,
+  CVC4::CheckArgument(unsigned(numbits) == size, numbits,
                 "argument must match computed size of bitvector product: "
                 "passed size == %u, computed size == %u", numbits, size);
   return e;
 }
 
 Expr ValidityChecker::newBVUDivExpr(const Expr& t1, const Expr& t2) {
-  CVC4::TmpCheckArgument(t1.getType().isBitVector(), t1, "can only bvudiv a bitvector, not a `%s'", t1.getType().toString().c_str());
-  CVC4::TmpCheckArgument(t2.getType().isBitVector(), t2, "can only bvudiv by a bitvector, not a `%s'", t2.getType().toString().c_str());
+  CVC4::CheckArgument(t1.getType().isBitVector(), t1, "can only bvudiv a bitvector, not a `%s'", t1.getType().toString().c_str());
+  CVC4::CheckArgument(t2.getType().isBitVector(), t2, "can only bvudiv by a bitvector, not a `%s'", t2.getType().toString().c_str());
   return d_em->mkExpr(CVC4::kind::BITVECTOR_UDIV, t1, t2);
 }
 
 Expr ValidityChecker::newBVURemExpr(const Expr& t1, const Expr& t2) {
-  CVC4::TmpCheckArgument(t1.getType().isBitVector(), t1, "can only bvurem a bitvector, not a `%s'", t1.getType().toString().c_str());
-  CVC4::TmpCheckArgument(t2.getType().isBitVector(), t2, "can only bvurem by a bitvector, not a `%s'", t2.getType().toString().c_str());
+  CVC4::CheckArgument(t1.getType().isBitVector(), t1, "can only bvurem a bitvector, not a `%s'", t1.getType().toString().c_str());
+  CVC4::CheckArgument(t2.getType().isBitVector(), t2, "can only bvurem by a bitvector, not a `%s'", t2.getType().toString().c_str());
   return d_em->mkExpr(CVC4::kind::BITVECTOR_UREM, t1, t2);
 }
 
 Expr ValidityChecker::newBVSDivExpr(const Expr& t1, const Expr& t2) {
-  CVC4::TmpCheckArgument(t1.getType().isBitVector(), t1, "can only bvsdiv a bitvector, not a `%s'", t1.getType().toString().c_str());
-  CVC4::TmpCheckArgument(t2.getType().isBitVector(), t2, "can only bvsdiv by a bitvector, not a `%s'", t2.getType().toString().c_str());
+  CVC4::CheckArgument(t1.getType().isBitVector(), t1, "can only bvsdiv a bitvector, not a `%s'", t1.getType().toString().c_str());
+  CVC4::CheckArgument(t2.getType().isBitVector(), t2, "can only bvsdiv by a bitvector, not a `%s'", t2.getType().toString().c_str());
   return d_em->mkExpr(CVC4::kind::BITVECTOR_SDIV, t1, t2);
 }
 
 Expr ValidityChecker::newBVSRemExpr(const Expr& t1, const Expr& t2) {
-  CVC4::TmpCheckArgument(t1.getType().isBitVector(), t1, "can only bvsrem a bitvector, not a `%s'", t1.getType().toString().c_str());
-  CVC4::TmpCheckArgument(t2.getType().isBitVector(), t2, "can only bvsrem by a bitvector, not a `%s'", t2.getType().toString().c_str());
+  CVC4::CheckArgument(t1.getType().isBitVector(), t1, "can only bvsrem a bitvector, not a `%s'", t1.getType().toString().c_str());
+  CVC4::CheckArgument(t2.getType().isBitVector(), t2, "can only bvsrem by a bitvector, not a `%s'", t2.getType().toString().c_str());
   return d_em->mkExpr(CVC4::kind::BITVECTOR_SREM, t1, t2);
 }
 
 Expr ValidityChecker::newBVSModExpr(const Expr& t1, const Expr& t2) {
-  CVC4::TmpCheckArgument(t1.getType().isBitVector(), t1, "can only bvsmod a bitvector, not a `%s'", t1.getType().toString().c_str());
-  CVC4::TmpCheckArgument(t2.getType().isBitVector(), t2, "can only bvsmod by a bitvector, not a `%s'", t2.getType().toString().c_str());
+  CVC4::CheckArgument(t1.getType().isBitVector(), t1, "can only bvsmod a bitvector, not a `%s'", t1.getType().toString().c_str());
+  CVC4::CheckArgument(t2.getType().isBitVector(), t2, "can only bvsmod by a bitvector, not a `%s'", t2.getType().toString().c_str());
   return d_em->mkExpr(CVC4::kind::BITVECTOR_SMOD, t1, t2);
 }
 
 Expr ValidityChecker::newFixedLeftShiftExpr(const Expr& t1, int r) {
-  CVC4::TmpCheckArgument(t1.getType().isBitVector(), t1, "can only left-shift a bitvector, not a `%s'", t1.getType().toString().c_str());
-  CVC4::TmpCheckArgument(r >= 0, r, "left shift amount must be >= 0 (you passed %d)", r);
+  CVC4::CheckArgument(t1.getType().isBitVector(), t1, "can only left-shift a bitvector, not a `%s'", t1.getType().toString().c_str());
+  CVC4::CheckArgument(r >= 0, r, "left shift amount must be >= 0 (you passed %d)", r);
   // Defined in:
   // http://www.cs.nyu.edu/acsys/cvc3/doc/user_doc.html#user_doc_pres_lang_expr_bit
   return d_em->mkExpr(CVC4::kind::BITVECTOR_CONCAT, t1, d_em->mkConst(CVC4::BitVector(r)));
 }
 
 Expr ValidityChecker::newFixedConstWidthLeftShiftExpr(const Expr& t1, int r) {
-  CVC4::TmpCheckArgument(t1.getType().isBitVector(), t1, "can only right-shift a bitvector, not a `%s'", t1.getType().toString().c_str());
-  CVC4::TmpCheckArgument(r >= 0, r, "const-width left shift amount must be >= 0 (you passed %d)", r);
+  CVC4::CheckArgument(t1.getType().isBitVector(), t1, "can only right-shift a bitvector, not a `%s'", t1.getType().toString().c_str());
+  CVC4::CheckArgument(r >= 0, r, "const-width left shift amount must be >= 0 (you passed %d)", r);
   // just turn it into a BVSHL
   return d_em->mkExpr(CVC4::kind::BITVECTOR_SHL, t1, d_em->mkConst(CVC4::BitVector(CVC4::BitVectorType(t1.getType()).getSize(), unsigned(r))));
 }
 
 Expr ValidityChecker::newFixedRightShiftExpr(const Expr& t1, int r) {
-  CVC4::TmpCheckArgument(t1.getType().isBitVector(), t1, "can only right-shift a bitvector, not a `%s'", t1.getType().toString().c_str());
-  CVC4::TmpCheckArgument(r >= 0, r, "right shift amount must be >= 0 (you passed %d)", r);
+  CVC4::CheckArgument(t1.getType().isBitVector(), t1, "can only right-shift a bitvector, not a `%s'", t1.getType().toString().c_str());
+  CVC4::CheckArgument(r >= 0, r, "right shift amount must be >= 0 (you passed %d)", r);
   // Defined in:
   // http://www.cs.nyu.edu/acsys/cvc3/doc/user_doc.html#user_doc_pres_lang_expr_bit
   // Should be equivalent to a BVLSHR; just turn it into that.
@@ -2101,20 +2168,20 @@ Expr ValidityChecker::newFixedRightShiftExpr(const Expr& t1, int r) {
 }
 
 Expr ValidityChecker::newBVSHL(const Expr& t1, const Expr& t2) {
-  CVC4::TmpCheckArgument(t1.getType().isBitVector(), t1, "can only right-shift a bitvector, not a `%s'", t1.getType().toString().c_str());
-  CVC4::TmpCheckArgument(t2.getType().isBitVector(), t2, "can only right-shift by a bitvector, not a `%s'", t2.getType().toString().c_str());
+  CVC4::CheckArgument(t1.getType().isBitVector(), t1, "can only right-shift a bitvector, not a `%s'", t1.getType().toString().c_str());
+  CVC4::CheckArgument(t2.getType().isBitVector(), t2, "can only right-shift by a bitvector, not a `%s'", t2.getType().toString().c_str());
   return d_em->mkExpr(CVC4::kind::BITVECTOR_SHL, t1, t2);
 }
 
 Expr ValidityChecker::newBVLSHR(const Expr& t1, const Expr& t2) {
-  CVC4::TmpCheckArgument(t1.getType().isBitVector(), t1, "can only right-shift a bitvector, not a `%s'", t1.getType().toString().c_str());
-  CVC4::TmpCheckArgument(t2.getType().isBitVector(), t2, "can only right-shift by a bitvector, not a `%s'", t2.getType().toString().c_str());
+  CVC4::CheckArgument(t1.getType().isBitVector(), t1, "can only right-shift a bitvector, not a `%s'", t1.getType().toString().c_str());
+  CVC4::CheckArgument(t2.getType().isBitVector(), t2, "can only right-shift by a bitvector, not a `%s'", t2.getType().toString().c_str());
   return d_em->mkExpr(CVC4::kind::BITVECTOR_LSHR, t1, t2);
 }
 
 Expr ValidityChecker::newBVASHR(const Expr& t1, const Expr& t2) {
-  CVC4::TmpCheckArgument(t1.getType().isBitVector(), t1, "can only right-shift a bitvector, not a `%s'", t1.getType().toString().c_str());
-  CVC4::TmpCheckArgument(t2.getType().isBitVector(), t2, "can only right-shift by a bitvector, not a `%s'", t2.getType().toString().c_str());
+  CVC4::CheckArgument(t1.getType().isBitVector(), t1, "can only right-shift a bitvector, not a `%s'", t1.getType().toString().c_str());
+  CVC4::CheckArgument(t2.getType().isBitVector(), t2, "can only right-shift by a bitvector, not a `%s'", t2.getType().toString().c_str());
   return d_em->mkExpr(CVC4::kind::BITVECTOR_ASHR, t1, t2);
 }
 
@@ -2129,30 +2196,30 @@ Expr ValidityChecker::tupleExpr(const std::vector<Expr>& exprs) {
 }
 
 Expr ValidityChecker::tupleSelectExpr(const Expr& tuple, int index) {
-  CVC4::TmpCheckArgument(index >= 0 && index < tuple.getNumChildren(),
+  CVC4::CheckArgument(index >= 0 && index < tuple.getNumChildren(),
                       "invalid index in tuple select");
   return d_em->mkExpr(d_em->mkConst(CVC4::TupleSelect(index)), tuple);
 }
 
 Expr ValidityChecker::tupleUpdateExpr(const Expr& tuple, int index,
                                       const Expr& newValue) {
-  CVC4::TmpCheckArgument(index >= 0 && index < tuple.getNumChildren(),
+  CVC4::CheckArgument(index >= 0 && index < tuple.getNumChildren(),
                       "invalid index in tuple update");
   return d_em->mkExpr(d_em->mkConst(CVC4::TupleUpdate(index)), tuple, newValue);
 }
 
 Expr ValidityChecker::datatypeConsExpr(const std::string& constructor, const std::vector<Expr>& args) {
   ConstructorMap::const_iterator i = d_constructors.find(constructor);
-  CVC4::TmpCheckArgument(i != d_constructors.end(), constructor, "no such constructor");
+  CVC4::CheckArgument(i != d_constructors.end(), constructor, "no such constructor");
   const CVC4::Datatype& dt = *(*i).second;
   const CVC4::DatatypeConstructor& ctor = dt[constructor];
-  CVC4::TmpCheckArgument(ctor.getNumArgs() == args.size(), args, "arity mismatch in constructor application");
+  CVC4::CheckArgument(ctor.getNumArgs() == args.size(), args, "arity mismatch in constructor application");
   return d_em->mkExpr(CVC4::kind::APPLY_CONSTRUCTOR, ctor.getConstructor(), vector<CVC4::Expr>(args.begin(), args.end()));
 }
 
 Expr ValidityChecker::datatypeSelExpr(const std::string& selector, const Expr& arg) {
   SelectorMap::const_iterator i = d_selectors.find(selector);
-  CVC4::TmpCheckArgument(i != d_selectors.end(), selector, "no such selector");
+  CVC4::CheckArgument(i != d_selectors.end(), selector, "no such selector");
   const CVC4::Datatype& dt = *(*i).second.first;
   string constructor = (*i).second.second;
   const CVC4::DatatypeConstructor& ctor = dt[constructor];
@@ -2161,7 +2228,7 @@ Expr ValidityChecker::datatypeSelExpr(const std::string& selector, const Expr& a
 
 Expr ValidityChecker::datatypeTestExpr(const std::string& constructor, const Expr& arg) {
   ConstructorMap::const_iterator i = d_constructors.find(constructor);
-  CVC4::TmpCheckArgument(i != d_constructors.end(), constructor, "no such constructor");
+  CVC4::CheckArgument(i != d_constructors.end(), constructor, "no such constructor");
   const CVC4::Datatype& dt = *(*i).second;
   const CVC4::DatatypeConstructor& ctor = dt[constructor];
   return d_em->mkExpr(CVC4::kind::APPLY_TESTER, ctor.getTester(), arg);
@@ -2314,7 +2381,7 @@ void ValidityChecker::returnFromCheck() {
 }
 
 void ValidityChecker::getUserAssumptions(std::vector<Expr>& assumptions) {
-  CVC4::TmpCheckArgument(assumptions.empty(), assumptions, "assumptions arg must be empty");
+  CVC4::CheckArgument(assumptions.empty(), assumptions, "assumptions arg must be empty");
   vector<CVC4::Expr> v = d_smt->getAssertions();
   assumptions.swap(*reinterpret_cast<vector<Expr>*>(&v));
 }
@@ -2349,7 +2416,7 @@ QueryResult ValidityChecker::tryModelGeneration() {
 }
 
 FormulaValue ValidityChecker::value(const Expr& e) {
-  CVC4::TmpCheckArgument(e.getType() == d_em->booleanType(), e, "argument must be a formula");
+  CVC4::CheckArgument(e.getType() == d_em->booleanType(), e, "argument must be a formula");
   try {
     return d_smt->getValue(e).getConst<bool>() ? TRUE_VAL : FALSE_VAL;
   } catch(CVC4::Exception& e) {
@@ -2367,7 +2434,7 @@ Expr ValidityChecker::getValue(const Expr& e) {
 }
 
 bool ValidityChecker::inconsistent(std::vector<Expr>& assumptions) {
-  CVC4::TmpCheckArgument(assumptions.empty(), assumptions, "assumptions vector should be empty on entry");
+  CVC4::CheckArgument(assumptions.empty(), assumptions, "assumptions vector should be empty on entry");
   if(d_smt->checkSat() == CVC4::Result::UNSAT) {
     // supposed to be a minimal set, but CVC4 doesn't support that
     d_smt->getAssertions().swap(*reinterpret_cast<std::vector<CVC4::Expr>*>(&assumptions));
@@ -2427,9 +2494,9 @@ void ValidityChecker::pop() {
 }
 
 void ValidityChecker::popto(int stackLevel) {
-  CVC4::TmpCheckArgument(stackLevel >= 0, stackLevel,
+  CVC4::CheckArgument(stackLevel >= 0, stackLevel,
                       "Cannot pop to a negative stack level %d", stackLevel);
-  CVC4::TmpCheckArgument(unsigned(stackLevel) <= d_stackLevel, stackLevel,
+  CVC4::CheckArgument(unsigned(stackLevel) <= d_stackLevel, stackLevel,
                       "Cannot pop to a stack level higher than the current one!  "
                       "At stack level %u, user requested stack level %d",
                       d_stackLevel, stackLevel);
@@ -2451,9 +2518,9 @@ void ValidityChecker::popScope() {
 }
 
 void ValidityChecker::poptoScope(int scopeLevel) {
-  CVC4::TmpCheckArgument(scopeLevel >= 0, scopeLevel,
+  CVC4::CheckArgument(scopeLevel >= 0, scopeLevel,
                       "Cannot pop to a negative scope level %d", scopeLevel);
-  CVC4::TmpCheckArgument(unsigned(scopeLevel) <= d_parserContext->scopeLevel(),
+  CVC4::CheckArgument(unsigned(scopeLevel) <= d_parserContext->scopeLevel(),
                       scopeLevel,
                       "Cannot pop to a scope level higher than the current one!  "
                       "At scope level %u, user requested scope level %d",

@@ -53,21 +53,23 @@ bool Integer::fitsUnsignedInt() const {
 
 signed int Integer::getSignedInt() const {
   // ensure there isn't overflow
-  TmpCheckArgument(d_value <= std::numeric_limits<int>::max(), this,
-                "Overflow detected in Integer::getSignedInt()");
-  TmpCheckArgument(d_value >= std::numeric_limits<int>::min(), this,
-                "Overflow detected in Integer::getSignedInt()");
-  TmpCheckArgument(fitsSignedInt(), this, "Overflow detected in Integer::getSignedInt()");
+  CheckArgument(d_value <= std::numeric_limits<int>::max(), this,
+                "Overflow detected in Integer::getSignedInt().");
+  CheckArgument(d_value >= std::numeric_limits<int>::min(), this,
+                "Overflow detected in Integer::getSignedInt().");
+  CheckArgument(fitsSignedInt(), this,
+                "Overflow detected in Integer::getSignedInt().");
   return (signed int) d_value.get_si();
 }
 
 unsigned int Integer::getUnsignedInt() const {
   // ensure there isn't overflow
-  TmpCheckArgument(d_value <= std::numeric_limits<unsigned int>::max(), this,
+  CheckArgument(d_value <= std::numeric_limits<unsigned int>::max(), this,
                 "Overflow detected in Integer::getUnsignedInt()");
-  TmpCheckArgument(d_value >= std::numeric_limits<unsigned int>::min(), this,
+  CheckArgument(d_value >= std::numeric_limits<unsigned int>::min(), this,
                 "Overflow detected in Integer::getUnsignedInt()");
-  TmpCheckArgument(fitsSignedInt(), this, "Overflow detected in Integer::getUnsignedInt()");
+  CheckArgument(fitsSignedInt(), this,
+                "Overflow detected in Integer::getUnsignedInt()");
   return (unsigned int) d_value.get_ui();
 }
 
