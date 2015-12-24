@@ -56,6 +56,17 @@ private:
 
   void parseInt(const std::string& s, unsigned base) throw(std::invalid_argument);
 
+
+  // These constants are to help with CLN conversion in 32 bit.
+  // See http://www.ginac.de/CLN/cln.html#Conversions
+  static signed int s_fastSignedIntMax; /*  2^29 - 1 */
+  static signed int s_fastSignedIntMin; /* -2^29 */
+  static unsigned int s_fastUnsignedIntMax; /* 2^29 - 1 */
+
+  static signed long s_slowSignedIntMax; /*  std::numeric_limits<signed int>::max() */
+  static signed long s_slowSignedIntMin; /*  std::numeric_limits<signed int>::min() */
+  static unsigned long s_slowUnsignedIntMax; /*  std::numeric_limits<unsigned int>::max() */
+
 public:
 
   /** Constructs a rational with the value 0. */
