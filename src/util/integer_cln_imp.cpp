@@ -26,8 +26,26 @@
 #  error "This source should only ever be built if CVC4_CLN_IMP is on !"
 #endif /* CVC4_CLN_IMP */
 
+#include "base/cvc4_assert.h"
+
 using namespace std;
-using namespace CVC4;
+
+namespace CVC4 {
+
+Integer Integer::oneExtend(uint32_t size, uint32_t amount) const {
+  DebugCheckArgument((*this) < Integer(1).multiplyByPow2(size), size);
+  cln::cl_byte range(amount, size);
+  cln::cl_I allones = (cln::cl_I(1) << (size + amount))- 1; // 2^size - 1
+  Integer temp(allones);
+
+  return Integer(cln::deposit_field(allones, d_value, range));
+}
+
+
+Integer Integer::exactQuotient(const Integer& y) const {
+  DebugCheckArgument(y.divides(*this), y);
+  return Integer( cln::exquo(d_value, y.d_value) );
+}
 
 
 void Integer::parseInt(const std::string& s, unsigned base) throw(std::invalid_argument) {
@@ -99,3 +117,5 @@ unsigned int Integer::getUnsignedInt() const {
   CheckArgument(fitsUnsignedInt(), this, "Overflow detected in Integer::getUnsignedInt()");
   return cln::cl_I_to_uint(d_value);
 }
+
+} /* namespace CVC4 */
