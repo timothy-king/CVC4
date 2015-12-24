@@ -86,15 +86,6 @@ protected:
   void construct(const char* header, const char* extra,
                  const char* function);
 
-
-  /**
-   * This is a convenience function for building usages that are variadic.
-   *
-   * Having IllegalArgumentException itself be variadic is problematic for
-   * making sure calls to IllegalArgumentException clean up memory.
-   */
-  //static std::string formatVaList(const char* format, va_list args);
-
   static std::string format_extra(const char* condStr, const char* argDesc);
 
   static char* s_header;
@@ -113,6 +104,12 @@ public:
     construct(s_header, format_extra(condStr, argDesc).c_str(), function);
   }
 
+  /**
+   * This is a convenience function for building usages that are variadic.
+   *
+   * Having IllegalArgumentException itself be variadic is problematic for
+   * making sure calls to IllegalArgumentException clean up memory.
+   */
   static std::string formatVariadic();
   static std::string formatVariadic(const char* format, ...);
 };/* class IllegalArgumentException */

@@ -42,7 +42,7 @@ public:
     TS_ASSERT_THROWS( Unhandled(), UnhandledCaseException );
     TS_ASSERT_THROWS( Unimplemented(), UnimplementedOperationException );
     TS_ASSERT_THROWS( IllegalArgument("x"), IllegalArgumentException );
-    TS_ASSERT_THROWS( TmpCheckArgument(false, "x"), IllegalArgumentException );
+    TS_ASSERT_THROWS( CheckArgument(false, "x"), IllegalArgumentException );
     TS_ASSERT_THROWS( AlwaysAssertArgument(false, "x"),
                       AssertArgumentException );
     TS_ASSERT_THROWS_NOTHING( AssertArgument(true, "x") );
