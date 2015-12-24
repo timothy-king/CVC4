@@ -17,6 +17,7 @@
 
 #include "expr/statistics_registry.h"
 
+#include "base/cvc4_assert.h"
 #include "expr/expr_manager.h"
 #include "lib/clock_gettime.h"
 #include "smt/smt_engine.h"
@@ -35,6 +36,19 @@
 #warning "TODO: Make TimerStat non-public again."
 
 namespace CVC4 {
+
+/** Construct a statistics registry */
+StatisticsRegistry::StatisticsRegistry(const std::string& name)
+  throw(CVC4::IllegalArgumentException) :
+  Stat(name) {
+
+  d_prefix = name;
+  if(__CVC4_USE_STATISTICS) {
+    PrettyCheckArgument(d_name.find(s_regDelim) == std::string::npos, name,
+                        "StatisticsRegistry names cannot contain the string \"%s\"",
+                    s_regDelim.c_str());
+  }
+}
 
 namespace stats {
 

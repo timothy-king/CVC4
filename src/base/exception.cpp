@@ -36,12 +36,7 @@ std::string IllegalArgumentException::formatVariadic() {
 std::string IllegalArgumentException::formatVariadic(const char* format, ...) {
   va_list args;
   va_start(args, format);
-  std::string result = formatVaList(format, args);
-  va_end(args);
-  return result;
-}
 
-std::string IllegalArgumentException::formatVaList(const char* format, va_list args) {
   int n = 512;
   char* buf = NULL;
 
@@ -69,6 +64,7 @@ std::string IllegalArgumentException::formatVaList(const char* format, va_list a
   Assert(buf != NULL);
   std::string result(buf);
   delete [] buf;
+  va_end(args);
   return result;
 }
 

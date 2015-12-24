@@ -93,7 +93,7 @@ protected:
    * Having IllegalArgumentException itself be variadic is problematic for
    * making sure calls to IllegalArgumentException clean up memory.
    */
-  static std::string formatVaList(const char* format, va_list args);
+  //static std::string formatVaList(const char* format, va_list args);
 
   static std::string format_extra(const char* condStr, const char* argDesc);
 
@@ -102,18 +102,9 @@ protected:
 public:
 
   IllegalArgumentException(const char* condStr, const char* argDesc,
-                           const char* function, const char* fmt, va_list fmtArgs) :
-    Exception() {
-
-    construct(s_header, format_extra(condStr, argDesc).c_str(), function,
-              formatVaList(fmt, fmtArgs).c_str());
-  }
-
-  IllegalArgumentException(const char* condStr, const char* argDesc,
                            const char* function, const char* tail) :
     Exception() {
-    construct(s_header, format_extra(condStr, argDesc).c_str(), function,
-              tail);
+    construct(s_header, format_extra(condStr, argDesc).c_str(), function, tail);
   }
 
   IllegalArgumentException(const char* condStr, const char* argDesc,
@@ -132,48 +123,10 @@ inline std::ostream& operator<<(std::ostream& os, const Exception& e) throw() {
   return os;
 }
 
-}/* CVC4 namespace */
-
-//#if (defined(__BUILDING_CVC4LIB) || defined(__BUILDING_CVC4LIB_UNIT_TEST)) && !defined(__BUILDING_STATISTICS_FOR_EXPORT)
-//#  include "base/cvc4_assert.h"
-//#endif /* (__BUILDING_CVC4LIB || __BUILDING_CVC4LIB_UNIT_TEST) && !__BUILDING_STATISTICS_FOR_EXPORT */
-
-namespace CVC4 {
-
-template <class T> inline void CheckArgument(const char* condDesc, bool cond,
-                                             const char* argDesc, const T& arg,
-                                             const char* functionDesc,
-                                             const char* fmt, ...) CVC4_PUBLIC;
-template <class T> inline void CheckArgument(const char* condDesc, bool cond,
-                                             const char* argDesc, const T& arg,
-                                             const char* functionDesc,
-                                             const char* fmt, ...) {
-  if(__builtin_expect( ( !cond ), false )) {
-    va_list fmtArgs;
-    va_start(fmtArgs, fmt);
-    //std::string tail = IllegalArgumentException::format_va_list(fmt, fmtArgs);
-    ::CVC4::IllegalArgumentException exception(condDesc, argDesc, functionDesc, fmt, fmtArgs);
-    va_end(fmtArgs);
-    throw exception;
-  }
-}
-
-template <class T> inline void CheckArgument(const char* condDesc, bool cond,
-                                             const char* argDesc, const T& arg,
-                                             const char* functionDesc
-                                             ) CVC4_PUBLIC;
-template <class T> inline void CheckArgument(const char* condDesc, bool cond,
-                                             const char* argDesc, const T& arg,
-                                             const char* functionDesc) {
-  if(__builtin_expect( ( !cond ), false )) {
-    throw ::CVC4::IllegalArgumentException(condDesc, argDesc, functionDesc);
-  }
-}
-
 template <class T> inline void CheckArgument(bool cond, const T& arg,
-                                             const char* fmt, ...) CVC4_PUBLIC;
+                                             const char* tail) CVC4_PUBLIC;
 template <class T> inline void CheckArgument(bool cond, const T& arg,
-                                             const char* fmt, ...) {
+                                             const char* tail) {
   if(__builtin_expect( ( !cond ), false )) { \
     throw ::CVC4::IllegalArgumentException("", "", ""); \
   } \
