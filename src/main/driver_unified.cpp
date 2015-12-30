@@ -25,7 +25,6 @@
 #include "base/output.h"
 #include "cvc4autoconfig.h"
 #include "expr/expr_manager.h"
-#include "expr/result.h"
 #include "expr/statistics_registry.h"
 #include "main/command_executor.h"
 
@@ -46,6 +45,7 @@
 #include "smt/smt_options_handler.h"
 #include "smt_util/command.h"
 #include "util/configuration.h"
+#include "util/result.h"
 
 using namespace std;
 using namespace CVC4;
@@ -270,6 +270,7 @@ int runCvc4(int argc, char* argv[], Options& opts) {
   }
 # endif
 
+  SmtGlobals* globals = pExecutor->globals();
   Parser* replayParser = NULL;
   if( opts[options::replayFilename] != "" ) {
     ParserBuilder replayParserBuilder(exprMgr, opts[options::replayFilename], opts);
@@ -281,10 +282,12 @@ int runCvc4(int argc, char* argv[], Options& opts) {
       replayParserBuilder.withStreamInput(cin);
     }
     replayParser = replayParserBuilder.build();
-    opts.set(options::replayStream, new Parser::ExprStream(replayParser));
+    globals->setReplayStream(new Parser::ExprStream(replayParser));
   }
-  if( opts[options::replayLog] != NULL ) {
-    *opts[options::replayLog] << language::SetLanguage(opts[options::outputLanguage]) << Expr::setdepth(-1);
+
+  if( globals->getReplayLog() != NULL ) {
+    *(globals->getReplayLog()) <<
+        language::SetLanguage(opts[options::outputLanguage]) << Expr::setdepth(-1);
   }
 
   int returnValue = 0;
@@ -543,10 +546,10 @@ int runCvc4(int argc, char* argv[], Options& opts) {
       delete parser;
     }
 
-    if( opts[options::replayStream] != NULL ) {
+    if( globals->getReplayStream() != NULL ) {
       // this deletes the expression parser too
-      delete opts[options::replayStream];
-      opts.set(options::replayStream, NULL);
+      delete globals->getReplayStream();
+      globals->setReplayStream(NULL);
     }
 
     Result result;
@@ -584,8 +587,8 @@ int runCvc4(int argc, char* argv[], Options& opts) {
     }
 
     // make sure to flush replay output log before early-exit
-    if( opts[options::replayLog] != NULL ) {
-      *opts[options::replayLog] << flush;
+    if( globals->getReplayLog() != NULL ) {
+      *(globals->getReplayLog()) << flush;
     }
 
     // make sure out and err streams are flushed too
@@ -611,6 +614,7 @@ int runCvc4(int argc, char* argv[], Options& opts) {
 
   pTotalTime = NULL;
   pExecutor = NULL;
+  globals = NULL;
 
   cvc4_shutdown();
 
