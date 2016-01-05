@@ -270,7 +270,6 @@ int runCvc4(int argc, char* argv[], Options& opts) {
   }
 # endif
 
-  SmtGlobals* globals = pExecutor->globals();
   Parser* replayParser = NULL;
   if( opts[options::replayFilename] != "" ) {
     ParserBuilder replayParserBuilder(exprMgr, opts[options::replayFilename], opts);
@@ -282,11 +281,11 @@ int runCvc4(int argc, char* argv[], Options& opts) {
       replayParserBuilder.withStreamInput(cin);
     }
     replayParser = replayParserBuilder.build();
-    globals->setReplayStream(new Parser::ExprStream(replayParser));
+    pExecutor->globals()->setReplayStream(new Parser::ExprStream(replayParser));
   }
 
-  if( globals->getReplayLog() != NULL ) {
-    *(globals->getReplayLog()) <<
+  if( pExecutor->globals()->getReplayLog() != NULL ) {
+    *(pExecutor->globals()->getReplayLog()) <<
         language::SetLanguage(opts[options::outputLanguage]) << Expr::setdepth(-1);
   }
 
@@ -546,10 +545,11 @@ int runCvc4(int argc, char* argv[], Options& opts) {
       delete parser;
     }
 
-    if( globals->getReplayStream() != NULL ) {
+    if( pExecutor->globals()->getReplayStream() != NULL ) {
+      ExprStream* replayStream = pExecutor->globals()->getReplayStream();
+      pExecutor->globals()->setReplayStream(NULL);
       // this deletes the expression parser too
-      delete globals->getReplayStream();
-      globals->setReplayStream(NULL);
+      delete replayStream;
     }
 
     Result result;
@@ -587,8 +587,8 @@ int runCvc4(int argc, char* argv[], Options& opts) {
     }
 
     // make sure to flush replay output log before early-exit
-    if( globals->getReplayLog() != NULL ) {
-      *(globals->getReplayLog()) << flush;
+    if( pExecutor->globals()->getReplayLog() != NULL ) {
+      *(pExecutor->globals()->getReplayLog()) << flush;
     }
 
     // make sure out and err streams are flushed too
@@ -614,7 +614,6 @@ int runCvc4(int argc, char* argv[], Options& opts) {
 
   pTotalTime = NULL;
   pExecutor = NULL;
-  globals = NULL;
 
   cvc4_shutdown();
 
