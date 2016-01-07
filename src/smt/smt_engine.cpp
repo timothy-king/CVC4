@@ -169,6 +169,59 @@ public:
   }
 };/* class AssertionPipeline */
 
+
+/**
+ * The ResourceOutListener for an SmtEngine.
+ *
+ * This is assumed to be unique per ExprManager and have the same
+ * lifetime as the ExprManager, but created for having side effects
+ * on an SmtEngine. So while the effects are on an SmtEngine,
+ * there should be no data directly connected to this class.
+ * Hence, all of the calls should be guarded by smt::smtEngineInScope()
+ * and call either functions on this SmtEngine or that are
+ * static w.r.t. an SmtEngineScope. Further, it is assumed that an instance of
+ * this is installed into the ResourceManager for every SmtEngine created.
+ *
+ * These notify*() functions need to be written very carefully due to the above
+ * constraints!
+ *
+ * Say two SmtEngines S and T share an ExprManager M and hence they share a
+ * ResourceManager R. When S is created, it installs a new
+ * SmtResourceOutListener L1 into M. When T is created, it creates a
+ * different copy of a SmtResourceOutListener L2. When L2 is
+ * installed, the old copy L1 is deleted and L2 is installed into R.
+ * At this point (1), either S or T could be used and which SmtEngine
+ * is in scope changes. Suppose we now delete both S and T and continue to
+ * use M/R without an SmtEngine in scope. Let's call this point (2).
+ *
+ * We need to support having the same ResourceManager L2 and
+ * SmtResourceOutListener at points (1) and (2), and multiple candidate
+ * SmtEngines in scope.
+ */
+class SmtResourceOutListener : public ResourceOutListener {
+ public:
+  SmtResourceOutListener(){}
+  virtual ~SmtResourceOutListener(){}
+
+  // Note: The behavior needs to be static and outlast
+  // the life of the current SmtEngine, but not the life of the
+  // ExprManager.
+  void notifyHard() {
+    if (smt::smtEngineInScope()) {
+      theory::Rewriter::clearCaches();
+    }
+  }
+
+  // Note: The behavior needs to be static and potentially outlast
+  // the life of the current SmtEngine.
+  void notifySoft() {
+    // interrupt it next time resources are checked
+    if (smt::smtEngineInScope()) {
+      smt::currentSmtEngine()->interrupt();
+    }
+  }
+};/* class SmtResourceOutListener */
+
 struct SmtEngineStatistics {
   /** time spent in definition-expansion */
   TimerStat d_definitionExpansionTime;
@@ -733,7 +786,12 @@ SmtEngine::SmtEngine(ExprManager* em) throw() :
   d_private = new smt::SmtEnginePrivate(*this);
   d_statisticsRegistry = new StatisticsRegistry();
   d_stats = new SmtEngineStatistics();
-  d_stats->d_resourceUnitsUsed.setData(d_private->getResourceManager()->d_cumulativeResourceUsed);
+  d_stats->d_resourceUnitsUsed.setData(d_private->getResourceManager()->getResourceUsage());
+
+  // This is much weirder than it looks.
+  // See SmtResourceOutListener for an explanation of what is happening here.
+  d_private->getResourceManager()->installListener(new SmtResourceOutListener);
+
   // We have mutual dependency here, so we add the prop engine to the theory
   // engine later (it is non-essential there)
   d_theoryEngine = new TheoryEngine(d_context, d_userContext,

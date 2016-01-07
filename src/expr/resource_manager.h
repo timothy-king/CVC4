@@ -70,6 +70,25 @@ public:
 };/* class Timer */
 
 
+/**
+ * ResourceOutListener is a callback for ResourceManager
+ * upon exhausting some resource.
+ *
+ * This is assumed to call effectly static code with the memory
+ * owned by ResourceManager.
+ */
+class CVC4_PUBLIC ResourceOutListener {
+public:
+  virtual ~ResourceOutListener(){}
+
+  /** notify() is called on this upon running out of resources. */
+  virtual void notifyHard() = 0;
+
+  /** notifySoft() is called on this upon running out of resources. */
+  virtual void notifySoft() = 0;
+
+};/* class ResourceOutListener */
+
 class CVC4_PUBLIC ResourceManager {
 
   Timer d_cumulativeTimer;
@@ -107,9 +126,23 @@ class CVC4_PUBLIC ResourceManager {
   /** Counter indicating how often to check resource manager in loops */
   static const uint64_t s_resourceCount;
 
+
+  /**
+   * This is the listener for the manager.
+   * ResourceManager does not own this memory.
+   * This is installed and uninstalled.
+   * While installed, it is assumed to have the same lifetime as
+   * the manager.
+   */
+  ResourceOutListener* d_listener;
+
+  ResourceManager(const ResourceManager&) CVC4_UNDEFINED;
+  ResourceManager& operator=(const ResourceManager&) CVC4_UNDEFINED;
+
 public:
 
   ResourceManager();
+  ~ResourceManager();
 
   bool limitOn() const { return cumulativeLimitOn() || perCallLimitOn(); }
   bool cumulativeLimitOn() const;
@@ -149,8 +182,29 @@ public:
    */
   void endCall();
 
+
+  /**
+   * This installs a new listener into the ResourceManager.
+   *
+   * This takes over the memory for listener.
+   * It is assumed that listener can be deleted.
+   * This removes the previously installed listener.
+   * NOTE: You may wish to consult SmtResourceOutListener
+   * to understand the lifetime of this object.
+   */
+  void installListener(ResourceOutListener* listener);
+
+  /**
+   * Removes an installed listener.
+   * @precondition: hasListener()
+   * @postcondition: not hasListener()
+   */
+  void uninstallListener();
+
+  /** Returns true if the current listener is non-NULL. */
+  bool hasListener() const;
+
   static uint64_t getFrequencyCount() { return s_resourceCount; }
-  friend class SmtEngine;
 };/* class ResourceManager */
 
 }/* CVC4 namespace */

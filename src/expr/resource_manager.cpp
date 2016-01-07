@@ -15,13 +15,9 @@
 **/
 #include "expr/resource_manager.h"
 
+#include "base/cvc4_assert.h"
 #include "base/output.h"
 #include "options/smt_options.h"
-#include "smt/smt_engine_scope.h"
-#include "theory/rewriter.h"
-
-#warning "TODO: Break the dependence of the ResourceManager on the theory"
-#warning "rewriter and scope. Move this file back into util/ afterwards."
 
 using namespace std;
 
@@ -121,8 +117,36 @@ ResourceManager::ResourceManager()
   , d_on(false)
   , d_cpuTime(false)
   , d_spendResourceCalls(0)
-{}
+  , d_listener(NULL)
+{
+  Assert(not hasListener());
+}
 
+ResourceManager::~ResourceManager() {
+  if(hasListener()){
+    uninstallListener();
+  }
+  Assert(not hasListener());
+}
+
+bool ResourceManager::hasListener() const {
+  return d_listener != NULL;
+}
+
+void ResourceManager::installListener(ResourceOutListener* listener){
+  if(hasListener()){
+    uninstallListener();
+  }
+  Assert(not hasListener());
+  d_listener = listener;
+}
+
+void ResourceManager::uninstallListener(){
+  Assert(hasListener());
+  delete d_listener;
+  d_listener = NULL;
+  Assert(not hasListener());
+}
 
 void ResourceManager::setResourceLimit(uint64_t units, bool cumulative) {
   d_on = true;
@@ -189,18 +213,19 @@ void ResourceManager::spendResource(unsigned ammount) throw (UnsafeInterruptExce
     }
 
     if (d_isHardLimit) {
-      if (smt::smtEngineInScope()) {
-	theory::Rewriter::clearCaches();
+      if(hasListener()){
+        d_listener->notifyHard();
       }
       throw UnsafeInterruptException();
     }
 
-    // interrupt it next time resources are checked
-    if (smt::smtEngineInScope()) {
-      smt::currentSmtEngine()->interrupt();
+    if(hasListener()){
+      d_listener->notifySoft();
     }
   }
 }
+
+
 
 void ResourceManager::beginCall() {
 
