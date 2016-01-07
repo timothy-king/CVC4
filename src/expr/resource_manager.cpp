@@ -174,7 +174,7 @@ void ResourceManager::setTimeLimit(uint64_t millis, bool cumulative) {
 
 }
 
-uint64_t ResourceManager::getResourceUsage() const {
+const uint64_t& ResourceManager::getResourceUsage() const {
   return d_cumulativeResourceUsed;
 }
 

@@ -152,7 +152,7 @@ public:
   bool outOfTime() const;
   bool out() const { return d_on && (outOfResources() || outOfTime()); }
 
-  uint64_t getResourceUsage() const;
+  const uint64_t& getResourceUsage() const;
   uint64_t getTimeUsage() const;
   uint64_t getResourceRemaining() const;
   uint64_t getTimeRemaining() const;
