@@ -90,8 +90,11 @@ inline timespec operator-(const timespec& a, const timespec& b) {
   return result -= b;
 }
 
-/** Compare two timespecs for equality. */
-bool operator==(const timespec& a, const timespec& b) {
+/**
+ * Compare two timespecs for equality.
+ * This must be kept in sync with the copy in test/util/stats_black.h
+ */
+inline bool operator==(const timespec& a, const timespec& b) {
   // assumes a.tv_nsec and b.tv_nsec are in range
   return a.tv_sec == b.tv_sec && a.tv_nsec == b.tv_nsec;
 }

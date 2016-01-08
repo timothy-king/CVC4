@@ -59,10 +59,6 @@ namespace CVC4 {
  */
 std::ostream& operator<<(std::ostream& os, const timespec& t) CVC4_PUBLIC;
 
-/** Compare two timespecs for equality. */
-bool operator==(const timespec& a, const timespec& b);
-
-
 #ifdef CVC4_STATISTICS_ON
 #  define __CVC4_USE_STATISTICS true
 #else
