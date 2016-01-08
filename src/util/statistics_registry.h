@@ -14,6 +14,21 @@
  ** Statistics utility classes, including classes for holding (and referring
  ** to) statistics, the statistics registry, and some other associated
  ** classes.
+ **
+ ** This file is somewhat unique in that it is a "cvc4_private_library.h"
+ ** header. Because of this, most classes need to be marked as CVC4_PUBLIC.
+ ** This is because CVC4_PUBLIC is connected to the visibility of the linkage
+ ** in the object files for the class. It does not dictate what headers are
+ ** installed.
+ ** Because the StatisticsRegistry and associated classes are built into
+ ** libutil, which is used by libcvc4, and then later used by the libmain
+ ** without referring to libutil as well. Thus the without marking these as
+ ** CVC4_PUBLIC the symbols would be external in libutil, internal in libcvc4,
+ ** and not be visible to libmain and linking would fail.
+ ** You can debug this using "nm" on the .so and .o files in the builds/
+ ** directory. See
+ ** http://eli.thegreenplace.net/2013/07/09/library-order-in-static-linking
+ ** for a longer discussion on symbol visibility.
  **/
 
 #include "cvc4_private_library.h"
@@ -591,15 +606,6 @@ public:
 /**
  * The main statistics registry.  This registry maintains the list of
  * currently active statistics and is able to "flush" them all.
- *
- * StatisticsRegistry has an unusual distinction in that it is annotated
- * as CVC4_PUBLIC while being declared in a
- * #include "cvc4_private_library.h" header.
- * CVC4_PUBLIC changed the linkage of how the symbols in class are built
- * and where they are accessible from. Because the StatisticsRegistry so is
- * built into libutil, which is used by libcvc4, and then later used by the libmain
- * without referring to libutil as well, these symbols must have public linkage
- * in the ELF file to ensure they will be visible after this second hop.
  */
 class CVC4_PUBLIC StatisticsRegistry : public StatisticsBase, public Stat {
 private:
@@ -655,7 +661,7 @@ namespace CVC4 {
 
 class CodeTimer;
 
-std::ostream& operator<<(std::ostream& os, const timespec& t);
+std::ostream& operator<<(std::ostream& os, const timespec& t) CVC4_PUBLIC;
 
 /** Compare two timespecs for equality. */
 bool operator==(const timespec& a, const timespec& b);
@@ -664,15 +670,6 @@ bool operator==(const timespec& a, const timespec& b);
  * A timer statistic.  The timer can be started and stopped
  * arbitrarily, like a stopwatch; the value of the statistic at the
  * end is the accumulated time over all (start,stop) pairs.
- *
- * TimerStat has an unusual distinction in that it is annotated
- * as CVC4_PUBLIC while being declared in a
- * #include "cvc4_private_library.h" header.
- * CVC4_PUBLIC changed the linkage of how the symbols in class are built
- * and where they are accessible from. Because the TimerStat library is
- * built into libutil, which is used by libcvc4, and then later used by the libmain
- * without referring to libutil as well these symbols must have public linkage
- * in the ELF file to ensure it will be visible.
  */
 class CVC4_PUBLIC TimerStat : public BackedStat<timespec> {
 
@@ -753,7 +750,7 @@ public:
  * registration/unregistration.  This RAII class only does
  * registration and unregistration.
  */
-class RegisterStatistic {
+class CVC4_PUBLIC RegisterStatistic {
 public:
   RegisterStatistic(StatisticsRegistry* reg, Stat* stat);
   ~RegisterStatistic();
