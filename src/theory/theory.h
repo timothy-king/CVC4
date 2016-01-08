@@ -247,27 +247,7 @@ protected:
    */
   Theory(TheoryId id, context::Context* satContext, context::UserContext* userContext,
          OutputChannel& out, Valuation valuation, const LogicInfo& logicInfo,
-         SmtGlobals* globals) throw()
-  : d_id(id)
-  , d_satContext(satContext)
-  , d_userContext(userContext)
-  , d_logicInfo(logicInfo)
-  , d_facts(satContext)
-  , d_factsHead(satContext, 0)
-  , d_sharedTermsIndex(satContext, 0)
-  , d_careGraph(NULL)
-  , d_quantEngine(NULL)
-  , d_checkTime(statName(id, "checkTime"))
-  , d_computeCareGraphTime(statName(id, "computeCareGraphTime"))
-  , d_sharedTerms(satContext)
-  , d_out(&out)
-  , d_valuation(valuation)
-  , d_proofEnabled(false)
-  , d_globals(globals)
-  {
-    StatisticsRegistry::registerStat(&d_checkTime);
-    StatisticsRegistry::registerStat(&d_computeCareGraphTime);
-  }
+         SmtGlobals* globals) throw();
 
   /**
    * This is called at shutdown time by the TheoryEngine, just before

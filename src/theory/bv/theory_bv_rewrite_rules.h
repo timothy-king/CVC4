@@ -328,7 +328,7 @@ class RewriteRule {
   //   /** Constructor */
   //   RuleStatistics()
   //   : d_ruleApplications(getStatName("theory::bv::RewriteRules::count"), 0) {
-  //     StatisticsRegistry::registerStat(&d_ruleApplications);
+  //     currentStatisticsRegistry()->registerStat(&d_ruleApplications);
   //   }
 
   //   /** Destructor */

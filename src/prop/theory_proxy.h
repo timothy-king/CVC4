@@ -137,8 +137,8 @@ public:
   /**
    * Statistic: the number of replayed decisions (via --replay).
    */
-  KEEP_STATISTIC(IntStat, d_replayedDecisions,
-                 "prop::theoryproxy::replayedDecisions", 0);
+  IntStat d_replayedDecisions;
+
 };/* class SatSolver */
 
 }/* CVC4::prop namespace */

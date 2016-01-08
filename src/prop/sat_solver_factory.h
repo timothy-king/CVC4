@@ -21,6 +21,8 @@
 #include <string>
 #include <vector>
 
+#include "context/context.h"
+#include "expr/statistics_registry.h"
 #include "prop/sat_solver.h"
 
 namespace CVC4 {
@@ -29,8 +31,8 @@ namespace prop {
 class SatSolverFactory {
 public:
 
-  static BVSatSolverInterface* createMinisat(context::Context* mainSatContext, const std::string& name = "");
-  static DPLLSatSolverInterface* createDPLLMinisat();
+  static BVSatSolverInterface* createMinisat(context::Context* mainSatContext, StatisticsRegistry* registry, const std::string& name = "");
+  static DPLLSatSolverInterface* createDPLLMinisat(StatisticsRegistry* registry);
 
 };/* class SatSolverFactory */
 

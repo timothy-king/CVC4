@@ -18,10 +18,7 @@
 #include "expr/statistics_registry.h"
 
 #include "base/cvc4_assert.h"
-#include "expr/expr_manager.h"
 #include "lib/clock_gettime.h"
-#include "smt/smt_engine.h"
-#include "smt/smt_engine_scope.h"
 
 
 #ifdef CVC4_STATISTICS_ON
@@ -30,10 +27,114 @@
 #  define __CVC4_USE_STATISTICS false
 #endif
 
-#warning "TODO: Make StatisticsRegistry non-public again."
-#warning "TODO: Make TimerStat non-public again."
 
+/****************************************************************************/
+/* Some utility functions for timespec                                    */
+/****************************************************************************/
 namespace CVC4 {
+
+/** Compute the sum of two timespecs. */
+inline timespec& operator+=(timespec& a, const timespec& b) {
+  using namespace CVC4;
+  // assumes a.tv_nsec and b.tv_nsec are in range
+  const long nsec_per_sec = 1000000000L; // one thousand million
+  CheckArgument(a.tv_nsec >= 0 && a.tv_nsec < nsec_per_sec, a);
+  CheckArgument(b.tv_nsec >= 0 && b.tv_nsec < nsec_per_sec, b);
+  a.tv_sec += b.tv_sec;
+  long nsec = a.tv_nsec + b.tv_nsec;
+  assert(nsec >= 0);
+  if(nsec < 0) {
+    nsec += nsec_per_sec;
+    --a.tv_sec;
+  }
+  if(nsec >= nsec_per_sec) {
+    nsec -= nsec_per_sec;
+    ++a.tv_sec;
+  }
+  assert(nsec >= 0 && nsec < nsec_per_sec);
+  a.tv_nsec = nsec;
+  return a;
+}
+
+/** Compute the difference of two timespecs. */
+inline timespec& operator-=(timespec& a, const timespec& b) {
+  using namespace CVC4;
+  // assumes a.tv_nsec and b.tv_nsec are in range
+  const long nsec_per_sec = 1000000000L; // one thousand million
+  CheckArgument(a.tv_nsec >= 0 && a.tv_nsec < nsec_per_sec, a);
+  CheckArgument(b.tv_nsec >= 0 && b.tv_nsec < nsec_per_sec, b);
+  a.tv_sec -= b.tv_sec;
+  long nsec = a.tv_nsec - b.tv_nsec;
+  if(nsec < 0) {
+    nsec += nsec_per_sec;
+    --a.tv_sec;
+  }
+  if(nsec >= nsec_per_sec) {
+    nsec -= nsec_per_sec;
+    ++a.tv_sec;
+  }
+  assert(nsec >= 0 && nsec < nsec_per_sec);
+  a.tv_nsec = nsec;
+  return a;
+}
+
+/** Add two timespecs. */
+inline timespec operator+(const timespec& a, const timespec& b) {
+  timespec result = a;
+  return result += b;
+}
+
+/** Subtract two timespecs. */
+inline timespec operator-(const timespec& a, const timespec& b) {
+  timespec result = a;
+  return result -= b;
+}
+
+/** Compare two timespecs for equality. */
+inline bool operator==(const timespec& a, const timespec& b) {
+  // assumes a.tv_nsec and b.tv_nsec are in range
+  return a.tv_sec == b.tv_sec && a.tv_nsec == b.tv_nsec;
+}
+
+/** Compare two timespecs for disequality. */
+inline bool operator!=(const timespec& a, const timespec& b) {
+  // assumes a.tv_nsec and b.tv_nsec are in range
+  return !(a == b);
+}
+
+/** Compare two timespecs, returning true iff a < b. */
+inline bool operator<(const timespec& a, const timespec& b) {
+  // assumes a.tv_nsec and b.tv_nsec are in range
+  return a.tv_sec < b.tv_sec ||
+    (a.tv_sec == b.tv_sec && a.tv_nsec < b.tv_nsec);
+}
+
+/** Compare two timespecs, returning true iff a > b. */
+inline bool operator>(const timespec& a, const timespec& b) {
+  // assumes a.tv_nsec and b.tv_nsec are in range
+  return a.tv_sec > b.tv_sec ||
+    (a.tv_sec == b.tv_sec && a.tv_nsec > b.tv_nsec);
+}
+
+/** Compare two timespecs, returning true iff a <= b. */
+inline bool operator<=(const timespec& a, const timespec& b) {
+  // assumes a.tv_nsec and b.tv_nsec are in range
+  return !(a > b);
+}
+
+/** Compare two timespecs, returning true iff a >= b. */
+inline bool operator>=(const timespec& a, const timespec& b) {
+  // assumes a.tv_nsec and b.tv_nsec are in range
+  return !(a < b);
+}
+
+/** Output a timespec on an output stream. */
+std::ostream& operator<<(std::ostream& os, const timespec& t) {
+  // assumes t.tv_nsec is in range
+  return os << t.tv_sec << "."
+            << std::setfill('0') << std::setw(9) << std::right << t.tv_nsec;
+}
+
 
 /** Construct a statistics registry */
 StatisticsRegistry::StatisticsRegistry(const std::string& name)
@@ -48,55 +149,20 @@ StatisticsRegistry::StatisticsRegistry(const std::string& name)
   }
 }
 
-namespace stats {
-
-// This is a friend of SmtEngine, just to reach in and get it.
-// this isn't a class function because then there's a cyclic
-// dependence.
-inline StatisticsRegistry* getStatisticsRegistry(SmtEngine* smt) {
-  return smt->d_statisticsRegistry;
-}
-
-inline StatisticsRegistry* getStatisticsRegistry(ExprManager* em) {
-  return em->getStatisticsRegistry();
-}
-
-}/* CVC4::stats namespace */
-
-StatisticsRegistry* StatisticsRegistry::current() {
-  return stats::getStatisticsRegistry(smt::currentSmtEngine());
-}
-
 void StatisticsRegistry::registerStat(Stat* s) throw(CVC4::IllegalArgumentException) {
 #ifdef CVC4_STATISTICS_ON
-  StatSet& stats = current()->d_stats;
-  PrettyCheckArgument(stats.find(s) == stats.end(), s,
-                      "Statistic `%s' was already registered with this registry.",
-                      s->getName().c_str());
-  stats.insert(s);
-#endif /* CVC4_STATISTICS_ON */
-}/* StatisticsRegistry::registerStat() */
-
-void StatisticsRegistry::unregisterStat(Stat* s) throw(CVC4::IllegalArgumentException) {
-#ifdef CVC4_STATISTICS_ON
-  StatSet& stats = current()->d_stats;
-  PrettyCheckArgument(stats.find(s) != stats.end(), s,
+  PrettyCheckArgument(d_stats.find(s) == d_stats.end(), s,
                 "Statistic `%s' was not registered with this registry.",
                 s->getName().c_str());
-  stats.erase(s);
-#endif /* CVC4_STATISTICS_ON */
-}/* StatisticsRegistry::unregisterStat() */
-
-void StatisticsRegistry::registerStat_(Stat* s) throw(CVC4::IllegalArgumentException) {
-#ifdef CVC4_STATISTICS_ON
-  PrettyCheckArgument(d_stats.find(s) == d_stats.end(), s);
   d_stats.insert(s);
 #endif /* CVC4_STATISTICS_ON */
 }/* StatisticsRegistry::registerStat_() */
 
-void StatisticsRegistry::unregisterStat_(Stat* s) throw(CVC4::IllegalArgumentException) {
+void StatisticsRegistry::unregisterStat(Stat* s) throw(CVC4::IllegalArgumentException) {
 #ifdef CVC4_STATISTICS_ON
-  PrettyCheckArgument(d_stats.find(s) != d_stats.end(), s);
+  PrettyCheckArgument(d_stats.find(s) != d_stats.end(), s,
+                "Statistic `%s' was not registered with this registry.",
+                s->getName().c_str());
   d_stats.erase(s);
 #endif /* CVC4_STATISTICS_ON */
 }/* StatisticsRegistry::unregisterStat_() */
@@ -157,19 +223,19 @@ SExpr TimerStat::getValue() const {
   return SExpr(Rational::fromDecimal(ss.str()));
 }/* TimerStat::getValue() */
 
-RegisterStatistic::RegisterStatistic(ExprManager& em, Stat* stat) :
-  d_reg(stats::getStatisticsRegistry(&em)),
-  d_stat(stat) {
-  d_reg->registerStat_(d_stat);
+
+RegisterStatistic::RegisterStatistic(StatisticsRegistry* reg, Stat* stat)
+    : d_reg(reg),
+      d_stat(stat) {
+  CheckArgument(reg != NULL, reg,
+                "You need to specify a statistics registry"
+                "on which to set the statistic");
+  d_reg->registerStat(d_stat);
 }
 
-RegisterStatistic::RegisterStatistic(SmtEngine& smt, Stat* stat) :
-  d_reg(stats::getStatisticsRegistry(&smt)),
-  d_stat(stat) {
-  d_reg->registerStat_(d_stat);
+RegisterStatistic::~RegisterStatistic() {
+  d_reg->unregisterStat(d_stat);
 }
-
-
 
 }/* CVC4 namespace */
 

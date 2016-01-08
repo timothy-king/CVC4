@@ -193,24 +193,9 @@ public:
     /** Number of constant terms managed by the system */
     IntStat constantTermsCount;
 
-    Statistics(std::string name)
-    : mergesCount(name + "::mergesCount", 0),
-      termsCount(name + "::termsCount", 0),
-      functionTermsCount(name + "::functionTermsCount", 0),
-      constantTermsCount(name + "::constantTermsCount", 0)
-    {
-      StatisticsRegistry::registerStat(&mergesCount);
-      StatisticsRegistry::registerStat(&termsCount);
-      StatisticsRegistry::registerStat(&functionTermsCount);
-      StatisticsRegistry::registerStat(&constantTermsCount);
-    }
+    Statistics(std::string name);
 
-    ~Statistics() {
-      StatisticsRegistry::unregisterStat(&mergesCount);
-      StatisticsRegistry::unregisterStat(&termsCount);
-      StatisticsRegistry::unregisterStat(&functionTermsCount);
-      StatisticsRegistry::unregisterStat(&constantTermsCount);
-    }
+    ~Statistics();
   };/* struct EqualityEngine::statistics */
 
 private:
@@ -900,4 +885,3 @@ public:
 } // Namespace eq
 } // Namespace theory
 } // Namespace CVC4
-
