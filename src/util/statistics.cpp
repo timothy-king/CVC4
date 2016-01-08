@@ -15,9 +15,10 @@
  ** \todo document this file
  **/
 
+#include "util/statistics.h"
+
 #include <typeinfo>
 
-#include "util/statistics.h"
 #include "util/statistics_registry.h" // for details about class Stat
 
 

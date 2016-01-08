@@ -51,6 +51,18 @@
 
 namespace CVC4 {
 
+/**
+ * Prints a timespec.
+ *
+ * This is used in the implementation of TimerStat. This needs to be available
+ * before Stat due to ordering constraints in clang for TimerStat.
+ */
+std::ostream& operator<<(std::ostream& os, const timespec& t) CVC4_PUBLIC;
+
+/** Compare two timespecs for equality. */
+bool operator==(const timespec& a, const timespec& b);
+
+
 #ifdef CVC4_STATISTICS_ON
 #  define __CVC4_USE_STATISTICS true
 #else
@@ -654,17 +666,7 @@ public:
 
 };/* class StatisticsRegistry */
 
-}/* CVC4 namespace */
-
-
-namespace CVC4 {
-
 class CodeTimer;
-
-std::ostream& operator<<(std::ostream& os, const timespec& t) CVC4_PUBLIC;
-
-/** Compare two timespecs for equality. */
-bool operator==(const timespec& a, const timespec& b);
 
 /**
  * A timer statistic.  The timer can be started and stopped
