@@ -22,10 +22,10 @@
 #include <sstream>
 
 #include "context/context.h"
-#include "expr/statistics_registry.h"
 #include "smt_util/command.h"
 #include "theory/bv/theory_bv_utils.h"
 #include "theory/theory.h"
+#include "util/statistics_registry.h"
 
 namespace CVC4 {
 namespace theory {

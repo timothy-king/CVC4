@@ -19,9 +19,9 @@
 #include <map>
 
 #include "expr/node_manager.h"
-#include "expr/statistics_registry.h"
 #include "expr/variable_type_map.h"
 #include "options/options.h"
+#include "util/statistics_registry.h"
 
 ${includes}
 

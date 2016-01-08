@@ -17,8 +17,8 @@
 
 #include "smt/smt_statistics_registry.h"
 
-#include "expr/statistics_registry.h"
 #include "smt/smt_engine_scope.h"
+#include "util/statistics_registry.h"
 
 namespace CVC4 {
 

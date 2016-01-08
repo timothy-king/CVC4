@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "expr/statistics_registry.h"
+#include "util/statistics_registry.h"
 
 namespace CVC4 {
 

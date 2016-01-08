@@ -17,8 +17,8 @@
 
 #include <typeinfo>
 
-#include "expr/statistics.h"
-#include "expr/statistics_registry.h" // for details about class Stat
+#include "util/statistics.h"
+#include "util/statistics_registry.h" // for details about class Stat
 
 
 namespace CVC4 {

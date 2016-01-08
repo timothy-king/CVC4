@@ -24,12 +24,12 @@
 #include "context/cdchunk_list.h"
 #include "context/cdhashset.h"
 #include "expr/attribute.h"
-#include "expr/statistics_registry.h"
 #include "options/quantifiers_modes.h"
 #include "theory/quantifiers/inst_match.h"
 #include "theory/quantifiers/quant_util.h"
 #include "theory/theory.h"
 #include "util/hash.h"
+#include "util/statistics_registry.h"
 
 namespace CVC4 {
 

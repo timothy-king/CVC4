@@ -17,10 +17,10 @@
 #include "theory/arith/fc_simplex.h"
 
 #include "base/output.h"
-#include "expr/statistics_registry.h"
 #include "options/arith_options.h"
 #include "smt/smt_statistics_registry.h"
 #include "theory/arith/constraint.h"
+#include "util/statistics_registry.h"
 
 using namespace std;
 

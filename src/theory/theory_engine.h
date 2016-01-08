@@ -26,7 +26,6 @@
 #include "base/cvc4_assert.h"
 #include "context/cdhashset.h"
 #include "expr/node.h"
-#include "expr/statistics_registry.h"
 #include "options/options.h"
 #include "options/smt_options.h"
 #include "prop/prop_engine.h"
@@ -44,6 +43,7 @@
 #include "theory/theory.h"
 #include "theory/uf/equality_engine.h"
 #include "theory/valuation.h"
+#include "util/statistics_registry.h"
 #include "util/unsafe_interrupt_exception.h"
 
 namespace CVC4 {

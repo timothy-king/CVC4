@@ -29,10 +29,10 @@
 #include "context/cdo.h"
 #include "expr/kind_map.h"
 #include "expr/node.h"
-#include "expr/statistics_registry.h"
 #include "theory/rewriter.h"
 #include "theory/theory.h"
 #include "theory/uf/equality_engine_types.h"
+#include "util/statistics_registry.h"
 
 namespace CVC4 {
 namespace theory {

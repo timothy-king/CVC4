@@ -18,9 +18,9 @@
 
 #pragma once
 
-#include "expr/statistics_registry.h"
 #include "prop/sat_solver.h"
 #include "prop/minisat/simp/SimpSolver.h"
+#include "util/statistics_registry.h"
 
 namespace CVC4 {
 namespace prop {

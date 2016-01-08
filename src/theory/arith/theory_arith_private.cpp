@@ -33,7 +33,6 @@
 #include "expr/metakind.h"
 #include "expr/node.h"
 #include "expr/node_builder.h"
-#include "expr/statistics_registry.h"
 #include "options/arith_options.h"
 #include "options/smt_options.h"  // for incrementalSolving()
 #include "smt/logic_exception.h"
@@ -71,6 +70,7 @@
 #include "util/integer.h"
 #include "util/rational.h"
 #include "util/result.h"
+#include "util/statistics_registry.h"
 
 using namespace std;
 using namespace CVC4::kind;

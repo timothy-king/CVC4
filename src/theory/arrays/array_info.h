@@ -27,8 +27,8 @@
 #include "context/cdlist.h"
 #include "context/cdhashmap.h"
 #include "expr/node.h"
-#include "expr/statistics_registry.h"
 #include "util/ntuple.h"
+#include "util/statistics_registry.h"
 
 namespace CVC4 {
 namespace theory {

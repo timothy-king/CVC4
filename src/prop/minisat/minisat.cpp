@@ -18,12 +18,12 @@
 
 #include "prop/minisat/minisat.h"
 
-#include "expr/statistics_registry.h"
 #include "options/base_options.h"
 #include "options/decision_options.h"
 #include "options/prop_options.h"
 #include "options/smt_options.h"
 #include "prop/minisat/simp/SimpSolver.h"
+#include "util/statistics_registry.h"
 
 namespace CVC4 {
 namespace prop {

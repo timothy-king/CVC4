@@ -28,7 +28,6 @@
 #include "context/cdo.h"
 #include "context/context.h"
 #include "expr/node.h"
-#include "expr/statistics_registry.h"
 #include "lib/ffs.h"
 #include "options/options.h"
 #include "options/theory_options.h"
@@ -40,6 +39,7 @@
 #include "theory/logic_info.h"
 #include "theory/output_channel.h"
 #include "theory/valuation.h"
+#include "util/statistics_registry.h"
 
 namespace CVC4 {
 

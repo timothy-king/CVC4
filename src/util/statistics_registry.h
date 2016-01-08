@@ -31,8 +31,8 @@
 #include <vector>
 
 #include "base/exception.h"
-#include "expr/statistics.h"
 #include "lib/clock_gettime.h"
+#include "util/statistics.h"
 
 namespace CVC4 {
 
@@ -597,8 +597,8 @@ public:
  * #include "cvc4_private_library.h" header.
  * CVC4_PUBLIC changed the linkage of how the symbols in class are built
  * and where they are accessible from. Because the StatisticsRegistry so is
- * built into libexpr, which is used by libcvc4, and then later used by the libmain
- * without referring to libexpr as well, these symbols must have public linkage
+ * built into libutil, which is used by libcvc4, and then later used by the libmain
+ * without referring to libutil as well, these symbols must have public linkage
  * in the ELF file to ensure they will be visible after this second hop.
  */
 class CVC4_PUBLIC StatisticsRegistry : public StatisticsBase, public Stat {
@@ -657,6 +657,9 @@ class CodeTimer;
 
 std::ostream& operator<<(std::ostream& os, const timespec& t);
 
+/** Compare two timespecs for equality. */
+bool operator==(const timespec& a, const timespec& b);
+
 /**
  * A timer statistic.  The timer can be started and stopped
  * arbitrarily, like a stopwatch; the value of the statistic at the
@@ -667,8 +670,8 @@ std::ostream& operator<<(std::ostream& os, const timespec& t);
  * #include "cvc4_private_library.h" header.
  * CVC4_PUBLIC changed the linkage of how the symbols in class are built
  * and where they are accessible from. Because the TimerStat library is
- * built into libexpr, which is used by libcvc4, and then later used by the libmain
- * without referring to libexpr as well these symbols must have public linkage
+ * built into libutil, which is used by libcvc4, and then later used by the libmain
+ * without referring to libutil as well these symbols must have public linkage
  * in the ELF file to ensure it will be visible.
  */
 class CVC4_PUBLIC TimerStat : public BackedStat<timespec> {

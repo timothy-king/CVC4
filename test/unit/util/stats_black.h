@@ -19,7 +19,7 @@
 #include <string>
 #include <ctime>
 
-#include "expr/statistics_registry.h"
+#include "util/statistics_registry.h"
 
 using namespace CVC4;
 using namespace std;

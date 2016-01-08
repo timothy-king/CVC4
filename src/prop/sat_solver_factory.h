@@ -22,8 +22,8 @@
 #include <vector>
 
 #include "context/context.h"
-#include "expr/statistics_registry.h"
 #include "prop/sat_solver.h"
+#include "util/statistics_registry.h"
 
 namespace CVC4 {
 namespace prop {

@@ -15,7 +15,7 @@
  ** \todo document this file
  **/
 
-#include "expr/statistics_registry.h"
+#include "util/statistics_registry.h"
 
 #include "base/cvc4_assert.h"
 #include "lib/clock_gettime.h"
@@ -91,7 +91,7 @@ inline timespec operator-(const timespec& a, const timespec& b) {
 }
 
 /** Compare two timespecs for equality. */
-inline bool operator==(const timespec& a, const timespec& b) {
+bool operator==(const timespec& a, const timespec& b) {
   // assumes a.tv_nsec and b.tv_nsec are in range
   return a.tv_sec == b.tv_sec && a.tv_nsec == b.tv_nsec;
 }

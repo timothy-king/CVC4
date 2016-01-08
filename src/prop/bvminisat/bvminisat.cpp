@@ -18,9 +18,8 @@
 
 #include "prop/bvminisat/bvminisat.h"
 
-#include "expr/statistics_registry.h"
 #include "prop/bvminisat/simp/SimpSolver.h"
-
+#include "util/statistics_registry.h"
 
 namespace CVC4 {
 namespace prop {

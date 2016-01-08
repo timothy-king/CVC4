@@ -26,8 +26,8 @@
 #include "context/cdlist.h"
 #include "context/context.h"
 #include "expr/node.h"
-#include "expr/statistics_registry.h"
 #include "prop/sat_solver_types.h"
+#include "util/statistics_registry.h"
 
 namespace CVC4 {
 namespace prop {
