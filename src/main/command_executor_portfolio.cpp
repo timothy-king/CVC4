@@ -45,20 +45,20 @@ using namespace std;
 namespace CVC4 {
 namespace main {
 
-CommandExecutorPortfolio::CommandExecutorPortfolio
-(ExprManager &exprMgr, Options &options, vector<Options>& tOpts):
-  CommandExecutor(exprMgr, options),
-  d_numThreads(options[options::threads]),
-  d_smts(),
-  d_seq(new CommandSequence()),
-  d_threadOptions(tOpts),
-  d_vmaps(),
-  d_lastWinner(0),
-  d_channelsOut(),
-  d_channelsIn(),
-  d_ostringstreams(),
-  d_statLastWinner("portfolio::lastWinner"),
-  d_statWaitTime("portfolio::waitTime")
+CommandExecutorPortfolio::CommandExecutorPortfolio(
+    ExprManager &exprMgr, Options &options, OptionsList& tOpts)
+    : CommandExecutor(exprMgr, options),
+      d_numThreads(options[options::threads]),
+      d_smts(),
+      d_seq(new CommandSequence()),
+      d_threadOptions(tOpts),
+      d_vmaps(),
+      d_lastWinner(0),
+      d_channelsOut(),
+      d_channelsIn(),
+      d_ostringstreams(),
+      d_statLastWinner("portfolio::lastWinner"),
+      d_statWaitTime("portfolio::waitTime")
 {
   assert(d_threadOptions.size() == d_numThreads);
 

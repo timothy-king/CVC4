@@ -96,7 +96,7 @@ NodeManager::NodeManager(ExprManager* exprManager) :
 
 NodeManager::NodeManager(ExprManager* exprManager,
                          const Options& options) :
-  d_options(new Options(options)),
+  d_options(new Options()),
   d_statisticsRegistry(new StatisticsRegistry()),
   d_resourceManager(new ResourceManager()),
   next_id(0),
@@ -105,7 +105,9 @@ NodeManager::NodeManager(ExprManager* exprManager,
   d_nodeUnderDeletion(NULL),
   d_inReclaimZombies(false),
   d_abstractValueCount(0),
-  d_skolemCounter(0) {
+  d_skolemCounter(0)
+{
+  d_options->copyValues(options);
   init();
 }
 

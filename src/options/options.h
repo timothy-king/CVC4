@@ -24,6 +24,7 @@
 #include <string>
 #include <vector>
 
+#include "base/listener.h"
 #include "base/tls.h"
 #include "options/option_exception.h"
 
@@ -41,6 +42,9 @@ class CVC4_PUBLIC Options {
   /** The current Options in effect */
   static CVC4_THREADLOCAL(Options*) s_current;
 
+  /** Listeners for logicInfo being set. */
+  ListenerCollection d_setLogicListeners;
+
   /** Low-level assignment function for options */
   template <class T>
   void assign(T, std::string option, std::string value, options::OptionsHandler* handler);
@@ -49,6 +53,18 @@ class CVC4_PUBLIC Options {
   void assignBool(T, std::string option, bool value, options::OptionsHandler* handler);
 
   friend class options::OptionsHandler;
+
+  /**
+   * Options cannot be copied as they are given an explicit list of
+   * Listeners to respond to.
+   */
+  Options(const Options& options) CVC4_UNUSED;
+
+  /**
+   * Options cannot be assigned as they are given an explicit list of
+   * Listeners to respond to.
+   */
+  Options& operator=(const Options& options) CVC4_UNUSED;
 
 public:
   class CVC4_PUBLIC OptionsScope {
@@ -76,10 +92,14 @@ public:
   }
 
   Options();
-  Options(const Options& options);
   ~Options();
 
-  Options& operator=(const Options& options);
+  /**
+   * Copies the value of the options stored in OptionsHolder into the current
+   * Options object.
+   * This does not copy the listeners in the Options object.
+   */
+  void copyValues(const Options& options);
 
   /**
    * Set the value of the given option.  Use of this default

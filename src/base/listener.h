@@ -54,19 +54,54 @@ public:
   typedef std::list<Listener*> ListenerList;
   typedef ListenerList::iterator iterator;
 
+  /** Creates an empty listener collection. */
   ListenerCollection();
 
+  /**
+   * Destroys an iterator collection.
+   * If assertions are on, this throws an AssertionException if the collection
+   * is not empty().
+   */
   ~ListenerCollection();
 
+  /**
+   * This adds a listener to the current collection and returns
+   * an iterator to the listener in the collection.
+   * The user of the collection must call removeListener() using
+   * this iterator.
+   * The collection does not take over the memory for the listener.
+   */
   iterator addListener(Listener* listener);
 
+  /**
+   * Remove an listener using the iterator distributed when adding the
+   * listener.
+   */
   void removeListener(iterator position);
 
+  /** Calls notify() on all listeners in the collection. */
   void notify();
 
+  /** Returns true if the collection contains no listeners. */
   bool empty() const;
 
 private:
+
+  /**
+   * Disabling the copy-constructor.
+   * The user of the class must be know to remove listeners on the collection.
+   * Allowing copies will only cause confusion.
+   */
+  ListenerCollection(const ListenerCollection& copy) CVC4_UNUSED;
+
+  /**
+   * Disabling the assignment operator.
+   * The user of the class must be know to remove listeners on the collection.
+   * Allowing copies will only cause confusion.
+   */
+  ListenerCollection& operator=(const ListenerCollection& copy) CVC4_UNUSED;
+
+  /** A list of the listeners in the collection.*/
   ListenerList d_listeners;
 };
 
@@ -76,11 +111,11 @@ private:
  *
  * On construction, the RegisterListener takes a ListenerCollection, collection,
  * and a Listener*, listener. It takes over the memory for listener. It then
- * add listener to collection. On destruction it removes listener and calls
+ * adds listener to collection. On destruction it removes listener and calls
  * delete on listener.
  *
- * Because of this usage, a RegisterListener must be destroyed before
- * collection.
+ * Because of this usage, a RegisterListener must be destroyed before the
+ * ListenerCollection it is attached to.
  */
 class CVC4_PUBLIC RegisterListener {
 public:

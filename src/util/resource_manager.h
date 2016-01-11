@@ -114,6 +114,18 @@ class CVC4_PUBLIC ResourceManager {
   /** Receives a notification on reaching a hard limit. */
   ListenerCollection d_softListeners;
 
+  /**
+   * ResourceManagers cannot be copied as they are given an explicit
+   * list of Listeners to respond to.
+   */
+  ResourceManager(const ResourceManager&) CVC4_UNUSED;
+
+  /**
+   * ResourceManagers cannot be assigned as they are given an explicit
+   * list of Listeners to respond to.
+   */
+  ResourceManager& operator=(const ResourceManager&) CVC4_UNUSED;
+
 public:
 
   ResourceManager();

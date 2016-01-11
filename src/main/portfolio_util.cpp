@@ -30,9 +30,42 @@ using namespace std;
 
 namespace CVC4 {
 
-vector<Options> parseThreadSpecificOptions(Options opts)
+OptionsList::OptionsList() : d_options() {}
+
+OptionsList::~OptionsList(){
+  for(std::vector<Options*>::iterator i = d_options.begin(),
+          iend = d_options.end(); i != iend; ++i)
+  {
+    Options* current = *i;
+    delete current;
+  }
+  d_options.clear();
+}
+
+void OptionsList::push_back_copy(const Options& opts) {
+  Options* copy = new Options;
+  copy->copyValues(opts);
+  d_options.push_back(copy);
+}
+
+Options& OptionsList::operator[](size_t position){
+  return *(d_options[position]);
+}
+
+const Options& OptionsList::operator[](size_t position) const {
+  return *(d_options[position]);
+}
+
+Options& OptionsList::back() {
+  return *(d_options.back());
+}
+
+size_t OptionsList::size() const {
+  return d_options.size();
+}
+
+void parseThreadSpecificOptions(OptionsList& threadOptions, const Options& opts)
 {
-  vector<Options> threadOptions;
 
 #warning "TODO: Check that the SmtEngine pointer should be NULL with Kshitij."
   smt::SmtOptionsHandler optionsHandler(NULL);
@@ -40,7 +73,7 @@ vector<Options> parseThreadSpecificOptions(Options opts)
   unsigned numThreads = opts[options::threads];
 
   for(unsigned i = 0; i < numThreads; ++i) {
-    threadOptions.push_back(opts);
+    threadOptions.push_back_copy(opts);
     Options& tOpts = threadOptions.back();
 
     // Set thread identifier
@@ -95,8 +128,6 @@ vector<Options> parseThreadSpecificOptions(Options opts)
   }
 
   assert(numThreads >= 1);      //do we need this?
-
-  return threadOptions;
 }
 
 void PortfolioLemmaOutputChannel::notifyNewLemma(Expr lemma) {

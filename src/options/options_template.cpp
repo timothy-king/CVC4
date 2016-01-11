@@ -241,20 +241,15 @@ Options::Options() :
   d_holder(new options::OptionsHolder()) {
 }
 
-Options::Options(const Options& options) :
-  d_holder(new options::OptionsHolder(*options.d_holder)) {
-}
-
 Options::~Options() {
   delete d_holder;
 }
 
-Options& Options::operator=(const Options& options) {
+void Options::copyValues(const Options& options){
   if(this != &options) {
     delete d_holder;
     d_holder = new options::OptionsHolder(*options.d_holder);
   }
-  return *this;
 }
 
 options::OptionsHolder::OptionsHolder() : ${all_modules_defaults}

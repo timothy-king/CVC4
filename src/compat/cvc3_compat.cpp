@@ -2574,7 +2574,8 @@ void ValidityChecker::loadFile(const std::string& fileName,
                                InputLanguage lang,
                                bool interactive,
                                bool calledFromParser) {
-  CVC4::Options opts = d_em->getOptions();
+  CVC4::Options opts;
+  opts.copyValues(d_em->getOptions());
   stringstream langss;
   langss << lang;
   d_smt->setOption("input-language", CVC4::SExpr(langss.str()));
@@ -2589,7 +2590,9 @@ void ValidityChecker::loadFile(const std::string& fileName,
 void ValidityChecker::loadFile(std::istream& is,
                                InputLanguage lang,
                                bool interactive) {
-  CVC4::Options opts = d_em->getOptions();
+  CVC4::Options opts;
+  opts.copyValues(d_em->getOptions());
+
   stringstream langss;
   langss << lang;
   d_smt->setOption("input-language", CVC4::SExpr(langss.str()));

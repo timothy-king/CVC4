@@ -765,7 +765,7 @@ SmtEngine::SmtEngine(ExprManager* em) throw() :
   d_dumpCommands(),
   d_defineCommands(),
   d_logic(),
-  d_originalOptions(em->getOptions()),
+  d_originalOptions(),
   d_pendingPops(0),
   d_fullyInited(false),
   d_problemExtended(false),
@@ -780,8 +780,8 @@ SmtEngine::SmtEngine(ExprManager* em) throw() :
   d_stats(NULL),
   d_globals(new SmtGlobals())
 {
-
   SmtScope smts(this);
+  d_originalOptions.copyValues(em->getOptions());
   d_smtAttributes = new expr::attr::SmtAttributes(d_context);
   d_private = new smt::SmtEnginePrivate(*this);
   d_statisticsRegistry = new StatisticsRegistry();
@@ -4908,9 +4908,10 @@ void SmtEngine::reset() throw() {
   if(Dump.isOn("benchmark")) {
     Dump("benchmark") << ResetCommand();
   }
-  Options opts = d_originalOptions;
+  Options opts;
+  opts.copyValues(d_originalOptions);
   this->~SmtEngine();
-  NodeManager::fromExprManager(em)->getOptions() = opts;
+  NodeManager::fromExprManager(em)->getOptions().copyValues(opts);
   new(this) SmtEngine(em);
 }
 

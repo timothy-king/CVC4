@@ -180,9 +180,10 @@ void ResourceManager::spendResource(unsigned ammount) throw (UnsafeInterruptExce
   d_thisCallResourceUsed += ammount;
   if(out()) {
     Trace("limit") << "ResourceManager::spendResource: interrupt!" << std::endl;
-	Trace("limit") << "                 on call " << d_spendResourceCalls << std::endl;
+    Trace("limit") << "          on call " << d_spendResourceCalls << std::endl;
     if (outOfTime()) {
-      Trace("limit") << "ResourceManager::spendResource: elapsed time" << d_cumulativeTimer.elapsed() << std::endl;
+      Trace("limit") << "ResourceManager::spendResource: elapsed time"
+                     << d_cumulativeTimer.elapsed() << std::endl;
     }
 
     if (d_isHardLimit) {

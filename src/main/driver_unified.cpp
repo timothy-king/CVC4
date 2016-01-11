@@ -244,7 +244,9 @@ int runCvc4(int argc, char* argv[], Options& opts) {
   exprMgr = new ExprManager(opts);
   pExecutor = new CommandExecutor(*exprMgr, opts);
 # else
-  vector<Options> threadOpts = parseThreadSpecificOptions(opts);
+  OptionsList threadOpts;
+  parseThreadSpecificOptions(threadOpts, opts);
+
   bool useParallelExecutor = true;
   // incremental?
   if(opts.wasSetByUser(options::incrementalSolving) &&

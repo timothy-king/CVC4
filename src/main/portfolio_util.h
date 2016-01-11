@@ -73,7 +73,26 @@ public:
 
 };/* class PortfolioLemmaInputChannel */
 
-std::vector<Options> parseThreadSpecificOptions(Options opts);
+class OptionsList {
+ public:
+  OptionsList();
+  ~OptionsList();
+
+  void push_back_copy(const Options& options);
+
+  Options& operator[](size_t position);
+  const Options& operator[](size_t position) const;
+
+  Options& back();
+
+  size_t size() const;
+ private:
+  OptionsList(const OptionsList&) CVC4_UNUSED;
+  OptionsList& operator=(const OptionsList&) CVC4_UNUSED;
+  std::vector<Options*> d_options;
+};
+
+void parseThreadSpecificOptions(OptionsList& list, const Options& opts);
 
 template<typename T>
 void sharingManager(unsigned numThreads,
