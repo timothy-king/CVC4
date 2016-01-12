@@ -45,7 +45,7 @@ public:
 
   void setUp() {
 #warning "TODO: Discuss the effects of this change with Clark."
-    d_handler = new smt::SmtOptionsHandler(NULL);
+    d_handler = new smt::SmtOptionsHandler(&opts, NULL);
 
     char *argv[2];
     argv[0] = strdup("");

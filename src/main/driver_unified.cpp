@@ -135,7 +135,7 @@ int runCvc4(int argc, char* argv[], Options& opts) {
   progPath = argv[0];
 
 #warning "TODO: Check that the SmtEngine pointer should be NULL with Kshitij."
-  smt::SmtOptionsHandler optionsHandler(NULL);
+  smt::SmtOptionsHandler optionsHandler(&opts, NULL);
 
   // Parse the options
   vector<string> filenames = opts.parseOptions(argc, argv, &optionsHandler);

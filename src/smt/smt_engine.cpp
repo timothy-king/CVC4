@@ -322,6 +322,16 @@ class HardResourceOutListener : public Listener {
   SmtEngine* d_smt;
 }; /* class HardResourceOutListener */
 
+class SetLogicListener : public Listener {
+ public:
+  SetLogicListener(SmtEngine& smt) : d_smt(&smt) {}
+  virtual void notify() {
+    LogicInfo inOptions(options::forceLogicString());
+    d_smt->setLogic(inOptions);
+  }
+ private:
+  SmtEngine* d_smt;
+}; /* class SetLogicListener */
 
 /**
  * This is an inelegant solution, but for the present, it will work.
@@ -348,12 +358,17 @@ class SmtEnginePrivate : public NodeManagerListener {
   /**
    * Listener for the when a soft resource out occurs.
    */
-  RegisterListener* d_softResourceOutListener;
+  ListenerCollection::Registration* d_softResourceOut;
 
   /**
    * Listener for the when a hard resource out occurs.
    */
-  RegisterListener* d_hardResourceOutListener;
+  ListenerCollection::Registration* d_hardResourceOut;
+
+  /**
+   * Listener for the when a hard resource out occurs.
+   */
+  ListenerCollection::Registration* d_setForceLogic;
 
   /** Learned literals */
   vector<Node> d_nonClausalLearnedLiterals;
@@ -502,8 +517,9 @@ public:
   SmtEnginePrivate(SmtEngine& smt) :
     d_smt(smt),
     d_resourceManager(NULL),
-    d_softResourceOutListener(NULL),
-    d_hardResourceOutListener(NULL),
+    d_softResourceOut(NULL),
+    d_hardResourceOut(NULL),
+    d_setForceLogic(NULL),
     d_nonClausalLearnedLiterals(),
     d_realAssertionsEnd(0),
     d_booleanTermConverter(NULL),
@@ -525,21 +541,24 @@ public:
     d_true = NodeManager::currentNM()->mkConst(true);
     d_resourceManager = NodeManager::currentResourceManager();
 
-    d_softResourceOutListener = new RegisterListener(
-        d_resourceManager->getSoftListeners(),
+    d_softResourceOut = d_resourceManager->registerSoftListener(
         new SoftResourceOutListener(d_smt));
 
-    d_hardResourceOutListener = new RegisterListener(
-        d_resourceManager->getHardListeners(),
+    d_hardResourceOut = d_resourceManager->registerHardListener(
         new HardResourceOutListener(d_smt));
 
+    Options& nodeManagerOptions = NodeManager::currentNM()->getOptions();
+    d_setForceLogic = nodeManagerOptions.registerForceLogicListener(
+        new SetLogicListener(d_smt));
   }
 
   ~SmtEnginePrivate() throw() {
-    delete d_hardResourceOutListener;
-    d_hardResourceOutListener = NULL;
-    delete d_softResourceOutListener;
-    d_softResourceOutListener = NULL;
+    delete d_setForceLogic;
+    d_setForceLogic = NULL;
+    delete d_hardResourceOut;
+    d_hardResourceOut = NULL;
+    delete d_softResourceOut;
+    d_softResourceOut = NULL;
 
     if(d_propagatorNeedsFinish) {
       d_propagator.finish();
@@ -745,6 +764,7 @@ public:
 
 }/* namespace CVC4::smt */
 
+#warning "Remove the const cast for SmtOptionsHandler"
 SmtEngine::SmtEngine(ExprManager* em) throw() :
   d_context(new Context()),
   d_userLevels(),
@@ -773,7 +793,7 @@ SmtEngine::SmtEngine(ExprManager* em) throw() :
   d_needPostsolve(false),
   d_earlyTheoryPP(true),
   d_status(),
-  d_optionsHandler(new SmtOptionsHandler(this)),
+  d_optionsHandler(new SmtOptionsHandler((Options*)&em->getOptions(), this)),
   d_private(NULL),
   d_smtAttributes(NULL),
   d_statisticsRegistry(NULL),
@@ -1008,8 +1028,8 @@ void SmtEngine::setLogicInternal() throw() {
 }
 
 void SmtEngine::setDefaults() {
-  if(options::forceLogic.wasSetByUser()) {
-    d_logic = *(options::forceLogic());
+  if(options::forceLogicString.wasSetByUser()) {
+    d_logic = LogicInfo(options::forceLogicString());
   }
   else if (options::solveIntAsBV() > 0) {
     d_logic = LogicInfo("QF_BV");

@@ -167,8 +167,9 @@ ParserBuilder& ParserBuilder::withOptions(const Options& options) {
       .withStrictMode(options[options::strictParsing])
       .withParseOnly(options[options::parseOnly])
       .withIncludeFile(options[options::filesystemAccess]);
-  if(options.wasSetByUser(options::forceLogic)) {
-    retval = retval.withForcedLogic(options[options::forceLogic]->getLogicString());
+  if(options.wasSetByUser(options::forceLogicString)) {
+    LogicInfo tmp(options[options::forceLogicString]);
+    retval = retval.withForcedLogic(tmp.getLogicString());
   }
   return retval;
 }

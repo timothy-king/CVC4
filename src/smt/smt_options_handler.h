@@ -38,14 +38,13 @@
 #include "options/theoryof_mode.h"
 #include "options/ufss_mode.h"
 #include "smt/smt_engine.h"
-#include "theory/logic_info.h"
 
 namespace CVC4 {
 namespace smt {
 
 class CVC4_PUBLIC SmtOptionsHandler : public options::OptionsHandler {
 public:
-  SmtOptionsHandler(SmtEngine* smt);
+  SmtOptionsHandler(Options* options, SmtEngine* smt);
   ~SmtOptionsHandler();
 
   // TODO
@@ -115,7 +114,6 @@ public:
 
   // smt/options_handlers.h
   virtual void dumpMode(std::string option, std::string optarg);
-  virtual LogicInfo* stringToLogicInfo(std::string option, std::string optarg) throw(OptionException);
   virtual SimplificationMode stringToSimplificationMode(std::string option, std::string optarg) throw(OptionException);
   virtual void beforeSearch(std::string option, bool value) throw(ModalException);
   virtual void setProduceAssertions(std::string option, bool value) throw();

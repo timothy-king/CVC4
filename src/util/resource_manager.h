@@ -174,11 +174,22 @@ public:
 
   static uint64_t getFrequencyCount() { return s_resourceCount; }
 
-  /** Collection of listeners that are notified on a hard resource out. */
-  ListenerCollection* getHardListeners();
+  /**
+   * Registers a listener that is notified on a hard resource out.
+   *
+   * This Registration must be destroyed by the user before this
+   * ResourceManager.
+   */
+  ListenerCollection::Registration* registerHardListener(Listener* listener);
 
-  /** Collection of listeners that are notified on a soft resource out. */
-  ListenerCollection* getSoftListeners();
+  /**
+   * Registers a listener that is notified on a soft resource out.
+   *
+   * This Registration must be destroyed by the user before this
+   * ResourceManager.
+   */
+  ListenerCollection::Registration* registerSoftListener(Listener* listener);
+
 };/* class ResourceManager */
 
 }/* CVC4 namespace */

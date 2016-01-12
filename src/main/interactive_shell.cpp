@@ -100,8 +100,9 @@ InteractiveShell::InteractiveShell(ExprManager& exprManager,
   ParserBuilder parserBuilder(&exprManager, INPUT_FILENAME, options);
   /* Create parser with bogus input. */
   d_parser = parserBuilder.withStringInput("").build();
-  if(d_options.wasSetByUser(options::forceLogic)) {
-    d_parser->forceLogic(d_options[options::forceLogic]->getLogicString());
+  if(d_options.wasSetByUser(options::forceLogicString)) {
+    LogicInfo tmp(d_options[options::forceLogicString]);
+    d_parser->forceLogic(tmp.getLogicString());
   }
 
 #if HAVE_LIBREADLINE

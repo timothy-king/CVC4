@@ -115,6 +115,7 @@ long_option_alternate=
 long_option_alternate_set=
 type=
 predicates=
+notifications=
 
 # just for duplicates-checking
 all_declared_internal_options=
@@ -247,6 +248,7 @@ function handle_option {
   default_value=
   handlers=
   predicates=
+  notifications=
   links=
   links_alternate=
   smt_links=
@@ -425,6 +427,12 @@ function handle_option {
          predicates="${predicates} ${args[$i]}"
        done
        ;;
+    :notify)
+       while [ $(($i+1)) -lt ${#args[@]} ] && ! expr "${args[$(($i+1))]}" : '\:' &>/dev/null; do
+         let ++i
+         notifications="${notifications} ${args[$i]}"
+       done
+       ;;
     :link)
        while [ $(($i+1)) -lt ${#args[@]} ] && ! expr "${args[$(($i+1))]}" : '\:' &>/dev/null; do
          let ++i
@@ -582,6 +590,7 @@ template <> bool Options::wasSetByUser(options::${internal}__option_t) const { r
     case $n_long:// --$long_option_alternate"
     let ++n_long
   fi
+  run_notifications=
   run_links=
   run_links_alternate=
   run_smt_links=
@@ -629,6 +638,13 @@ template <> bool Options::wasSetByUser(options::${internal}__option_t) const { r
   $predicate(option, b, handler);"
       done
     fi
+    if [ -n "$notifications" ]; then
+      for notification in $notifications; do
+        run_handlers="$run_handlers
+#line $lineno \"$kf\"
+  $notification(handler);"
+      done
+    fi
     if [ -n "$run_handlers" ]; then
       all_custom_handlers="${all_custom_handlers}
 #line $lineno \"$kf\"
@@ -664,6 +680,13 @@ template <> void runBoolPredicates(options::${internal}__option_t, std::string o
   $predicate(option, retval, handler);"
         done
       fi
+      if [ -n "$notifications" ]; then
+        for notification in $notifications; do
+          run_handlers="$run_handlers
+#line $lineno \"$kf\"
+  $notification(handler);"
+        done
+      fi
       all_custom_handlers="${all_custom_handlers}
 #line $lineno \"$kf\"
 template <> options::${internal}__option_t::type runHandlerAndPredicates(options::${internal}__option_t, std::string option, std::string optionarg, options::OptionsHandler* handler) {
@@ -689,6 +712,13 @@ template <> options::${internal}__option_t::type runHandlerAndPredicates(options
       $handler(option, optionarg, handler);"
         done
       fi
+      if [ -n "$notifications" ]; then
+        for notification in $notifications; do
+          run_handlers="$run_handlers
+#line $lineno \"$kf\"
+  $notification(handler);"
+        done
+      fi
       all_modules_option_handlers="${all_modules_option_handlers}${cases}
 #line $lineno \"$kf\"
       $run_handlers$run_links
@@ -706,13 +736,20 @@ template <> options::${internal}__option_t::type runHandlerAndPredicates(options
       $handler(option, handler);"
         done
       fi
+      if [ -n "$notifications" ]; then
+        for notification in $notifications; do
+          run_handlers="$run_handlers
+#line $lineno \"$kf\"
+  $notification(handler);"
+        done
+      fi
       all_modules_option_handlers="${all_modules_option_handlers}${cases}
 #line $lineno \"$kf\"
       $run_handlers$run_links
       break;
 "
     fi
-  fi
+  fi # ends if [ -n "$cases" ];
   if [ -n "$cases_alternate" ]; then
     if [ "$type" = bool ]; then
       all_modules_option_handlers="${all_modules_option_handlers}${cases_alternate}
@@ -912,8 +949,6 @@ function handle_alias {
   readOnly=true
   required_argument=false
   default_value=
-  handlers=
-  predicates=
   links=
   links_alternate=
 

@@ -218,7 +218,6 @@ liboptions_la_SOURCES = \
 	didyoumean.h \
 	language.cpp \
 	language.h \
-	logic_info_forward.h \
 	option_exception.h \
 	options.h \
 	options_handler_interface.cpp \

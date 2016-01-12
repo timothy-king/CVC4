@@ -10,7 +10,7 @@ common-option - dump --dump=MODE argument :handler CVC4::options::dumpMode :hand
 common-option - dump-to --dump-to=FILE argument :handler CVC4::options::dumpToFile :handler-include "options/options_handler_interface.h"
  all dumping goes to FILE (instead of stdout)
 
-expert-option forceLogic force-logic --force-logic=LOGIC LogicInfo* :include "options/logic_info_forward.h" :handler CVC4::options::stringToLogicInfo :handler-include "options/options_handler_interface.h" :default NULL
+expert-option forceLogicString force-logic --force-logic=LOGIC std::string :default "" :notify notifyForceLogic
  set the logic, and override all further user attempts to change it
 
 option simplificationMode simplification-mode --simplification=MODE SimplificationMode :handler CVC4::options::stringToSimplificationMode :default SIMPLIFICATION_MODE_BATCH :read-write :include "options/simplification_mode.h" :handler-include "options/options_handler_interface.h"

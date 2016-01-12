@@ -68,7 +68,8 @@ void parseThreadSpecificOptions(OptionsList& threadOptions, const Options& opts)
 {
 
 #warning "TODO: Check that the SmtEngine pointer should be NULL with Kshitij."
-  smt::SmtOptionsHandler optionsHandler(NULL);
+#warning "TODO: Remove the const cast."
+  smt::SmtOptionsHandler optionsHandler((Options*)&opts, NULL);
 
   unsigned numThreads = opts[options::threads];
 

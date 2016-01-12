@@ -66,8 +66,8 @@
 namespace CVC4 {
 namespace smt {
 
-SmtOptionsHandler::SmtOptionsHandler(SmtEngine* smt)
-    : d_smtEngine(smt)
+SmtOptionsHandler::SmtOptionsHandler(Options* options, SmtEngine* smt)
+    : OptionsHandler(options), d_smtEngine(smt)
 {}
 
 SmtOptionsHandler::~SmtOptionsHandler(){}
@@ -1162,19 +1162,6 @@ void SmtOptionsHandler::dumpMode(std::string option, std::string optarg) {
 #endif /* CVC4_DUMPING */
 }
 
-LogicInfo* SmtOptionsHandler::stringToLogicInfo(std::string option, std::string optarg) throw(OptionException) {
-  try {
-#warning "TODO: Fix the blatant memory leak here."
-    LogicInfo* logic = new LogicInfo(optarg);
-    if(d_smtEngine != NULL) {
-      d_smtEngine->setLogic(*logic);
-    }
-    return logic;
-  } catch(IllegalArgumentException& e) {
-    throw OptionException(std::string("invalid logic specification for --force-logic: `") +
-                          optarg + "':\n" + e.what());
-  }
-}
 
 SimplificationMode SmtOptionsHandler::stringToSimplificationMode(std::string option, std::string optarg) throw(OptionException) {
   if(optarg == "batch") {

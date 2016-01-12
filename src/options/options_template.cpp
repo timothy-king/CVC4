@@ -75,6 +75,8 @@ namespace CVC4 {
 
 CVC4_THREADLOCAL(Options*) Options::s_current = NULL;
 
+
+
 /**
  * This is a default handler for options of built-in C++ type.  This
  * template is really just a helper for the handleOption() template,
@@ -237,9 +239,10 @@ ${all_custom_handlers}
 #  define DO_SEMANTIC_CHECKS_BY_DEFAULT true
 #endif /* CVC4_MUZZLED || CVC4_COMPETITION_MODE */
 
-Options::Options() :
-  d_holder(new options::OptionsHolder()) {
-}
+Options::Options()
+    : d_holder(new options::OptionsHolder())
+    , d_forceLogicListeners()
+{}
 
 Options::~Options() {
   delete d_holder;
@@ -250,6 +253,12 @@ void Options::copyValues(const Options& options){
     delete d_holder;
     d_holder = new options::OptionsHolder(*options.d_holder);
   }
+}
+
+ListenerCollection::Registration* Options::registerForceLogicListener(
+   Listener* listener)
+{
+  return d_forceLogicListeners.registerListener(listener);
 }
 
 options::OptionsHolder::OptionsHolder() : ${all_modules_defaults}
@@ -632,6 +641,7 @@ std::vector< std::vector<std::string> > Options::getOptions() const throw() {
 
   return opts;
 }
+
 
 #undef USE_EARLY_TYPE_CHECKING_BY_DEFAULT
 #undef DO_SEMANTIC_CHECKS_BY_DEFAULT

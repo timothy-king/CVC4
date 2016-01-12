@@ -55,7 +55,7 @@ public:
 
   void setUp() {
     try {
-      d_handler = new smt::SmtOptionsHandler(NULL);
+      d_handler = new smt::SmtOptionsHandler(&opts, NULL);
 
       char *argv[2];
       argv[0] = strdup("");

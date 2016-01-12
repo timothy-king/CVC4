@@ -49,8 +49,8 @@ void ListenerCollection::notify() {
 bool ListenerCollection::empty() const { return d_listeners.empty(); }
 
 
-RegisterListener::RegisterListener(ListenerCollection* collection,
-                                   Listener* listener)
+ListenerCollection::Registration::Registration(
+    ListenerCollection* collection, Listener* listener)
     : d_listener(listener)
     , d_position()
     , d_collection(collection)
@@ -58,9 +58,15 @@ RegisterListener::RegisterListener(ListenerCollection* collection,
   d_position = d_collection->addListener(d_listener);
 }
 
-RegisterListener::~RegisterListener() {
+ListenerCollection::Registration::~Registration() {
   d_collection->removeListener(d_position);
   delete d_listener;
+}
+
+ ListenerCollection::Registration* ListenerCollection::registerListener(
+     Listener* listener)
+{
+  return new Registration(this, listener);
 }
 
 }/* CVC4 namespace */

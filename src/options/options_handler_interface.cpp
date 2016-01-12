@@ -276,11 +276,6 @@ void dumpMode(std::string option, std::string optarg, OptionsHandler* handler) {
   handler->dumpMode(option, optarg);
 }
 
-LogicInfo* stringToLogicInfo(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException){
-  PrettyCheckArgument(handler != NULL, handler, s_third_argument_warning);
-  return handler->stringToLogicInfo(option, optarg);
-}
-
 SimplificationMode stringToSimplificationMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException){
   PrettyCheckArgument(handler != NULL, handler, s_third_argument_warning);
   return handler->stringToSimplificationMode(option, optarg);
@@ -350,9 +345,17 @@ unsigned long rlimitPerHandler(std::string option, std::string optarg, OptionsHa
   return handler->rlimitPerHandler(option, optarg);
 }
 
+void notifyForceLogic(OptionsHandler* handler){
+  PrettyCheckArgument(handler != NULL, handler, s_third_argument_warning);
+  handler->notifyForceLogic();
+}
 
 
-OptionsHandler::OptionsHandler() { }
+OptionsHandler::OptionsHandler(Options* options) : d_options(options) { }
+
+void OptionsHandler::notifyForceLogic(){
+  d_options->d_forceLogicListeners.notify();
+}
 
 }/* CVC4::options namespace */
 }/* CVC4 namespace */

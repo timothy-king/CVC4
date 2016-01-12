@@ -31,6 +31,7 @@
 #include "options/decision_mode.h"
 #include "options/language.h"
 #include "options/option_exception.h"
+#include "options/options.h"
 #include "options/printer_modes.h"
 #include "options/quantifiers_modes.h"
 #include "options/simplification_mode.h"
@@ -38,15 +39,11 @@
 #include "options/ufss_mode.h"
 
 namespace CVC4 {
-class LogicInfo;
-}/* CVC4 namespace */
-
-namespace CVC4 {
 namespace options {
 
 class OptionsHandler {
 public:
-  OptionsHandler();
+  OptionsHandler(Options* options);
   virtual ~OptionsHandler() {}
 
   void setOption(const std::string& key, const std::string& optionarg) throw(OptionException, ModalException);
@@ -121,7 +118,6 @@ public:
 
   /* smt/options_handlers.h */
   virtual void dumpMode(std::string option, std::string optarg) = 0;
-  virtual LogicInfo* stringToLogicInfo(std::string option, std::string optarg) throw(OptionException) = 0;
   virtual SimplificationMode stringToSimplificationMode(std::string option, std::string optarg) throw(OptionException) = 0;
 
   virtual void beforeSearch(std::string option, bool value) throw(ModalException) = 0;
@@ -157,6 +153,12 @@ public:
   virtual void addTraceTag(std::string option, std::string optarg) = 0;
   virtual void addDebugTag(std::string option, std::string optarg) = 0;
   virtual void setPrintSuccess(std::string option, bool value) = 0;
+
+
+  void notifyForceLogic();
+
+ private:
+  Options* d_options;
 }; /* class OptionHandler */
 
 // theory/arith/options_handlers.h
@@ -234,8 +236,6 @@ void setPrintExprTypes(std::string option, OptionsHandler* handler);
 /* smt/options_handlers.h */
 void dumpMode(std::string option, std::string optarg, OptionsHandler* handler);
 
-LogicInfo* stringToLogicInfo(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException);
-
 SimplificationMode stringToSimplificationMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException);
 
 // ensure we haven't started search yet
@@ -265,6 +265,7 @@ unsigned long rlimitHandler(std::string option, std::string optarg, OptionsHandl
 
 unsigned long rlimitPerHandler(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException);
 
+void notifyForceLogic(OptionsHandler* handler);
 
 }/* CVC4::options namespace */
 }/* CVC4 namespace */
