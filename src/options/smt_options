@@ -91,13 +91,13 @@ option - regular-output-channel argument :handler CVC4::options::setRegularOutpu
 option - diagnostic-output-channel argument :handler CVC4::options::setDiagnosticOutputChannel :handler-include "options/options_handler_interface.h"
  set the diagnostic output channel of the solver
 
-common-option cumulativeMillisecondLimit tlimit --tlimit=MS "unsigned long" :handler CVC4::options::tlimitHandler :handler-include "options/options_handler_interface.h"
+common-option cumulativeMillisecondLimit tlimit --tlimit=MS "unsigned long" :handler CVC4::options::tlimitHandler :handler-include "options/options_handler_interface.h" :notify CVC4::options::notifyTlimit
  enable time limiting (give milliseconds)
-common-option perCallMillisecondLimit  tlimit-per --tlimit-per=MS "unsigned long" :handler CVC4::options::tlimitPerHandler :handler-include "options/options_handler_interface.h"
+common-option perCallMillisecondLimit  tlimit-per --tlimit-per=MS "unsigned long" :handler CVC4::options::tlimitPerHandler :handler-include "options/options_handler_interface.h" :notify CVC4::options::notifyTlimitPer
  enable time limiting per query (give milliseconds)
-common-option cumulativeResourceLimit rlimit --rlimit=N "unsigned long" :handler CVC4::options::rlimitHandler :handler-include "options/options_handler_interface.h"
+common-option cumulativeResourceLimit rlimit --rlimit=N "unsigned long" :handler CVC4::options::rlimitHandler :handler-include "options/options_handler_interface.h" :notify CVC4::options::notifyRlimit
  enable resource limiting (currently, roughly the number of SAT conflicts)
-common-option perCallResourceLimit reproducible-resource-limit --rlimit-per=N "unsigned long" :handler CVC4::options::rlimitPerHandler :handler-include "options/options_handler_interface.h"
+common-option perCallResourceLimit reproducible-resource-limit --rlimit-per=N "unsigned long" :handler CVC4::options::rlimitPerHandler :handler-include "options/options_handler_interface.h" :notify CVC4::options::notifyRlimitPer
  enable resource limiting per query
 common-option hardLimit hard-limit --hard-limit bool :default false
  the resource limit is hard potentially leaving the smtEngine in an unsafe state (should be destroyed and rebuild after resourcing out)

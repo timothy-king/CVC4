@@ -593,6 +593,7 @@ template <> bool Options::wasSetByUser(options::${internal}__option_t) const { r
   run_links=
   run_links_alternate=
   run_smt_links=
+  run_notifications=
   if [ -n "$links" -a -z "$smt_links" -a -n "$smtname" ]; then
     WARN "$smtname has no :link-smt, but equivalent command-line has :link"
   elif [ -n "$smt_links" -a -z "$links" ] && [ -n "$short_option" -o -n "$short_option_alternate" -o -n "$long_option" -o "$long_option_alternate" ]; then
@@ -603,7 +604,7 @@ template <> bool Options::wasSetByUser(options::${internal}__option_t) const { r
     for link in $links; do
       run_links="$run_links
 #line $lineno \"$kf\"
-      preemptGetopt(extra_argc, extra_argv, \"$link\");"
+      argumentExtender.extend(extra_argc, extra_argv, \"$link\", allocated);"
     done
   fi
   if [ -n "$smt_links" ]; then
@@ -622,7 +623,14 @@ template <> bool Options::wasSetByUser(options::${internal}__option_t) const { r
     for link in $links_alternate; do
       run_links_alternate="$run_links_alternate
 #line $lineno \"$kf\"
-      preemptGetopt(extra_argc, extra_argv, \"$link\");"
+      argumentExtender.extend(extra_argc, extra_argv, \"$link\", allocated);"
+    done
+  fi
+  if [ -n "$notifications" ]; then
+    for notification in $notifications; do
+      run_notifications="$run_notifications
+#line $lineno \"$kf\"
+  $notification(option, handler);"
     done
   fi
   if [ "$type" = bool ] && [ -n "$cases" -o -n "$cases_alternate" -o -n "$smtname" ]; then
@@ -635,13 +643,6 @@ template <> bool Options::wasSetByUser(options::${internal}__option_t) const { r
         run_handlers="$run_handlers
 #line $lineno \"$kf\"
   $predicate(option, b, handler);"
-      done
-    fi
-    if [ -n "$notifications" ]; then
-      for notification in $notifications; do
-        run_handlers="$run_handlers
-#line $lineno \"$kf\"
-  $notification(option, handler);"
       done
     fi
     if [ -n "$run_handlers" ]; then
@@ -679,13 +680,6 @@ template <> void runBoolPredicates(options::${internal}__option_t, std::string o
   $predicate(option, retval, handler);"
         done
       fi
-      if [ -n "$notifications" ]; then
-        for notification in $notifications; do
-          run_handlers="$run_handlers
-#line $lineno \"$kf\"
-  $notification(option, handler);"
-        done
-      fi
       all_custom_handlers="${all_custom_handlers}
 #line $lineno \"$kf\"
 template <> options::${internal}__option_t::type runHandlerAndPredicates(options::${internal}__option_t, std::string option, std::string optionarg, options::OptionsHandler* handler) {
@@ -711,13 +705,6 @@ template <> options::${internal}__option_t::type runHandlerAndPredicates(options
       $handler(option, optionarg, handler);"
         done
       fi
-      if [ -n "$notifications" ]; then
-        for notification in $notifications; do
-          run_handlers="$run_handlers
-#line $lineno \"$kf\"
-  $notification(option, handler);"
-        done
-      fi
       all_modules_option_handlers="${all_modules_option_handlers}${cases}
 #line $lineno \"$kf\"
       $run_handlers$run_links
@@ -733,13 +720,6 @@ template <> options::${internal}__option_t::type runHandlerAndPredicates(options
           run_handlers="$run_handlers
 #line $lineno \"$kf\"
       $handler(option, handler);"
-        done
-      fi
-      if [ -n "$notifications" ]; then
-        for notification in $notifications; do
-          run_handlers="$run_handlers
-#line $lineno \"$kf\"
-  $notification(option, handler);"
         done
       fi
       all_modules_option_handlers="${all_modules_option_handlers}${cases}
@@ -893,7 +873,7 @@ template <> void Options::assignBool(options::${internal}__option_t, std::string
 #line $lineno \"$kf\"
   d_holder->${internal}__setByUser__ = true;
 #line $lineno \"$kf\"
-  Trace(\"options\") << \"user assigned option $internal\" << std::endl;
+  Trace(\"options\") << \"user assigned option $internal\" << std::endl;$run_notifications
 }"
   elif [ -n "$expect_arg" -a "$internal" != - ] && [ -n "$cases" -o -n "$cases_alternate" -o -n "$smtname" ]; then
     all_custom_handlers="${all_custom_handlers}
@@ -904,7 +884,7 @@ template <> void Options::assign(options::${internal}__option_t, std::string opt
 #line $lineno \"$kf\"
   d_holder->${internal}__setByUser__ = true;
 #line $lineno \"$kf\"
-  Trace(\"options\") << \"user assigned option $internal\" << std::endl;
+  Trace(\"options\") << \"user assigned option $internal\" << std::endl;$run_notifications
 }"
   fi
 }
@@ -1033,12 +1013,12 @@ function handle_alias {
     fi
     links="$links
 #line $lineno \"$kf\"
-      preemptGetopt(extra_argc, extra_argv, \"$linkopt\");"
+      argumentExtender.extend(extra_argc, extra_argv, \"$linkopt\", allocated);"
     if [ "$linkarg" ]; then
       # include also the arg
       links="$links
 #line $lineno \"$kf\"
-      preemptGetopt(extra_argc, extra_argv, optionarg.c_str());"
+      argumentExtender.extend(extra_argc, extra_argv, optionarg.c_str(), allocated);"
     fi
     shift
   done

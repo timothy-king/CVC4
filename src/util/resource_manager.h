@@ -118,13 +118,13 @@ class CVC4_PUBLIC ResourceManager {
    * ResourceManagers cannot be copied as they are given an explicit
    * list of Listeners to respond to.
    */
-  ResourceManager(const ResourceManager&) CVC4_UNUSED;
+  ResourceManager(const ResourceManager&) CVC4_UNDEFINED;
 
   /**
    * ResourceManagers cannot be assigned as they are given an explicit
    * list of Listeners to respond to.
    */
-  ResourceManager& operator=(const ResourceManager&) CVC4_UNUSED;
+  ResourceManager& operator=(const ResourceManager&) CVC4_UNDEFINED;
 
 public:
 
@@ -191,6 +191,38 @@ public:
   ListenerCollection::Registration* registerSoftListener(Listener* listener);
 
 };/* class ResourceManager */
+
+class TlimitListener : public Listener {
+ public:
+  TlimitListener(ResourceManager* rm) : d_rm(rm) {}
+  virtual void notify();
+ private:
+  ResourceManager* d_rm;
+};
+
+class TlimitPerListener : public Listener {
+ public:
+  TlimitPerListener(ResourceManager* rm) : d_rm(rm) {}
+  virtual void notify();
+ private:
+  ResourceManager* d_rm;
+};
+
+class RlimitListener : public Listener {
+ public:
+  RlimitListener(ResourceManager* rm) : d_rm(rm) {}
+  virtual void notify();
+ private:
+  ResourceManager* d_rm;
+};
+
+class RlimitPerListener : public Listener {
+ public:
+  RlimitPerListener(ResourceManager* rm) : d_rm(rm) {}
+  virtual void notify();
+ private:
+  ResourceManager* d_rm;
+};
 
 }/* CVC4 namespace */
 

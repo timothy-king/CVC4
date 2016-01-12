@@ -125,19 +125,40 @@ private:
    * The user of the class must be know to remove listeners on the collection.
    * Allowing copies will only cause confusion.
    */
-  ListenerCollection(const ListenerCollection& copy) CVC4_UNUSED;
+  ListenerCollection(const ListenerCollection& copy) CVC4_UNDEFINED;
 
   /**
    * Disabling the assignment operator.
    * The user of the class must be know to remove listeners on the collection.
    * Allowing copies will only cause confusion.
    */
-  ListenerCollection& operator=(const ListenerCollection& copy) CVC4_UNUSED;
+  ListenerCollection& operator=(const ListenerCollection& copy) CVC4_UNDEFINED;
 
   /** A list of the listeners in the collection.*/
   ListenerList d_listeners;
 };/* class CVC4::ListenerCollection */
 
+/**
+ * A list of ListenerCollection::Registration* pointers.
+ *
+ * This list assumes it has control over all of the memory of the registrations.
+ */
+class ListenerRegistrationList {
+ public:
+  ListenerRegistrationList();
+  ~ListenerRegistrationList();
+
+  void add(ListenerCollection::Registration* registration);
+  void clear();
+
+ private:
+  /** Disallow copying.*/
+  ListenerRegistrationList(const ListenerRegistrationList&) CVC4_UNDEFINED;
+  /** Disallow assignment.*/
+  ListenerRegistrationList operator=(const ListenerRegistrationList&)
+      CVC4_UNDEFINED;
+  std::list<ListenerCollection::Registration*> d_registrations;
+};/* class CVC4::ListenerRegistrationList */
 
 }/* CVC4 namespace */
 

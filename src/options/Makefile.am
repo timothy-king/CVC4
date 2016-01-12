@@ -206,6 +206,8 @@ liboptions_la_SOURCES = \
 	arith_propagation_mode.h \
 	arith_unate_lemma_mode.cpp \
 	arith_unate_lemma_mode.h \
+	argument_extender.cpp \
+	argument_extender.h \
 	base_handlers.h \
 	boolean_term_conversion_mode.cpp \
 	boolean_term_conversion_mode.h \

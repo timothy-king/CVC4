@@ -72,10 +72,11 @@ private:
                    pANTLR3_UINT8 inputString);
 
   /* This is private and unimplemented, because you should never use it. */
-  AntlrInputStream(const AntlrInputStream& inputStream) CVC4_UNUSED;
+  AntlrInputStream(const AntlrInputStream& inputStream) CVC4_UNDEFINED;
 
   /* This is private and unimplemented, because you should never use it. */
-  AntlrInputStream& operator=(const AntlrInputStream& inputStream) CVC4_UNUSED;
+  AntlrInputStream& operator=(const AntlrInputStream& inputStream)
+    CVC4_UNDEFINED;
 
 public:
 

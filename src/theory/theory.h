@@ -140,9 +140,9 @@ private:
   friend class ::CVC4::TheoryEngine;
 
   // Disallow default construction, copy, assignment.
-  Theory() CVC4_UNUSED;
-  Theory(const Theory&) CVC4_UNUSED;
-  Theory& operator=(const Theory&) CVC4_UNUSED;
+  Theory() CVC4_UNDEFINED;
+  Theory(const Theory&) CVC4_UNDEFINED;
+  Theory& operator=(const Theory&) CVC4_UNDEFINED;
 
   /**
    * An integer identifying the type of the theory

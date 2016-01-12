@@ -48,6 +48,18 @@ class CVC4_PUBLIC Options {
   /** Listeners for notifyBeforeSearch. */
   ListenerCollection d_beforeSearchListeners;
 
+  /** Listeners for options::tlimit. */
+  ListenerCollection d_tlimitListeners;
+
+  /** Listeners for options::tlimit-per. */
+  ListenerCollection d_tlimitPerListeners;
+
+  /** Listeners for options::rlimit. */
+  ListenerCollection d_rlimitListeners;
+
+  /** Listeners for options::tlimit-per. */
+  ListenerCollection d_rlimitPerListeners;
+
   /** Low-level assignment function for options */
   template <class T>
   void assign(T, std::string option, std::string value, options::OptionsHandler* handler);
@@ -61,13 +73,18 @@ class CVC4_PUBLIC Options {
    * Options cannot be copied as they are given an explicit list of
    * Listeners to respond to.
    */
-  Options(const Options& options) CVC4_UNUSED;
+  Options(const Options& options) CVC4_UNDEFINED;
 
   /**
    * Options cannot be assigned as they are given an explicit list of
    * Listeners to respond to.
    */
-  Options& operator=(const Options& options) CVC4_UNUSED;
+  Options& operator=(const Options& options) CVC4_UNDEFINED;
+
+  static std::string formatThreadOptionException(const std::string& option);
+
+  static const size_t s_maxoptlen = 128;
+  static const unsigned s_preemptAdditional = 6;
 
 public:
   class CVC4_PUBLIC OptionsScope {
@@ -183,6 +200,7 @@ public:
 
   /**
    * Registers a listener for options::forceLogic being set.
+   *
    * The memory for the Registration is controlled by the user and must
    * be destroyed before the Options object is.
    */
@@ -190,13 +208,51 @@ public:
       Listener* listener);
 
   /**
-   * Registers a listener for the predicate notifyBeforeSearch
+   * Registers a listener for the notification, notifyBeforeSearch.
    *
    * The memory for the Registration is controlled by the user and must
    * be destroyed before the Options object is.
    */
   ListenerCollection::Registration* registerBeforeSearchListener(
       Listener* listener);
+
+  /**
+   * Registers a listener for options::tlimit being set.
+   *
+   * The memory for the Registration is controlled by the user and must
+   * be destroyed before the Options object is.
+   */
+  ListenerCollection::Registration* registerTlimitListener(
+      Listener* listener);
+
+  /**
+   * Registers a listener for options::tlimit-per being set.
+   *
+   * The memory for the Registration is controlled by the user and must
+   * be destroyed before the Options object is.
+   */
+  ListenerCollection::Registration* registerTlimitPerListener(
+      Listener* listener);
+
+
+  /**
+   * Registers a listener for options::rlimit being set.
+   *
+   * The memory for the Registration is controlled by the user and must
+   * be destroyed before the Options object is.
+   */
+  ListenerCollection::Registration* registerRlimitListener(
+      Listener* listener);
+
+  /**
+   * Registers a listener for options::rlimit-per being set.
+   *
+   * The memory for the Registration is controlled by the user and must
+   * be destroyed before the Options object is.
+   */
+  ListenerCollection::Registration* registerRlimitPerListener(
+      Listener* listener);
+
 };/* class Options */
 
 }/* CVC4 namespace */

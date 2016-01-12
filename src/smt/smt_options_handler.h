@@ -37,14 +37,13 @@
 #include "options/simplification_mode.h"
 #include "options/theoryof_mode.h"
 #include "options/ufss_mode.h"
-#include "smt/smt_engine.h"
 
 namespace CVC4 {
 namespace smt {
 
 class CVC4_PUBLIC SmtOptionsHandler : public options::OptionsHandler {
 public:
-  SmtOptionsHandler(Options* options, SmtEngine* smt);
+  SmtOptionsHandler(Options* options);
   ~SmtOptionsHandler();
 
   // TODO
@@ -122,10 +121,6 @@ public:
   virtual void setDiagnosticOutputChannel(std::string option, std::string optarg);
   virtual std::string checkReplayFilename(std::string option, std::string optarg);
   virtual void statsEnabledBuild(std::string option, bool value) throw(OptionException);
-  virtual unsigned long tlimitHandler(std::string option, std::string optarg) throw(OptionException);
-  virtual unsigned long tlimitPerHandler(std::string option, std::string optarg) throw(OptionException);
-  virtual unsigned long rlimitHandler(std::string option, std::string optarg) throw(OptionException);
-  virtual unsigned long rlimitPerHandler(std::string option, std::string optarg) throw(OptionException);
 
   /* expr/options_handlers.h */
   virtual void setDefaultExprDepth(std::string option, int depth);
@@ -151,7 +146,6 @@ public:
   static std::string __cvc4_errno_failreason();
 
 private:
-  SmtEngine* d_smtEngine;
 
   /* Helper utilities */
   static std::string suggestTags(char const* const* validTags, std::string inputTag,

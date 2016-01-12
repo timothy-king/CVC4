@@ -17,6 +17,7 @@
 
 #include "base/cvc4_assert.h"
 #include "base/output.h"
+#include "options/smt_options.h"
 
 using namespace std;
 
@@ -292,6 +293,22 @@ ListenerCollection::Registration* ResourceManager::registerSoftListener(
     Listener* listener)
 {
   return d_softListeners.registerListener(listener);
+}
+
+void TlimitListener::notify() {
+  d_rm->setTimeLimit(options::cumulativeMillisecondLimit(), true);
+}
+
+void TlimitPerListener::notify() {
+  d_rm->setTimeLimit(options::perCallMillisecondLimit(), false);
+}
+
+void RlimitListener::notify() {
+  d_rm->setTimeLimit(options::cumulativeResourceLimit(), true);
+}
+
+void RlimitPerListener::notify() {
+  d_rm->setTimeLimit(options::perCallResourceLimit(), false);
 }
 
 } /* namespace CVC4 */

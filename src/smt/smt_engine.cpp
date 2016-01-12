@@ -805,7 +805,7 @@ SmtEngine::SmtEngine(ExprManager* em) throw() :
   d_needPostsolve(false),
   d_earlyTheoryPP(true),
   d_status(),
-  d_optionsHandler(new SmtOptionsHandler((Options*)&em->getOptions(), this)),
+  d_optionsHandler(new SmtOptionsHandler((Options*)&em->getOptions())),
   d_private(NULL),
   d_smtAttributes(NULL),
   d_statisticsRegistry(NULL),

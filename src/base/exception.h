@@ -155,8 +155,8 @@ public:
 
 private:
   /* Disallow copies */
-  LastExceptionBuffer(const LastExceptionBuffer&) CVC4_UNUSED;
-  LastExceptionBuffer& operator=(const LastExceptionBuffer&) CVC4_UNUSED;
+  LastExceptionBuffer(const LastExceptionBuffer&) CVC4_UNDEFINED;
+  LastExceptionBuffer& operator=(const LastExceptionBuffer&) CVC4_UNDEFINED;
 
   char* d_contents;
 

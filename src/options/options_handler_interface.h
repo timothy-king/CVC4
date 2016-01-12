@@ -128,10 +128,17 @@ public:
   virtual void setDiagnosticOutputChannel(std::string option, std::string optarg) = 0;
   virtual std::string checkReplayFilename(std::string option, std::string optarg) = 0;
   virtual void statsEnabledBuild(std::string option, bool value) throw(OptionException) = 0;
-  virtual unsigned long tlimitHandler(std::string option, std::string optarg) throw(OptionException) = 0;
-  virtual unsigned long tlimitPerHandler(std::string option, std::string optarg) throw(OptionException) = 0;
-  virtual unsigned long rlimitHandler(std::string option, std::string optarg) throw(OptionException) = 0;
-  virtual unsigned long rlimitPerHandler(std::string option, std::string optarg) throw(OptionException) = 0;
+
+  unsigned long tlimitHandler(std::string option, std::string optarg) throw(OptionException);
+  unsigned long tlimitPerHandler(std::string option, std::string optarg) throw(OptionException);
+  unsigned long rlimitHandler(std::string option, std::string optarg) throw(OptionException);
+  unsigned long rlimitPerHandler(std::string option, std::string optarg) throw(OptionException);
+
+  void notifyTlimit(const std::string& option);
+  void notifyTlimitPer(const std::string& option);
+  void notifyRlimit(const std::string& option);
+  void notifyRlimitPer(const std::string& option);
+
 
   /* expr/options_handlers.h */
   virtual void setDefaultExprDepth(std::string option, int depth) = 0;
@@ -263,6 +270,11 @@ unsigned long rlimitHandler(std::string option, std::string optarg, OptionsHandl
 unsigned long rlimitPerHandler(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException);
 
 void notifyForceLogic(const std::string& option, OptionsHandler* handler);
+
+void notifyTlimit(const std::string& option, OptionsHandler* handler);
+void notifyTlimitPer(const std::string& option, OptionsHandler* handler);
+void notifyRlimit(const std::string& option, OptionsHandler* handler);
+void notifyRlimitPer(const std::string& option, OptionsHandler* handler);
 
 }/* CVC4::options namespace */
 }/* CVC4 namespace */

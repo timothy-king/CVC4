@@ -87,8 +87,8 @@ class OptionsList {
 
   size_t size() const;
  private:
-  OptionsList(const OptionsList&) CVC4_UNUSED;
-  OptionsList& operator=(const OptionsList&) CVC4_UNUSED;
+  OptionsList(const OptionsList&) CVC4_UNDEFINED;
+  OptionsList& operator=(const OptionsList&) CVC4_UNDEFINED;
   std::vector<Options*> d_options;
 };
 

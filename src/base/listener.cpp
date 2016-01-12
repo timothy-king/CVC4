@@ -69,4 +69,31 @@ ListenerCollection::Registration::~Registration() {
   return new Registration(this, listener);
 }
 
+
+ListenerRegistrationList::ListenerRegistrationList()
+    : d_registrations()
+{}
+
+ListenerRegistrationList::~ListenerRegistrationList() {
+  clear();
+}
+
+void ListenerRegistrationList::add(
+    ListenerCollection::Registration* registration)
+{
+  d_registrations.push_back(registration);
+}
+
+void ListenerRegistrationList::clear(){
+  typedef std::list<ListenerCollection::Registration*>::iterator iterator;
+  for(iterator i = d_registrations.begin(), iend = d_registrations.end();
+      i != iend; ++i)
+  {
+    ListenerCollection::Registration* current = *i;
+    delete current;
+  }
+  d_registrations.clear();
+}
+
+
 }/* CVC4 namespace */

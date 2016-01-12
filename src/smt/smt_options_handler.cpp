@@ -66,8 +66,8 @@
 namespace CVC4 {
 namespace smt {
 
-SmtOptionsHandler::SmtOptionsHandler(Options* options, SmtEngine* smt)
-    : OptionsHandler(options), d_smtEngine(smt)
+SmtOptionsHandler::SmtOptionsHandler(Options* options)
+    : OptionsHandler(options)
 {}
 
 SmtOptionsHandler::~SmtOptionsHandler(){}
@@ -1311,67 +1311,8 @@ void SmtOptionsHandler::statsEnabledBuild(std::string option, bool value) throw(
 #endif /* CVC4_STATISTICS_ON */
 }
 
-unsigned long SmtOptionsHandler::tlimitHandler(std::string option, std::string optarg) throw(OptionException)  {
-  unsigned long ms;
-  std::istringstream convert(optarg);
-  if (!(convert >> ms)) {
-    throw OptionException("option `"+option+"` requires a number as an argument");
-  }
 
-  // make sure the resource is set if the option is updated
-  // if the smt engine is null the resource will be set in the
-  if (d_smtEngine != NULL) {
-    ResourceManager* rm = NodeManager::fromExprManager(d_smtEngine->getExprManager())->getResourceManager();
-    rm->setTimeLimit(ms, true);
-  }
-  return ms;
-}
 
-unsigned long SmtOptionsHandler::tlimitPerHandler(std::string option, std::string optarg) throw(OptionException) {
-  unsigned long ms;
-
-  std::istringstream convert(optarg);
-  if (!(convert >> ms)) {
-    throw OptionException("option `"+option+"` requires a number as an argument");
-  }
-
-  if (d_smtEngine != NULL) {
-    ResourceManager* rm = NodeManager::fromExprManager(d_smtEngine->getExprManager())->getResourceManager();
-    rm->setTimeLimit(ms, false);
-  }
-  return ms;
-}
-
-unsigned long SmtOptionsHandler::rlimitHandler(std::string option, std::string optarg) throw(OptionException) {
-  unsigned long ms;
-
-  std::istringstream convert(optarg);
-  if (!(convert >> ms)) {
-    throw OptionException("option `"+option+"` requires a number as an argument");
-  }
-
-  if (d_smtEngine != NULL) {
-    ResourceManager* rm = NodeManager::fromExprManager(d_smtEngine->getExprManager())->getResourceManager();
-    rm->setResourceLimit(ms, true);
-  }
-  return ms;
-}
-
-unsigned long SmtOptionsHandler::rlimitPerHandler(std::string option, std::string optarg) throw(OptionException) {
-  unsigned long ms;
-
-  std::istringstream convert(optarg);
-  if (!(convert >> ms)) {
-    throw OptionException("option `"+option+"` requires a number as an argument");
-  }
-
-  // TODO: Remove check?
-  if (d_smtEngine != NULL) {
-    ResourceManager* rm = NodeManager::fromExprManager(d_smtEngine->getExprManager())->getResourceManager();
-    rm->setResourceLimit(ms, false);
-  }
-  return ms;
-}
 
 
 

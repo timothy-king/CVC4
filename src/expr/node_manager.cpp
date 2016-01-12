@@ -23,6 +23,7 @@
 #include <utility>
 
 #include "base/cvc4_assert.h"
+#include "base/listener.h"
 #include "base/tls.h"
 #include "expr/attribute.h"
 #include "expr/node_manager_attributes.h"
@@ -84,6 +85,7 @@ NodeManager::NodeManager(ExprManager* exprManager) :
   d_options(new Options()),
   d_statisticsRegistry(new StatisticsRegistry()),
   d_resourceManager(new ResourceManager()),
+  d_registrations(new ListenerRegistrationList()),
   next_id(0),
   d_attrManager(new expr::attr::AttributeManager()),
   d_exprManager(exprManager),
@@ -99,6 +101,7 @@ NodeManager::NodeManager(ExprManager* exprManager,
   d_options(new Options()),
   d_statisticsRegistry(new StatisticsRegistry()),
   d_resourceManager(new ResourceManager()),
+  d_registrations(new ListenerRegistrationList()),
   next_id(0),
   d_attrManager(new expr::attr::AttributeManager()),
   d_exprManager(exprManager),
@@ -137,6 +140,15 @@ void NodeManager::init() {
   if((*d_options)[options::cpuTime]) {
     d_resourceManager->useCPUTime(true);
   }
+
+  d_registrations->add(d_options->registerTlimitListener(
+      new TlimitListener(d_resourceManager)));
+  d_registrations->add(d_options->registerTlimitPerListener(
+      new TlimitPerListener(d_resourceManager)));
+  d_registrations->add(d_options->registerRlimitListener(
+      new RlimitListener(d_resourceManager)));
+  d_registrations->add(d_options->registerRlimitPerListener(
+      new RlimitPerListener(d_resourceManager)));
 }
 
 NodeManager::~NodeManager() {
@@ -182,6 +194,8 @@ NodeManager::~NodeManager() {
   // defensive coding, in case destruction-order issues pop up (they often do)
   delete d_statisticsRegistry;
   d_statisticsRegistry = NULL;
+  delete d_registrations;
+  d_registrations = NULL;
   delete d_resourceManager;
   d_resourceManager = NULL;
   delete d_attrManager;

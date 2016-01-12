@@ -352,6 +352,29 @@ unsigned long rlimitPerHandler(std::string option, std::string optarg, OptionsHa
   return handler->rlimitPerHandler(option, optarg);
 }
 
+
+void notifyTlimit(const std::string& option, OptionsHandler* handler){
+  PrettyCheckArgument(handler != NULL, handler, s_third_argument_warning);
+  handler->notifyTlimit(option);
+}
+
+void notifyTlimitPer(const std::string& option, OptionsHandler* handler){
+  PrettyCheckArgument(handler != NULL, handler, s_third_argument_warning);
+  handler->notifyTlimitPer(option);
+}
+
+void notifyRlimit(const std::string& option, OptionsHandler* handler){
+  PrettyCheckArgument(handler != NULL, handler, s_third_argument_warning);
+  handler->notifyRlimit(option);
+}
+
+void notifyRlimitPer(const std::string& option, OptionsHandler* handler){
+  PrettyCheckArgument(handler != NULL, handler, s_third_argument_warning);
+  handler->notifyRlimitPer(option);
+}
+
+
+
 OptionsHandler::OptionsHandler(Options* options) : d_options(options) { }
 
 void OptionsHandler::notifyForceLogic(const std::string& option){
@@ -370,6 +393,66 @@ void OptionsHandler::notifyBeforeSearch(const std::string& option)
     throw ModalException(ss.str());
   }
 }
+
+
+void OptionsHandler::notifyTlimit(const std::string& option) {
+  d_options->d_tlimitListeners.notify();
+}
+
+void OptionsHandler::notifyTlimitPer(const std::string& option) {
+  d_options->d_tlimitPerListeners.notify();
+}
+
+void OptionsHandler::notifyRlimit(const std::string& option) {
+  d_options->d_rlimitListeners.notify();
+}
+
+void OptionsHandler::notifyRlimitPer(const std::string& option) {
+  d_options->d_rlimitPerListeners.notify();
+}
+
+
+unsigned long OptionsHandler::tlimitHandler(std::string option, std::string optarg) throw(OptionException)  {
+  unsigned long ms;
+  std::istringstream convert(optarg);
+  if (!(convert >> ms)) {
+    throw OptionException("option `"+option+"` requires a number as an argument");
+  }
+  return ms;
+}
+
+unsigned long OptionsHandler::tlimitPerHandler(std::string option, std::string optarg) throw(OptionException) {
+  unsigned long ms;
+
+  std::istringstream convert(optarg);
+  if (!(convert >> ms)) {
+    throw OptionException("option `"+option+"` requires a number as an argument");
+  }
+  return ms;
+}
+
+unsigned long OptionsHandler::rlimitHandler(std::string option, std::string optarg) throw(OptionException) {
+  unsigned long ms;
+
+  std::istringstream convert(optarg);
+  if (!(convert >> ms)) {
+    throw OptionException("option `"+option+"` requires a number as an argument");
+  }
+  return ms;
+}
+
+
+unsigned long OptionsHandler::rlimitPerHandler(std::string option, std::string optarg) throw(OptionException) {
+  unsigned long ms;
+
+  std::istringstream convert(optarg);
+  if (!(convert >> ms)) {
+    throw OptionException("option `"+option+"` requires a number as an argument");
+  }
+
+  return ms;
+}
+
 
 }/* CVC4::options namespace */
 }/* CVC4 namespace */
