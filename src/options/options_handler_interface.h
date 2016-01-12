@@ -117,10 +117,10 @@ public:
 
 
   /* smt/options_handlers.h */
+  void notifyForceLogic(const std::string& option);
+  void notifyBeforeSearch(const std::string& option) throw(ModalException);
   virtual void dumpMode(std::string option, std::string optarg) = 0;
   virtual SimplificationMode stringToSimplificationMode(std::string option, std::string optarg) throw(OptionException) = 0;
-
-  virtual void beforeSearch(std::string option, bool value) throw(ModalException) = 0;
   virtual void setProduceAssertions(std::string option, bool value) throw() = 0;
   virtual void proofEnabledBuild(std::string option, bool value) throw(OptionException) = 0;
   virtual void dumpToFile(std::string option, std::string optarg) = 0;
@@ -153,9 +153,6 @@ public:
   virtual void addTraceTag(std::string option, std::string optarg) = 0;
   virtual void addDebugTag(std::string option, std::string optarg) = 0;
   virtual void setPrintSuccess(std::string option, bool value) = 0;
-
-
-  void notifyForceLogic();
 
  private:
   Options* d_options;
@@ -239,7 +236,7 @@ void dumpMode(std::string option, std::string optarg, OptionsHandler* handler);
 SimplificationMode stringToSimplificationMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException);
 
 // ensure we haven't started search yet
-void beforeSearch(std::string option, bool value, OptionsHandler* handler) throw(ModalException);
+void notifyBeforeSearch(const std::string& option, OptionsHandler* handler) throw(ModalException);
 
 void setProduceAssertions(std::string option, bool value, OptionsHandler* handler) throw();
 
@@ -265,7 +262,7 @@ unsigned long rlimitHandler(std::string option, std::string optarg, OptionsHandl
 
 unsigned long rlimitPerHandler(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException);
 
-void notifyForceLogic(OptionsHandler* handler);
+void notifyForceLogic(const std::string& option, OptionsHandler* handler);
 
 }/* CVC4::options namespace */
 }/* CVC4 namespace */

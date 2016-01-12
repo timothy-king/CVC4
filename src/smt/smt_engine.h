@@ -728,10 +728,8 @@ public:
   void setPrintFuncInModel(Expr f, bool p);
 
 
-  /**
-   * Throws a ModalException if smt is non-null and the SmtEngine has not been fully initialized.
-   */
-  static void beforeSearch(SmtEngine* smt, const std::string& option) throw(ModalException);
+  /** Throws a ModalException if the SmtEngine has been fully initialized. */
+  void beforeSearch() throw(ModalException);
 
   SmtGlobals* globals() { return d_globals; }
 };/* class SmtEngine */

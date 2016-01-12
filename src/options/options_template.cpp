@@ -242,6 +242,7 @@ ${all_custom_handlers}
 Options::Options()
     : d_holder(new options::OptionsHolder())
     , d_forceLogicListeners()
+    , d_beforeSearchListeners()
 {}
 
 Options::~Options() {
@@ -259,6 +260,12 @@ ListenerCollection::Registration* Options::registerForceLogicListener(
    Listener* listener)
 {
   return d_forceLogicListeners.registerListener(listener);
+}
+
+ListenerCollection::Registration* Options::registerBeforeSearchListener(
+   Listener* listener)
+{
+  return d_beforeSearchListeners.registerListener(listener);
 }
 
 options::OptionsHolder::OptionsHolder() : ${all_modules_defaults}

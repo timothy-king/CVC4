@@ -115,7 +115,6 @@ public:
   // smt/options_handlers.h
   virtual void dumpMode(std::string option, std::string optarg);
   virtual SimplificationMode stringToSimplificationMode(std::string option, std::string optarg) throw(OptionException);
-  virtual void beforeSearch(std::string option, bool value) throw(ModalException);
   virtual void setProduceAssertions(std::string option, bool value) throw();
   virtual void proofEnabledBuild(std::string option, bool value) throw(OptionException);
   virtual void dumpToFile(std::string option, std::string optarg);

@@ -333,6 +333,16 @@ class SetLogicListener : public Listener {
   SmtEngine* d_smt;
 }; /* class SetLogicListener */
 
+class BeforeSearchListener : public Listener {
+ public:
+  BeforeSearchListener(SmtEngine& smt) : d_smt(&smt) {}
+  virtual void notify() {
+    d_smt->beforeSearch();
+  }
+ private:
+  SmtEngine* d_smt;
+}; /* class BeforeSearchListener */
+
 /**
  * This is an inelegant solution, but for the present, it will work.
  * The point of this is to separate the public and private portions of
@@ -355,20 +365,17 @@ class SmtEnginePrivate : public NodeManagerListener {
    */
   ResourceManager* d_resourceManager;
 
-  /**
-   * Listener for the when a soft resource out occurs.
-   */
+  /** Listener for when a soft resource out occurs. */
   ListenerCollection::Registration* d_softResourceOut;
 
-  /**
-   * Listener for the when a hard resource out occurs.
-   */
+  /** Listener for when a hard resource out occurs. */
   ListenerCollection::Registration* d_hardResourceOut;
 
-  /**
-   * Listener for the when a hard resource out occurs.
-   */
+  /** Listener for when options::forceLogicString is set. */
   ListenerCollection::Registration* d_setForceLogic;
+
+  /** Listener for when beforeSearch must be checked. */
+  ListenerCollection::Registration* d_beforeSearchListener;
 
   /** Learned literals */
   vector<Node> d_nonClausalLearnedLiterals;
@@ -520,6 +527,7 @@ public:
     d_softResourceOut(NULL),
     d_hardResourceOut(NULL),
     d_setForceLogic(NULL),
+    d_beforeSearchListener(NULL),
     d_nonClausalLearnedLiterals(),
     d_realAssertionsEnd(0),
     d_booleanTermConverter(NULL),
@@ -550,9 +558,13 @@ public:
     Options& nodeManagerOptions = NodeManager::currentNM()->getOptions();
     d_setForceLogic = nodeManagerOptions.registerForceLogicListener(
         new SetLogicListener(d_smt));
+    d_beforeSearchListener = nodeManagerOptions.registerBeforeSearchListener(
+        new BeforeSearchListener(d_smt));
   }
 
   ~SmtEnginePrivate() throw() {
+    delete d_beforeSearchListener;
+    d_beforeSearchListener = NULL;
     delete d_setForceLogic;
     d_setForceLogic = NULL;
     delete d_hardResourceOut;
@@ -5028,11 +5040,10 @@ void SmtEngine::setPrintFuncInModel(Expr f, bool p) {
 
 
 
-void SmtEngine::beforeSearch(SmtEngine* smt, const std::string& option) throw(ModalException) {
-  if(smt != NULL && smt->d_fullyInited) {
-    std::stringstream ss;
-    ss << "cannot change option `" << option << "' after final initialization (i.e., after logic has been set)";
-    throw ModalException(ss.str());
+void SmtEngine::beforeSearch() throw(ModalException) {
+  if(d_fullyInited) {
+    throw ModalException(
+        "SmtEngine::beforeSearch called after initialization.");
   }
 }
 

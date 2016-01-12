@@ -590,7 +590,6 @@ template <> bool Options::wasSetByUser(options::${internal}__option_t) const { r
     case $n_long:// --$long_option_alternate"
     let ++n_long
   fi
-  run_notifications=
   run_links=
   run_links_alternate=
   run_smt_links=
@@ -642,7 +641,7 @@ template <> bool Options::wasSetByUser(options::${internal}__option_t) const { r
       for notification in $notifications; do
         run_handlers="$run_handlers
 #line $lineno \"$kf\"
-  $notification(handler);"
+  $notification(option, handler);"
       done
     fi
     if [ -n "$run_handlers" ]; then
@@ -684,7 +683,7 @@ template <> void runBoolPredicates(options::${internal}__option_t, std::string o
         for notification in $notifications; do
           run_handlers="$run_handlers
 #line $lineno \"$kf\"
-  $notification(handler);"
+  $notification(option, handler);"
         done
       fi
       all_custom_handlers="${all_custom_handlers}
@@ -716,7 +715,7 @@ template <> options::${internal}__option_t::type runHandlerAndPredicates(options
         for notification in $notifications; do
           run_handlers="$run_handlers
 #line $lineno \"$kf\"
-  $notification(handler);"
+  $notification(option, handler);"
         done
       fi
       all_modules_option_handlers="${all_modules_option_handlers}${cases}
@@ -740,7 +739,7 @@ template <> options::${internal}__option_t::type runHandlerAndPredicates(options
         for notification in $notifications; do
           run_handlers="$run_handlers
 #line $lineno \"$kf\"
-  $notification(handler);"
+  $notification(option, handler);"
         done
       fi
       all_modules_option_handlers="${all_modules_option_handlers}${cases}

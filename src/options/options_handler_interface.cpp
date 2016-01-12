@@ -281,10 +281,17 @@ SimplificationMode stringToSimplificationMode(std::string option, std::string op
   return handler->stringToSimplificationMode(option, optarg);
 }
 
-// ensure we haven't started search yet
-void beforeSearch(std::string option, bool value, OptionsHandler* handler) throw(ModalException){
+void notifyForceLogic(const std::string& option, OptionsHandler* handler){
   PrettyCheckArgument(handler != NULL, handler, s_third_argument_warning);
-  handler->beforeSearch(option, value);
+  handler->notifyForceLogic(option);
+}
+
+// ensure we haven't started search yet
+void notifyBeforeSearch(const std::string& option, OptionsHandler* handler)
+    throw(ModalException)
+{
+  PrettyCheckArgument(handler != NULL, handler, s_third_argument_warning);
+  handler->notifyBeforeSearch(option);
 }
 
 void setProduceAssertions(std::string option, bool value, OptionsHandler* handler) throw() {
@@ -345,16 +352,23 @@ unsigned long rlimitPerHandler(std::string option, std::string optarg, OptionsHa
   return handler->rlimitPerHandler(option, optarg);
 }
 
-void notifyForceLogic(OptionsHandler* handler){
-  PrettyCheckArgument(handler != NULL, handler, s_third_argument_warning);
-  handler->notifyForceLogic();
-}
-
-
 OptionsHandler::OptionsHandler(Options* options) : d_options(options) { }
 
-void OptionsHandler::notifyForceLogic(){
+void OptionsHandler::notifyForceLogic(const std::string& option){
   d_options->d_forceLogicListeners.notify();
+}
+
+void OptionsHandler::notifyBeforeSearch(const std::string& option)
+    throw(ModalException)
+{
+  try{
+    d_options->d_beforeSearchListeners.notify();
+  } catch (ModalException&){
+    std::stringstream ss;
+    ss << "cannot change option `" << option
+       << "' after final initialization (i.e., after logic has been set)";
+    throw ModalException(ss.str());
+  }
 }
 
 }/* CVC4::options namespace */

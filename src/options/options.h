@@ -42,8 +42,11 @@ class CVC4_PUBLIC Options {
   /** The current Options in effect */
   static CVC4_THREADLOCAL(Options*) s_current;
 
-  /** Listeners for logicInfo being set. */
+  /** Listeners for options::forceLogicString being set. */
   ListenerCollection d_forceLogicListeners;
+
+  /** Listeners for notifyBeforeSearch. */
+  ListenerCollection d_beforeSearchListeners;
 
   /** Low-level assignment function for options */
   template <class T>
@@ -184,6 +187,15 @@ public:
    * be destroyed before the Options object is.
    */
   ListenerCollection::Registration* registerForceLogicListener(
+      Listener* listener);
+
+  /**
+   * Registers a listener for the predicate notifyBeforeSearch
+   *
+   * The memory for the Registration is controlled by the user and must
+   * be destroyed before the Options object is.
+   */
+  ListenerCollection::Registration* registerBeforeSearchListener(
       Listener* listener);
 };/* class Options */
 

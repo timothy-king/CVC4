@@ -1178,10 +1178,6 @@ SimplificationMode SmtOptionsHandler::stringToSimplificationMode(std::string opt
 }
 
 
-void SmtOptionsHandler::beforeSearch(std::string option, bool value) throw(ModalException) {
-  SmtEngine::beforeSearch(d_smtEngine, option);
-}
-
 void SmtOptionsHandler::setProduceAssertions(std::string option, bool value) throw() {
   options::produceAssertions.set(value);
   options::interactiveMode.set(value);
