@@ -25,6 +25,7 @@
 // This must come before PORTFOLIO_BUILD.
 #include "cvc4autoconfig.h"
 
+#include "base/configuration.h"
 #include "base/output.h"
 #include "expr/expr_iomanip.h"
 #include "expr/expr_manager.h"
@@ -47,7 +48,6 @@
 #include "parser/parser_exception.h"
 #include "smt/smt_options_handler.h"
 #include "smt_util/command.h"
-#include "util/configuration.h"
 #include "util/result.h"
 #include "util/statistics_registry.h"
 

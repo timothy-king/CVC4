@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include "base/configuration.h"
 #include "base/output.h"
 #include "expr/expr_manager.h"
 #include "main/command_executor.h"
@@ -34,7 +35,6 @@
 #include "parser/parser_exception.h"
 #include "smt/smt_engine.h"
 #include "smt_util/command.h"
-#include "util/configuration.h"
 #include "util/result.h"
 #include "util/statistics.h"
 

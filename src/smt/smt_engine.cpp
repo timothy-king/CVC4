@@ -26,6 +26,8 @@
 #include <utility>
 #include <vector>
 
+#include "base/configuration.h"
+#include "base/configuration_private.h"
 #include "base/exception.h"
 #include "base/listener.h"
 #include "base/modal_exception.h"
@@ -95,8 +97,6 @@
 #include "theory/theory_engine.h"
 #include "theory/theory_model.h"
 #include "theory/theory_traits.h"
-#include "util/configuration.h"
-#include "util/configuration_private.h"
 #include "util/hash.h"
 #include "util/proof.h"
 #include "util/resource_manager.h"

@@ -513,7 +513,7 @@ svn_versioninfo.cpp: svninfo
 	    rev=0; \
 	    mods=false; \
 	  fi; \
-	  echo "#include \"util/configuration.h\""; \
+	  echo "#include \"base/configuration.h\""; \
 	  echo "const bool ::CVC4::Configuration::IS_SUBVERSION_BUILD = $$issvn;"; \
 	  echo "const char* const ::CVC4::Configuration::SUBVERSION_BRANCH_NAME = \"$$branch\";"; \
 	  echo "const unsigned ::CVC4::Configuration::SUBVERSION_REVISION = $$rev;"; \
@@ -541,7 +541,7 @@ git_versioninfo.cpp: gitinfo
 	    rev=unknown; \
 	    mods=false; \
 	  fi; \
-	  echo "#include \"util/configuration.h\""; \
+	  echo "#include \"base/configuration.h\""; \
 	  echo "const bool ::CVC4::Configuration::IS_GIT_BUILD = $$isgit;"; \
 	  echo "const char* const ::CVC4::Configuration::GIT_BRANCH_NAME = \"$$branch\";"; \
 	  echo "const char* const ::CVC4::Configuration::GIT_COMMIT = \"$$rev\";"; \

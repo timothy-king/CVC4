@@ -22,6 +22,8 @@
 #include <sstream>
 #include <string>
 
+#include "base/configuration.h"
+#include "base/configuration_private.h"
 #include "base/modal_exception.h"
 #include "base/output.h"
 #include "cvc4autoconfig.h"
@@ -55,8 +57,6 @@
 #include "smt_util/command.h"
 #include "smt_util/dump.h"
 #include "theory/logic_info.h"
-#include "util/configuration.h"
-#include "util/configuration_private.h"
 #include "util/resource_manager.h"
 
 
