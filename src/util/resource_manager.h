@@ -192,37 +192,6 @@ public:
 
 };/* class ResourceManager */
 
-class TlimitListener : public Listener {
- public:
-  TlimitListener(ResourceManager* rm) : d_rm(rm) {}
-  virtual void notify();
- private:
-  ResourceManager* d_rm;
-};
-
-class TlimitPerListener : public Listener {
- public:
-  TlimitPerListener(ResourceManager* rm) : d_rm(rm) {}
-  virtual void notify();
- private:
-  ResourceManager* d_rm;
-};
-
-class RlimitListener : public Listener {
- public:
-  RlimitListener(ResourceManager* rm) : d_rm(rm) {}
-  virtual void notify();
- private:
-  ResourceManager* d_rm;
-};
-
-class RlimitPerListener : public Listener {
- public:
-  RlimitPerListener(ResourceManager* rm) : d_rm(rm) {}
-  virtual void notify();
- private:
-  ResourceManager* d_rm;
-};
 
 }/* CVC4 namespace */
 

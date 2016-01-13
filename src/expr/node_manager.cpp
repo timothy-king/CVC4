@@ -27,6 +27,7 @@
 #include "base/tls.h"
 #include "expr/attribute.h"
 #include "expr/node_manager_attributes.h"
+#include "expr/node_manager_listeners.h"
 #include "expr/type_checker.h"
 #include "options/options.h"
 #include "options/smt_options.h"
