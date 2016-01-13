@@ -146,19 +146,19 @@ public:
   virtual void setPrintExprTypes(std::string option) = 0;
 
   /* main/options_handlers.h */
-  virtual void showConfiguration(std::string option) = 0;
-  virtual void showDebugTags(std::string option) = 0;
-  virtual void showTraceTags(std::string option) = 0;
+  void showConfiguration(std::string option);
+  void showDebugTags(std::string option);
+  void showTraceTags(std::string option);
   void threadN(std::string option);
 
   /* options/base_options_handlers.h */
-  virtual void setVerbosity(std::string option, int value) throw(OptionException) = 0;
-  virtual void increaseVerbosity(std::string option) = 0;
-  virtual void decreaseVerbosity(std::string option) = 0;
+  void setVerbosity(std::string option, int value) throw(OptionException);
+  void increaseVerbosity(std::string option);
+  void decreaseVerbosity(std::string option);
   OutputLanguage stringToOutputLanguage(std::string option, std::string optarg) throw(OptionException);
   InputLanguage stringToInputLanguage(std::string option, std::string optarg) throw(OptionException);
-  virtual void addTraceTag(std::string option, std::string optarg) = 0;
-  virtual void addDebugTag(std::string option, std::string optarg) = 0;
+  void addTraceTag(std::string option, std::string optarg);
+  void addDebugTag(std::string option, std::string optarg);
   virtual void setPrintSuccess(std::string option, bool value) = 0;
 
 

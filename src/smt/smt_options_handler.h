@@ -60,19 +60,8 @@ public:
   virtual void setDefaultDagThresh(std::string option, int dag);
   virtual void setPrintExprTypes(std::string option);
 
-  /* main/options_handlers.h */
-  virtual void showConfiguration(std::string option);
-  virtual void showDebugTags(std::string option);
-  virtual void showTraceTags(std::string option);
 
-  // /* options/base_options_handlers.h */
-  virtual void setVerbosity(std::string option, int value) throw(OptionException);
-  virtual void increaseVerbosity(std::string option);
-  virtual void decreaseVerbosity(std::string option);
-  // virtual OutputLanguage stringToOutputLanguage(std::string option, std::string optarg) throw(OptionException);
-  // virtual InputLanguage stringToInputLanguage(std::string option, std::string optarg) throw(OptionException) ;
-  virtual void addTraceTag(std::string option, std::string optarg);
-  virtual void addDebugTag(std::string option, std::string optarg);
+  /* options/base_options_handlers.h */
   virtual void setPrintSuccess(std::string option, bool value);
 
 
