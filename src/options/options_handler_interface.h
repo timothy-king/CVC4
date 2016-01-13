@@ -66,68 +66,68 @@ public:
 
 
   // theory/arith/options_handlers.h
-  virtual ArithUnateLemmaMode stringToArithUnateLemmaMode(std::string option, std::string optarg) throw(OptionException) = 0;
-  virtual ArithPropagationMode stringToArithPropagationMode(std::string option, std::string optarg) throw(OptionException) = 0;
-  virtual ErrorSelectionRule stringToErrorSelectionRule(std::string option, std::string optarg) throw(OptionException) = 0;
+  ArithUnateLemmaMode stringToArithUnateLemmaMode(std::string option, std::string optarg) throw(OptionException);
+  ArithPropagationMode stringToArithPropagationMode(std::string option, std::string optarg) throw(OptionException);
+  ErrorSelectionRule stringToErrorSelectionRule(std::string option, std::string optarg) throw(OptionException);
 
   // theory/quantifiers/options_handlers.h
-  virtual theory::quantifiers::InstWhenMode stringToInstWhenMode(std::string option, std::string optarg) throw(OptionException) = 0;
-  virtual void checkInstWhenMode(std::string option, theory::quantifiers::InstWhenMode mode) throw(OptionException) = 0;
-  virtual theory::quantifiers::LiteralMatchMode stringToLiteralMatchMode(std::string option, std::string optarg) throw(OptionException) = 0;
-  virtual void checkLiteralMatchMode(std::string option, theory::quantifiers::LiteralMatchMode mode) throw(OptionException) = 0;
-  virtual theory::quantifiers::MbqiMode stringToMbqiMode(std::string option, std::string optarg) throw(OptionException) = 0;
-  virtual void checkMbqiMode(std::string option, theory::quantifiers::MbqiMode mode) throw(OptionException) = 0;
-  virtual theory::quantifiers::QcfWhenMode stringToQcfWhenMode(std::string option, std::string optarg) throw(OptionException) = 0;
-  virtual theory::quantifiers::QcfMode stringToQcfMode(std::string option, std::string optarg) throw(OptionException) = 0;
-  virtual theory::quantifiers::UserPatMode stringToUserPatMode(std::string option, std::string optarg) throw(OptionException) = 0;
-  virtual theory::quantifiers::TriggerSelMode stringToTriggerSelMode(std::string option, std::string optarg) throw(OptionException) = 0;
-  virtual theory::quantifiers::PrenexQuantMode stringToPrenexQuantMode(std::string option, std::string optarg) throw(OptionException) = 0;
-  virtual theory::quantifiers::CegqiFairMode stringToCegqiFairMode(std::string option, std::string optarg) throw(OptionException) = 0;
-  virtual theory::quantifiers::TermDbMode stringToTermDbMode(std::string option, std::string optarg) throw(OptionException) = 0;
-  virtual theory::quantifiers::IteLiftQuantMode stringToIteLiftQuantMode(std::string option, std::string optarg) throw(OptionException) = 0;
-  virtual theory::quantifiers::SygusInvTemplMode stringToSygusInvTemplMode(std::string option, std::string optarg) throw(OptionException) = 0;
-  virtual theory::quantifiers::MacrosQuantMode stringToMacrosQuantMode(std::string option, std::string optarg) throw(OptionException) = 0;
+  theory::quantifiers::InstWhenMode stringToInstWhenMode(std::string option, std::string optarg) throw(OptionException);
+  void checkInstWhenMode(std::string option, theory::quantifiers::InstWhenMode mode) throw(OptionException);
+  theory::quantifiers::LiteralMatchMode stringToLiteralMatchMode(std::string option, std::string optarg) throw(OptionException);
+  void checkLiteralMatchMode(std::string option, theory::quantifiers::LiteralMatchMode mode) throw(OptionException);
+  theory::quantifiers::MbqiMode stringToMbqiMode(std::string option, std::string optarg) throw(OptionException);
+  void checkMbqiMode(std::string option, theory::quantifiers::MbqiMode mode) throw(OptionException);
+  theory::quantifiers::QcfWhenMode stringToQcfWhenMode(std::string option, std::string optarg) throw(OptionException);
+  theory::quantifiers::QcfMode stringToQcfMode(std::string option, std::string optarg) throw(OptionException);
+  theory::quantifiers::UserPatMode stringToUserPatMode(std::string option, std::string optarg) throw(OptionException);
+  theory::quantifiers::TriggerSelMode stringToTriggerSelMode(std::string option, std::string optarg) throw(OptionException);
+  theory::quantifiers::PrenexQuantMode stringToPrenexQuantMode(std::string option, std::string optarg) throw(OptionException);
+  theory::quantifiers::CegqiFairMode stringToCegqiFairMode(std::string option, std::string optarg) throw(OptionException);
+  theory::quantifiers::TermDbMode stringToTermDbMode(std::string option, std::string optarg) throw(OptionException);
+  theory::quantifiers::IteLiftQuantMode stringToIteLiftQuantMode(std::string option, std::string optarg) throw(OptionException);
+  theory::quantifiers::SygusInvTemplMode stringToSygusInvTemplMode(std::string option, std::string optarg) throw(OptionException);
+  theory::quantifiers::MacrosQuantMode stringToMacrosQuantMode(std::string option, std::string optarg) throw(OptionException);
 
   // theory/bv/options_handlers.h
-  virtual void abcEnabledBuild(std::string option, bool value) throw(OptionException) = 0;
-  virtual void abcEnabledBuild(std::string option, std::string value) throw(OptionException) = 0;
-  virtual theory::bv::BitblastMode stringToBitblastMode(std::string option, std::string optarg) throw(OptionException) = 0;
-  virtual theory::bv::BvSlicerMode stringToBvSlicerMode(std::string option, std::string optarg) throw(OptionException) = 0;
-  virtual void setBitblastAig(std::string option, bool arg) throw(OptionException) = 0;
+  void abcEnabledBuild(std::string option, bool value) throw(OptionException);
+  void abcEnabledBuild(std::string option, std::string value) throw(OptionException);
+  theory::bv::BitblastMode stringToBitblastMode(std::string option, std::string optarg) throw(OptionException);
+  theory::bv::BvSlicerMode stringToBvSlicerMode(std::string option, std::string optarg) throw(OptionException);
+  void setBitblastAig(std::string option, bool arg) throw(OptionException);
 
 
   // theory/booleans/options_handlers.h
-  virtual theory::booleans::BooleanTermConversionMode stringToBooleanTermConversionMode(std::string option, std::string optarg) throw(OptionException) = 0;
+  theory::booleans::BooleanTermConversionMode stringToBooleanTermConversionMode(std::string option, std::string optarg) throw(OptionException);
 
   // theory/uf/options_handlers.h
-  virtual theory::uf::UfssMode stringToUfssMode(std::string option, std::string optarg) throw(OptionException) = 0;
+  theory::uf::UfssMode stringToUfssMode(std::string option, std::string optarg) throw(OptionException);
 
   // theory/options_handlers.h
-  virtual theory::TheoryOfMode stringToTheoryOfMode(std::string option, std::string optarg) = 0;
+  theory::TheoryOfMode stringToTheoryOfMode(std::string option, std::string optarg);
   virtual void useTheory(std::string option, std::string optarg) = 0;
 
 
   // printer/options_handlers.h
-  virtual ModelFormatMode stringToModelFormatMode(std::string option, std::string optarg) throw(OptionException) = 0;
-  virtual InstFormatMode stringToInstFormatMode(std::string option, std::string optarg) throw(OptionException) = 0;
+  ModelFormatMode stringToModelFormatMode(std::string option, std::string optarg) throw(OptionException);
+  InstFormatMode stringToInstFormatMode(std::string option, std::string optarg) throw(OptionException);
 
   // decision/options_handlers.h
-  virtual decision::DecisionMode stringToDecisionMode(std::string option, std::string optarg) throw(OptionException) = 0;
-  virtual decision::DecisionWeightInternal stringToDecisionWeightInternal(std::string option, std::string optarg) throw(OptionException) = 0;
+  decision::DecisionMode stringToDecisionMode(std::string option, std::string optarg) throw(OptionException);
+  decision::DecisionWeightInternal stringToDecisionWeightInternal(std::string option, std::string optarg) throw(OptionException);
 
 
   /* smt/options_handlers.h */
   void notifyForceLogic(const std::string& option);
   void notifyBeforeSearch(const std::string& option) throw(ModalException);
   virtual void dumpMode(std::string option, std::string optarg) = 0;
-  virtual SimplificationMode stringToSimplificationMode(std::string option, std::string optarg) throw(OptionException) = 0;
-  virtual void setProduceAssertions(std::string option, bool value) throw() = 0;
-  virtual void proofEnabledBuild(std::string option, bool value) throw(OptionException) = 0;
+  SimplificationMode stringToSimplificationMode(std::string option, std::string optarg) throw(OptionException);
+  void setProduceAssertions(std::string option, bool value) throw();
+  void proofEnabledBuild(std::string option, bool value) throw(OptionException);
   virtual void dumpToFile(std::string option, std::string optarg) = 0;
   virtual void setRegularOutputChannel(std::string option, std::string optarg) = 0;
   virtual void setDiagnosticOutputChannel(std::string option, std::string optarg) = 0;
-  virtual std::string checkReplayFilename(std::string option, std::string optarg) = 0;
-  virtual void statsEnabledBuild(std::string option, bool value) throw(OptionException) = 0;
+  std::string checkReplayFilename(std::string option, std::string optarg);
+  void statsEnabledBuild(std::string option, bool value) throw(OptionException);
 
   unsigned long tlimitHandler(std::string option, std::string optarg) throw(OptionException);
   unsigned long tlimitPerHandler(std::string option, std::string optarg) throw(OptionException);
@@ -149,17 +149,54 @@ public:
   virtual void showConfiguration(std::string option) = 0;
   virtual void showDebugTags(std::string option) = 0;
   virtual void showTraceTags(std::string option) = 0;
-  virtual void threadN(std::string option) = 0;
+  void threadN(std::string option);
 
   /* options/base_options_handlers.h */
   virtual void setVerbosity(std::string option, int value) throw(OptionException) = 0;
   virtual void increaseVerbosity(std::string option) = 0;
   virtual void decreaseVerbosity(std::string option) = 0;
-  virtual OutputLanguage stringToOutputLanguage(std::string option, std::string optarg) throw(OptionException) = 0;
-  virtual InputLanguage stringToInputLanguage(std::string option, std::string optarg) throw(OptionException) = 0;
+  OutputLanguage stringToOutputLanguage(std::string option, std::string optarg) throw(OptionException);
+  InputLanguage stringToInputLanguage(std::string option, std::string optarg) throw(OptionException);
   virtual void addTraceTag(std::string option, std::string optarg) = 0;
   virtual void addDebugTag(std::string option, std::string optarg) = 0;
   virtual void setPrintSuccess(std::string option, bool value) = 0;
+
+
+  static std::string __cvc4_errno_failreason();
+
+ protected:
+
+  /* Helper utilities */
+  static std::string suggestTags(char const* const* validTags, std::string inputTag,
+                                 char const* const* additionalTags = NULL);
+
+  /* Help strings */
+  static const std::string s_bitblastingModeHelp;
+  static const std::string s_booleanTermConversionModeHelp;
+  static const std::string s_bvSlicerModeHelp;
+  static const std::string s_cegqiFairModeHelp;
+  static const std::string s_decisionModeHelp;
+  static const std::string s_dumpHelp;
+  static const std::string s_instFormatHelp ;
+  static const std::string s_instWhenHelp;
+  static const std::string s_iteLiftQuantHelp;
+  static const std::string s_literalMatchHelp;
+  static const std::string s_macrosQuantHelp;
+  static const std::string s_mbqiModeHelp;
+  static const std::string s_modelFormatHelp;
+  static const std::string s_prenexQuantModeHelp;
+  static const std::string s_qcfModeHelp;
+  static const std::string s_qcfWhenModeHelp;
+  static const std::string s_simplificationHelp;
+  static const std::string s_sygusInvTemplHelp;
+  static const std::string s_termDbModeHelp;
+  static const std::string s_theoryOfModeHelp;
+  static const std::string s_triggerSelModeHelp;
+  static const std::string s_ufssModeHelp;
+  static const std::string s_userPatModeHelp;
+  static const std::string s_errorSelectionRulesHelp;
+  static const std::string s_arithPropagationModeHelp;
+  static const std::string s_arithUnateLemmasHelp;
 
  private:
   Options* d_options;
