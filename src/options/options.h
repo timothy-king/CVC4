@@ -60,6 +60,9 @@ class CVC4_PUBLIC Options {
   /** Listeners for options::tlimit-per. */
   ListenerCollection d_rlimitPerListeners;
 
+  /** Listeners for options::useTheoryList. */
+  ListenerCollection d_useTheoryListListeners;
+
   /** Low-level assignment function for options */
   template <class T>
   void assign(T, std::string option, std::string value, options::OptionsHandler* handler);
@@ -199,60 +202,95 @@ public:
 
 
   /**
+   * Registers a listener for the notification, notifyBeforeSearch.
+   *
+   * The memory for the Registration is controlled by the user and must
+   * be destroyed before the Options object is.
+   *
+   * This has multiple usages so having a notifyIfSet flag does not add
+   * clarity. Users should check the relevant flags before registering this.
+   */
+  ListenerCollection::Registration* registerBeforeSearchListener(
+      Listener* listener);
+
+
+  /**
    * Registers a listener for options::forceLogic being set.
+   *
+   * If notifyIfSet is true, this calls notify on the listener
+   * if the option was set by the user.
    *
    * The memory for the Registration is controlled by the user and must
    * be destroyed before the Options object is.
    */
   ListenerCollection::Registration* registerForceLogicListener(
-      Listener* listener);
-
-  /**
-   * Registers a listener for the notification, notifyBeforeSearch.
-   *
-   * The memory for the Registration is controlled by the user and must
-   * be destroyed before the Options object is.
-   */
-  ListenerCollection::Registration* registerBeforeSearchListener(
-      Listener* listener);
+      Listener* listener, bool notifyIfSet);
 
   /**
    * Registers a listener for options::tlimit being set.
+   *
+   * If notifyIfSet is true, this calls notify on the listener
+   * if the option was set by the user.
    *
    * The memory for the Registration is controlled by the user and must
    * be destroyed before the Options object is.
    */
   ListenerCollection::Registration* registerTlimitListener(
-      Listener* listener);
+      Listener* listener, bool notifyIfSet);
 
   /**
    * Registers a listener for options::tlimit-per being set.
+   *
+   * If notifyIfSet is true, this calls notify on the listener
+   * if the option was set by the user.
    *
    * The memory for the Registration is controlled by the user and must
    * be destroyed before the Options object is.
    */
   ListenerCollection::Registration* registerTlimitPerListener(
-      Listener* listener);
+      Listener* listener, bool notifyIfSet);
 
 
   /**
    * Registers a listener for options::rlimit being set.
    *
+   * If notifyIfSet is true, this calls notify on the listener
+   * if the option was set by the user.
+   *
    * The memory for the Registration is controlled by the user and must
    * be destroyed before the Options object is.
    */
   ListenerCollection::Registration* registerRlimitListener(
-      Listener* listener);
+      Listener* listener, bool notifyIfSet);
 
   /**
    * Registers a listener for options::rlimit-per being set.
+   *
+   * If notifyIfSet is true, this calls notify on the listener
+   * if the option was set by the user.
    *
    * The memory for the Registration is controlled by the user and must
    * be destroyed before the Options object is.
    */
   ListenerCollection::Registration* registerRlimitPerListener(
-      Listener* listener);
+      Listener* listener, bool notifyIfSet);
 
+  /**
+   * Registers a listener for options::useTheoryList being set.
+   *
+   * If notifyIfSet is true, this calls notify on the listener
+   * if the option was set by the user.
+   *
+   * The memory for the Registration is controlled by the user and must
+   * be destroyed before the Options object is.
+   */
+  ListenerCollection::Registration* registerUseTheoryListListener(
+      Listener* listener, bool notifyIfSet);
+
+
+private:
+  static ListenerCollection::Registration* registerAndNotify(
+      ListenerCollection& collection, Listener* listener, bool notify);
 };/* class Options */
 
 }/* CVC4 namespace */

@@ -343,6 +343,38 @@ class BeforeSearchListener : public Listener {
   SmtEngine* d_smt;
 }; /* class BeforeSearchListener */
 
+class UseTheoryListListener : public Listener {
+ public:
+  UseTheoryListListener(TheoryEngine* theoryEngine)
+      : d_theoryEngine(theoryEngine)
+  {}
+
+  void notify() {
+    std::stringstream commaList(options::useTheoryList());
+    std::string token;
+
+    Debug("UseTheoryListListener") << "UseTheoryListListener::notify() "
+                                   << options::useTheoryList() << std::endl;
+
+    while(std::getline(commaList, token, ',')){
+      if(token == "help") {
+        puts(theory::useTheoryHelp);
+        exit(1);
+      }
+      if(theory::useTheoryValidate(token)) {
+        d_theoryEngine->enableTheoryAlternative(token);
+      } else {
+        throw OptionException(
+            std::string("unknown option for --use-theory : `") + token +
+            "'.  Try --use-theory=help.");
+      }
+    }
+  }
+
+ private:
+  TheoryEngine* d_theoryEngine;
+}; /* class UseTheoryListListener */
+
 /**
  * This is an inelegant solution, but for the present, it will work.
  * The point of this is to separate the public and private portions of
@@ -365,17 +397,19 @@ class SmtEnginePrivate : public NodeManagerListener {
    */
   ResourceManager* d_resourceManager;
 
-  /** Listener for when a soft resource out occurs. */
-  ListenerCollection::Registration* d_softResourceOut;
 
-  /** Listener for when a hard resource out occurs. */
-  ListenerCollection::Registration* d_hardResourceOut;
-
-  /** Listener for when options::forceLogicString is set. */
-  ListenerCollection::Registration* d_setForceLogic;
-
-  /** Listener for when beforeSearch must be checked. */
-  ListenerCollection::Registration* d_beforeSearchListener;
+  /**
+   * This list contains:
+   *  softResourceOut
+   *  hardResourceOut
+   *  setForceLogic
+   *  beforeSearchListener
+   *  UseTheoryListListener
+   *
+   * This needs to be deleted before both NodeManager's Options,
+   * SmtEngine, d_resourceManager, and TheoryEngine.
+   */
+  ListenerRegistrationList* d_listenerRegistrations;
 
   /** Learned literals */
   vector<Node> d_nonClausalLearnedLiterals;
@@ -523,11 +557,7 @@ public:
 
   SmtEnginePrivate(SmtEngine& smt) :
     d_smt(smt),
-    d_resourceManager(NULL),
-    d_softResourceOut(NULL),
-    d_hardResourceOut(NULL),
-    d_setForceLogic(NULL),
-    d_beforeSearchListener(NULL),
+    d_listenerRegistrations(new ListenerRegistrationList()),
     d_nonClausalLearnedLiterals(),
     d_realAssertionsEnd(0),
     d_booleanTermConverter(NULL),
@@ -549,28 +579,30 @@ public:
     d_true = NodeManager::currentNM()->mkConst(true);
     d_resourceManager = NodeManager::currentResourceManager();
 
-    d_softResourceOut = d_resourceManager->registerSoftListener(
-        new SoftResourceOutListener(d_smt));
+    d_listenerRegistrations->add(d_resourceManager->registerSoftListener(
+        new SoftResourceOutListener(d_smt)));
 
-    d_hardResourceOut = d_resourceManager->registerHardListener(
-        new HardResourceOutListener(d_smt));
+    d_listenerRegistrations->add(d_resourceManager->registerHardListener(
+        new HardResourceOutListener(d_smt)));
 
     Options& nodeManagerOptions = NodeManager::currentNM()->getOptions();
-    d_setForceLogic = nodeManagerOptions.registerForceLogicListener(
-        new SetLogicListener(d_smt));
-    d_beforeSearchListener = nodeManagerOptions.registerBeforeSearchListener(
-        new BeforeSearchListener(d_smt));
+    d_listenerRegistrations->add(
+        nodeManagerOptions.registerForceLogicListener(
+            new SetLogicListener(d_smt), true));
+
+    // Multiple options reuse BeforeSearchListener so registration requires an
+    // extra bit of care.
+    // We can safely not call notify on this before search listener at
+    // registration time. This d_smt cannot be beforeSearch at construction
+    // time. Therefore the BeforeSearchListener is a no-op. Therefore it does
+    // not have to be called.
+    d_listenerRegistrations->add(
+        nodeManagerOptions.registerBeforeSearchListener(
+            new BeforeSearchListener(d_smt)));
   }
 
   ~SmtEnginePrivate() throw() {
-    delete d_beforeSearchListener;
-    d_beforeSearchListener = NULL;
-    delete d_setForceLogic;
-    d_setForceLogic = NULL;
-    delete d_hardResourceOut;
-    d_hardResourceOut = NULL;
-    delete d_softResourceOut;
-    d_softResourceOut = NULL;
+    delete d_listenerRegistrations;
 
     if(d_propagatorNeedsFinish) {
       d_propagator.finish();
@@ -772,6 +804,12 @@ public:
     return rewr;
   }
 
+  void addUseTheoryListListener(TheoryEngine* theoryEngine){
+    Options& nodeManagerOptions = NodeManager::currentNM()->getOptions();
+    d_listenerRegistrations->add(
+        nodeManagerOptions.registerUseTheoryListListener(
+            new UseTheoryListListener(theoryEngine), true));
+  }
 };/* class SmtEnginePrivate */
 
 }/* namespace CVC4::smt */
@@ -831,6 +869,8 @@ SmtEngine::SmtEngine(ExprManager* em) throw() :
   for(TheoryId id = theory::THEORY_FIRST; id < theory::THEORY_LAST; ++id) {
     TheoryConstructor::addTheory(d_theoryEngine, id);
   }
+
+  d_private->addUseTheoryListListener(d_theoryEngine);
 
   // global push/pop around everything, to ensure proper destruction
   // of context-dependent data structures

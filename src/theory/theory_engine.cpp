@@ -142,6 +142,8 @@ TheoryEngine::TheoryEngine(context::Context* context,
   d_sharedTermsVisitor(d_sharedTerms),
   d_unconstrainedSimp(new UnconstrainedSimplifier(context, logicInfo)),
   d_bvToBoolPreprocessor(),
+  d_theoryAlternatives(),
+  d_attr_handle(),
   d_arithSubstitutionsAdded("theory::arith::zzz::arith::substitutions", 0)
 {
   for(TheoryId theoryId = theory::THEORY_FIRST; theoryId != theory::THEORY_LAST; ++ theoryId) {
@@ -1763,6 +1765,18 @@ std::pair<bool, Node> TheoryEngine::entailmentCheck(theory::TheoryOfMode mode, T
 void TheoryEngine::spendResource(unsigned ammount) {
   d_resourceManager->spendResource(ammount);
 }
+
+void TheoryEngine::enableTheoryAlternative(const std::string& name){
+  Debug("TheoryEngine::enableTheoryAlternative")
+      << "TheoryEngine::enableTheoryAlternative(" << name << ")" << std::endl;
+
+  d_theoryAlternatives.insert(name);
+}
+
+bool TheoryEngine::useTheoryAlternative(const std::string& name) {
+  return d_theoryAlternatives.find(name) != d_theoryAlternatives.end();
+}
+
 
 TheoryEngine::Statistics::Statistics(theory::TheoryId theory):
     conflicts(mkName("theory<", theory, ">::conflicts"), 0),

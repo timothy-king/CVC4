@@ -48,7 +48,7 @@ public:
 
 
   // theory/options_handlers.h
-  virtual void useTheory(std::string option, std::string optarg);
+  //virtual void useTheory(std::string option, std::string optarg);
 
   // smt/options_handlers.h
   virtual void dumpMode(std::string option, std::string optarg);

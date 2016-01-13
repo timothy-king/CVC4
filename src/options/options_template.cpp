@@ -259,10 +259,22 @@ std::string Options::formatThreadOptionException(const std::string& option) {
   return ss.str();
 }
 
-ListenerCollection::Registration* Options::registerForceLogicListener(
-   Listener* listener)
+ListenerCollection::Registration* Options::registerAndNotify(
+    ListenerCollection& collection, Listener* listener, bool notify)
 {
-  return d_forceLogicListeners.registerListener(listener);
+  ListenerCollection::Registration* registration =
+      collection.registerListener(listener);
+  if(notify) {
+    listener->notify();
+  }
+  return registration;
+}
+
+ListenerCollection::Registration* Options::registerForceLogicListener(
+    Listener* listener, bool notifyIfSet)
+{
+  bool notify = notifyIfSet && wasSetByUser(options::forceLogicString);
+  return registerAndNotify(d_forceLogicListeners, listener, notify);
 }
 
 ListenerCollection::Registration* Options::registerBeforeSearchListener(
@@ -272,29 +284,40 @@ ListenerCollection::Registration* Options::registerBeforeSearchListener(
 }
 
 ListenerCollection::Registration* Options::registerTlimitListener(
-   Listener* listener)
+   Listener* listener, bool notifyIfSet)
 {
-  return d_tlimitListeners.registerListener(listener);
+  bool notify = notifyIfSet &&
+      wasSetByUser(options::cumulativeMillisecondLimit);
+  return registerAndNotify(d_tlimitListeners, listener, notify);
 }
 
 ListenerCollection::Registration* Options::registerTlimitPerListener(
-   Listener* listener)
+   Listener* listener, bool notifyIfSet)
 {
-  return d_tlimitPerListeners.registerListener(listener);
+  bool notify = notifyIfSet && wasSetByUser(options::perCallMillisecondLimit);
+  return registerAndNotify(d_tlimitPerListeners, listener, notify);
 }
 
 ListenerCollection::Registration* Options::registerRlimitListener(
-   Listener* listener)
+   Listener* listener, bool notifyIfSet)
 {
-  return d_rlimitListeners.registerListener(listener);
+  bool notify = notifyIfSet && wasSetByUser(options::cumulativeResourceLimit);
+  return registerAndNotify(d_rlimitListeners, listener, notify);
 }
 
 ListenerCollection::Registration* Options::registerRlimitPerListener(
-   Listener* listener)
+   Listener* listener, bool notifyIfSet)
 {
-  return d_rlimitPerListeners.registerListener(listener);
+  bool notify = notifyIfSet && wasSetByUser(options::perCallResourceLimit);
+  return registerAndNotify(d_rlimitPerListeners, listener, notify);
 }
 
+ListenerCollection::Registration* Options::registerUseTheoryListListener(
+   Listener* listener, bool notifyIfSet)
+{
+  bool notify = notifyIfSet && wasSetByUser(options::useTheoryList);
+  return registerAndNotify(d_useTheoryListListeners, listener, notify);
+}
 
 ${all_custom_handlers}
 

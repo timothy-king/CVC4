@@ -44,6 +44,7 @@
 #include "options/quantifiers_modes.h"
 #include "options/simplification_mode.h"
 #include "options/smt_options.h"
+#include "options/theory_options.h"
 #include "options/theoryof_mode.h"
 #include "options/ufss_mode.h"
 
@@ -822,6 +823,19 @@ theory::TheoryOfMode OptionsHandler::stringToTheoryOfMode(std::string option, st
   }
 }
 
+// theory/options_handlers.h
+std::string OptionsHandler::handleUseTheoryList(std::string option, std::string optarg) {
+  std::string currentList = options::useTheoryList();
+  if(currentList.empty()){
+    return optarg;
+  } else {
+    return currentList +','+ optarg;
+  }
+}
+
+void OptionsHandler::notifyUseTheoryList(std::string option) {
+  d_options->d_useTheoryListListeners.notify();
+}
 
 
 
@@ -1463,9 +1477,15 @@ theory::TheoryOfMode stringToTheoryOfMode(std::string option, std::string optarg
   PrettyCheckArgument(handler != NULL, handler);
   return handler->stringToTheoryOfMode(option, optarg);
 }
-void useTheory(std::string option, std::string optarg, OptionsHandler* handler) {
+
+std::string handleUseTheoryList(std::string option, std::string optarg, OptionsHandler* handler) {
   PrettyCheckArgument(handler != NULL, handler);
-  return handler->useTheory(option, optarg);
+  return handler->handleUseTheoryList(option, optarg);
+}
+
+void notifyUseTheoryList(std::string option, OptionsHandler* handler) {
+  PrettyCheckArgument(handler != NULL, handler);
+  return handler->notifyUseTheoryList(option);
 }
 
 // printer/options_handlers.h

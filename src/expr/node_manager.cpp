@@ -142,14 +142,15 @@ void NodeManager::init() {
     d_resourceManager->useCPUTime(true);
   }
 
+  // Do not notify() upon registration as these were handled manually above.
   d_registrations->add(d_options->registerTlimitListener(
-      new TlimitListener(d_resourceManager)));
+      new TlimitListener(d_resourceManager), false));
   d_registrations->add(d_options->registerTlimitPerListener(
-      new TlimitPerListener(d_resourceManager)));
+      new TlimitPerListener(d_resourceManager), false));
   d_registrations->add(d_options->registerRlimitListener(
-      new RlimitListener(d_resourceManager)));
+      new RlimitListener(d_resourceManager), false));
   d_registrations->add(d_options->registerRlimitPerListener(
-      new RlimitPerListener(d_resourceManager)));
+      new RlimitPerListener(d_resourceManager), false));
 }
 
 NodeManager::~NodeManager() {

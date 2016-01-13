@@ -104,7 +104,8 @@ public:
 
   // theory/options_handlers.h
   theory::TheoryOfMode stringToTheoryOfMode(std::string option, std::string optarg);
-  virtual void useTheory(std::string option, std::string optarg) = 0;
+  void notifyUseTheoryList(std::string option);
+  std::string handleUseTheoryList(std::string option, std::string optarg);
 
 
   // printer/options_handlers.h
@@ -242,7 +243,9 @@ theory::uf::UfssMode stringToUfssMode(std::string option, std::string optarg, Op
 
 // theory/options_handlers.h
 theory::TheoryOfMode stringToTheoryOfMode(std::string option, std::string optarg, OptionsHandler* handler);
-void useTheory(std::string option, std::string optarg, OptionsHandler* handler);
+std::string handleUseTheoryList(std::string option, std::string optarg, OptionsHandler* handler);
+void notifyUseTheoryList(std::string option, OptionsHandler* handler);
+
 
 // printer/options_handlers.h
 ModelFormatMode stringToModelFormatMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException);

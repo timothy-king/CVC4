@@ -20,6 +20,7 @@
 #define __CVC4__THEORY_ENGINE_H
 
 #include <deque>
+#include <set>
 #include <vector>
 #include <utility>
 
@@ -821,7 +822,15 @@ public:
   /** Prints the assertions to the debug stream */
   void printAssertions(const char* tag);
 
+  /** Theory alternative is in use. */
+  bool useTheoryAlternative(const std::string& name);
+
+  /** Enables using a theory alternative by name. */
+  void enableTheoryAlternative(const std::string& name);
+
 private:
+  std::set< std::string > d_theoryAlternatives;
+
   std::map< std::string, std::vector< theory::Theory* > > d_attr_handle;
 public:
 

@@ -71,21 +71,6 @@ SmtOptionsHandler::SmtOptionsHandler(Options* options)
 
 SmtOptionsHandler::~SmtOptionsHandler(){}
 
-// theory/options_handlers.h
-void SmtOptionsHandler::useTheory(std::string option, std::string optarg) {
-  if(optarg == "help") {
-    puts(theory::useTheoryHelp);
-    exit(1);
-  }
-  if(theory::useTheoryValidate(optarg)) {
-    std::map<std::string, bool> m = options::theoryAlternates();
-    m[optarg] = true;
-    options::theoryAlternates.set(m);
-  } else {
-    throw OptionException(std::string("unknown option for ") + option + ": `" +
-                          optarg + "'.  Try --use-theory help.");
-  }
-}
 
 
 
