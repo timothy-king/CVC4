@@ -427,6 +427,20 @@ class DumpModeListener : public Listener {
   }
 };
 
+class PrintSuccessListener : public Listener {
+ public:
+  virtual void notify() {
+    bool value = options::printSuccess();
+    Debug.getStream() << Command::printsuccess(value);
+    Trace.getStream() << Command::printsuccess(value);
+    Notice.getStream() << Command::printsuccess(value);
+    Chat.getStream() << Command::printsuccess(value);
+    Message.getStream() << Command::printsuccess(value);
+    Warning.getStream() << Command::printsuccess(value);
+    *options::out() << Command::printsuccess(value);
+  }
+};
+
 class DumpToFileListener : public Listener {
  public:
   void notify(){
@@ -442,20 +456,6 @@ class DumpToFileListener : public Listener {
 #else /* CVC4_DUMPING */
     throw OptionException("The dumping feature was disabled in this build of CVC4.");
 #endif /* CVC4_DUMPING */
-  }
-};
-
-class PrintSuccessListener : public Listener {
- public:
-  virtual void notify() {
-    bool value = options::printSuccess();
-    Debug.getStream() << Command::printsuccess(value);
-    Trace.getStream() << Command::printsuccess(value);
-    Notice.getStream() << Command::printsuccess(value);
-    Chat.getStream() << Command::printsuccess(value);
-    Message.getStream() << Command::printsuccess(value);
-    Warning.getStream() << Command::printsuccess(value);
-    *options::out() << Command::printsuccess(value);
   }
 };
 
@@ -664,9 +664,15 @@ private:
     throw();
 
   // trace nodes back to their assertions using CircuitPropagator's BackEdgesMap
-  void traceBackToAssertions(const std::vector<Node>& nodes, std::vector<TNode>& assertions);
-  // remove conjuncts in toRemove from conjunction n; return # of removed conjuncts
-  size_t removeFromConjunction(Node& n, const std::hash_set<unsigned long>& toRemove);
+  void traceBackToAssertions(const std::vector<Node>& nodes,
+                             std::vector<TNode>& assertions);
+
+  /**
+   * Remove conjuncts in toRemove from conjunction n. Return # of removed
+   * conjuncts.
+   */
+  size_t removeFromConjunction(Node& n,
+                               const std::hash_set<unsigned long>& toRemove);
 
   // scrub miplib encodings
   void doMiplibTrick();
@@ -678,7 +684,8 @@ private:
    *
    * Returns false if the formula simplifies to "false"
    */
-  bool simplifyAssertions() throw(TypeCheckingException, LogicException, UnsafeInterruptException);
+  bool simplifyAssertions() throw(TypeCheckingException, LogicException,
+                                  UnsafeInterruptException);
 
 public:
 
@@ -905,7 +912,9 @@ public:
       d_abstractValueMap.addSubstitution(val, n);
     }
     // We are supposed to ascribe types to all abstract values that go out.
-    Node retval = d_smt.d_nodeManager->mkNode(kind::APPLY_TYPE_ASCRIPTION, d_smt.d_nodeManager->mkConst(AscriptionType(n.getType().toType())), val);
+    NodeManager* current = d_smt.d_nodeManager;
+    Node ascription = current->mkConst(AscriptionType(n.getType().toType()));
+    Node retval = current->mkNode(kind::APPLY_TYPE_ASCRIPTION, ascription, val);
     return retval;
   }
 
@@ -913,16 +922,21 @@ public:
   Node rewriteApplyToConst(TNode n) {
     Trace("rewriteApplyToConst") << "rewriteApplyToConst :: " << n << std::endl;
 
-    if(n.getMetaKind() == kind::metakind::CONSTANT || n.getMetaKind() == kind::metakind::VARIABLE) {
+    if(n.getMetaKind() == kind::metakind::CONSTANT ||
+       n.getMetaKind() == kind::metakind::VARIABLE)
+    {
       return n;
     }
 
     if(rewriteApplyToConstCache.find(n) != rewriteApplyToConstCache.end()) {
-      Trace("rewriteApplyToConst") << "in cache :: " << rewriteApplyToConstCache[n] << std::endl;
+      Trace("rewriteApplyToConst") << "in cache :: "
+                                   << rewriteApplyToConstCache[n] << std::endl;
       return rewriteApplyToConstCache[n];
     }
     if(n.getKind() == kind::APPLY_UF) {
-      if(n.getNumChildren() == 1 && n[0].isConst() && n[0].getType().isInteger()) {
+      if(n.getNumChildren() == 1 && n[0].isConst() &&
+         n[0].getType().isInteger())
+      {
         stringstream ss;
         ss << n.getOperator() << "_";
         if(n[0].getConst<Rational>() < 0) {
@@ -930,15 +944,19 @@ public:
         } else {
           ss << n[0];
         }
-        Node newvar = NodeManager::currentNM()->mkSkolem(ss.str(), n.getType(), "rewriteApplyToConst skolem", NodeManager::SKOLEM_EXACT_NAME);
+        Node newvar = NodeManager::currentNM()->mkSkolem(
+            ss.str(), n.getType(), "rewriteApplyToConst skolem",
+            NodeManager::SKOLEM_EXACT_NAME);
         rewriteApplyToConstCache[n] = newvar;
         Trace("rewriteApplyToConst") << "made :: " << newvar << std::endl;
         return newvar;
       } else {
         stringstream ss;
-        ss << "The rewrite-apply-to-const preprocessor is currently limited;\n"
-           << "it only works if all function symbols are unary and with Integer\n"
-           << "domain, and all applications are to integer values.\n"
+        ss << "The rewrite-apply-to-const preprocessor is currently limited;"
+           << std::endl
+           << "it only works if all function symbols are unary and with Integer"
+           << std::endl
+           << "domain, and all applications are to integer values." << std::endl
            << "Found application: " << n;
         Unhandled(ss.str());
       }
@@ -967,7 +985,6 @@ public:
 
 }/* namespace CVC4::smt */
 
-#warning "Remove the const cast for SmtOptionsHandler"
 SmtEngine::SmtEngine(ExprManager* em) throw() :
   d_context(new Context()),
   d_userLevels(),

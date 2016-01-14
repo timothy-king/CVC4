@@ -51,6 +51,85 @@
 namespace CVC4 {
 namespace options {
 
+OptionsHandler::OptionsHandler(Options* options) : d_options(options) { }
+
+void OptionsHandler::notifyForceLogic(const std::string& option){
+  d_options->d_forceLogicListeners.notify();
+}
+
+void OptionsHandler::notifyBeforeSearch(const std::string& option)
+    throw(ModalException)
+{
+  try{
+    d_options->d_beforeSearchListeners.notify();
+  } catch (ModalException&){
+    std::stringstream ss;
+    ss << "cannot change option `" << option
+       << "' after final initialization (i.e., after logic has been set)";
+    throw ModalException(ss.str());
+  }
+}
+
+
+void OptionsHandler::notifyTlimit(const std::string& option) {
+  d_options->d_tlimitListeners.notify();
+}
+
+void OptionsHandler::notifyTlimitPer(const std::string& option) {
+  d_options->d_tlimitPerListeners.notify();
+}
+
+void OptionsHandler::notifyRlimit(const std::string& option) {
+  d_options->d_rlimitListeners.notify();
+}
+
+void OptionsHandler::notifyRlimitPer(const std::string& option) {
+  d_options->d_rlimitPerListeners.notify();
+}
+
+
+unsigned long OptionsHandler::tlimitHandler(std::string option, std::string optarg) throw(OptionException)  {
+  unsigned long ms;
+  std::istringstream convert(optarg);
+  if (!(convert >> ms)) {
+    throw OptionException("option `"+option+"` requires a number as an argument");
+  }
+  return ms;
+}
+
+unsigned long OptionsHandler::tlimitPerHandler(std::string option, std::string optarg) throw(OptionException) {
+  unsigned long ms;
+
+  std::istringstream convert(optarg);
+  if (!(convert >> ms)) {
+    throw OptionException("option `"+option+"` requires a number as an argument");
+  }
+  return ms;
+}
+
+unsigned long OptionsHandler::rlimitHandler(std::string option, std::string optarg) throw(OptionException) {
+  unsigned long ms;
+
+  std::istringstream convert(optarg);
+  if (!(convert >> ms)) {
+    throw OptionException("option `"+option+"` requires a number as an argument");
+  }
+  return ms;
+}
+
+
+unsigned long OptionsHandler::rlimitPerHandler(std::string option, std::string optarg) throw(OptionException) {
+  unsigned long ms;
+
+  std::istringstream convert(optarg);
+  if (!(convert >> ms)) {
+    throw OptionException("option `"+option+"` requires a number as an argument");
+  }
+
+  return ms;
+}
+
+
 /* options/base_options_handlers.h */
 void OptionsHandler::notifyPrintSuccess(std::string option) {
   d_options->d_setPrintSuccessListeners.notify();
@@ -1291,433 +1370,7 @@ std::string OptionsHandler::suggestTags(char const* const* validTags, std::strin
   return  didYouMean.getMatchAsString(inputTag);
 }
 
-// theory/arith/options_handlers.h
-ArithUnateLemmaMode stringToArithUnateLemmaMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->stringToArithUnateLemmaMode(option, optarg);
-}
-ArithPropagationMode stringToArithPropagationMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->stringToArithPropagationMode(option, optarg);
-}
-ErrorSelectionRule stringToErrorSelectionRule(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->stringToErrorSelectionRule(option, optarg);
-}
 
-// theory/quantifiers/options_handlers.h
-theory::quantifiers::InstWhenMode stringToInstWhenMode(std::string option, std::string optarg,  OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->stringToInstWhenMode(option, optarg);
-}
-void checkInstWhenMode(std::string option, theory::quantifiers::InstWhenMode mode,  OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->checkInstWhenMode(option, mode);
-}
-theory::quantifiers::LiteralMatchMode stringToLiteralMatchMode(std::string option, std::string optarg,  OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->stringToLiteralMatchMode(option, optarg);
-}
-void checkLiteralMatchMode(std::string option, theory::quantifiers::LiteralMatchMode mode,  OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->checkLiteralMatchMode(option, mode);
-}
-theory::quantifiers::MbqiMode stringToMbqiMode(std::string option, std::string optarg,  OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->stringToMbqiMode(option, optarg);
-}
-void checkMbqiMode(std::string option, theory::quantifiers::MbqiMode mode,  OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->checkMbqiMode(option, mode);
-}
-theory::quantifiers::QcfWhenMode stringToQcfWhenMode(std::string option, std::string optarg,  OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->stringToQcfWhenMode(option, optarg);
-}
-theory::quantifiers::QcfMode stringToQcfMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->stringToQcfMode(option, optarg);
-}
-theory::quantifiers::UserPatMode stringToUserPatMode(std::string option, std::string optarg,  OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->stringToUserPatMode(option, optarg);
-}
-theory::quantifiers::TriggerSelMode stringToTriggerSelMode(std::string option, std::string optarg,  OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->stringToTriggerSelMode(option, optarg);
-}
-theory::quantifiers::PrenexQuantMode stringToPrenexQuantMode(std::string option, std::string optarg,  OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->stringToPrenexQuantMode(option, optarg);
-}
-theory::quantifiers::CegqiFairMode stringToCegqiFairMode(std::string option, std::string optarg,  OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->stringToCegqiFairMode(option, optarg);
-}
-theory::quantifiers::TermDbMode stringToTermDbMode(std::string option, std::string optarg,  OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler-> stringToTermDbMode(option, optarg);
-}
-theory::quantifiers::IteLiftQuantMode stringToIteLiftQuantMode(std::string option, std::string optarg,  OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->stringToIteLiftQuantMode(option, optarg);
-}
-theory::quantifiers::SygusInvTemplMode stringToSygusInvTemplMode(std::string option, std::string optarg,  OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->stringToSygusInvTemplMode(option, optarg);
-}
-theory::quantifiers::MacrosQuantMode stringToMacrosQuantMode(std::string option, std::string optarg,  OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->stringToMacrosQuantMode(option, optarg);
-}
-
-
-// theory/bv/options_handlers.h
-void abcEnabledBuild(std::string option, bool value, OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->abcEnabledBuild(option, value);
-}
-void abcEnabledBuild(std::string option, std::string value, OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->abcEnabledBuild(option, value);
-}
-theory::bv::BitblastMode stringToBitblastMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->stringToBitblastMode(option, optarg);
-}
-theory::bv::BvSlicerMode stringToBvSlicerMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->stringToBvSlicerMode(option, optarg);
-}
-void setBitblastAig(std::string option, bool arg, OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->setBitblastAig(option, arg);
-}
-
-
-// theory/booleans/options_handlers.h
-theory::booleans::BooleanTermConversionMode stringToBooleanTermConversionMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->stringToBooleanTermConversionMode( option, optarg);
-}
-
-// theory/uf/options_handlers.h
-theory::uf::UfssMode stringToUfssMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->stringToUfssMode(option, optarg);
-}
-
-// theory/options_handlers.h
-theory::TheoryOfMode stringToTheoryOfMode(std::string option, std::string optarg, OptionsHandler* handler) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->stringToTheoryOfMode(option, optarg);
-}
-
-std::string handleUseTheoryList(std::string option, std::string optarg, OptionsHandler* handler) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->handleUseTheoryList(option, optarg);
-}
-
-void notifyUseTheoryList(std::string option, OptionsHandler* handler) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->notifyUseTheoryList(option);
-}
-
-// printer/options_handlers.h
-ModelFormatMode stringToModelFormatMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->stringToModelFormatMode(option, optarg);
-}
-
-InstFormatMode stringToInstFormatMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->stringToInstFormatMode(option, optarg);
-}
-
-
-// decision/options_handlers.h
-decision::DecisionMode stringToDecisionMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->stringToDecisionMode(option, optarg);
-}
-
-decision::DecisionWeightInternal stringToDecisionWeightInternal(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->stringToDecisionWeightInternal(option, optarg);
-}
-
-
-/* options/base_options_handlers.h */
-void setVerbosity(std::string option, int value, OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->setVerbosity(option, value);
-}
-void increaseVerbosity(std::string option, OptionsHandler* handler) {
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->increaseVerbosity(option);
-}
-void decreaseVerbosity(std::string option, OptionsHandler* handler) {
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->decreaseVerbosity(option);
-}
-
-OutputLanguage stringToOutputLanguage(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->stringToOutputLanguage(option, optarg);
-}
-
-InputLanguage stringToInputLanguage(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->stringToInputLanguage(option, optarg);
-}
-
-void addTraceTag(std::string option, std::string optarg, OptionsHandler* handler) {
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->addTraceTag(option, optarg);
-}
-
-void addDebugTag(std::string option, std::string optarg, OptionsHandler* handler) {
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->addDebugTag(option, optarg);
-}
-
-void notifyPrintSuccess(std::string option, OptionsHandler* handler) {
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->notifyPrintSuccess(option);
-}
-
-
-/* main/options_handlers.h */
-void showConfiguration(std::string option, OptionsHandler* handler) {
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->showConfiguration(option);
-}
-
-void showDebugTags(std::string option, OptionsHandler* handler) {
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->showDebugTags(option);
-}
-
-void showTraceTags(std::string option, OptionsHandler* handler) {
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->showTraceTags(option);
-}
-
-void threadN(std::string option, OptionsHandler* handler){
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->threadN(option);
-}
-
-/* expr/options_handlers.h */
-void setDefaultExprDepthPredicate(std::string option, int depth, OptionsHandler* handler){
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->setDefaultExprDepthPredicate(option, depth);
-}
-
-void setDefaultDagThreshPredicate(std::string option, int dag, OptionsHandler* handler){
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->setDefaultDagThreshPredicate(option, dag);
-}
-
-void notifySetDefaultExprDepth(std::string option, OptionsHandler* handler){
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->notifySetDefaultExprDepth(option);
-}
-
-void notifySetDefaultDagThresh(std::string option, OptionsHandler* handler){
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->notifySetDefaultDagThresh(option);
-}
-
-void notifySetPrintExprTypes(std::string option, OptionsHandler* handler) {
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->notifySetPrintExprTypes(option);
-}
-
-
-/* smt/options_handlers.h */
-void notifyDumpMode(std::string option, OptionsHandler* handler) {
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->notifyDumpMode(option);
-}
-
-SimplificationMode stringToSimplificationMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException){
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->stringToSimplificationMode(option, optarg);
-}
-
-void notifyForceLogic(const std::string& option, OptionsHandler* handler){
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->notifyForceLogic(option);
-}
-
-// ensure we haven't started search yet
-void notifyBeforeSearch(const std::string& option, OptionsHandler* handler)
-    throw(ModalException)
-{
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->notifyBeforeSearch(option);
-}
-
-void setProduceAssertions(std::string option, bool value, OptionsHandler* handler) throw() {
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->setProduceAssertions(option, value);
-}
-
-// ensure we are a proof-enabled build of CVC4
-void proofEnabledBuild(std::string option, bool value, OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->proofEnabledBuild(option, value);
-}
-
-void notifyDumpToFile(std::string option, OptionsHandler* handler) {
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->notifyDumpToFile(option);
-}
-
-void notifySetRegularOutputChannel(std::string option, OptionsHandler* handler) {
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->notifySetRegularOutputChannel(option);
-}
-
-void notifySetDiagnosticOutputChannel(std::string option,
-                                      OptionsHandler* handler) {
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->notifySetDiagnosticOutputChannel(option);
-}
-
-std::string checkReplayFilename(std::string option, std::string optarg, OptionsHandler* handler) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->checkReplayFilename(option, optarg);
-}
-
-
-// ensure we are a stats-enabled build of CVC4
-void statsEnabledBuild(std::string option, bool value, OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->statsEnabledBuild(option, value);
-}
-
-unsigned long tlimitHandler(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->tlimitHandler(option, optarg);
-}
-
-unsigned long tlimitPerHandler(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler-> tlimitPerHandler(option, optarg);
-}
-
-unsigned long rlimitHandler(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->rlimitHandler(option, optarg);
-}
-
-unsigned long rlimitPerHandler(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
-  PrettyCheckArgument(handler != NULL, handler);
-  return handler->rlimitPerHandler(option, optarg);
-}
-
-
-void notifyTlimit(const std::string& option, OptionsHandler* handler){
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->notifyTlimit(option);
-}
-
-void notifyTlimitPer(const std::string& option, OptionsHandler* handler){
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->notifyTlimitPer(option);
-}
-
-void notifyRlimit(const std::string& option, OptionsHandler* handler){
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->notifyRlimit(option);
-}
-
-void notifyRlimitPer(const std::string& option, OptionsHandler* handler){
-  PrettyCheckArgument(handler != NULL, handler);
-  handler->notifyRlimitPer(option);
-}
-
-
-
-OptionsHandler::OptionsHandler(Options* options) : d_options(options) { }
-
-void OptionsHandler::notifyForceLogic(const std::string& option){
-  d_options->d_forceLogicListeners.notify();
-}
-
-void OptionsHandler::notifyBeforeSearch(const std::string& option)
-    throw(ModalException)
-{
-  try{
-    d_options->d_beforeSearchListeners.notify();
-  } catch (ModalException&){
-    std::stringstream ss;
-    ss << "cannot change option `" << option
-       << "' after final initialization (i.e., after logic has been set)";
-    throw ModalException(ss.str());
-  }
-}
-
-
-void OptionsHandler::notifyTlimit(const std::string& option) {
-  d_options->d_tlimitListeners.notify();
-}
-
-void OptionsHandler::notifyTlimitPer(const std::string& option) {
-  d_options->d_tlimitPerListeners.notify();
-}
-
-void OptionsHandler::notifyRlimit(const std::string& option) {
-  d_options->d_rlimitListeners.notify();
-}
-
-void OptionsHandler::notifyRlimitPer(const std::string& option) {
-  d_options->d_rlimitPerListeners.notify();
-}
-
-
-unsigned long OptionsHandler::tlimitHandler(std::string option, std::string optarg) throw(OptionException)  {
-  unsigned long ms;
-  std::istringstream convert(optarg);
-  if (!(convert >> ms)) {
-    throw OptionException("option `"+option+"` requires a number as an argument");
-  }
-  return ms;
-}
-
-unsigned long OptionsHandler::tlimitPerHandler(std::string option, std::string optarg) throw(OptionException) {
-  unsigned long ms;
-
-  std::istringstream convert(optarg);
-  if (!(convert >> ms)) {
-    throw OptionException("option `"+option+"` requires a number as an argument");
-  }
-  return ms;
-}
-
-unsigned long OptionsHandler::rlimitHandler(std::string option, std::string optarg) throw(OptionException) {
-  unsigned long ms;
-
-  std::istringstream convert(optarg);
-  if (!(convert >> ms)) {
-    throw OptionException("option `"+option+"` requires a number as an argument");
-  }
-  return ms;
-}
-
-
-unsigned long OptionsHandler::rlimitPerHandler(std::string option, std::string optarg) throw(OptionException) {
-  unsigned long ms;
-
-  std::istringstream convert(optarg);
-  if (!(convert >> ms)) {
-    throw OptionException("option `"+option+"` requires a number as an argument");
-  }
-
-  return ms;
-}
 
 
 }/* CVC4::options namespace */
