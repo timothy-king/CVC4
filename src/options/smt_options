@@ -5,15 +5,15 @@
 
 module SMT "options/smt_options.h" SMT layer
 
-common-option dumpModeString dump --dump=MODE std::string :default "" :notify CVC4::options::notifyDumpMode
+common-option dumpModeString dump --dump=MODE std::string :default "" :notify notifyDumpMode
  dump preprocessed assertions, etc., see --dump=help
-common-option dumpToFileName dump-to --dump-to=FILE std::string :notify CVC4::options::notifyDumpToFile
+common-option dumpToFileName dump-to --dump-to=FILE std::string :notify notifyDumpToFile
  all dumping goes to FILE (instead of stdout)
 
 expert-option forceLogicString force-logic --force-logic=LOGIC std::string :default "" :notify notifyForceLogic
  set the logic, and override all further user attempts to change it
 
-option simplificationMode simplification-mode --simplification=MODE SimplificationMode :handler CVC4::options::stringToSimplificationMode :default SIMPLIFICATION_MODE_BATCH :read-write :include "options/simplification_mode.h" :handler-include "options/options_handler_interface.h"
+option simplificationMode simplification-mode --simplification=MODE SimplificationMode :handler stringToSimplificationMode :default SIMPLIFICATION_MODE_BATCH :read-write :include "options/simplification_mode.h" :handler-include "options/options_handler_interface.h"
  choose simplification mode, see --simplification=help
 alias --no-simplification = --simplification=none
  turn off all simplification (same as --simplification=none)
@@ -23,15 +23,15 @@ option doStaticLearning static-learning --static-learning bool :default true
 
 option expandDefinitions expand-definitions bool :default false
  always expand symbol definitions in output
-common-option produceModels produce-models -m --produce-models bool :default false :notify CVC4::options::notifyBeforeSearch
+common-option produceModels produce-models -m --produce-models bool :default false :notify notifyBeforeSearch
  support the get-value and get-model commands
-option checkModels check-models --check-models bool :link --produce-models --produce-assertions :link-smt produce-models :link-smt produce-assertions :notify CVC4::options::notifyBeforeSearch
+option checkModels check-models --check-models bool :link --produce-models --produce-assertions :link-smt produce-models :link-smt produce-assertions :notify notifyBeforeSearch
  after SAT/INVALID/UNKNOWN, check that the generated model satisfies user assertions
 option dumpModels --dump-models bool :default false :link --produce-models
  output models after every SAT/INVALID/UNKNOWN response
-option proof produce-proofs --proof bool :default false :predicate CVC4::options::proofEnabledBuild :predicate-include "options/options_handler_interface.h" :notify CVC4::options::notifyBeforeSearch
+option proof produce-proofs --proof bool :default false :predicate proofEnabledBuild :predicate-include "options/options_handler_interface.h" :notify notifyBeforeSearch
  turn on proof generation
-option checkProofs check-proofs --check-proofs bool :link --proof :link-smt produce-proofs :notify CVC4::options::notifyBeforeSearch :read-write
+option checkProofs check-proofs --check-proofs bool :link --proof :link-smt produce-proofs :notify notifyBeforeSearch :read-write
  after UNSAT/VALID, machine-check the generated proof
 option dumpProofs --dump-proofs bool :default false :link --proof
  output proofs after every UNSAT/VALID response
@@ -39,19 +39,19 @@ option dumpInstantiations --dump-instantiations bool :default false
  output instantiations of quantified formulas after every UNSAT/VALID response
 option dumpSynth --dump-synth bool :read-write :default false
  output solution for synthesis conjectures after every UNSAT/VALID response
-option unsatCores produce-unsat-cores --produce-unsat-cores bool :predicate CVC4::options::proofEnabledBuild :predicate-include "options/options_handler_interface.h" :notify :notify CVC4::options::notifyBeforeSearch
+option unsatCores produce-unsat-cores --produce-unsat-cores bool :predicate proofEnabledBuild :predicate-include "options/options_handler_interface.h" :notify :notify notifyBeforeSearch
  turn on unsat core generation
 option checkUnsatCores check-unsat-cores --check-unsat-cores bool :link --produce-unsat-cores :link-smt produce-unsat-cores :read-write
  after UNSAT/VALID, produce and check an unsat core (expensive)
-option dumpUnsatCores --dump-unsat-cores bool :default false :link --produce-unsat-cores :link-smt produce-unsat-cores :notify CVC4::options::notifyBeforeSearch
+option dumpUnsatCores --dump-unsat-cores bool :default false :link --produce-unsat-cores :link-smt produce-unsat-cores :notify notifyBeforeSearch
  output unsat cores after every UNSAT/VALID response
 
-option produceAssignments produce-assignments --produce-assignments bool :default false :notify CVC4::options::notifyBeforeSearch
+option produceAssignments produce-assignments --produce-assignments bool :default false :notify notifyBeforeSearch
  support the get-assignment command
 
-undocumented-option interactiveMode interactive-mode bool :predicate CVC4::options::setProduceAssertions :predicate-include "options/options_handler_interface.h" :read-write :notify CVC4::options::notifyBeforeSearch
+undocumented-option interactiveMode interactive-mode bool :predicate setProduceAssertions :predicate-include "options/options_handler_interface.h" :read-write :notify notifyBeforeSearch
  deprecated name for produce-assertions
-common-option produceAssertions produce-assertions --produce-assertions bool :predicate CVC4::options::setProduceAssertions :predicate-include "options/options_handler_interface.h" :read-write :notify CVC4::options::notifyBeforeSearch
+common-option produceAssertions produce-assertions --produce-assertions bool :predicate setProduceAssertions :predicate-include "options/options_handler_interface.h" :read-write :notify notifyBeforeSearch
  keep an assertions list (enables get-assertions command)
 
 option doITESimp --ite-simp bool :read-write
@@ -86,18 +86,18 @@ option abstractValues abstract-values --abstract-values bool :default false
 option modelUninterpDtEnum --model-u-dt-enum bool :default false
  in models, output uninterpreted sorts as datatype enumerations
 
-option regularChannelName regular-output-channel std::string :notify CVC4::options::notifySetRegularOutputChannel
+option regularChannelName regular-output-channel std::string :notify notifySetRegularOutputChannel
  set the regular output channel of the solver
-option diagnosticChannelName diagnostic-output-channel std::string :notify CVC4::options::notifySetDiagnosticOutputChannel
+option diagnosticChannelName diagnostic-output-channel std::string :notify notifySetDiagnosticOutputChannel
  set the diagnostic output channel of the solver
 
-common-option cumulativeMillisecondLimit tlimit --tlimit=MS "unsigned long" :handler CVC4::options::tlimitHandler :handler-include "options/options_handler_interface.h" :notify CVC4::options::notifyTlimit
+common-option cumulativeMillisecondLimit tlimit --tlimit=MS "unsigned long" :handler tlimitHandler :handler-include "options/options_handler_interface.h" :notify notifyTlimit
  enable time limiting (give milliseconds)
-common-option perCallMillisecondLimit  tlimit-per --tlimit-per=MS "unsigned long" :handler CVC4::options::tlimitPerHandler :handler-include "options/options_handler_interface.h" :notify CVC4::options::notifyTlimitPer
+common-option perCallMillisecondLimit  tlimit-per --tlimit-per=MS "unsigned long" :handler tlimitPerHandler :handler-include "options/options_handler_interface.h" :notify notifyTlimitPer
  enable time limiting per query (give milliseconds)
-common-option cumulativeResourceLimit rlimit --rlimit=N "unsigned long" :handler CVC4::options::rlimitHandler :handler-include "options/options_handler_interface.h" :notify CVC4::options::notifyRlimit
+common-option cumulativeResourceLimit rlimit --rlimit=N "unsigned long" :handler rlimitHandler :handler-include "options/options_handler_interface.h" :notify notifyRlimit
  enable resource limiting (currently, roughly the number of SAT conflicts)
-common-option perCallResourceLimit reproducible-resource-limit --rlimit-per=N "unsigned long" :handler CVC4::options::rlimitPerHandler :handler-include "options/options_handler_interface.h" :notify CVC4::options::notifyRlimitPer
+common-option perCallResourceLimit reproducible-resource-limit --rlimit-per=N "unsigned long" :handler rlimitPerHandler :handler-include "options/options_handler_interface.h" :notify notifyRlimitPer
  enable resource limiting per query
 common-option hardLimit hard-limit --hard-limit bool :default false
  the resource limit is hard potentially leaving the smtEngine in an unsafe state (should be destroyed and rebuild after resourcing out)
@@ -146,7 +146,7 @@ expert-option rewriteApplyToConst rewrite-apply-to-const --rewrite-apply-to-cons
  eliminate function applications, rewriting e.g. f(5) to a new symbol f_5
 
 # --replay is currently broken; don't document it for 1.0
-undocumented-option replayFilename --replay=FILE std::string :handler CVC4::options::checkReplayFilename :handler-include "options/options_handler_interface.h"
+undocumented-option replayFilename --replay=FILE std::string :handler checkReplayFilename
  replay decisions from file
 
 

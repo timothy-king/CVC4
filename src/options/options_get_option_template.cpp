@@ -26,6 +26,7 @@
 #include "base/output.h"
 #include "base/modal_exception.h"
 #include "options/option_exception.h"
+#include "options/options.h"
 #include "options/options_handler_interface.h"
 
 
@@ -37,9 +38,8 @@ ${option_handler_includes}
 using namespace std;
 
 namespace CVC4 {
-namespace options {
 
-std::string OptionsHandler::getOption(const std::string& key) const
+std::string Options::getOption(const std::string& key) const
   throw(OptionException) {
   Trace("options") << "SMT getOption(" << key << ")" << endl;
 
@@ -50,5 +50,4 @@ std::string OptionsHandler::getOption(const std::string& key) const
   throw UnrecognizedOptionException(key);
 }
 
-}/* options namespace */
 }/* CVC4 namespace */

@@ -77,7 +77,6 @@
 #include "smt/logic_request.h"
 #include "smt/model_postprocessor.h"
 #include "smt/smt_engine_scope.h"
-#include "smt/smt_options_handler.h"
 #include "smt/update_ostream.h"
 #include "smt_util/boolean_simplification.h"
 #include "smt_util/command.h"
@@ -997,7 +996,6 @@ SmtEngine::SmtEngine(ExprManager* em) throw() :
   d_needPostsolve(false),
   d_earlyTheoryPP(true),
   d_status(),
-  d_optionsHandler(new SmtOptionsHandler((Options*)&em->getOptions())),
   d_private(NULL),
   d_smtAttributes(NULL),
   d_statisticsRegistry(NULL),
@@ -1178,9 +1176,6 @@ SmtEngine::~SmtEngine() throw() {
     d_stats = NULL;
     delete d_statisticsRegistry;
     d_statisticsRegistry = NULL;
-
-    delete d_optionsHandler;
-    d_optionsHandler = NULL;
 
     delete d_private;
     d_private = NULL;
@@ -5275,8 +5270,8 @@ void SmtEngine::setOption(const std::string& key, const CVC4::SExpr& value)
   }
 
   string optionarg = value.getValue();
-
-  d_optionsHandler->setOption(key, optionarg);
+  Options& nodeManagerOptions = NodeManager::currentNM()->getOptions();
+  nodeManagerOptions.setOption(key, optionarg);
 }
 
 CVC4::SExpr SmtEngine::getOption(const std::string& key) const
@@ -5332,7 +5327,8 @@ CVC4::SExpr SmtEngine::getOption(const std::string& key) const
     return SExpr(result);
   }
 
-  return SExpr::parseAtom(d_optionsHandler->getOption(key));
+  Options& nodeManagerOptions = NodeManager::currentNM()->getOptions();
+  return SExpr::parseAtom(nodeManagerOptions.getOption(key));
 }
 
 }/* CVC4 namespace */

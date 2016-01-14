@@ -73,10 +73,6 @@ namespace prop {
   class PropEngine;
 }/* CVC4::prop namespace */
 
-namespace options {
-  class OptionsHandler;
-}/* CVC4::prop namespace */
-
 namespace expr {
   namespace attr {
     class AttributeManager;
@@ -266,11 +262,6 @@ class CVC4_PUBLIC SmtEngine {
    * Verbosity of various commands.
    */
   std::map<std::string, Integer> d_commandVerbosity;
-
-  /**
-   * This responds to requests to set options.
-   */
-  options::OptionsHandler* d_optionsHandler;
 
   /**
    * A private utility class to SmtEngine.

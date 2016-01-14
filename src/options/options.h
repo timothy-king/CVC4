@@ -25,6 +25,7 @@
 #include <vector>
 
 #include "base/listener.h"
+#include "base/modal_exception.h"
 #include "base/tls.h"
 #include "options/option_exception.h"
 
@@ -38,6 +39,9 @@ namespace options {
 class CVC4_PUBLIC Options {
   /** The struct that holds all option values. */
   options::OptionsHolder* d_holder;
+
+  /** The handler for the options of the theory. */
+  options::OptionsHandler* d_handler;
 
   /** The current Options in effect */
   static CVC4_THREADLOCAL(Options*) s_current;
@@ -92,10 +96,10 @@ class CVC4_PUBLIC Options {
 
   /** Low-level assignment function for options */
   template <class T>
-  void assign(T, std::string option, std::string value, options::OptionsHandler* handler);
+  void assign(T, std::string option, std::string value);
   /** Low-level assignment function for bool-valued options */
   template <class T>
-  void assignBool(T, std::string option, bool value, options::OptionsHandler* handler);
+  void assignBool(T, std::string option, bool value);
 
   friend class options::OptionsHandler;
 
@@ -163,9 +167,21 @@ public:
     T::you_are_trying_to_assign_to_a_read_only_option;
   }
 
+  /**
+   * Set the value of the given option by key.
+   */
+  void setOption(const std::string& key, const std::string& optionarg)
+      throw(OptionException, ModalException);
+
   /** Get the value of the given option.  Const access only. */
   template <class T>
   const typename T::type& operator[](T) const;
+
+  /**
+   * Gets the value of the given option by key and returns value as a string.
+   */
+  std::string getOption(const std::string& key) const
+    throw(OptionException);
 
   /**
    * Returns true iff the value of the given option was set
@@ -220,7 +236,8 @@ public:
    * The return value is what's left of the command line (that is, the
    * non-option arguments).
    */
-  std::vector<std::string> parseOptions(int argc, char* argv[], options::OptionsHandler* handler) throw(OptionException);
+  std::vector<std::string> parseOptions(int argc, char* argv[])
+      throw(OptionException);
 
   /**
    * Get the setting for all options.

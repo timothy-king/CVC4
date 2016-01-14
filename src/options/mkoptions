@@ -543,11 +543,11 @@ template <> bool Options::wasSetByUser(options::${internal}__option_t) const;"
     if [ "$type" = bool ]; then
       module_specializations="${module_specializations}
 #line $lineno \"$kf\"
-template <> void Options::assignBool(options::${internal}__option_t, std::string option, bool value, options::OptionsHandler* handler);"
+template <> void Options::assignBool(options::${internal}__option_t, std::string option, bool value);"
     elif [ "$internal" != - ]; then
       module_specializations="${module_specializations}
 #line $lineno \"$kf\"
-template <> void Options::assign(options::${internal}__option_t, std::string option, std::string value, options::OptionsHandler* handler);"
+template <> void Options::assign(options::${internal}__option_t, std::string option, std::string value);"
     fi
 
     module_accessors="${module_accessors}
@@ -614,7 +614,7 @@ template <> bool Options::wasSetByUser(options::${internal}__option_t) const { r
     while [ $i -lt ${#smt_links[@]} ]; do
       run_smt_links="$run_smt_links
 #line $lineno \"$kf\"
-    handler->setOption(std::string(\"${smt_links[$i]}\"), (${smt_links[$(($i+1))]}));"
+    setOption(std::string(\"${smt_links[$i]}\"), (${smt_links[$(($i+1))]}));"
       i=$((i+2))
     done
   fi
@@ -630,7 +630,7 @@ template <> bool Options::wasSetByUser(options::${internal}__option_t) const { r
     for notification in $notifications; do
       run_notifications="$run_notifications
 #line $lineno \"$kf\"
-  $notification(option, handler);"
+  d_handler->$notification(option);"
     done
   fi
   if [ "$type" = bool ] && [ -n "$cases" -o -n "$cases_alternate" -o -n "$smtname" ]; then
@@ -642,7 +642,7 @@ template <> bool Options::wasSetByUser(options::${internal}__option_t) const { r
       for predicate in $predicates; do
         run_handlers="$run_handlers
 #line $lineno \"$kf\"
-  $predicate(option, b, handler);"
+  handler->$predicate(option, b);"
       done
     fi
     if [ -n "$run_handlers" ]; then
@@ -657,7 +657,7 @@ template <> void runBoolPredicates(options::${internal}__option_t, std::string o
     if [ "$type" = bool ]; then
       all_modules_option_handlers="${all_modules_option_handlers}${cases}
 #line $lineno \"$kf\"
-      assignBool(options::$internal, option, true, handler);$run_links
+      assignBool(options::$internal, option, true);$run_links
       break;
 "
     elif [ -n "$expect_arg" -a "$internal" != - ]; then
@@ -666,7 +666,7 @@ template <> void runBoolPredicates(options::${internal}__option_t, std::string o
         for handler in $handlers; do
           run_handlers="$run_handlers
 #line $lineno \"$kf\"
-  $handler(option, optionarg, handler);"
+  handler->$handler(option, optionarg);"
         done
       else
         run_handlers="
@@ -677,7 +677,7 @@ template <> void runBoolPredicates(options::${internal}__option_t, std::string o
         for predicate in $predicates; do
           run_handlers="$run_handlers
 #line $lineno \"$kf\"
-  $predicate(option, retval, handler);"
+  handler->$predicate(option, retval);"
         done
       fi
       all_custom_handlers="${all_custom_handlers}
@@ -690,7 +690,7 @@ template <> options::${internal}__option_t::type runHandlerAndPredicates(options
 }"
       all_modules_option_handlers="${all_modules_option_handlers}${cases}
 #line $lineno \"$kf\"
-      assign(options::$internal, option, optionarg, handler);$run_links
+      assign(options::$internal, option, optionarg);$run_links
       break;
 "
     elif [ -n "$expect_arg" ]; then
@@ -702,7 +702,7 @@ template <> options::${internal}__option_t::type runHandlerAndPredicates(options
         for handler in $handlers; do
           run_handlers="$run_handlers
 #line $lineno \"$kf\"
-      $handler(option, optionarg, handler);"
+      handler->$handler(option, optionarg);"
         done
       fi
       all_modules_option_handlers="${all_modules_option_handlers}${cases}
@@ -719,7 +719,7 @@ template <> options::${internal}__option_t::type runHandlerAndPredicates(options
         for handler in $handlers; do
           run_handlers="$run_handlers
 #line $lineno \"$kf\"
-      $handler(option, handler);"
+      handler->$handler(option);"
         done
       fi
       all_modules_option_handlers="${all_modules_option_handlers}${cases}
@@ -733,7 +733,7 @@ template <> options::${internal}__option_t::type runHandlerAndPredicates(options
     if [ "$type" = bool ]; then
       all_modules_option_handlers="${all_modules_option_handlers}${cases_alternate}
 #line $lineno \"$kf\"
-      assignBool(options::$internal, option, false, handler);$run_links_alternate
+      assignBool(options::$internal, option, false);$run_links_alternate
       break;
 "
     else
@@ -786,7 +786,7 @@ template <> options::${internal}__option_t::type runHandlerAndPredicates(options
 #line $lineno \"$kf\"
   if(key == \"$smtname\") {
 #line $lineno \"$kf\"
-    Options::current()->assignBool(options::$internal, \"$smtname\", optionarg == \"true\", handler);$run_smt_links
+    Options::current()->assignBool(options::$internal, \"$smtname\", optionarg == \"true\");$run_smt_links
     return;
   }"
     elif [ -n "$expect_arg" -a "$internal" != - ]; then
@@ -795,7 +795,7 @@ template <> options::${internal}__option_t::type runHandlerAndPredicates(options
         for handler in $handlers; do
           run_handlers="$run_handlers
 #line $lineno \"$kf\"
-    $handler(\"$smtname\", optionarg, handler);
+    handler->$handler(\"$smtname\", optionarg);
 "
         done
       fi
@@ -803,7 +803,7 @@ template <> options::${internal}__option_t::type runHandlerAndPredicates(options
 #line $lineno \"$kf\"
   if(key == \"$smtname\") {
 #line $lineno \"$kf\"
-    Options::current()->assign(options::$internal, \"$smtname\", optionarg, handler);$run_smt_links
+    Options::current()->assign(options::$internal, \"$smtname\", optionarg);$run_smt_links
     return;
   }"
     elif [ -n "$expect_arg" ]; then
@@ -811,7 +811,7 @@ template <> options::${internal}__option_t::type runHandlerAndPredicates(options
       for handler in $handlers; do
         run_handlers="$run_handlers
 #line $lineno \"$kf\"
-    $handler(\"$smtname\", optionarg, handler);
+    handler->$handler(\"$smtname\", optionarg);
 "
       done
       smt_setoption_handlers="${smt_setoption_handlers}
@@ -826,7 +826,7 @@ template <> options::${internal}__option_t::type runHandlerAndPredicates(options
       for handler in $handlers; do
         run_handlers="$run_handlers
 #line $lineno \"$kf\"
-    $handler(\"$smtname\", handler);
+    handler->$handler(\"$smtname\");
 "
       done
       smt_setoption_handlers="${smt_setoption_handlers}
@@ -865,9 +865,9 @@ template <> options::${internal}__option_t::type runHandlerAndPredicates(options
     # emit assignBool/assign
     all_custom_handlers="${all_custom_handlers}
 #line $lineno \"$kf\"
-template <> void Options::assignBool(options::${internal}__option_t, std::string option, bool value, options::OptionsHandler* handler) {
+template <> void Options::assignBool(options::${internal}__option_t, std::string option, bool value) {
 #line $lineno \"$kf\"
-  runBoolPredicates(options::$internal, option, value, handler);
+  runBoolPredicates(options::$internal, option, value, d_handler);
 #line $lineno \"$kf\"
   d_holder->$internal = value;
 #line $lineno \"$kf\"
@@ -878,9 +878,9 @@ template <> void Options::assignBool(options::${internal}__option_t, std::string
   elif [ -n "$expect_arg" -a "$internal" != - ] && [ -n "$cases" -o -n "$cases_alternate" -o -n "$smtname" ]; then
     all_custom_handlers="${all_custom_handlers}
 #line $lineno \"$kf\"
-template <> void Options::assign(options::${internal}__option_t, std::string option, std::string value, options::OptionsHandler* handler) {
+template <> void Options::assign(options::${internal}__option_t, std::string option, std::string value) {
 #line $lineno \"$kf\"
-  d_holder->$internal = runHandlerAndPredicates(options::$internal, option, value, handler);
+  d_holder->$internal = runHandlerAndPredicates(options::$internal, option, value, d_handler);
 #line $lineno \"$kf\"
   d_holder->${internal}__setByUser__ = true;
 #line $lineno \"$kf\"

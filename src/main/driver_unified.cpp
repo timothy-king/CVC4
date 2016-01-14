@@ -46,7 +46,6 @@
 #include "parser/parser.h"
 #include "parser/parser_builder.h"
 #include "parser/parser_exception.h"
-#include "smt/smt_options_handler.h"
 #include "smt_util/command.h"
 #include "util/result.h"
 #include "util/statistics_registry.h"
@@ -134,11 +133,8 @@ int runCvc4(int argc, char* argv[], Options& opts) {
 
   progPath = argv[0];
 
-#warning "TODO: Check that the SmtEngine pointer should be NULL with Kshitij."
-  smt::SmtOptionsHandler optionsHandler(&opts);
-
   // Parse the options
-  vector<string> filenames = opts.parseOptions(argc, argv, &optionsHandler);
+  vector<string> filenames = opts.parseOptions(argc, argv);
 
 # ifndef PORTFOLIO_BUILD
   if( opts.wasSetByUser(options::threads) ||

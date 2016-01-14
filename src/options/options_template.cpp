@@ -232,6 +232,7 @@ void runBoolPredicates(T, std::string option, bool b, options::OptionsHandler* h
 
 Options::Options()
     : d_holder(new options::OptionsHolder())
+    , d_handler(new options::OptionsHandler(this))
     , d_forceLogicListeners()
     , d_beforeSearchListeners()
     , d_tlimitListeners()
@@ -241,6 +242,7 @@ Options::Options()
 {}
 
 Options::~Options() {
+  delete d_handler;
   delete d_holder;
 }
 
@@ -539,8 +541,11 @@ public:
  * The return value is what's left of the command line (that is, the
  * non-option arguments).
  */
-std::vector<std::string> Options::parseOptions(int argc, char* main_argv[], options::OptionsHandler* const handler) throw(OptionException) {
+std::vector<std::string> Options::parseOptions(int argc, char* main_argv[]) throw(OptionException) {
   options::OptionsGuard guard(&s_current, this);
+
+  // Having this synonym simplifies the generation code in mkoptions.
+  options::OptionsHandler* handler = d_handler;
 
   const char *progName = main_argv[0];
 

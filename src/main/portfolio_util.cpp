@@ -24,7 +24,6 @@
 #include "options/options.h"
 #include "options/prop_options.h"
 #include "options/smt_options.h"
-#include "smt/smt_options_handler.h"
 
 using namespace std;
 
@@ -67,10 +66,6 @@ size_t OptionsList::size() const {
 void parseThreadSpecificOptions(OptionsList& threadOptions, const Options& opts)
 {
 
-#warning "TODO: Check that the SmtEngine pointer should be NULL with Kshitij."
-#warning "TODO: Remove the const cast."
-  smt::SmtOptionsHandler optionsHandler((Options*)&opts);
-
   unsigned numThreads = opts[options::threads];
 
   for(unsigned i = 0; i < numThreads; ++i) {
@@ -103,7 +98,7 @@ void parseThreadSpecificOptions(OptionsList& threadOptions, const Options& opts)
       *vp++ = NULL;
       if(targc > 1) { // this is necessary in case you do e.g. --thread0="  "
         try {
-          tOpts.parseOptions(targc, targv, &optionsHandler);
+          tOpts.parseOptions(targc, targv);
         } catch(OptionException& e) {
           stringstream ss;
           ss << optid << ": " << e.getMessage();

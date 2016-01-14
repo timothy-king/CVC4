@@ -32,7 +32,6 @@
 #include "options/parser_options.h"
 #include "smt_util/lemma_input_channel.h"
 #include "smt_util/lemma_output_channel.h"
-#include "smt/smt_options_handler.h"
 
 namespace CVC4 {
 

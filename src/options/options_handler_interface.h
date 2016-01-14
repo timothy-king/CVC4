@@ -26,6 +26,7 @@
 #include "options/arith_heuristic_pivot_rule.h"
 #include "options/arith_propagation_mode.h"
 #include "options/arith_unate_lemma_mode.h"
+#include "options/base_handlers.h"
 #include "options/boolean_term_conversion_mode.h"
 #include "options/bv_bitblast_mode.h"
 #include "options/decision_mode.h"
@@ -46,9 +47,21 @@ public:
   OptionsHandler(Options* options);
   virtual ~OptionsHandler() {}
 
-  void setOption(const std::string& key, const std::string& optionarg) throw(OptionException, ModalException);
+  void unsignedGreater0(const std::string& option, unsigned value) {
+    options::greater(0)(option, value);
+  }
 
-  std::string getOption(const std::string& key) const throw(OptionException);
+  void unsignedLessEqual2(const std::string& option, unsigned value) {
+    options::less_equal(2)(option, value);
+  }
+
+  void doubleGreaterOrEqual0(const std::string& option, double value) {
+    options::greater_equal(0.0)(option, value);
+  }
+
+  void doubleLessOrEqual1(const std::string& option, double value) {
+    options::less_equal(1.0)(option, value);
+  }
 
   // DONE
   // decision/options_handlers.h
