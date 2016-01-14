@@ -7,7 +7,7 @@ module SMT "options/smt_options.h" SMT layer
 
 common-option dumpModeString dump --dump=MODE std::string :default "" :notify CVC4::options::notifyDumpMode
  dump preprocessed assertions, etc., see --dump=help
-common-option - dump-to --dump-to=FILE argument :handler CVC4::options::dumpToFile :handler-include "options/options_handler_interface.h"
+common-option dumpToFileName dump-to --dump-to=FILE std::string :notify CVC4::options::notifyDumpToFile
  all dumping goes to FILE (instead of stdout)
 
 expert-option forceLogicString force-logic --force-logic=LOGIC std::string :default "" :notify notifyForceLogic

@@ -987,6 +987,10 @@ void OptionsHandler::proofEnabledBuild(std::string option, bool value) throw(Opt
 #endif /* CVC4_PROOF */
 }
 
+void OptionsHandler::notifyDumpToFile(std::string option) {
+  d_options->d_dumpToFileListeners.notify();
+}
+
 
 
 std::string OptionsHandler::checkReplayFilename(std::string option, std::string optarg) {
@@ -1557,9 +1561,9 @@ void proofEnabledBuild(std::string option, bool value, OptionsHandler* handler) 
   handler->proofEnabledBuild(option, value);
 }
 
-void dumpToFile(std::string option, std::string optarg, OptionsHandler* handler) {
+void notifyDumpToFile(std::string option, OptionsHandler* handler) {
   PrettyCheckArgument(handler != NULL, handler);
-  handler->dumpToFile(option, optarg);
+  handler->notifyDumpToFile(option);
 }
 
 void setRegularOutputChannel(std::string option, std::string optarg, OptionsHandler* handler) {

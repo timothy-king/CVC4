@@ -354,6 +354,13 @@ ListenerCollection::Registration* Options::registerSetPrintSuccessListener(
   return registerAndNotify(d_setPrintSuccessListeners, listener, notify);
 }
 
+ListenerCollection::Registration* Options::registerDumpToFileNameListener(
+    Listener* listener, bool notifyIfSet)
+{
+  bool notify = notifyIfSet && wasSetByUser(options::dumpToFileName);
+  return registerAndNotify(d_dumpToFileListeners, listener, notify);
+}
+
 ${all_custom_handlers}
 
 #line 204 "${template}"

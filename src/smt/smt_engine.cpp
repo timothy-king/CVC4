@@ -54,6 +54,7 @@
 #include "options/decision_mode.h"
 #include "options/decision_options.h"
 #include "options/main_options.h"
+#include "options/open_ostream.h"
 #include "options/option_exception.h"
 #include "options/options_handler_interface.h"
 #include "options/printer_options.h"
@@ -77,6 +78,7 @@
 #include "smt/model_postprocessor.h"
 #include "smt/smt_engine_scope.h"
 #include "smt/smt_options_handler.h"
+#include "smt/update_ostream.h"
 #include "smt_util/boolean_simplification.h"
 #include "smt_util/command.h"
 #include "smt_util/ite_removal.h"
@@ -426,6 +428,24 @@ class DumpModeListener : public Listener {
   }
 };
 
+class DumpToFileListener : public Listener {
+ public:
+  void notify(){
+#ifdef CVC4_DUMPING
+    std::string optarg = options::dumpToFileName();
+    OstreamOpener opener("dump-to");
+    opener.addSpecialCase("-", &DumpOutC::dump_cout);
+    std::pair<bool, std::ostream*> pair = opener.open(optarg);
+    std::ostream* outStream = pair.second;
+
+    DumpOstreamUpdate dumpGetStream;
+    dumpGetStream.apply(outStream);
+#else /* CVC4_DUMPING */
+    throw OptionException("The dumping feature was disabled in this build of CVC4.");
+#endif /* CVC4_DUMPING */
+  }
+};
+
 class PrintSuccessListener : public Listener {
  public:
   virtual void notify() {
@@ -681,6 +701,9 @@ public:
     d_listenerRegistrations->add(
         nodeManagerOptions.registerSetPrintSuccessListener(
             new PrintSuccessListener(), true));
+    d_listenerRegistrations->add(
+        nodeManagerOptions.registerDumpToFileNameListener(
+            new DumpToFileListener(), true));
   }
 
   ~SmtEnginePrivate() throw() {

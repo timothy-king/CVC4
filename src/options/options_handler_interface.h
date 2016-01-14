@@ -124,7 +124,7 @@ public:
   SimplificationMode stringToSimplificationMode(std::string option, std::string optarg) throw(OptionException);
   void setProduceAssertions(std::string option, bool value) throw();
   void proofEnabledBuild(std::string option, bool value) throw(OptionException);
-  virtual void dumpToFile(std::string option, std::string optarg) = 0;
+  void notifyDumpToFile(std::string option);
   virtual void setRegularOutputChannel(std::string option, std::string optarg) = 0;
   virtual void setDiagnosticOutputChannel(std::string option, std::string optarg) = 0;
   std::string checkReplayFilename(std::string option, std::string optarg);
@@ -290,7 +290,7 @@ void setProduceAssertions(std::string option, bool value, OptionsHandler* handle
 // ensure we are a proof-enabled build of CVC4
 void proofEnabledBuild(std::string option, bool value, OptionsHandler* handler) throw(OptionException);
 
-void dumpToFile(std::string option, std::string optarg, OptionsHandler* handler);
+void notifyDumpToFile(std::string option, OptionsHandler* handler);
 
 void setRegularOutputChannel(std::string option, std::string optarg, OptionsHandler* handler);
 

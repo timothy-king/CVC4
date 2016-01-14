@@ -111,6 +111,7 @@ libcvc4_la_SOURCES = \
 	smt/smt_options_handler.h \
 	smt/smt_statistics_registry.cpp \
 	smt/smt_statistics_registry.h \
+	smt/update_ostream.h \
 	smt/command_list.cpp \
 	smt/command_list.h \
 	smt/boolean_terms.h \

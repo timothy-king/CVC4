@@ -55,6 +55,7 @@
 #include "options/theoryof_mode.h"
 #include "options/ufss_mode.h"
 #include "smt/smt_engine.h"
+#include "smt/update_ostream.h"
 #include "smt_util/command.h"
 #include "smt_util/dump.h"
 #include "theory/logic_info.h"
@@ -92,105 +93,6 @@ SmtOptionsHandler::~SmtOptionsHandler(){}
     __channel_get << expr::ExprPrintTypes(printtypesSetting); \
     __channel_get << language::SetLanguage(languageSetting); \
   }
-
-class ChannelSettings {
- public:
-  ChannelSettings(std::ostream& out)
-      : d_dagSetting(expr::ExprDag::getDag(out)),
-        d_exprDepthSetting(expr::ExprSetDepth::getDepth(out)),
-        d_printtypesSetting(expr::ExprPrintTypes::getPrintTypes(out)),
-        d_languageSetting(language::SetLanguage::getLanguage(out))
-  {}
-
-  void apply(std::ostream& out) {
-    out << expr::ExprDag(d_dagSetting);
-    out << expr::ExprSetDepth(d_exprDepthSetting);
-    out << expr::ExprPrintTypes(d_printtypesSetting);
-    out << language::SetLanguage(d_languageSetting);
-  }
-
- private:
-  const int d_dagSetting;
-  const size_t d_exprDepthSetting;
-  const bool d_printtypesSetting;
-  const OutputLanguage d_languageSetting;
-};
-
-class OstreamUpdate {
-public:
-  virtual std::ostream& get() = 0;
-  virtual void set(std::ostream* setTo) = 0;
-
-  void apply(std::ostream* setTo) {
-    PrettyCheckArgument(setTo != NULL, setTo);
-
-    ChannelSettings initialSettings(get());
-    set(setTo);
-    initialSettings.apply(get());
-  }
-}; /* class OstreamReferenceLambda */
-
-class OptionsErrOstreamUpdate : public OstreamUpdate {
- public:
-  virtual std::ostream& get() { return *(options::err()); }
-  virtual void set(std::ostream* setTo) { return options::err.set(setTo); }
-};  /* class OptionsErrOstreamUpdate */
-
-class DumpOstreamUpdate : public OstreamUpdate {
- public:
-  virtual std::ostream& get() { return Dump.getStream(); }
-  virtual void set(std::ostream* setTo) { Dump.setStream(*setTo); }
-};  /* class DumpOstreamUpdate */
-
-class DebugOstreamUpdate : public OstreamUpdate {
- public:
-  virtual std::ostream& get() { return Debug.getStream(); }
-  virtual void set(std::ostream* setTo) { Debug.setStream(*setTo); }
-};  /* class DebugOstreamUpdate */
-
-class WarningOstreamUpdate : public OstreamUpdate {
- public:
-  virtual std::ostream& get() { return Warning.getStream(); }
-  virtual void set(std::ostream* setTo) { Warning.setStream(*setTo); }
-};  /* class WarningOstreamUpdate */
-
-class MessageOstreamUpdate : public OstreamUpdate {
- public:
-  virtual std::ostream& get() { return Message.getStream(); }
-  virtual void set(std::ostream* setTo) { Message.setStream(*setTo); }
-};  /* class MessageOstreamUpdate */
-
-class NoticeOstreamUpdate : public OstreamUpdate {
- public:
-  virtual std::ostream& get() { return Notice.getStream(); }
-  virtual void set(std::ostream* setTo) { Notice.setStream(*setTo); }
-};  /* class NoticeOstreamUpdate */
-
-class ChatOstreamUpdate : public OstreamUpdate {
- public:
-  virtual std::ostream& get() { return Chat.getStream(); }
-  virtual void set(std::ostream* setTo) { Chat.setStream(*setTo); }
-};  /* class ChatOstreamUpdate */
-
-class TraceOstreamUpdate : public OstreamUpdate {
- public:
-  virtual std::ostream& get() { return Trace.getStream(); }
-  virtual void set(std::ostream* setTo) { Trace.setStream(*setTo); }
-};  /* class TraceOstreamUpdate */
-
-void SmtOptionsHandler::dumpToFile(std::string option, std::string optarg) {
-#ifdef CVC4_DUMPING
-  OstreamOpener opener("dump-to");
-  opener.addSpecialCase("-", &DumpOutC::dump_cout);
-  std::pair<bool, std::ostream*> pair = opener.open(optarg);
-  std::ostream* outStream = pair.second;
-
-  DumpOstreamUpdate dumpGetStream;
-  dumpGetStream.apply(outStream);
-#else /* CVC4_DUMPING */
-  throw OptionException("The dumping feature was disabled in this build of CVC4.");
-#endif /* CVC4_DUMPING */
-}
 
 void SmtOptionsHandler::setRegularOutputChannel(std::string option, std::string optarg) {
   OstreamOpener opener("regular-output-channel");
@@ -230,9 +132,6 @@ void SmtOptionsHandler::setDiagnosticOutputChannel(std::string option, std::stri
 }
 
 #undef __CVC4__SMT__OUTPUTCHANNELS__SETSTREAM
-
-
-/* options/base_options_handlers.h */
 
 
 }/* CVC4::smt namespace */
