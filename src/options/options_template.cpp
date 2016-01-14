@@ -347,6 +347,13 @@ ListenerCollection::Registration* Options::registerSetDumpModeListener(
   return registerAndNotify(d_setDumpModeListeners, listener, notify);
 }
 
+ListenerCollection::Registration* Options::registerSetPrintSuccessListener(
+    Listener* listener, bool notifyIfSet)
+{
+  bool notify = notifyIfSet && wasSetByUser(options::printSuccess);
+  return registerAndNotify(d_setPrintSuccessListeners, listener, notify);
+}
+
 ${all_custom_handlers}
 
 #line 204 "${template}"

@@ -162,10 +162,7 @@ public:
   InputLanguage stringToInputLanguage(std::string option, std::string optarg) throw(OptionException);
   void addTraceTag(std::string option, std::string optarg);
   void addDebugTag(std::string option, std::string optarg);
-  virtual void setPrintSuccess(std::string option, bool value) = 0;
-
-
-  static std::string __cvc4_errno_failreason();
+  void notifyPrintSuccess(std::string option);
 
  protected:
 
@@ -265,7 +262,7 @@ OutputLanguage stringToOutputLanguage(std::string option, std::string optarg, Op
 InputLanguage stringToInputLanguage(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException);
 void addTraceTag(std::string option, std::string optarg, OptionsHandler* handler);
 void addDebugTag(std::string option, std::string optarg, OptionsHandler* handler);
-void setPrintSuccess(std::string option, bool value, OptionsHandler* handler);
+void notifyPrintSuccess(std::string option, OptionsHandler* handler);
 
 /* main/options_handlers.h */
 void showConfiguration(std::string option, OptionsHandler* handler);

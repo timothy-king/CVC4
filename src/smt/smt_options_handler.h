@@ -47,14 +47,9 @@ public:
   ~SmtOptionsHandler();
 
   // smt/options_handlers.h
-  //virtual void dumpMode(std::string option, std::string optarg);
   virtual void dumpToFile(std::string option, std::string optarg);
   virtual void setRegularOutputChannel(std::string option, std::string optarg);
   virtual void setDiagnosticOutputChannel(std::string option, std::string optarg);
-
-  /* options/base_options_handlers.h */
-  virtual void setPrintSuccess(std::string option, bool value);
-
 
 }; /* class SmtOptionsHandler */
 

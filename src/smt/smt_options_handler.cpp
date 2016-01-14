@@ -42,6 +42,7 @@
 #include "options/decision_options.h"
 #include "options/language.h"
 #include "options/main_options.h"
+#include "options/open_ostream.h"
 #include "options/option_exception.h"
 #include "options/options_handler_interface.h"
 #include "options/parser_options.h"
@@ -179,22 +180,11 @@ class TraceOstreamUpdate : public OstreamUpdate {
 
 void SmtOptionsHandler::dumpToFile(std::string option, std::string optarg) {
 #ifdef CVC4_DUMPING
-  std::ostream* outStream = NULL;
-  if(optarg == "") {
-    throw OptionException(std::string("Bad file name for --dump-to"));
-  } else if(optarg == "-") {
-    outStream = &DumpOutC::dump_cout;
-  } else if(!options::filesystemAccess()) {
-    throw OptionException(std::string("Filesystem access not permitted"));
-  } else {
-    errno = 0;
-    outStream = new std::ofstream(optarg.c_str(), std::ofstream::out | std::ofstream::trunc);
-    if(outStream == NULL || !*outStream) {
-      std::stringstream ss;
-      ss << "Cannot open dump-to file: `" << optarg << "': " << __cvc4_errno_failreason();
-      throw OptionException(ss.str());
-    }
-  }
+  OstreamOpener opener("dump-to");
+  opener.addSpecialCase("-", &DumpOutC::dump_cout);
+  std::pair<bool, std::ostream*> pair = opener.open(optarg);
+  std::ostream* outStream = pair.second;
+
   DumpOstreamUpdate dumpGetStream;
   dumpGetStream.apply(outStream);
 #else /* CVC4_DUMPING */
@@ -203,49 +193,25 @@ void SmtOptionsHandler::dumpToFile(std::string option, std::string optarg) {
 }
 
 void SmtOptionsHandler::setRegularOutputChannel(std::string option, std::string optarg) {
-  std::ostream* outStream = NULL;
-  if(optarg == "") {
-    throw OptionException(std::string("Bad file name setting for regular output channel"));
-  } else if(optarg == "stdout") {
-    outStream = &std::cout;
-  } else if(optarg == "stderr") {
-    outStream = &std::cerr;
-  } else if(!options::filesystemAccess()) {
-    throw OptionException(std::string("Filesystem access not permitted"));
-  } else {
-    errno = 0;
-    outStream = new std::ofstream(optarg.c_str(), std::ofstream::out | std::ofstream::trunc);
-    if(outStream == NULL || !*outStream) {
-      std::stringstream ss;
-      ss << "Cannot open regular-output-channel file: `" << optarg << "': " << __cvc4_errno_failreason();
-      throw OptionException(ss.str());
-    }
-  }
-
+  OstreamOpener opener("regular-output-channel");
+  opener.addSpecialCase("stdout", &std::cout);
+  opener.addSpecialCase("stderr", &std::cerr);
+  std::pair<bool, std::ostream*> pair = opener.open(optarg);
+  std::ostream* outStream = pair.second;
+#warning "TODO: Garbage collection memory if pair.first is true."
 #warning "TODO: Why was this using options::err instead of options::out?"
   OptionsErrOstreamUpdate optionsErrOstreamUpdate;
   optionsErrOstreamUpdate.apply(outStream);
 }
 
 void SmtOptionsHandler::setDiagnosticOutputChannel(std::string option, std::string optarg) {
-  std::ostream* outStream = NULL;
-  if(optarg == "") {
-    throw OptionException(std::string("Bad file name setting for diagnostic output channel"));
-  } else if(optarg == "stdout") {
-    outStream = &std::cout;
-  } else if(optarg == "stderr") {
-    outStream = &std::cerr;
-  } else if(!options::filesystemAccess()) {
-    throw OptionException(std::string("Filesystem access not permitted"));
-  } else {
-    errno = 0;
-    outStream = new std::ofstream(optarg.c_str(), std::ofstream::out | std::ofstream::trunc);
-    if(outStream == NULL || !*outStream) {
-      std::stringstream ss;
-      ss << "Cannot open diagnostic-output-channel file: `" << optarg << "': " << __cvc4_errno_failreason();
-      throw OptionException(ss.str());
-    }
-  }
+  OstreamOpener opener("diagnostic-output-channel");
+  opener.addSpecialCase("stdout", &std::cout);
+  opener.addSpecialCase("stderr", &std::cerr);
+  std::pair<bool, std::ostream*> pair = opener.open(optarg);
+  std::ostream* outStream = pair.second;
+
+#warning "TODO: Garbage collection memory if pair.first is true."
 
   DebugOstreamUpdate debugOstreamUpdate;
   debugOstreamUpdate.apply(outStream);
@@ -268,15 +234,6 @@ void SmtOptionsHandler::setDiagnosticOutputChannel(std::string option, std::stri
 
 /* options/base_options_handlers.h */
 
-void SmtOptionsHandler::setPrintSuccess(std::string option, bool value) {
-  Debug.getStream() << Command::printsuccess(value);
-  Trace.getStream() << Command::printsuccess(value);
-  Notice.getStream() << Command::printsuccess(value);
-  Chat.getStream() << Command::printsuccess(value);
-  Message.getStream() << Command::printsuccess(value);
-  Warning.getStream() << Command::printsuccess(value);
-  *options::out() << Command::printsuccess(value);
-}
 
 }/* CVC4::smt namespace */
 }/* CVC4 namespace */

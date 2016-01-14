@@ -51,6 +51,11 @@
 namespace CVC4 {
 namespace options {
 
+/* options/base_options_handlers.h */
+void OptionsHandler::notifyPrintSuccess(std::string option) {
+  d_options->d_setPrintSuccessListeners.notify();
+}
+
 // theory/arith/options_handlers.h
 const std::string OptionsHandler::s_arithUnateLemmasHelp = "\
 Unate lemmas are generated before SAT search begins using the relationship\n\
@@ -1273,38 +1278,6 @@ std::string OptionsHandler::suggestTags(char const* const* validTags, std::strin
   return  didYouMean.getMatchAsString(inputTag);
 }
 
-
-std::string OptionsHandler::__cvc4_errno_failreason() {
-#if HAVE_STRERROR_R
-#if STRERROR_R_CHAR_P
-  if(errno != 0) {
-    // GNU version of strerror_r: *might* use the given buffer,
-    // or might not.  It returns a pointer to buf, or not.
-    char buf[80];
-    return std::string(strerror_r(errno, buf, sizeof buf));
-  } else {
-    return "unknown reason";
-  }
-#else /* STRERROR_R_CHAR_P */
-  if(errno != 0) {
-    // XSI version of strerror_r: always uses the given buffer.
-    // Returns an error code.
-    char buf[80];
-    if(strerror_r(errno, buf, sizeof buf) == 0) {
-      return std::string(buf);
-    } else {
-      // some error occurred while getting the error string
-      return "unknown reason";
-    }
-  } else {
-    return "unknown reason";
-  }
-#endif /* STRERROR_R_CHAR_P */
-#else /* HAVE_STRERROR_R */
-  return "unknown reason";
-#endif /* HAVE_STRERROR_R */
-}
-
 // theory/arith/options_handlers.h
 ArithUnateLemmaMode stringToArithUnateLemmaMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException) {
   PrettyCheckArgument(handler != NULL, handler);
@@ -1495,9 +1468,9 @@ void addDebugTag(std::string option, std::string optarg, OptionsHandler* handler
   handler->addDebugTag(option, optarg);
 }
 
-void setPrintSuccess(std::string option, bool value, OptionsHandler* handler) {
+void notifyPrintSuccess(std::string option, OptionsHandler* handler) {
   PrettyCheckArgument(handler != NULL, handler);
-  handler->setPrintSuccess(option, value);
+  handler->notifyPrintSuccess(option);
 }
 
 

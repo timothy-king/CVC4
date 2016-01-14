@@ -426,6 +426,20 @@ class DumpModeListener : public Listener {
   }
 };
 
+class PrintSuccessListener : public Listener {
+ public:
+  virtual void notify() {
+    bool value = options::printSuccess();
+    Debug.getStream() << Command::printsuccess(value);
+    Trace.getStream() << Command::printsuccess(value);
+    Notice.getStream() << Command::printsuccess(value);
+    Chat.getStream() << Command::printsuccess(value);
+    Message.getStream() << Command::printsuccess(value);
+    Warning.getStream() << Command::printsuccess(value);
+    *options::out() << Command::printsuccess(value);
+  }
+};
+
 /**
  * This is an inelegant solution, but for the present, it will work.
  * The point of this is to separate the public and private portions of
@@ -661,11 +675,12 @@ public:
     d_listenerRegistrations->add(
         nodeManagerOptions.registerSetPrintExprTypesListener(
             new SetPrintExprTypesListener(), true));
-
     d_listenerRegistrations->add(
         nodeManagerOptions.registerSetDumpModeListener(
             new DumpModeListener(), true));
-
+    d_listenerRegistrations->add(
+        nodeManagerOptions.registerSetPrintSuccessListener(
+            new PrintSuccessListener(), true));
   }
 
   ~SmtEnginePrivate() throw() {

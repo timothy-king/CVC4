@@ -220,6 +220,8 @@ liboptions_la_SOURCES = \
 	didyoumean.h \
 	language.cpp \
 	language.h \
+	open_ostream.h \
+	open_ostream.cpp \
 	option_exception.h \
 	options.h \
 	options_handler_interface.cpp \
