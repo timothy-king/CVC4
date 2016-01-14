@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file options_handler_interface.cpp
+/*! \file options_handler.cpp
  ** \verbatim
  ** Original author: Tim King
  ** Major contributors: none
@@ -14,7 +14,7 @@
  ** Interface for custom handlers and predicates options.
  **/
 
-#include "options/options_handler_interface.h"
+#include "options/options_handler.h"
 
 #include <ostream>
 #include <string>

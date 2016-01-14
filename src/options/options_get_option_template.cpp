@@ -27,13 +27,13 @@
 #include "base/modal_exception.h"
 #include "options/option_exception.h"
 #include "options/options.h"
-#include "options/options_handler_interface.h"
+#include "options/options_handler.h"
 
 
 ${include_all_option_headers}
 ${option_handler_includes}
 
-#line 31 "${template}"
+#line 36 "${template}"
 
 using namespace std;
 
@@ -45,7 +45,7 @@ std::string Options::getOption(const std::string& key) const
 
   ${smt_getoption_handlers}
 
-#line 57 "${template}"
+#line 48 "${template}"
 
   throw UnrecognizedOptionException(key);
 }

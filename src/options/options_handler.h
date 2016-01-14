@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file options_handler_interface.h
+/*! \file options_handler.h
  ** \verbatim
  ** Original author: Tim King
  ** Major contributors: none
@@ -16,8 +16,8 @@
 
 #include "cvc4_private.h"
 
-#ifndef __CVC4__OPTIONS__OPTIONS_HANDLER_INTERFACE_H
-#define __CVC4__OPTIONS__OPTIONS_HANDLER_INTERFACE_H
+#ifndef __CVC4__OPTIONS__OPTIONS_HANDLER_H
+#define __CVC4__OPTIONS__OPTIONS_HANDLER_H
 
 #include <ostream>
 #include <string>
@@ -177,11 +177,14 @@ public:
   void addDebugTag(std::string option, std::string optarg);
   void notifyPrintSuccess(std::string option);
 
- protected:
+ private:
 
   /* Helper utilities */
   static std::string suggestTags(char const* const* validTags, std::string inputTag,
                                  char const* const* additionalTags = NULL);
+
+  /** Pointer to the containing Options object.*/
+  Options* d_options;
 
   /* Help strings */
   static const std::string s_bitblastingModeHelp;
@@ -210,12 +213,10 @@ public:
   static const std::string s_arithPropagationModeHelp;
   static const std::string s_arithUnateLemmasHelp;
 
- private:
-  Options* d_options;
 }; /* class OptionHandler */
 
 
 }/* CVC4::options namespace */
 }/* CVC4 namespace */
 
-#endif /*  __CVC4__OPTIONS__OPTIONS_HANDLER_INTERFACE_H */
+#endif /*  __CVC4__OPTIONS__OPTIONS_HANDLER_H */

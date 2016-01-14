@@ -56,7 +56,6 @@
 #include "options/main_options.h"
 #include "options/open_ostream.h"
 #include "options/option_exception.h"
-#include "options/options_handler_interface.h"
 #include "options/printer_options.h"
 #include "options/prop_options.h"
 #include "options/quantifiers_options.h"

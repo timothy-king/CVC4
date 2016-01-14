@@ -13,7 +13,7 @@ common-option dumpToFileName dump-to --dump-to=FILE std::string :notify notifyDu
 expert-option forceLogicString force-logic --force-logic=LOGIC std::string :default "" :notify notifyForceLogic
  set the logic, and override all further user attempts to change it
 
-option simplificationMode simplification-mode --simplification=MODE SimplificationMode :handler stringToSimplificationMode :default SIMPLIFICATION_MODE_BATCH :read-write :include "options/simplification_mode.h" :handler-include "options/options_handler_interface.h"
+option simplificationMode simplification-mode --simplification=MODE SimplificationMode :handler stringToSimplificationMode :default SIMPLIFICATION_MODE_BATCH :read-write :include "options/simplification_mode.h"
  choose simplification mode, see --simplification=help
 alias --no-simplification = --simplification=none
  turn off all simplification (same as --simplification=none)
@@ -29,7 +29,7 @@ option checkModels check-models --check-models bool :link --produce-models --pro
  after SAT/INVALID/UNKNOWN, check that the generated model satisfies user assertions
 option dumpModels --dump-models bool :default false :link --produce-models
  output models after every SAT/INVALID/UNKNOWN response
-option proof produce-proofs --proof bool :default false :predicate proofEnabledBuild :predicate-include "options/options_handler_interface.h" :notify notifyBeforeSearch
+option proof produce-proofs --proof bool :default false :predicate proofEnabledBuild :notify notifyBeforeSearch
  turn on proof generation
 option checkProofs check-proofs --check-proofs bool :link --proof :link-smt produce-proofs :notify notifyBeforeSearch :read-write
  after UNSAT/VALID, machine-check the generated proof
@@ -39,7 +39,7 @@ option dumpInstantiations --dump-instantiations bool :default false
  output instantiations of quantified formulas after every UNSAT/VALID response
 option dumpSynth --dump-synth bool :read-write :default false
  output solution for synthesis conjectures after every UNSAT/VALID response
-option unsatCores produce-unsat-cores --produce-unsat-cores bool :predicate proofEnabledBuild :predicate-include "options/options_handler_interface.h" :notify :notify notifyBeforeSearch
+option unsatCores produce-unsat-cores --produce-unsat-cores bool :predicate proofEnabledBuild :notify :notify notifyBeforeSearch
  turn on unsat core generation
 option checkUnsatCores check-unsat-cores --check-unsat-cores bool :link --produce-unsat-cores :link-smt produce-unsat-cores :read-write
  after UNSAT/VALID, produce and check an unsat core (expensive)
@@ -49,9 +49,9 @@ option dumpUnsatCores --dump-unsat-cores bool :default false :link --produce-uns
 option produceAssignments produce-assignments --produce-assignments bool :default false :notify notifyBeforeSearch
  support the get-assignment command
 
-undocumented-option interactiveMode interactive-mode bool :predicate setProduceAssertions :predicate-include "options/options_handler_interface.h" :read-write :notify notifyBeforeSearch
+undocumented-option interactiveMode interactive-mode bool :predicate setProduceAssertions :read-write :notify notifyBeforeSearch
  deprecated name for produce-assertions
-common-option produceAssertions produce-assertions --produce-assertions bool :predicate setProduceAssertions :predicate-include "options/options_handler_interface.h" :read-write :notify notifyBeforeSearch
+common-option produceAssertions produce-assertions --produce-assertions bool :predicate setProduceAssertions :read-write :notify notifyBeforeSearch
  keep an assertions list (enables get-assertions command)
 
 option doITESimp --ite-simp bool :read-write
@@ -91,13 +91,13 @@ option regularChannelName regular-output-channel std::string :notify notifySetRe
 option diagnosticChannelName diagnostic-output-channel std::string :notify notifySetDiagnosticOutputChannel
  set the diagnostic output channel of the solver
 
-common-option cumulativeMillisecondLimit tlimit --tlimit=MS "unsigned long" :handler tlimitHandler :handler-include "options/options_handler_interface.h" :notify notifyTlimit
+common-option cumulativeMillisecondLimit tlimit --tlimit=MS "unsigned long" :handler tlimitHandler :notify notifyTlimit
  enable time limiting (give milliseconds)
-common-option perCallMillisecondLimit  tlimit-per --tlimit-per=MS "unsigned long" :handler tlimitPerHandler :handler-include "options/options_handler_interface.h" :notify notifyTlimitPer
+common-option perCallMillisecondLimit  tlimit-per --tlimit-per=MS "unsigned long" :handler tlimitPerHandler :notify notifyTlimitPer
  enable time limiting per query (give milliseconds)
-common-option cumulativeResourceLimit rlimit --rlimit=N "unsigned long" :handler rlimitHandler :handler-include "options/options_handler_interface.h" :notify notifyRlimit
+common-option cumulativeResourceLimit rlimit --rlimit=N "unsigned long" :handler rlimitHandler :notify notifyRlimit
  enable resource limiting (currently, roughly the number of SAT conflicts)
-common-option perCallResourceLimit reproducible-resource-limit --rlimit-per=N "unsigned long" :handler rlimitPerHandler :handler-include "options/options_handler_interface.h" :notify notifyRlimitPer
+common-option perCallResourceLimit reproducible-resource-limit --rlimit-per=N "unsigned long" :handler rlimitPerHandler :notify notifyRlimitPer
  enable resource limiting per query
 common-option hardLimit hard-limit --hard-limit bool :default false
  the resource limit is hard potentially leaving the smtEngine in an unsafe state (should be destroyed and rebuild after resourcing out)

@@ -55,7 +55,7 @@ extern int optreset;
 #include "options/argument_extender.h"
 #include "options/didyoumean.h"
 #include "options/language.h"
-#include "options/options_handler_interface.h"
+#include "options/options_handler.h"
 
 ${include_all_option_headers}
 

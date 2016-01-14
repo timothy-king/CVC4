@@ -220,12 +220,12 @@ liboptions_la_SOURCES = \
 	didyoumean.h \
 	language.cpp \
 	language.h \
-	open_ostream.h \
 	open_ostream.cpp \
+	open_ostream.h \
 	option_exception.h \
 	options.h \
-	options_handler_interface.cpp \
-	options_handler_interface.h \
+	options_handler.cpp \
+	options_handler.h \
 	printer_modes.cpp \
 	printer_modes.h \
 	quantifiers_modes.cpp \
@@ -280,7 +280,6 @@ EXTRA_DIST = \
 	option_exception.i \
 	options.i \
 	options_get_option_template.cpp \
-	options_handler_interface.i \
 	options_holder_template.h \
 	options_set_option_template.cpp \
 	options_template.cpp

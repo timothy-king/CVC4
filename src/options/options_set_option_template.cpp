@@ -22,11 +22,11 @@
 #include <string>
 #include <sstream>
 
-#include "base/output.h"
 #include "base/modal_exception.h"
+#include "base/output.h"
 #include "options/option_exception.h"
 #include "options/options.h"
-#include "options/options_handler_interface.h"
+#include "options/options_handler.h"
 
 ${include_all_option_headers}
 ${option_handler_includes}
