@@ -142,9 +142,11 @@ public:
 
 
   /* expr/options_handlers.h */
-  virtual void setDefaultExprDepth(std::string option, int depth) = 0;
-  virtual void setDefaultDagThresh(std::string option, int dag) = 0;
-  virtual void setPrintExprTypes(std::string option) = 0;
+  void setDefaultExprDepthPredicate(std::string option, int depth);
+  void setDefaultDagThreshPredicate(std::string option, int dag);
+  void notifySetDefaultExprDepth(std::string option);
+  void notifySetDefaultDagThresh(std::string option);
+  void notifySetPrintExprTypes(std::string option);
 
   /* main/options_handlers.h */
   void showConfiguration(std::string option);
@@ -273,9 +275,11 @@ void showTraceTags(std::string option, OptionsHandler* handler);
 void threadN(std::string option, OptionsHandler* handler);
 
 /* expr/options_handlers.h */
-void setDefaultExprDepth(std::string option, int depth, OptionsHandler* handler);
-void setDefaultDagThresh(std::string option, int dag, OptionsHandler* handler);
-void setPrintExprTypes(std::string option, OptionsHandler* handler);
+void setDefaultExprDepthPredicate(std::string option, int depth, OptionsHandler* handler);
+void setDefaultDagThreshPredicate(std::string option, int dag, OptionsHandler* handler);
+void notifySetDefaultExprDepth(std::string option, OptionsHandler* handler);
+void notifySetDefaultDagThresh(std::string option, OptionsHandler* handler);
+void notifySetPrintExprTypes(std::string option, OptionsHandler* handler);
 
 /* smt/options_handlers.h */
 void dumpMode(std::string option, std::string optarg, OptionsHandler* handler);

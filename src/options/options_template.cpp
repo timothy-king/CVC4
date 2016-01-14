@@ -319,6 +319,27 @@ ListenerCollection::Registration* Options::registerUseTheoryListListener(
   return registerAndNotify(d_useTheoryListListeners, listener, notify);
 }
 
+ListenerCollection::Registration* Options::registerSetDefaultExprDepthListener(
+    Listener* listener, bool notifyIfSet)
+{
+  bool notify = notifyIfSet && wasSetByUser(options::defaultExprDepth);
+  return registerAndNotify(d_setDefaultExprDepthListeners, listener, notify);
+}
+
+ListenerCollection::Registration* Options::registerSetDefaultExprDagListener(
+    Listener* listener, bool notifyIfSet)
+{
+  bool notify = notifyIfSet && wasSetByUser(options::defaultDagThresh);
+  return registerAndNotify(d_setDefaultDagThreshListeners, listener, notify);
+}
+
+ListenerCollection::Registration* Options::registerSetPrintExprTypesListener(
+    Listener* listener, bool notifyIfSet)
+{
+  bool notify = notifyIfSet && wasSetByUser(options::printExprTypes);
+  return registerAndNotify(d_setPrintExprTypesListeners, listener, notify);
+}
+
 ${all_custom_handlers}
 
 #line 204 "${template}"

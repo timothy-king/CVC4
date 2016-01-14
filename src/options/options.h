@@ -63,6 +63,18 @@ class CVC4_PUBLIC Options {
   /** Listeners for options::useTheoryList. */
   ListenerCollection d_useTheoryListListeners;
 
+  /** Listeners for options::defaultExprDepth. */
+  ListenerCollection d_setDefaultExprDepthListeners;
+
+  /** Listeners for options::defaultDagThresh. */
+  ListenerCollection d_setDefaultDagThreshListeners;
+
+  /** Listeners for options::printExprTypes. */
+  ListenerCollection d_setPrintExprTypesListeners;
+
+  static ListenerCollection::Registration* registerAndNotify(
+      ListenerCollection& collection, Listener* listener, bool notify);
+
   /** Low-level assignment function for options */
   template <class T>
   void assign(T, std::string option, std::string value, options::OptionsHandler* handler);
@@ -288,9 +300,42 @@ public:
       Listener* listener, bool notifyIfSet);
 
 
-private:
-  static ListenerCollection::Registration* registerAndNotify(
-      ListenerCollection& collection, Listener* listener, bool notify);
+  /**
+   * Registers a listener for options::defaultExprDepth being set.
+   *
+   * If notifyIfSet is true, this calls notify on the listener
+   * if the option was set by the user.
+   *
+   * The memory for the Registration is controlled by the user and must
+   * be destroyed before the Options object is.
+   */
+  ListenerCollection::Registration* registerSetDefaultExprDepthListener(
+      Listener* listener, bool notifyIfSet);
+
+  /**
+   * Registers a listener for options::defaultDagThresh being set.
+   *
+   * If notifyIfSet is true, this calls notify on the listener
+   * if the option was set by the user.
+   *
+   * The memory for the Registration is controlled by the user and must
+   * be destroyed before the Options object is.
+   */
+  ListenerCollection::Registration* registerSetDefaultExprDagListener(
+      Listener* listener, bool notifyIfSet);
+
+  /**
+   * Registers a listener for options::printExprTypes being set.
+   *
+   * If notifyIfSet is true, this calls notify on the listener
+   * if the option was set by the user.
+   *
+   * The memory for the Registration is controlled by the user and must
+   * be destroyed before the Options object is.
+   */
+  ListenerCollection::Registration* registerSetPrintExprTypesListener(
+      Listener* listener, bool notifyIfSet);
+
 };/* class Options */
 
 }/* CVC4 namespace */

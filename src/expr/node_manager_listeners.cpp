@@ -40,6 +40,5 @@ void RlimitPerListener::notify() {
   d_rm->setTimeLimit(options::perCallResourceLimit(), false);
 }
 
-
 }/* CVC4::expr namespace */
 }/* CVC4 namespace */

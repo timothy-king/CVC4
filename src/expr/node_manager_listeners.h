@@ -25,12 +25,6 @@
 namespace CVC4 {
 namespace expr {
 
-class TheoryAlternativesListener : public Listener {
- public:
-  virtual void notify();
-};
-
-
 class TlimitListener : public Listener {
  public:
   TlimitListener(ResourceManager* rm) : d_rm(rm) {}

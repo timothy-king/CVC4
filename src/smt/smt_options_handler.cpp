@@ -197,6 +197,91 @@ void SmtOptionsHandler::dumpMode(std::string option, std::string optarg) {
     __channel_get << language::SetLanguage(languageSetting); \
   }
 
+class ChannelSettings {
+ public:
+  ChannelSettings(std::ostream& out)
+      : d_dagSetting(expr::ExprDag::getDag(out)),
+        d_exprDepthSetting(expr::ExprSetDepth::getDepth(out)),
+        d_printtypesSetting(expr::ExprPrintTypes::getPrintTypes(out)),
+        d_languageSetting(language::SetLanguage::getLanguage(out))
+  {}
+
+  void apply(std::ostream& out) {
+    out << expr::ExprDag(d_dagSetting);
+    out << expr::ExprSetDepth(d_exprDepthSetting);
+    out << expr::ExprPrintTypes(d_printtypesSetting);
+    out << language::SetLanguage(d_languageSetting);
+  }
+
+ private:
+  const int d_dagSetting;
+  const size_t d_exprDepthSetting;
+  const bool d_printtypesSetting;
+  const OutputLanguage d_languageSetting;
+};
+
+class OstreamUpdate {
+public:
+  virtual std::ostream& get() = 0;
+  virtual void set(std::ostream* setTo) = 0;
+
+  void apply(std::ostream* setTo) {
+    PrettyCheckArgument(setTo != NULL, setTo);
+
+    ChannelSettings initialSettings(get());
+    set(setTo);
+    initialSettings.apply(get());
+  }
+}; /* class OstreamReferenceLambda */
+
+class OptionsErrOstreamUpdate : public OstreamUpdate {
+ public:
+  virtual std::ostream& get() { return *(options::err()); }
+  virtual void set(std::ostream* setTo) { return options::err.set(setTo); }
+};  /* class OptionsErrOstreamUpdate */
+
+class DumpOstreamUpdate : public OstreamUpdate {
+ public:
+  virtual std::ostream& get() { return Dump.getStream(); }
+  virtual void set(std::ostream* setTo) { Dump.setStream(*setTo); }
+};  /* class DumpOstreamUpdate */
+
+class DebugOstreamUpdate : public OstreamUpdate {
+ public:
+  virtual std::ostream& get() { return Debug.getStream(); }
+  virtual void set(std::ostream* setTo) { Debug.setStream(*setTo); }
+};  /* class DebugOstreamUpdate */
+
+class WarningOstreamUpdate : public OstreamUpdate {
+ public:
+  virtual std::ostream& get() { return Warning.getStream(); }
+  virtual void set(std::ostream* setTo) { Warning.setStream(*setTo); }
+};  /* class WarningOstreamUpdate */
+
+class MessageOstreamUpdate : public OstreamUpdate {
+ public:
+  virtual std::ostream& get() { return Message.getStream(); }
+  virtual void set(std::ostream* setTo) { Message.setStream(*setTo); }
+};  /* class MessageOstreamUpdate */
+
+class NoticeOstreamUpdate : public OstreamUpdate {
+ public:
+  virtual std::ostream& get() { return Notice.getStream(); }
+  virtual void set(std::ostream* setTo) { Notice.setStream(*setTo); }
+};  /* class NoticeOstreamUpdate */
+
+class ChatOstreamUpdate : public OstreamUpdate {
+ public:
+  virtual std::ostream& get() { return Chat.getStream(); }
+  virtual void set(std::ostream* setTo) { Chat.setStream(*setTo); }
+};  /* class ChatOstreamUpdate */
+
+class TraceOstreamUpdate : public OstreamUpdate {
+ public:
+  virtual std::ostream& get() { return Trace.getStream(); }
+  virtual void set(std::ostream* setTo) { Trace.setStream(*setTo); }
+};  /* class TraceOstreamUpdate */
+
 void SmtOptionsHandler::dumpToFile(std::string option, std::string optarg) {
 #ifdef CVC4_DUMPING
   std::ostream* outStream = NULL;
@@ -215,7 +300,8 @@ void SmtOptionsHandler::dumpToFile(std::string option, std::string optarg) {
       throw OptionException(ss.str());
     }
   }
-  __CVC4__SMT__OUTPUTCHANNELS__SETSTREAM__(Dump.getStream(), Dump.setStream(*outStream));
+  DumpOstreamUpdate dumpGetStream;
+  dumpGetStream.apply(outStream);
 #else /* CVC4_DUMPING */
   throw OptionException("The dumping feature was disabled in this build of CVC4.");
 #endif /* CVC4_DUMPING */
@@ -240,7 +326,10 @@ void SmtOptionsHandler::setRegularOutputChannel(std::string option, std::string 
       throw OptionException(ss.str());
     }
   }
-  __CVC4__SMT__OUTPUTCHANNELS__SETSTREAM__(*options::err(), options::err.set(outStream));
+
+#warning "TODO: Why was this using options::err instead of options::out?"
+  OptionsErrOstreamUpdate optionsErrOstreamUpdate;
+  optionsErrOstreamUpdate.apply(outStream);
 }
 
 void SmtOptionsHandler::setDiagnosticOutputChannel(std::string option, std::string optarg) {
@@ -262,62 +351,25 @@ void SmtOptionsHandler::setDiagnosticOutputChannel(std::string option, std::stri
       throw OptionException(ss.str());
     }
   }
-  __CVC4__SMT__OUTPUTCHANNELS__SETSTREAM__(Debug.getStream(), Debug.setStream(*outStream));
-  __CVC4__SMT__OUTPUTCHANNELS__SETSTREAM__(Warning.getStream(), Warning.setStream(*outStream));
-  __CVC4__SMT__OUTPUTCHANNELS__SETSTREAM__(Message.getStream(), Message.setStream(*outStream));
-  __CVC4__SMT__OUTPUTCHANNELS__SETSTREAM__(Notice.getStream(), Notice.setStream(*outStream));
-  __CVC4__SMT__OUTPUTCHANNELS__SETSTREAM__(Chat.getStream(), Chat.setStream(*outStream));
-  __CVC4__SMT__OUTPUTCHANNELS__SETSTREAM__(Trace.getStream(), Trace.setStream(*outStream));
-  __CVC4__SMT__OUTPUTCHANNELS__SETSTREAM__(*options::err(), options::err.set(outStream));
+
+  DebugOstreamUpdate debugOstreamUpdate;
+  debugOstreamUpdate.apply(outStream);
+  WarningOstreamUpdate warningOstreamUpdate;
+  warningOstreamUpdate.apply(outStream);
+  MessageOstreamUpdate messageOstreamUpdate;
+  messageOstreamUpdate.apply(outStream);
+  NoticeOstreamUpdate noticeOstreamUpdate;
+  noticeOstreamUpdate.apply(outStream);
+  ChatOstreamUpdate chatOstreamUpdate;
+  chatOstreamUpdate.apply(outStream);
+  TraceOstreamUpdate traceOstreamUpdate;
+  traceOstreamUpdate.apply(outStream);
+  OptionsErrOstreamUpdate optionsErrOstreamUpdate;
+  optionsErrOstreamUpdate.apply(outStream);
 }
 
 #undef __CVC4__SMT__OUTPUTCHANNELS__SETSTREAM
 
-
-
-
-
-
-
-
-// expr/options_handlers.h
-void SmtOptionsHandler::setDefaultExprDepth(std::string option, int depth) {
-  if(depth < -1) {
-    throw OptionException("--default-expr-depth requires a positive argument, or -1.");
-  }
-
-  Debug.getStream() << expr::ExprSetDepth(depth);
-  Trace.getStream() << expr::ExprSetDepth(depth);
-  Notice.getStream() << expr::ExprSetDepth(depth);
-  Chat.getStream() << expr::ExprSetDepth(depth);
-  Message.getStream() << expr::ExprSetDepth(depth);
-  Warning.getStream() << expr::ExprSetDepth(depth);
-  // intentionally exclude Dump stream from this list
-}
-
-void SmtOptionsHandler::setDefaultDagThresh(std::string option, int dag) {
-  if(dag < 0) {
-    throw OptionException("--default-dag-thresh requires a nonnegative argument.");
-  }
-
-  Debug.getStream() << expr::ExprDag(dag);
-  Trace.getStream() << expr::ExprDag(dag);
-  Notice.getStream() << expr::ExprDag(dag);
-  Chat.getStream() << expr::ExprDag(dag);
-  Message.getStream() << expr::ExprDag(dag);
-  Warning.getStream() << expr::ExprDag(dag);
-  Dump.getStream() << expr::ExprDag(dag);
-}
-
-void SmtOptionsHandler::setPrintExprTypes(std::string option) {
-  Debug.getStream() << expr::ExprPrintTypes(true);
-  Trace.getStream() << expr::ExprPrintTypes(true);
-  Notice.getStream() << expr::ExprPrintTypes(true);
-  Chat.getStream() << expr::ExprPrintTypes(true);
-  Message.getStream() << expr::ExprPrintTypes(true);
-  Warning.getStream() << expr::ExprPrintTypes(true);
-  // intentionally exclude Dump stream from this list
-}
 
 /* options/base_options_handlers.h */
 

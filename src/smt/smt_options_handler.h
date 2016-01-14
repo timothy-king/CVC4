@@ -46,20 +46,11 @@ public:
   SmtOptionsHandler(Options* options);
   ~SmtOptionsHandler();
 
-
-  // theory/options_handlers.h
-  //virtual void useTheory(std::string option, std::string optarg);
-
   // smt/options_handlers.h
   virtual void dumpMode(std::string option, std::string optarg);
   virtual void dumpToFile(std::string option, std::string optarg);
   virtual void setRegularOutputChannel(std::string option, std::string optarg);
   virtual void setDiagnosticOutputChannel(std::string option, std::string optarg);
-  /* expr/options_handlers.h */
-  virtual void setDefaultExprDepth(std::string option, int depth);
-  virtual void setDefaultDagThresh(std::string option, int dag);
-  virtual void setPrintExprTypes(std::string option);
-
 
   /* options/base_options_handlers.h */
   virtual void setPrintSuccess(std::string option, bool value);

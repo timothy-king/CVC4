@@ -375,6 +375,50 @@ class UseTheoryListListener : public Listener {
   TheoryEngine* d_theoryEngine;
 }; /* class UseTheoryListListener */
 
+
+class SetDefaultExprDepthListener : public Listener {
+ public:
+  virtual void notify() {
+    int depth = options::defaultExprDepth();
+    Debug.getStream() << expr::ExprSetDepth(depth);
+    Trace.getStream() << expr::ExprSetDepth(depth);
+    Notice.getStream() << expr::ExprSetDepth(depth);
+    Chat.getStream() << expr::ExprSetDepth(depth);
+    Message.getStream() << expr::ExprSetDepth(depth);
+    Warning.getStream() << expr::ExprSetDepth(depth);
+    // intentionally exclude Dump stream from this list
+  }
+};
+
+class SetDefaultExprDagListener : public Listener {
+ public:
+  virtual void notify() {
+    int dag = options::defaultDagThresh();
+    Debug.getStream() << expr::ExprDag(dag);
+    Trace.getStream() << expr::ExprDag(dag);
+    Notice.getStream() << expr::ExprDag(dag);
+    Chat.getStream() << expr::ExprDag(dag);
+    Message.getStream() << expr::ExprDag(dag);
+    Warning.getStream() << expr::ExprDag(dag);
+    Dump.getStream() << expr::ExprDag(dag);
+  }
+};
+
+class SetPrintExprTypesListener : public Listener {
+ public:
+  virtual void notify() {
+    bool value = options::printExprTypes();
+    Debug.getStream() << expr::ExprPrintTypes(value);
+    Trace.getStream() << expr::ExprPrintTypes(value);
+    Notice.getStream() << expr::ExprPrintTypes(value);
+    Chat.getStream() << expr::ExprPrintTypes(value);
+    Message.getStream() << expr::ExprPrintTypes(value);
+    Warning.getStream() << expr::ExprPrintTypes(value);
+    // intentionally exclude Dump stream from this list
+  }
+};
+
+
 /**
  * This is an inelegant solution, but for the present, it will work.
  * The point of this is to separate the public and private portions of
@@ -599,6 +643,17 @@ public:
     d_listenerRegistrations->add(
         nodeManagerOptions.registerBeforeSearchListener(
             new BeforeSearchListener(d_smt)));
+
+    // These do need registration calls.
+    d_listenerRegistrations->add(
+        nodeManagerOptions.registerSetDefaultExprDepthListener(
+            new SetDefaultExprDepthListener(), true));
+    d_listenerRegistrations->add(
+        nodeManagerOptions.registerSetDefaultExprDagListener(
+            new SetDefaultExprDagListener(), true));
+    d_listenerRegistrations->add(
+        nodeManagerOptions.registerSetPrintExprTypesListener(
+            new SetPrintExprTypesListener(), true));
   }
 
   ~SmtEnginePrivate() throw() {

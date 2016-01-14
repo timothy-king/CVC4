@@ -1093,6 +1093,33 @@ void OptionsHandler::threadN(std::string option) {
   throw OptionException(option + " is not a real option by itself.  Use e.g. --thread0=\"--random-seed=10 --random-freq=0.02\" --thread1=\"--random-seed=20 --random-freq=0.05\"");
 }
 
+
+// expr/options_handlers.h
+void OptionsHandler::setDefaultExprDepthPredicate(std::string option, int depth) {
+  if(depth < -1) {
+    throw OptionException("--default-expr-depth requires a positive argument, or -1.");
+  }
+}
+
+void OptionsHandler::setDefaultDagThreshPredicate(std::string option, int dag) {
+  if(dag < 0) {
+    throw OptionException("--default-dag-thresh requires a nonnegative argument.");
+  }
+}
+
+void OptionsHandler::notifySetDefaultExprDepth(std::string option) {
+  d_options->d_setDefaultExprDepthListeners.notify();
+}
+
+void OptionsHandler::notifySetDefaultDagThresh(std::string option) {
+  d_options->d_setDefaultDagThreshListeners.notify();
+}
+
+void OptionsHandler::notifySetPrintExprTypes(std::string option) {
+  d_options->d_setPrintExprTypesListeners.notify();
+}
+
+
 // main/options_handlers.h
 void OptionsHandler::showConfiguration(std::string option) {
   fputs(Configuration::about().c_str(), stdout);
@@ -1574,19 +1601,29 @@ void threadN(std::string option, OptionsHandler* handler){
 }
 
 /* expr/options_handlers.h */
-void setDefaultExprDepth(std::string option, int depth, OptionsHandler* handler){
+void setDefaultExprDepthPredicate(std::string option, int depth, OptionsHandler* handler){
   PrettyCheckArgument(handler != NULL, handler);
-  handler->setDefaultExprDepth(option, depth);
+  handler->setDefaultExprDepthPredicate(option, depth);
 }
 
-void setDefaultDagThresh(std::string option, int dag, OptionsHandler* handler){
+void setDefaultDagThreshPredicate(std::string option, int dag, OptionsHandler* handler){
   PrettyCheckArgument(handler != NULL, handler);
-  handler->setDefaultDagThresh(option, dag);
+  handler->setDefaultDagThreshPredicate(option, dag);
 }
 
-void setPrintExprTypes(std::string option, OptionsHandler* handler) {
+void notifySetDefaultExprDepth(std::string option, OptionsHandler* handler){
   PrettyCheckArgument(handler != NULL, handler);
-  handler->setPrintExprTypes(option);
+  handler->notifySetDefaultExprDepth(option);
+}
+
+void notifySetDefaultDagThresh(std::string option, OptionsHandler* handler){
+  PrettyCheckArgument(handler != NULL, handler);
+  handler->notifySetDefaultDagThresh(option);
+}
+
+void notifySetPrintExprTypes(std::string option, OptionsHandler* handler) {
+  PrettyCheckArgument(handler != NULL, handler);
+  handler->notifySetPrintExprTypes(option);
 }
 
 
