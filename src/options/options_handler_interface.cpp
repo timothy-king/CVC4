@@ -992,6 +992,14 @@ void OptionsHandler::notifyDumpToFile(std::string option) {
 }
 
 
+void OptionsHandler::notifySetRegularOutputChannel(std::string option) {
+  d_options->d_setRegularChannelListeners.notify();
+}
+
+void OptionsHandler::notifySetDiagnosticOutputChannel(std::string option) {
+  d_options->d_setDiagnosticChannelListeners.notify();
+}
+
 
 std::string OptionsHandler::checkReplayFilename(std::string option, std::string optarg) {
 #ifdef CVC4_REPLAY
@@ -1145,7 +1153,8 @@ OutputLanguage OptionsHandler::stringToOutputLanguage(std::string option, std::s
   try {
     return language::toOutputLanguage(optarg);
   } catch(OptionException& oe) {
-    throw OptionException("Error in " + option + ": " + oe.getMessage() + "\nTry --output-language help");
+    throw OptionException("Error in " + option + ": " + oe.getMessage() +
+                          "\nTry --output-language help");
   }
 
   Unreachable();
@@ -1566,14 +1575,15 @@ void notifyDumpToFile(std::string option, OptionsHandler* handler) {
   handler->notifyDumpToFile(option);
 }
 
-void setRegularOutputChannel(std::string option, std::string optarg, OptionsHandler* handler) {
+void notifySetRegularOutputChannel(std::string option, OptionsHandler* handler) {
   PrettyCheckArgument(handler != NULL, handler);
-  handler->setRegularOutputChannel(option, optarg);
+  handler->notifySetRegularOutputChannel(option);
 }
 
-void setDiagnosticOutputChannel(std::string option, std::string optarg, OptionsHandler* handler) {
+void notifySetDiagnosticOutputChannel(std::string option,
+                                      OptionsHandler* handler) {
   PrettyCheckArgument(handler != NULL, handler);
-  handler->setDiagnosticOutputChannel(option, optarg);
+  handler->notifySetDiagnosticOutputChannel(option);
 }
 
 std::string checkReplayFilename(std::string option, std::string optarg, OptionsHandler* handler) {

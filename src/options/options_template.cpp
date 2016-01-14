@@ -361,6 +361,22 @@ ListenerCollection::Registration* Options::registerDumpToFileNameListener(
   return registerAndNotify(d_dumpToFileListeners, listener, notify);
 }
 
+ListenerCollection::Registration*
+Options::registerSetRegularOutputChannelListener(
+    Listener* listener, bool notifyIfSet)
+{
+  bool notify = notifyIfSet && wasSetByUser(options::regularChannelName);
+  return registerAndNotify(d_setRegularChannelListeners, listener, notify);
+}
+
+ListenerCollection::Registration*
+Options::registerSetDiagnosticOutputChannelListener(
+    Listener* listener, bool notifyIfSet)
+{
+  bool notify = notifyIfSet && wasSetByUser(options::diagnosticChannelName);
+  return registerAndNotify(d_setDiagnosticChannelListeners, listener, notify);
+}
+
 ${all_custom_handlers}
 
 #line 204 "${template}"

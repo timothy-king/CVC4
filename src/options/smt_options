@@ -86,9 +86,9 @@ option abstractValues abstract-values --abstract-values bool :default false
 option modelUninterpDtEnum --model-u-dt-enum bool :default false
  in models, output uninterpreted sorts as datatype enumerations
 
-option - regular-output-channel argument :handler CVC4::options::setRegularOutputChannel :handler-include "options/options_handler_interface.h"
+option regularChannelName regular-output-channel std::string :notify CVC4::options::notifySetRegularOutputChannel
  set the regular output channel of the solver
-option - diagnostic-output-channel argument :handler CVC4::options::setDiagnosticOutputChannel :handler-include "options/options_handler_interface.h"
+option diagnosticChannelName diagnostic-output-channel std::string :notify CVC4::options::notifySetDiagnosticOutputChannel
  set the diagnostic output channel of the solver
 
 common-option cumulativeMillisecondLimit tlimit --tlimit=MS "unsigned long" :handler CVC4::options::tlimitHandler :handler-include "options/options_handler_interface.h" :notify CVC4::options::notifyTlimit

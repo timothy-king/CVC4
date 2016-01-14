@@ -125,8 +125,8 @@ public:
   void setProduceAssertions(std::string option, bool value) throw();
   void proofEnabledBuild(std::string option, bool value) throw(OptionException);
   void notifyDumpToFile(std::string option);
-  virtual void setRegularOutputChannel(std::string option, std::string optarg) = 0;
-  virtual void setDiagnosticOutputChannel(std::string option, std::string optarg) = 0;
+  void notifySetRegularOutputChannel(std::string option);
+  void notifySetDiagnosticOutputChannel(std::string option);
   std::string checkReplayFilename(std::string option, std::string optarg);
   void statsEnabledBuild(std::string option, bool value) throw(OptionException);
 
@@ -292,9 +292,9 @@ void proofEnabledBuild(std::string option, bool value, OptionsHandler* handler) 
 
 void notifyDumpToFile(std::string option, OptionsHandler* handler);
 
-void setRegularOutputChannel(std::string option, std::string optarg, OptionsHandler* handler);
+void notifySetRegularOutputChannel(std::string option, OptionsHandler* handler);
 
-void setDiagnosticOutputChannel(std::string option, std::string optarg, OptionsHandler* handler);
+void notifySetDiagnosticOutputChannel(std::string option, OptionsHandler* handler);
 
 std::string checkReplayFilename(std::string option, std::string optarg, OptionsHandler* handler);
 

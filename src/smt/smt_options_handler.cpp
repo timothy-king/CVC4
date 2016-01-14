@@ -94,42 +94,6 @@ SmtOptionsHandler::~SmtOptionsHandler(){}
     __channel_get << language::SetLanguage(languageSetting); \
   }
 
-void SmtOptionsHandler::setRegularOutputChannel(std::string option, std::string optarg) {
-  OstreamOpener opener("regular-output-channel");
-  opener.addSpecialCase("stdout", &std::cout);
-  opener.addSpecialCase("stderr", &std::cerr);
-  std::pair<bool, std::ostream*> pair = opener.open(optarg);
-  std::ostream* outStream = pair.second;
-#warning "TODO: Garbage collection memory if pair.first is true."
-#warning "TODO: Why was this using options::err instead of options::out?"
-  OptionsErrOstreamUpdate optionsErrOstreamUpdate;
-  optionsErrOstreamUpdate.apply(outStream);
-}
-
-void SmtOptionsHandler::setDiagnosticOutputChannel(std::string option, std::string optarg) {
-  OstreamOpener opener("diagnostic-output-channel");
-  opener.addSpecialCase("stdout", &std::cout);
-  opener.addSpecialCase("stderr", &std::cerr);
-  std::pair<bool, std::ostream*> pair = opener.open(optarg);
-  std::ostream* outStream = pair.second;
-
-#warning "TODO: Garbage collection memory if pair.first is true."
-
-  DebugOstreamUpdate debugOstreamUpdate;
-  debugOstreamUpdate.apply(outStream);
-  WarningOstreamUpdate warningOstreamUpdate;
-  warningOstreamUpdate.apply(outStream);
-  MessageOstreamUpdate messageOstreamUpdate;
-  messageOstreamUpdate.apply(outStream);
-  NoticeOstreamUpdate noticeOstreamUpdate;
-  noticeOstreamUpdate.apply(outStream);
-  ChatOstreamUpdate chatOstreamUpdate;
-  chatOstreamUpdate.apply(outStream);
-  TraceOstreamUpdate traceOstreamUpdate;
-  traceOstreamUpdate.apply(outStream);
-  OptionsErrOstreamUpdate optionsErrOstreamUpdate;
-  optionsErrOstreamUpdate.apply(outStream);
-}
 
 #undef __CVC4__SMT__OUTPUTCHANNELS__SETSTREAM
 

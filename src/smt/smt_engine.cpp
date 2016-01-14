@@ -460,6 +460,49 @@ class PrintSuccessListener : public Listener {
   }
 };
 
+class RegularOutputChannelListener : public Listener {
+ public:
+  virtual void notify() {
+    OstreamOpener opener("regular-output-channel");
+    opener.addSpecialCase("stdout", &std::cout);
+    opener.addSpecialCase("stderr", &std::cerr);
+    std::pair<bool, std::ostream*> pair = opener.open(optarg);
+    std::ostream* outStream = pair.second;
+#warning "TODO: Garbage collection memory if pair.first is true."
+#warning "TODO: Why was this using options::err instead of options::out?"
+    OptionsErrOstreamUpdate optionsErrOstreamUpdate;
+    optionsErrOstreamUpdate.apply(outStream);
+  }
+};
+
+class DiagnosticOutputChannelListener : public Listener {
+ public:
+  virtual void notify() {
+    OstreamOpener opener("diagnostic-output-channel");
+    opener.addSpecialCase("stdout", &std::cout);
+    opener.addSpecialCase("stderr", &std::cerr);
+    std::pair<bool, std::ostream*> pair = opener.open(optarg);
+    std::ostream* outStream = pair.second;
+
+#warning "TODO: Garbage collection memory if pair.first is true."
+
+    DebugOstreamUpdate debugOstreamUpdate;
+    debugOstreamUpdate.apply(outStream);
+    WarningOstreamUpdate warningOstreamUpdate;
+    warningOstreamUpdate.apply(outStream);
+    MessageOstreamUpdate messageOstreamUpdate;
+    messageOstreamUpdate.apply(outStream);
+    NoticeOstreamUpdate noticeOstreamUpdate;
+    noticeOstreamUpdate.apply(outStream);
+    ChatOstreamUpdate chatOstreamUpdate;
+    chatOstreamUpdate.apply(outStream);
+    TraceOstreamUpdate traceOstreamUpdate;
+    traceOstreamUpdate.apply(outStream);
+    OptionsErrOstreamUpdate optionsErrOstreamUpdate;
+    optionsErrOstreamUpdate.apply(outStream);
+  }
+};
+
 /**
  * This is an inelegant solution, but for the present, it will work.
  * The point of this is to separate the public and private portions of
@@ -704,6 +747,12 @@ public:
     d_listenerRegistrations->add(
         nodeManagerOptions.registerDumpToFileNameListener(
             new DumpToFileListener(), true));
+    d_listenerRegistrations->add(
+        nodeManagerOptions.registerSetRegularOutputChannelListener(
+            new RegularOutputChannelListener(), true));
+    d_listenerRegistrations->add(
+        nodeManagerOptions.registerSetDiagnosticOutputChannelListener(
+            new DiagnosticOutputChannelListener(), true));
   }
 
   ~SmtEnginePrivate() throw() {

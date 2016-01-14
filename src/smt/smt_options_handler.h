@@ -48,8 +48,8 @@ public:
 
   // smt/options_handlers.h
   //virtual void dumpToFile(std::string option, std::string optarg);
-  virtual void setRegularOutputChannel(std::string option, std::string optarg);
-  virtual void setDiagnosticOutputChannel(std::string option, std::string optarg);
+  //virtual void setRegularOutputChannel(std::string option, std::string optarg);
+  //virtual void setDiagnosticOutputChannel(std::string option, std::string optarg);
 
 }; /* class SmtOptionsHandler */
 
