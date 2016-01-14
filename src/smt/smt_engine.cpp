@@ -440,66 +440,7 @@ class PrintSuccessListener : public Listener {
   }
 };
 
-class DumpToFileListener : public Listener {
- public:
-  void notify(){
-#ifdef CVC4_DUMPING
-    std::string optarg = options::dumpToFileName();
-    OstreamOpener opener("dump-to");
-    opener.addSpecialCase("-", &DumpOutC::dump_cout);
-    std::pair<bool, std::ostream*> pair = opener.open(optarg);
-    std::ostream* outStream = pair.second;
 
-    DumpOstreamUpdate dumpGetStream;
-    dumpGetStream.apply(outStream);
-#else /* CVC4_DUMPING */
-    throw OptionException("The dumping feature was disabled in this build of CVC4.");
-#endif /* CVC4_DUMPING */
-  }
-};
-
-class RegularOutputChannelListener : public Listener {
- public:
-  virtual void notify() {
-    OstreamOpener opener("regular-output-channel");
-    opener.addSpecialCase("stdout", &std::cout);
-    opener.addSpecialCase("stderr", &std::cerr);
-    std::pair<bool, std::ostream*> pair = opener.open(optarg);
-    std::ostream* outStream = pair.second;
-#warning "TODO: Garbage collection memory if pair.first is true."
-#warning "TODO: Why was this using options::err instead of options::out?"
-    OptionsErrOstreamUpdate optionsErrOstreamUpdate;
-    optionsErrOstreamUpdate.apply(outStream);
-  }
-};
-
-class DiagnosticOutputChannelListener : public Listener {
- public:
-  virtual void notify() {
-    OstreamOpener opener("diagnostic-output-channel");
-    opener.addSpecialCase("stdout", &std::cout);
-    opener.addSpecialCase("stderr", &std::cerr);
-    std::pair<bool, std::ostream*> pair = opener.open(optarg);
-    std::ostream* outStream = pair.second;
-
-#warning "TODO: Garbage collection memory if pair.first is true."
-
-    DebugOstreamUpdate debugOstreamUpdate;
-    debugOstreamUpdate.apply(outStream);
-    WarningOstreamUpdate warningOstreamUpdate;
-    warningOstreamUpdate.apply(outStream);
-    MessageOstreamUpdate messageOstreamUpdate;
-    messageOstreamUpdate.apply(outStream);
-    NoticeOstreamUpdate noticeOstreamUpdate;
-    noticeOstreamUpdate.apply(outStream);
-    ChatOstreamUpdate chatOstreamUpdate;
-    chatOstreamUpdate.apply(outStream);
-    TraceOstreamUpdate traceOstreamUpdate;
-    traceOstreamUpdate.apply(outStream);
-    OptionsErrOstreamUpdate optionsErrOstreamUpdate;
-    optionsErrOstreamUpdate.apply(outStream);
-  }
-};
 
 /**
  * This is an inelegant solution, but for the present, it will work.
@@ -518,11 +459,66 @@ class DiagnosticOutputChannelListener : public Listener {
 class SmtEnginePrivate : public NodeManagerListener {
   SmtEngine& d_smt;
 
+  class DumpToFileListener : public Listener {
+   public:
+    DumpToFileListener(SmtEnginePrivate* smtEnginePrivate)
+        : d_smtEnginePrivate(smtEnginePrivate){}
+    void notify(){
+      d_smtEnginePrivate->notifyDumpToFileListener();
+    }
+   private:
+    SmtEnginePrivate* d_smtEnginePrivate;
+  };
+
+  class RegularOutputChannelListener : public Listener {
+   public:
+    RegularOutputChannelListener(SmtEnginePrivate* smtEnginePrivate)
+        : d_smtEnginePrivate(smtEnginePrivate){}
+
+    virtual void notify() {
+      d_smtEnginePrivate->notifyRegularOutputChannel();
+    }
+   private:
+    SmtEnginePrivate* d_smtEnginePrivate;
+  };
+
+
+  class DiagnosticOutputChannelListener : public Listener {
+   public:
+    DiagnosticOutputChannelListener(SmtEnginePrivate* smtEnginePrivate)
+        : d_smtEnginePrivate(smtEnginePrivate)
+    {}
+    virtual void notify() {
+      d_smtEnginePrivate->notifyDiagnosticOutputChannel();
+    }
+   private:
+    SmtEnginePrivate* d_smtEnginePrivate;
+  };
+
   /**
    * Manager for limiting time and abstract resource usage.
    */
   ResourceManager* d_resourceManager;
 
+  /**
+   * When d_managedRegularChannel is non-null, it owns the memory allocated
+   * with the regular-output-channel. This is set when
+   * options::regularChannelName is set.
+   */
+  std::ostream* d_managedRegularChannel;
+
+  /**
+   * When d_managedDiagnosticChannel is non-null, it owns the memory allocated
+   * with the diagnostic-output-channel. This is set when
+   * options::diagnosticChannelName is set.
+   */
+  std::ostream* d_managedDiagnosticChannel;
+
+  /**
+   * When d_managedDumpChannel is non-null, it owns the memory allocated
+   * for Dump.getStreamPointer. This is set when options::dumpToFileName is set.
+   */
+  std::ostream* d_managedDumpChannel;
 
   /**
    * This list contains:
@@ -690,6 +686,9 @@ public:
 
   SmtEnginePrivate(SmtEngine& smt) :
     d_smt(smt),
+    d_managedRegularChannel(NULL),
+    d_managedDiagnosticChannel(NULL),
+    d_managedDumpChannel(NULL),
     d_listenerRegistrations(new ListenerRegistrationList()),
     d_nonClausalLearnedLiterals(),
     d_realAssertionsEnd(0),
@@ -751,16 +750,23 @@ public:
             new PrintSuccessListener(), true));
     d_listenerRegistrations->add(
         nodeManagerOptions.registerDumpToFileNameListener(
-            new DumpToFileListener(), true));
+            new DumpToFileListener(this), true));
     d_listenerRegistrations->add(
         nodeManagerOptions.registerSetRegularOutputChannelListener(
-            new RegularOutputChannelListener(), true));
+            new RegularOutputChannelListener(this), true));
     d_listenerRegistrations->add(
         nodeManagerOptions.registerSetDiagnosticOutputChannelListener(
-            new DiagnosticOutputChannelListener(), true));
+            new DiagnosticOutputChannelListener(this), true));
   }
 
   ~SmtEnginePrivate() throw() {
+    manageRegularOutputChannel(NULL);
+    manageDiagnosticOutputChannel(NULL);
+    manageDumpStream(NULL);
+    Assert(d_managedRegularChannel == NULL);
+    Assert(d_managedDiagnosticChannel == NULL);
+    Assert(d_managedDumpChannel == NULL);
+
     delete d_listenerRegistrations;
 
     if(d_propagatorNeedsFinish) {
@@ -980,6 +986,142 @@ public:
         nodeManagerOptions.registerUseTheoryListListener(
             new UseTheoryListListener(theoryEngine), true));
   }
+
+
+  void notifyDumpToFileListener(){
+#ifdef CVC4_DUMPING
+    std::string optarg = options::dumpToFileName();
+    OstreamOpener opener("dump-to");
+    opener.addSpecialCase("-", &DumpOutC::dump_cout);
+    std::pair<bool, std::ostream*> pair = opener.open(optarg);
+    std::ostream* outStream = pair.second;
+    DumpOstreamUpdate dumpGetStream;
+    dumpGetStream.apply(outStream);
+    manageDumpStream(pair.first ? NULL : outStream);
+
+#else /* CVC4_DUMPING */
+    throw OptionException("The dumping feature was disabled in this build of CVC4.");
+#endif /* CVC4_DUMPING */
+  }
+
+  void manageDumpStream(std::ostream* manage_pointer) {
+    if(d_managedDumpChannel == manage_pointer) {
+      // This is a no-op.
+    } else {
+      Assert(d_managedDumpChannel != manage_pointer);
+
+      if(Dump.getStreamPointer() == d_managedDumpChannel){
+        Dump.setStream(&null_os);
+      }
+
+      if(d_managedDumpChannel  != NULL){
+        delete d_managedDumpChannel;
+      }
+      d_managedDumpChannel = manage_pointer;
+    }
+  }
+
+  void notifyRegularOutputChannel(){
+    OstreamOpener opener("regular-output-channel");
+    opener.addSpecialCase("stdout", &std::cout);
+    opener.addSpecialCase("stderr", &std::cerr);
+    std::pair<bool, std::ostream*> pair = opener.open(optarg);
+    std::ostream* outStream = pair.second;
+    OptionsErrOstreamUpdate optionsErrOstreamUpdate;
+    optionsErrOstreamUpdate.apply(outStream);
+
+    manageRegularOutputChannel(pair.first ? NULL : outStream);
+  }
+
+  void manageRegularOutputChannel(std::ostream* manage_pointer){
+    if(d_managedRegularChannel == manage_pointer) {
+      // This is a no-op.
+    } else {
+      Assert(d_managedRegularChannel != manage_pointer);
+      // We are setting this to a new value.
+
+
+      // Set all ostream that may still be using the old value of this channel
+      // to null_os. Consult RegularOutputChannelListener for the list of
+      // channels.
+      if(options::err() == d_managedRegularChannel){
+        options::err.set(&null_os);
+      }
+
+      if(d_managedRegularChannel != NULL){
+        delete d_managedRegularChannel;
+      }
+      d_managedRegularChannel = manage_pointer;
+    }
+  }
+
+  void notifyDiagnosticOutputChannel() {
+    OstreamOpener opener("diagnostic-output-channel");
+    opener.addSpecialCase("stdout", &std::cout);
+    opener.addSpecialCase("stderr", &std::cerr);
+    std::pair<bool, std::ostream*> pair = opener.open(optarg);
+    std::ostream* outStream = pair.second;
+
+    DebugOstreamUpdate debugOstreamUpdate;
+    debugOstreamUpdate.apply(outStream);
+    WarningOstreamUpdate warningOstreamUpdate;
+    warningOstreamUpdate.apply(outStream);
+    MessageOstreamUpdate messageOstreamUpdate;
+    messageOstreamUpdate.apply(outStream);
+    NoticeOstreamUpdate noticeOstreamUpdate;
+    noticeOstreamUpdate.apply(outStream);
+    ChatOstreamUpdate chatOstreamUpdate;
+    chatOstreamUpdate.apply(outStream);
+    TraceOstreamUpdate traceOstreamUpdate;
+    traceOstreamUpdate.apply(outStream);
+    OptionsErrOstreamUpdate optionsErrOstreamUpdate;
+    optionsErrOstreamUpdate.apply(outStream);
+
+    manageDiagnosticOutputChannel(pair.first ? NULL : outStream);
+  }
+
+
+
+  void manageDiagnosticOutputChannel(std::ostream* manage_pointer){
+    if(d_managedDiagnosticChannel == manage_pointer) {
+      // This is a no-op.
+    } else {
+      Assert(d_managedDiagnosticChannel != manage_pointer);
+      // We are setting d_managedDiagnosticChannel to a new value.
+
+      // Set all ostreams that may still be using the old value of this channel
+      // to null_os. Consult DiagnosticOutputChannelListener for the list of
+      // channels.
+      if(options::err() == d_managedDiagnosticChannel){
+        options::err.set(&null_os);
+      }
+
+      if(Debug.getStreamPointer() == d_managedDiagnosticChannel) {
+        Debug.setStream(&null_os);
+      }
+      if(Warning.getStreamPointer() == d_managedDiagnosticChannel){
+        Warning.setStream(&null_os);
+      }
+      if(Message.getStreamPointer() == d_managedDiagnosticChannel){
+        Message.setStream(&null_os);
+      }
+      if(Notice.getStreamPointer() == d_managedDiagnosticChannel){
+        Notice.setStream(&null_os);
+      }
+      if(Chat.getStreamPointer() == d_managedDiagnosticChannel){
+        Chat.setStream(&null_os);
+      }
+      if(Trace.getStreamPointer() == d_managedDiagnosticChannel){
+        Trace.setStream(&null_os);
+      }
+
+      if(d_managedDiagnosticChannel != NULL){
+        delete d_managedDiagnosticChannel;
+      }
+      d_managedDiagnosticChannel = manage_pointer;
+    }
+  }
+
 };/* class SmtEnginePrivate */
 
 }/* namespace CVC4::smt */

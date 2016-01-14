@@ -1257,29 +1257,29 @@ InputLanguage OptionsHandler::stringToInputLanguage(std::string option, std::str
 /* options/base_options_handlers.h */
 void OptionsHandler::setVerbosity(std::string option, int value) throw(OptionException) {
   if(Configuration::isMuzzledBuild()) {
-    DebugChannel.setStream(CVC4::null_os);
-    TraceChannel.setStream(CVC4::null_os);
-    NoticeChannel.setStream(CVC4::null_os);
-    ChatChannel.setStream(CVC4::null_os);
-    MessageChannel.setStream(CVC4::null_os);
-    WarningChannel.setStream(CVC4::null_os);
+    DebugChannel.setStream(&CVC4::null_os);
+    TraceChannel.setStream(&CVC4::null_os);
+    NoticeChannel.setStream(&CVC4::null_os);
+    ChatChannel.setStream(&CVC4::null_os);
+    MessageChannel.setStream(&CVC4::null_os);
+    WarningChannel.setStream(&CVC4::null_os);
   } else {
     if(value < 2) {
-      ChatChannel.setStream(CVC4::null_os);
+      ChatChannel.setStream(&CVC4::null_os);
     } else {
-      ChatChannel.setStream(std::cout);
+      ChatChannel.setStream(&std::cout);
     }
     if(value < 1) {
-      NoticeChannel.setStream(CVC4::null_os);
+      NoticeChannel.setStream(&CVC4::null_os);
     } else {
-      NoticeChannel.setStream(std::cout);
+      NoticeChannel.setStream(&std::cout);
     }
     if(value < 0) {
-      MessageChannel.setStream(CVC4::null_os);
-      WarningChannel.setStream(CVC4::null_os);
+      MessageChannel.setStream(&CVC4::null_os);
+      WarningChannel.setStream(&CVC4::null_os);
     } else {
-      MessageChannel.setStream(std::cout);
-      WarningChannel.setStream(std::cerr);
+      MessageChannel.setStream(&std::cout);
+      WarningChannel.setStream(&std::cerr);
     }
   }
 }

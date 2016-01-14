@@ -223,12 +223,12 @@ int runCvc4(int argc, char* argv[], Options& opts) {
 
   // Determine which messages to show based on smtcomp_mode and verbosity
   if(Configuration::isMuzzledBuild()) {
-    DebugChannel.setStream(CVC4::null_os);
-    TraceChannel.setStream(CVC4::null_os);
-    NoticeChannel.setStream(CVC4::null_os);
-    ChatChannel.setStream(CVC4::null_os);
-    MessageChannel.setStream(CVC4::null_os);
-    WarningChannel.setStream(CVC4::null_os);
+    DebugChannel.setStream(&CVC4::null_os);
+    TraceChannel.setStream(&CVC4::null_os);
+    NoticeChannel.setStream(&CVC4::null_os);
+    ChatChannel.setStream(&CVC4::null_os);
+    MessageChannel.setStream(&CVC4::null_os);
+    WarningChannel.setStream(&CVC4::null_os);
   }
 
   // important even for muzzled builds (to get result output right)

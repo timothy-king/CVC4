@@ -21,6 +21,13 @@ namespace CVC4 {
 
 DumpC DumpChannel CVC4_PUBLIC;
 
+std::ostream& DumpC::setStream(std::ostream* os) {
+  DumpOut.setStream(os);
+  return *os;
+}
+std::ostream& DumpC::getStream() { return DumpOut.getStream(); }
+std::ostream* DumpC::getStreamPointer() { return DumpOut.getStreamPointer(); }
+
 
 void DumpC::setDumpFromString(const std::string& optarg) {
 #ifdef CVC4_DUMPING

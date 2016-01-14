@@ -106,8 +106,9 @@ public:
   bool isOn(const char* tag) { return d_tags.find(std::string(tag)) != d_tags.end(); }
   bool isOn(std::string tag) { return d_tags.find(tag) != d_tags.end(); }
 
-  std::ostream& setStream(std::ostream& os) { DumpOut.setStream(os); return os; }
-  std::ostream& getStream() { return DumpOut.getStream(); }
+  std::ostream& setStream(std::ostream* os);
+  std::ostream& getStream();
+  std::ostream* getStreamPointer();
 
   void setDumpFromString(const std::string& optarg);
 };/* class DumpC */

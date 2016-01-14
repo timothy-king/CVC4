@@ -75,43 +75,43 @@ class OptionsErrOstreamUpdate : public OstreamUpdate {
 class DumpOstreamUpdate : public OstreamUpdate {
  public:
   virtual std::ostream& get() { return Dump.getStream(); }
-  virtual void set(std::ostream* setTo) { Dump.setStream(*setTo); }
+  virtual void set(std::ostream* setTo) { Dump.setStream(setTo); }
 };  /* class DumpOstreamUpdate */
 
 class DebugOstreamUpdate : public OstreamUpdate {
  public:
   virtual std::ostream& get() { return Debug.getStream(); }
-  virtual void set(std::ostream* setTo) { Debug.setStream(*setTo); }
+  virtual void set(std::ostream* setTo) { Debug.setStream(setTo); }
 };  /* class DebugOstreamUpdate */
 
 class WarningOstreamUpdate : public OstreamUpdate {
  public:
   virtual std::ostream& get() { return Warning.getStream(); }
-  virtual void set(std::ostream* setTo) { Warning.setStream(*setTo); }
+  virtual void set(std::ostream* setTo) { Warning.setStream(setTo); }
 };  /* class WarningOstreamUpdate */
 
 class MessageOstreamUpdate : public OstreamUpdate {
  public:
   virtual std::ostream& get() { return Message.getStream(); }
-  virtual void set(std::ostream* setTo) { Message.setStream(*setTo); }
+  virtual void set(std::ostream* setTo) { Message.setStream(setTo); }
 };  /* class MessageOstreamUpdate */
 
 class NoticeOstreamUpdate : public OstreamUpdate {
  public:
   virtual std::ostream& get() { return Notice.getStream(); }
-  virtual void set(std::ostream* setTo) { Notice.setStream(*setTo); }
+  virtual void set(std::ostream* setTo) { Notice.setStream(setTo); }
 };  /* class NoticeOstreamUpdate */
 
 class ChatOstreamUpdate : public OstreamUpdate {
  public:
   virtual std::ostream& get() { return Chat.getStream(); }
-  virtual void set(std::ostream* setTo) { Chat.setStream(*setTo); }
+  virtual void set(std::ostream* setTo) { Chat.setStream(setTo); }
 };  /* class ChatOstreamUpdate */
 
 class TraceOstreamUpdate : public OstreamUpdate {
  public:
   virtual std::ostream& get() { return Trace.getStream(); }
-  virtual void set(std::ostream* setTo) { Trace.setStream(*setTo); }
+  virtual void set(std::ostream* setTo) { Trace.setStream(setTo); }
 };  /* class TraceOstreamUpdate */
 
 
