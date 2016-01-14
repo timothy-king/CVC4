@@ -340,6 +340,13 @@ ListenerCollection::Registration* Options::registerSetPrintExprTypesListener(
   return registerAndNotify(d_setPrintExprTypesListeners, listener, notify);
 }
 
+ListenerCollection::Registration* Options::registerSetDumpModeListener(
+    Listener* listener, bool notifyIfSet)
+{
+  bool notify = notifyIfSet && wasSetByUser(options::dumpModeString);
+  return registerAndNotify(d_setDumpModeListeners, listener, notify);
+}
+
 ${all_custom_handlers}
 
 #line 204 "${template}"

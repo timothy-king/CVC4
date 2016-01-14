@@ -418,6 +418,13 @@ class SetPrintExprTypesListener : public Listener {
   }
 };
 
+class DumpModeListener : public Listener {
+ public:
+  virtual void notify() {
+    const std::string& value = options::dumpModeString();
+    Dump.setDumpFromString(value);
+  }
+};
 
 /**
  * This is an inelegant solution, but for the present, it will work.
@@ -654,6 +661,11 @@ public:
     d_listenerRegistrations->add(
         nodeManagerOptions.registerSetPrintExprTypesListener(
             new SetPrintExprTypesListener(), true));
+
+    d_listenerRegistrations->add(
+        nodeManagerOptions.registerSetDumpModeListener(
+            new DumpModeListener(), true));
+
   }
 
   ~SmtEnginePrivate() throw() {

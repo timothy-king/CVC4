@@ -120,7 +120,7 @@ public:
   /* smt/options_handlers.h */
   void notifyForceLogic(const std::string& option);
   void notifyBeforeSearch(const std::string& option) throw(ModalException);
-  virtual void dumpMode(std::string option, std::string optarg) = 0;
+  void notifyDumpMode(std::string option) throw(OptionException);
   SimplificationMode stringToSimplificationMode(std::string option, std::string optarg) throw(OptionException);
   void setProduceAssertions(std::string option, bool value) throw();
   void proofEnabledBuild(std::string option, bool value) throw(OptionException);
@@ -179,7 +179,6 @@ public:
   static const std::string s_bvSlicerModeHelp;
   static const std::string s_cegqiFairModeHelp;
   static const std::string s_decisionModeHelp;
-  static const std::string s_dumpHelp;
   static const std::string s_instFormatHelp ;
   static const std::string s_instWhenHelp;
   static const std::string s_iteLiftQuantHelp;
@@ -282,7 +281,7 @@ void notifySetDefaultDagThresh(std::string option, OptionsHandler* handler);
 void notifySetPrintExprTypes(std::string option, OptionsHandler* handler);
 
 /* smt/options_handlers.h */
-void dumpMode(std::string option, std::string optarg, OptionsHandler* handler);
+void notifyDumpMode(std::string option, OptionsHandler* handler);
 
 SimplificationMode stringToSimplificationMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException);
 

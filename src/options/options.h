@@ -72,6 +72,9 @@ class CVC4_PUBLIC Options {
   /** Listeners for options::printExprTypes. */
   ListenerCollection d_setPrintExprTypesListeners;
 
+  /** Listeners for options::dumpModeString. */
+  ListenerCollection d_setDumpModeListeners;
+
   static ListenerCollection::Registration* registerAndNotify(
       ListenerCollection& collection, Listener* listener, bool notify);
 
@@ -334,6 +337,18 @@ public:
    * be destroyed before the Options object is.
    */
   ListenerCollection::Registration* registerSetPrintExprTypesListener(
+      Listener* listener, bool notifyIfSet);
+
+  /**
+   * Registers a listener for options::dumpModeString being set.
+   *
+   * If notifyIfSet is true, this calls notify on the listener
+   * if the option was set by the user.
+   *
+   * The memory for the Registration is controlled by the user and must
+   * be destroyed before the Options object is.
+   */
+  ListenerCollection::Registration* registerSetDumpModeListener(
       Listener* listener, bool notifyIfSet);
 
 };/* class Options */

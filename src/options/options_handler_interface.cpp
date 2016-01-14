@@ -937,88 +937,6 @@ decision::DecisionWeightInternal OptionsHandler::stringToDecisionWeightInternal(
 
 
 // smt/options_handlers.h
-const std::string OptionsHandler::s_dumpHelp = "\
-Dump modes currently supported by the --dump option:\n\
-\n\
-benchmark\n\
-+ Dump the benchmark structure (set-logic, push/pop, queries, etc.), but\n\
-  does not include any declarations or assertions.  Implied by all following\n\
-  modes.\n\
-\n\
-declarations\n\
-+ Dump user declarations.  Implied by all following modes.\n\
-\n\
-skolems\n\
-+ Dump internally-created skolem variable declarations.  These can\n\
-  arise from preprocessing simplifications, existential elimination,\n\
-  and a number of other things.  Implied by all following modes.\n\
-\n\
-assertions\n\
-+ Output the assertions after preprocessing and before clausification.\n\
-  Can also specify \"assertions:pre-PASS\" or \"assertions:post-PASS\",\n\
-  where PASS is one of the preprocessing passes: definition-expansion\n\
-  boolean-terms constrain-subtypes substitution strings-pp skolem-quant\n\
-  simplify static-learning ite-removal repeat-simplify\n\
-  rewrite-apply-to-const theory-preprocessing.\n\
-  PASS can also be the special value \"everything\", in which case the\n\
-  assertions are printed before any preprocessing (with\n\
-  \"assertions:pre-everything\") or after all preprocessing completes\n\
-  (with \"assertions:post-everything\").\n\
-\n\
-clauses\n\
-+ Do all the preprocessing outlined above, and dump the CNF-converted\n\
-  output\n\
-\n\
-state\n\
-+ Dump all contextual assertions (e.g., SAT decisions, propagations..).\n\
-  Implied by all \"stateful\" modes below and conflicts with all\n\
-  non-stateful modes below.\n\
-\n\
-t-conflicts [non-stateful]\n\
-+ Output correctness queries for all theory conflicts\n\
-\n\
-missed-t-conflicts [stateful]\n\
-+ Output completeness queries for theory conflicts\n\
-\n\
-t-propagations [stateful]\n\
-+ Output correctness queries for all theory propagations\n\
-\n\
-missed-t-propagations [stateful]\n\
-+ Output completeness queries for theory propagations (LARGE and EXPENSIVE)\n\
-\n\
-t-lemmas [non-stateful]\n\
-+ Output correctness queries for all theory lemmas\n\
-\n\
-t-explanations [non-stateful]\n\
-+ Output correctness queries for all theory explanations\n\
-\n\
-bv-rewrites [non-stateful]\n\
-+ Output correctness queries for all bitvector rewrites\n\
-\n\
-bv-abstraction [non-stateful]\n\
-+ Output correctness queries for all bv abstraction \n\
-\n\
-bv-algebraic [non-stateful]\n\
-+ Output correctness queries for bv algebraic solver. \n\
-\n\
-theory::fullcheck [non-stateful]\n                                      \
-+ Output completeness queries for all full-check effort-level theory checks\n\
-\n\
-Dump modes can be combined with multiple uses of --dump.  Generally you want\n\
-one from the assertions category (either assertions or clauses), and\n\
-perhaps one or more stateful or non-stateful modes for checking correctness\n\
-and completeness of decision procedure implementations.  Stateful modes dump\n\
-the contextual assertions made by the core solver (all decisions and\n\
-propagations as assertions; that affects the validity of the resulting\n\
-correctness and completeness queries, so of course stateful and non-stateful\n\
-modes cannot be mixed in the same run.\n\
-\n\
-The --output-language option controls the language used for dumping, and\n\
-this allows you to connect CVC4 to another solver implementation via a UNIX\n\
-pipe to perform on-line checking.  The --dump-to option can be used to dump\n\
-to a file.\n\
-";
-
 const std::string OptionsHandler::s_simplificationHelp = "\
 Simplification modes currently supported by the --simplification option:\n\
 \n\
@@ -1091,6 +1009,10 @@ void OptionsHandler::statsEnabledBuild(std::string option, bool value) throw(Opt
 
 void OptionsHandler::threadN(std::string option) {
   throw OptionException(option + " is not a real option by itself.  Use e.g. --thread0=\"--random-seed=10 --random-freq=0.02\" --thread1=\"--random-seed=20 --random-freq=0.05\"");
+}
+
+void OptionsHandler::notifyDumpMode(std::string option) throw(OptionException) {
+  d_options->d_setDumpModeListeners.notify();
 }
 
 
@@ -1628,9 +1550,9 @@ void notifySetPrintExprTypes(std::string option, OptionsHandler* handler) {
 
 
 /* smt/options_handlers.h */
-void dumpMode(std::string option, std::string optarg, OptionsHandler* handler) {
+void notifyDumpMode(std::string option, OptionsHandler* handler) {
   PrettyCheckArgument(handler != NULL, handler);
-  handler->dumpMode(option, optarg);
+  handler->notifyDumpMode(option);
 }
 
 SimplificationMode stringToSimplificationMode(std::string option, std::string optarg, OptionsHandler* handler) throw(OptionException){
