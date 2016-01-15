@@ -31,7 +31,7 @@
 ${include_all_option_headers}
 ${option_handler_includes}
 
-#line 31 "${template}"
+#line 35 "${template}"
 
 using namespace std;
 
@@ -44,7 +44,7 @@ void Options::setOption(const std::string& key, const std::string& optionarg)
 
   ${smt_setoption_handlers}
 
-#line 44 "${template}"
+#line 48 "${template}"
 
   throw UnrecognizedOptionException(key);
 }

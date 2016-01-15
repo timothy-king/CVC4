@@ -13,6 +13,10 @@
  **
  ** A builder for parsers.
  **/
+
+// This must be included first.
+#include "parser/antlr_input.h"
+
 #include "parser/parser_builder.h"
 
 #include <string>
