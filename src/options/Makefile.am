@@ -226,6 +226,7 @@ liboptions_la_SOURCES = \
 	options.h \
 	options_handler.cpp \
 	options_handler.h \
+	options_public_functions.cpp \
 	printer_modes.cpp \
 	printer_modes.h \
 	quantifiers_modes.cpp \

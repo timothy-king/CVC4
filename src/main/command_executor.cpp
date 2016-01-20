@@ -22,10 +22,6 @@
 #include <string>
 
 #include "main/main.h"
-#include "options/base_options.h"
-#include "options/main_options.h"
-#include "options/printer_options.h"
-#include "options/smt_options.h"
 #include "smt_util/command.h"
 
 
@@ -60,7 +56,7 @@ CommandExecutor::CommandExecutor(ExprManager &exprMgr, Options &options) :
 
 bool CommandExecutor::doCommand(Command* cmd)
 {
-  if( d_options[options::parseOnly] ) {
+  if( d_options.getParseOnly() ) {
     return true;
   }
 
@@ -70,15 +66,15 @@ bool CommandExecutor::doCommand(Command* cmd)
     bool status = true;
 
     for(CommandSequence::iterator subcmd = seq->begin();
-        (status || d_options[options::continuedExecution]) && subcmd != seq->end();
+        (status || d_options.getContinuedExecution()) && subcmd != seq->end();
         ++subcmd) {
       status = doCommand(*subcmd);
     }
 
     return status;
   } else {
-    if(d_options[options::verbosity] > 2) {
-      *d_options[options::out] << "Invoking: " << *cmd << std::endl;
+    if(d_options.getVerbosity() > 2) {
+      *d_options.getOut() << "Invoking: " << *cmd << std::endl;
     }
 
     return doCommandSingleton(cmd);
@@ -87,8 +83,8 @@ bool CommandExecutor::doCommand(Command* cmd)
 
 void CommandExecutor::reset()
 {
-  if(d_options[options::statistics]) {
-    flushStatistics(*d_options[options::err]);
+  if(d_options.getStatistics()) {
+    flushStatistics(*d_options.getErr());
   }
   delete d_smtEngine;
   d_smtEngine = new SmtEngine(&d_exprMgr);
@@ -97,8 +93,8 @@ void CommandExecutor::reset()
 bool CommandExecutor::doCommandSingleton(Command* cmd)
 {
   bool status = true;
-  if(d_options[options::verbosity] >= -1) {
-    status = smtEngineInvoke(d_smtEngine, cmd, d_options[options::out]);
+  if(d_options.getVerbosity() >= -1) {
+    status = smtEngineInvoke(d_smtEngine, cmd, d_options.getOut());
   } else {
     status = smtEngineInvoke(d_smtEngine, cmd, NULL);
   }
@@ -113,42 +109,53 @@ bool CommandExecutor::doCommandSingleton(Command* cmd)
     d_result = res = q->getResult();
   }
 
-  if((cs != NULL || q != NULL) && d_options[options::statsEveryQuery]) {
+  if((cs != NULL || q != NULL) && d_options.getStatsEveryQuery()) {
     std::ostringstream ossCurStats;
     flushStatistics(ossCurStats);
-    printStatsIncremental(*d_options[options::err], d_lastStatistics, ossCurStats.str());
+    std::ostream& err = *d_options.getErr();
+    printStatsIncremental(err, d_lastStatistics, ossCurStats.str());
     d_lastStatistics = ossCurStats.str();
   }
 
   // dump the model/proof/unsat core if option is set
   if(status) {
     Command* g = NULL;
-    if( d_options[options::produceModels] &&
-        d_options[options::dumpModels] &&
+    if( d_options.getProduceModels() &&
+        d_options.getDumpModels() &&
         ( res.asSatisfiabilityResult() == Result::SAT ||
           (res.isUnknown() && res.whyUnknown() == Result::INCOMPLETE) ) ) {
       g = new GetModelCommand();
     }
-    if( d_options[options::proof] &&
-        d_options[options::dumpProofs] &&
+    if( d_options.getProof() &&
+        d_options.getDumpProofs() &&
         res.asSatisfiabilityResult() == Result::UNSAT ) {
       g = new GetProofCommand();
     }
-    if( d_options[options::dumpInstantiations] &&
-        ( ( d_options[options::instFormatMode] != INST_FORMAT_MODE_SZS &&
-            ( res.asSatisfiabilityResult() == Result::SAT || (res.isUnknown() && res.whyUnknown() == Result::INCOMPLETE) ) ) ||
-          res.asSatisfiabilityResult() == Result::UNSAT ) ) {
+
+    if( d_options.getDumpInstantiations() &&
+        ( ( d_options.getInstFormatMode() != INST_FORMAT_MODE_SZS &&
+            ( res.asSatisfiabilityResult() == Result::SAT ||
+              (res.isUnknown() && res.whyUnknown() == Result::INCOMPLETE) ) ) ||
+          res.asSatisfiabilityResult() == Result::UNSAT ) )
+    {
       g = new GetInstantiationsCommand();
     }
-    if( d_options[options::dumpSynth] && res.asSatisfiabilityResult() == Result::UNSAT ){
+
+    if( d_options.getDumpSynth() &&
+        res.asSatisfiabilityResult() == Result::UNSAT )
+    {
       g = new GetSynthSolutionCommand();
     }
-    if( d_options[options::dumpUnsatCores] && res.asSatisfiabilityResult() == Result::UNSAT ) {
+
+    if( d_options.getDumpUnsatCores() &&
+        res.asSatisfiabilityResult() == Result::UNSAT )
+    {
       g = new GetUnsatCoreCommand();
     }
+
     if(g != NULL) {
       // set no time limit during dumping if applicable
-      if( d_options[options::forceNoLimitCpuWhileDump] ){
+      if( d_options.getForceNoLimitCpuWhileDump() ){
         setNoLimitCPU();
       }
       status = doCommandSingleton(g);
@@ -165,7 +172,9 @@ bool smtEngineInvoke(SmtEngine* smt, Command* cmd, std::ostream *out)
     cmd->invoke(smt, *out);
   }
   // ignore the error if the command-verbosity is 0 for this command
-  if(smt->getOption(std::string("command-verbosity:") + cmd->getCommandName()).getIntegerValue() == 0) {
+  std::string commandName =
+      std::string("command-verbosity:") + cmd->getCommandName();
+  if(smt->getOption(commandName).getIntegerValue() == 0) {
     return true;
   }
   return !cmd->fail();

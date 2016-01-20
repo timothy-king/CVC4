@@ -758,7 +758,7 @@ ${all_modules_option_handlers}
       i != iend; ++i)
   {
     char* current = *i;
-    #warning "TODO: Unit test fail then garbage collection is done."
+    #warning "TODO: Unit tests fail if garbage collection is done here."
     //free(current);
   }
   allocated.clear();

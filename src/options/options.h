@@ -19,14 +19,16 @@
 #ifndef __CVC4__OPTIONS__OPTIONS_H
 #define __CVC4__OPTIONS__OPTIONS_H
 
-#include <iostream>
 #include <fstream>
+#include <ostream>
 #include <string>
 #include <vector>
 
 #include "base/listener.h"
 #include "base/modal_exception.h"
 #include "base/tls.h"
+#include "options/language.h"
+#include "options/printer_modes.h"
 #include "options/option_exception.h"
 
 namespace CVC4 {
@@ -173,6 +175,7 @@ public:
   void setOption(const std::string& key, const std::string& optionarg)
       throw(OptionException, ModalException);
 
+
   /** Get the value of the given option.  Const access only. */
   template <class T>
   const typename T::type& operator[](T) const;
@@ -182,6 +185,81 @@ public:
    */
   std::string getOption(const std::string& key) const
     throw(OptionException);
+
+  // Get accessor functions.
+  InputLanguage getInputLanguage() const;
+  InstFormatMode getInstFormatMode() const;
+  OutputLanguage getOutputLanguage() const;
+  bool getCheckProofs() const;
+  bool getContinuedExecution() const;
+  bool getDumpInstantiations() const;
+  bool getDumpModels() const;
+  bool getDumpProofs() const;
+  bool getDumpSynth() const;
+  bool getDumpUnsatCores() const;
+  bool getEarlyExit() const;
+  bool getFallbackSequential() const;
+  bool getFilesystemAccess() const;
+  bool getForceNoLimitCpuWhileDump() const;
+  bool getHelp() const;
+  bool getIncrementalParallel() const;
+  bool getIncrementalSolving() const;
+  bool getInteractive() const;
+  bool getInteractivePrompt() const;
+  bool getLanguageHelp() const;
+  bool getMemoryMap() const;
+  bool getParseOnly() const;
+  bool getProduceModels() const;
+  bool getProof() const;
+  bool getSegvSpin() const;
+  bool getSemanticChecks() const;
+  bool getStatistics() const;
+  bool getStatsEveryQuery() const;
+  bool getStatsHideZeros() const;
+  bool getStrictParsing() const;
+  bool getTearDownIncremental() const;
+  bool getVersion() const;
+  bool getWaitToJoin() const;
+  const std::string& getForceLogicString() const;
+  const std::vector<std::string>& getThreadArgv() const;
+  int getSharingFilterByLength() const;
+  int getThreadId() const;
+  int getVerbosity() const;
+  std::istream* getIn() const;
+  std::ostream* getErr();
+  std::ostream* getOut();
+  std::ostream* getOutConst() const; // TODO: Remove this.
+  std::string getBinaryName() const;
+  std::string getReplayFilename() const;
+  unsigned getParseStep() const;
+  unsigned getThreadStackSize() const;
+  unsigned getThreads() const;
+
+
+  // TODO: Document these.
+  void setCeGuidedInst(bool);
+  void setDumpSynth(bool);
+  void setInputLanguage(InputLanguage);
+  void setInteractive(bool);
+  void setOut(std::ostream*);
+  void setOutputLanguage(OutputLanguage);
+  void setSharingFilterByLength(int length);
+  void setThreadId(int);
+
+  bool wasSetByUserCeGuidedInst() const;
+  bool wasSetByUserDumpSynth() const;
+  bool wasSetByUserEarlyExit() const;
+  bool wasSetByUserForceLogicString() const;
+  bool wasSetByUserIncrementalSolving() const;
+  bool wasSetByUserInteractive() const;
+  bool wasSetByUserThreadStackSize() const;
+  bool wasSetByUserThreads() const;
+
+  // Static accessor functions.
+  // TODO: Document these.
+  static int currentGetSharingFilterByLength();
+  static int currentGetThreadId();
+  static std::ostream* currentGetOut();
 
   /**
    * Returns true iff the value of the given option was set

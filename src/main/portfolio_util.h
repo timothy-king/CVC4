@@ -19,7 +19,6 @@
 
 #include "base/output.h"
 #include "expr/pickler.h"
-#include "options/main_options.h"
 #include "smt/smt_engine.h"
 #include "smt_util/lemma_input_channel.h"
 #include "smt_util/lemma_output_channel.h"
