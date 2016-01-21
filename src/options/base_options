@@ -3,31 +3,34 @@
 #
 # This is essentially a shell script interpreted with special commands.
 #
-# Lines starting with whitespace are special.  They are passed in their entirety (minus
-# the first whitespace char) to the "doc" command.  Lines starting with a single slash
-# are stripped of this initial character and interpreted by the "doc-alt" command.  A period
-# "." in the first column of a line, followed optionally by whitespace but without any other
-# content on the line, is interpreted as an empty string passed to doc.  (This allows
-# multi-paragraph documentation for options.)  Lines may be continued with a backslash (\)
-# at the end of a line.
+# Lines starting with whitespace are special.  They are passed in their entirety
+# (minus the first whitespace char) to the "doc" command.  Lines starting with a
+# single slash are stripped of this initial character and interpreted by the
+# "doc-alt" command.  A period "." in the first column of a line, followed
+# optionally by whitespace but without any other content on the line, is
+# interpreted as an empty string passed to doc.  (This allows multi-paragraph
+# documentation for options.)  Lines may be continued with a backslash (\) at the
+# end of a line.
 #
 # commands are:
 #
 #   module ID "include-file" name
 #
-#     Identifies the module.  Must be the first command in the file.  ID is a suitable
-#     identifier for a preprocessor definition, and should be unique; name is a "pretty"
-#     name used for the benefit of the end CVC4 user in, e.g., option listings.
+#     Identifies the module.  Must be the first command in the file.  ID is a
+#     suitable identifier for a preprocessor definition, and should be unique;
+#     name is a "pretty" name used for the benefit of the end CVC4 user in, e.g.,
+#     option listings.
 #
 #   common-option SPECIFICATION
 #   option SPECIFICATION
 #   expert-option SPECIFICATION
 #   undocumented-option SPECIFICATION
 #
-#     These commands declare (respectively) common options presented first to the user,
-#     standard options that the user might want to see with "--help" documentation,
-#     expert options that should be marked as expert-only, and options that should not
-#     appear in normal option documentation (even if documentation is included here).
+#     These commands declare (respectively) common options presented first to the
+#     user, standard options that the user might want to see with "--help"
+#     documentation, expert options that should be marked as expert-only, and
+#     options that should not appear in normal option documentation (even if
+#     documentation is included here).
 #
 #     SPECIFICATIONs take this form:
 #
@@ -42,6 +45,7 @@
 #                     | :read-only
 #                     | :read-write
 #                     | :link linked-options..
+#                     | :link-smt linked-option [value]
 #
 #   common-alias ALIAS_SPECIFICATION
 #   alias ALIAS_SPECIFICATION
@@ -179,7 +183,7 @@ common-option statistics statistics --stats bool :predicate statsEnabledBuild
  give statistics on exit
 undocumented-alias --statistics = --stats
 undocumented-alias --no-statistics = --no-stats
-option statsEveryQuery --stats-every-query bool :default false :link --stats
+option statsEveryQuery --stats-every-query bool :default false :link --stats :link-smt statistics
  in incremental mode, print stats after every satisfiability or validity query
 undocumented-alias --statistics-every-query = --stats-every-query
 undocumented-alias --no-statistics-every-query = --no-stats-every-query

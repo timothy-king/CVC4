@@ -90,7 +90,7 @@ protected:
 
   static std::string format_extra(const char* condStr, const char* argDesc);
 
-  static char* s_header;
+  static const char* s_header;
 
 public:
 

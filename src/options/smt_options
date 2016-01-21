@@ -27,13 +27,13 @@ common-option produceModels produce-models -m --produce-models bool :default fal
  support the get-value and get-model commands
 option checkModels check-models --check-models bool :link --produce-models --produce-assertions :link-smt produce-models :link-smt produce-assertions :notify notifyBeforeSearch
  after SAT/INVALID/UNKNOWN, check that the generated model satisfies user assertions
-option dumpModels --dump-models bool :default false :link --produce-models
+option dumpModels --dump-models bool :default false :link --produce-models :link-smt produce-models
  output models after every SAT/INVALID/UNKNOWN response
 option proof produce-proofs --proof bool :default false :predicate proofEnabledBuild :notify notifyBeforeSearch
  turn on proof generation
 option checkProofs check-proofs --check-proofs bool :link --proof :link-smt produce-proofs :notify notifyBeforeSearch :read-write
  after UNSAT/VALID, machine-check the generated proof
-option dumpProofs --dump-proofs bool :default false :link --proof
+option dumpProofs --dump-proofs bool :default false :link --proof :link-smt produce-proofs
  output proofs after every UNSAT/VALID response
 option dumpInstantiations --dump-instantiations bool :default false
  output instantiations of quantified formulas after every UNSAT/VALID response
@@ -153,6 +153,7 @@ undocumented-option replayFilename --replay=FILE std::string :handler checkRepla
 option forceNoLimitCpuWhileDump --force-no-limit-cpu-while-dump bool :default false
  Force no CPU limit when dumping models and proofs
 
-option solveIntAsBV --solve-int-as-bv uint32_t :default 0
+undocumented-option solveIntAsBV --solve-int-as-bv uint32_t :default 0
+ attempt to solve a pure integer satisfiable problem by bitblasting in sufficient bitwidth (experimental)
 
 endmodule
