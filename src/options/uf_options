@@ -11,7 +11,7 @@ option ufSymmetryBreaker uf-symmetry-breaker --symmetry-breaker bool :read-write
 option condenseFunctionValues condense-function-values --condense-function-values bool :default true
  condense models for functions rather than explicitly representing them
 
-option ufssRegions /--disable-uf-ss-regions bool :default true
+option ufssRegions --uf-ss-regions bool :default true
  disable region-based method for discovering cliques and splits in uf strong solver
 option ufssEagerSplits --uf-ss-eager-split bool :default false
  add splits eagerly for uf strong solver
