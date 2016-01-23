@@ -987,6 +987,7 @@ SmtEngine::SmtEngine(ExprManager* em) throw() :
   d_needPostsolve(false),
   d_earlyTheoryPP(true),
   d_status(),
+  d_replayStream(NULL),
   d_private(NULL),
   d_smtAttributes(NULL),
   d_statisticsRegistry(NULL),
@@ -1040,7 +1041,7 @@ void SmtEngine::finishInit() {
 
   d_propEngine = new PropEngine(d_theoryEngine, d_decisionEngine, d_context,
                                 d_userContext, d_private->getReplayLog(),
-                                d_globals);
+                                d_replayStream, d_globals);
 
   d_theoryEngine->setPropEngine(d_propEngine);
   d_theoryEngine->setDecisionEngine(d_decisionEngine);
@@ -5321,6 +5322,12 @@ CVC4::SExpr SmtEngine::getOption(const std::string& key) const
 
   Options& nodeManagerOptions = NodeManager::currentNM()->getOptions();
   return SExpr::parseAtom(nodeManagerOptions.getOption(key));
+}
+
+void SmtEngine::setReplayStream(ExprStream* replayStream) {
+  AlwaysAssert(!d_fullyInited,
+               "Cannot set replay stream once fully initialized");
+  d_replayStream = replayStream;
 }
 
 }/* CVC4 namespace */

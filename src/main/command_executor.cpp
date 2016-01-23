@@ -51,7 +51,14 @@ CommandExecutor::CommandExecutor(ExprManager &exprMgr, Options &options) :
   d_smtEngine(new SmtEngine(&exprMgr)),
   d_options(options),
   d_stats("driver"),
-  d_result() {
+  d_result(),
+  d_replayStream(NULL)
+{}
+
+void CommandExecutor::setReplayStream(ExprStream* replayStream) {
+  assert(d_replayStream == NULL);
+  d_replayStream = replayStream;
+  d_smtEngine->setReplayStream(d_replayStream);
 }
 
 bool CommandExecutor::doCommand(Command* cmd)

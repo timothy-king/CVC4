@@ -253,7 +253,7 @@ int runCvc4(int argc, char* argv[], Options& opts) {
       replayParserBuilder.withStreamInput(cin);
     }
     replayParser = replayParserBuilder.build();
-    pExecutor->globals()->setReplayStream(new Parser::ExprStream(replayParser));
+    pExecutor->setReplayStream(new Parser::ExprStream(replayParser));
   }
 
   int returnValue = 0;
@@ -538,13 +538,6 @@ int runCvc4(int argc, char* argv[], Options& opts) {
       }
       // Remove the parser
       delete parser;
-    }
-
-    if( pExecutor->globals()->getReplayStream() != NULL ) {
-      ExprStream* replayStream = pExecutor->globals()->getReplayStream();
-      pExecutor->globals()->setReplayStream(NULL);
-      // this deletes the expression parser too
-      delete replayStream;
     }
 
     Result result;

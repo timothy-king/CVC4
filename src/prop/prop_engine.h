@@ -24,6 +24,7 @@
 #include <sys/time.h>
 
 #include "base/modal_exception.h"
+#include "expr/expr_stream.h"
 #include "expr/node.h"
 #include "options/options.h"
 #include "proof/proof_manager.h"
@@ -97,7 +98,9 @@ public:
   /**
    * Create a PropEngine with a particular decision and theory engine.
    */
-  PropEngine(TheoryEngine*, DecisionEngine*, context::Context* satContext, context::Context* userContext, std::ostream* replayLog, SmtGlobals* global);
+  PropEngine(TheoryEngine*, DecisionEngine*, context::Context* satContext,
+             context::Context* userContext, std::ostream* replayLog,
+             ExprStream* replayStream, SmtGlobals* global);
 
   /**
    * Destructor.

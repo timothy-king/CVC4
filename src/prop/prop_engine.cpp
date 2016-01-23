@@ -75,7 +75,9 @@ public:
   }
 };
 
-PropEngine::PropEngine(TheoryEngine* te, DecisionEngine *de, Context* satContext, Context* userContext, std::ostream* replayLog, SmtGlobals* globals) :
+PropEngine::PropEngine(TheoryEngine* te, DecisionEngine *de, Context* satContext,
+                       Context* userContext, std::ostream* replayLog,
+                       ExprStream* replayStream, SmtGlobals* globals) :
   d_inCheckSat(false),
   d_theoryEngine(te),
   d_decisionEngine(de),
@@ -101,7 +103,7 @@ PropEngine::PropEngine(TheoryEngine* te, DecisionEngine *de, Context* satContext
      ( CVC4_USE_REPLAY && replayLog != NULL )
      );
 
-  d_theoryProxy = new TheoryProxy(this, d_theoryEngine, d_decisionEngine, d_context, d_cnfStream, replayLog, globals);
+  d_theoryProxy = new TheoryProxy(this, d_theoryEngine, d_decisionEngine, d_context, d_cnfStream, replayLog, replayStream, globals);
   d_satSolver->initialize(d_context, d_theoryProxy);
 
   d_decisionEngine->setSatSolver(d_satSolver);

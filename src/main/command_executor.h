@@ -37,12 +37,16 @@ protected:
   Options& d_options;
   StatisticsRegistry d_stats;
   Result d_result;
+  ExprStream* d_replayStream;
 
 public:
   CommandExecutor(ExprManager &exprMgr, Options &options);
 
   virtual ~CommandExecutor() {
     delete d_smtEngine;
+    if(d_replayStream != NULL){
+      delete d_replayStream;
+    }
   }
 
   /**
@@ -70,6 +74,8 @@ public:
 
   SmtGlobals* globals() { return d_smtEngine->globals(); }
   void flushOutputStreams();
+
+  void setReplayStream(ExprStream* replayStream);
 
 protected:
   /** Executes treating cmd as a singleton */

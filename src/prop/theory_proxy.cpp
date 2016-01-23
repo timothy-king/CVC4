@@ -38,6 +38,7 @@ TheoryProxy::TheoryProxy(PropEngine* propEngine,
                          context::Context* context,
                          CnfStream* cnfStream,
                          std::ostream* replayLog,
+                         ExprStream* replayStream,
                          SmtGlobals* globals)
     : d_propEngine(propEngine),
       d_cnfStream(cnfStream),
@@ -45,6 +46,7 @@ TheoryProxy::TheoryProxy(PropEngine* propEngine,
       d_theoryEngine(theoryEngine),
       d_globals(globals),
       d_replayLog(replayLog),
+      d_replayStream(replayStream),
       d_queue(context),
       d_replayedDecisions("prop::theoryproxy::replayedDecisions", 0)
 {
@@ -64,10 +66,6 @@ LemmaInputChannel* TheoryProxy::inputChannel() {
 /** The lemma output channel we are using. */
 LemmaOutputChannel* TheoryProxy::outputChannel() {
   return d_globals->getLemmaOutputChannel();
-}
-
-ExprStream* TheoryProxy::replayStream() {
-  return d_globals->getReplayStream();
 }
 
 
@@ -198,8 +196,8 @@ void TheoryProxy::notifyNewLemma(SatClause& lemma) {
 
 SatLiteral TheoryProxy::getNextReplayDecision() {
 #ifdef CVC4_REPLAY
-  if(replayStream() != NULL) {
-    Expr e = replayStream()->nextExpr();
+  if(d_replayStream != NULL) {
+    Expr e = d_replayStream->nextExpr();
     if(!e.isNull()) { // we get null node when out of decisions to replay
       // convert & return
       ++d_replayedDecisions;

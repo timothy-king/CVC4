@@ -36,16 +36,11 @@
 namespace CVC4 {
 
 SmtGlobals::SmtGlobals()
-    : d_replayStream(NULL)
-    , d_lemmaInputChannel(NULL)
+    : d_lemmaInputChannel(NULL)
     , d_lemmaOutputChannel(NULL)
 {}
 
 SmtGlobals::~SmtGlobals(){}
-
-void SmtGlobals::setReplayStream(ExprStream* stream) {
-  d_replayStream = stream;
-}
 
 void SmtGlobals::setLemmaInputChannel(LemmaInputChannel* in) {
   d_lemmaInputChannel = in;

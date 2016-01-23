@@ -35,7 +35,7 @@
 #include <string>
 #include <utility>
 
-#include "expr/expr_stream.h"
+//#include "expr/expr_stream.h"
 #include "options/option_exception.h"
 #include "smt_util/lemma_input_channel.h"
 #include "smt_util/lemma_output_channel.h"
@@ -44,8 +44,6 @@ namespace CVC4 {
 
 /**
  * SmtGlobals is a wrapper around 4 pointers:
- * - getReplayLog()
- * - getReplayStream()
  * - getLemmaInputChannel()
  * - getLemmaOutputChannel()
  *
@@ -59,8 +57,6 @@ class CVC4_PUBLIC SmtGlobals {
   SmtGlobals();
   ~SmtGlobals();
 
-  void setReplayStream(ExprStream* stream);
-  ExprStream* getReplayStream() { return d_replayStream; }
 
   void setLemmaInputChannel(LemmaInputChannel* in);
   LemmaInputChannel* getLemmaInputChannel() { return d_lemmaInputChannel; }
@@ -74,9 +70,6 @@ class CVC4_PUBLIC SmtGlobals {
 
   // Disable assignment operator.
   SmtGlobals& operator=(const SmtGlobals&) CVC4_UNDEFINED;
-
-  /** This captures the old options::replayStream .*/
-  ExprStream* d_replayStream;
 
   /** This captures the old options::lemmaInputChannel .*/
   LemmaInputChannel* d_lemmaInputChannel;

@@ -26,6 +26,7 @@
 #include <iosfwd>
 
 #include "context/cdqueue.h"
+#include "expr/expr_stream.h"
 #include "expr/node.h"
 #include "prop/sat_solver.h"
 #include "smt/smt_globals.h"
@@ -55,6 +56,7 @@ public:
               context::Context* context,
               CnfStream* cnfStream,
               std::ostream* replayLog,
+              ExprStream* replayStream,
               SmtGlobals* globals);
 
   ~TheoryProxy();
@@ -117,15 +119,17 @@ public:
    */
   SmtGlobals* d_globals;
 
+  /** Stream on which to log replay events. */
   std::ostream* d_replayLog;
+
+  /** Stream for replaying decisions. */
+  ExprStream* d_replayStream;
 
   /** The lemma input channel we are using. */
   LemmaInputChannel* inputChannel();
 
   /** The lemma output channel we are using. */
   LemmaOutputChannel* outputChannel();
-
-  ExprStream* replayStream();
 
   /** Queue of asserted facts */
   context::CDQueue<TNode> d_queue;
