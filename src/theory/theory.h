@@ -33,7 +33,6 @@
 #include "options/theory_options.h"
 #include "options/theoryof_mode.h"
 #include "smt/logic_request.h"
-#include "smt/smt_globals.h"
 #include "smt_util/command.h"
 #include "smt_util/dump.h"
 #include "theory/logic_info.h"
@@ -245,9 +244,9 @@ protected:
   /**
    * Construct a Theory.
    */
-  Theory(TheoryId id, context::Context* satContext, context::UserContext* userContext,
-         OutputChannel& out, Valuation valuation, const LogicInfo& logicInfo,
-         SmtGlobals* globals) throw();
+  Theory(TheoryId id, context::Context* satContext,
+         context::UserContext* userContext, OutputChannel& out,
+         Valuation valuation, const LogicInfo& logicInfo) throw();
 
   /**
    * This is called at shutdown time by the TheoryEngine, just before
@@ -295,8 +294,6 @@ protected:
    *
    */
   bool d_proofEnabled;
-
-  SmtGlobals* d_globals;
 
 public:
 
@@ -854,11 +851,6 @@ public:
    * E |= lit in the theory.
    */
   virtual std::pair<bool, Node> entailmentCheck(TNode lit, const EntailmentCheckParameters* params = NULL, EntailmentCheckSideEffects* out = NULL);
-
-
-  /** Returns a pointer to the globals copy the theory is using. */
-  SmtGlobals* globals() { return d_globals; }
-
 };/* class Theory */
 
 std::ostream& operator<<(std::ostream& os, theory::Theory::Effort level);

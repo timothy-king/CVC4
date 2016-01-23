@@ -146,7 +146,9 @@ TheoryEngine::TheoryEngine(context::Context* context,
   d_attr_handle(),
   d_arithSubstitutionsAdded("theory::arith::zzz::arith::substitutions", 0)
 {
-  for(TheoryId theoryId = theory::THEORY_FIRST; theoryId != theory::THEORY_LAST; ++ theoryId) {
+  for(TheoryId theoryId = theory::THEORY_FIRST; theoryId != theory::THEORY_LAST;
+      ++ theoryId)
+  {
     d_theoryTable[theoryId] = NULL;
     d_theoryOut[theoryId] = NULL;
   }

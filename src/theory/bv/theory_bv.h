@@ -56,7 +56,8 @@ class TheoryBV : public Theory {
 
 public:
 
-  TheoryBV(context::Context* c, context::UserContext* u, OutputChannel& out, Valuation valuation, const LogicInfo& logicInfo, SmtGlobals* globals);
+  TheoryBV(context::Context* c, context::UserContext* u, OutputChannel& out,
+           Valuation valuation, const LogicInfo& logicInfo);
 
   ~TheoryBV();
 

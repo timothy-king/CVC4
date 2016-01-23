@@ -32,8 +32,8 @@ using namespace CVC4::theory::uf;
 /** Constructs a new instance of TheoryUF w.r.t. the provided context.*/
 TheoryUF::TheoryUF(context::Context* c, context::UserContext* u,
                    OutputChannel& out, Valuation valuation,
-                   const LogicInfo& logicInfo, SmtGlobals* globals)
-    : Theory(THEORY_UF, c, u, out, valuation, logicInfo, globals),
+                   const LogicInfo& logicInfo)
+    : Theory(THEORY_UF, c, u, out, valuation, logicInfo),
       d_notify(*this),
       /* The strong theory solver can be notified by EqualityEngine::init(),
        * so make sure it's initialized first. */

@@ -48,9 +48,9 @@ std::ostream& operator<<(std::ostream& os, Theory::Effort level){
   return os;
 }/* ostream& operator<<(ostream&, Theory::Effort) */
 
-Theory::Theory(TheoryId id, context::Context* satContext, context::UserContext* userContext,
-               OutputChannel& out, Valuation valuation, const LogicInfo& logicInfo,
-               SmtGlobals* globals) throw()
+Theory::Theory(TheoryId id, context::Context* satContext,
+               context::UserContext* userContext, OutputChannel& out,
+               Valuation valuation, const LogicInfo& logicInfo) throw()
     : d_id(id)
     , d_satContext(satContext)
     , d_userContext(userContext)
@@ -66,7 +66,6 @@ Theory::Theory(TheoryId id, context::Context* satContext, context::UserContext* 
     , d_out(&out)
     , d_valuation(valuation)
     , d_proofEnabled(false)
-    , d_globals(globals)
 {
   smtStatisticsRegistry()->registerStat(&d_checkTime);
   smtStatisticsRegistry()->registerStat(&d_computeCareGraphTime);

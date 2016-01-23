@@ -127,8 +127,7 @@ class TheoryArrays : public Theory {
   public:
 
   TheoryArrays(context::Context* c, context::UserContext* u, OutputChannel& out,
-               Valuation valuation, const LogicInfo& logicInfo,
-               SmtGlobals* globals);
+               Valuation valuation, const LogicInfo& logicInfo);
   ~TheoryArrays();
 
   void setMasterEqualityEngine(eq::EqualityEngine* eq);

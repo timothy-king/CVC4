@@ -213,7 +213,7 @@ protected:
 public:
   TheoryDatatypes(context::Context* c, context::UserContext* u,
                   OutputChannel& out, Valuation valuation,
-                  const LogicInfo& logicInfo, SmtGlobals* globals);
+                  const LogicInfo& logicInfo);
   ~TheoryDatatypes();
 
   void setMasterEqualityEngine(eq::EqualityEngine* eq);

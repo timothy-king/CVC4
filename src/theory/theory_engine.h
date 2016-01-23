@@ -464,7 +464,8 @@ public:
 
   /** Constructs a theory engine */
   TheoryEngine(context::Context* context, context::UserContext* userContext,
-               RemoveITE& iteRemover, const LogicInfo& logic, SmtGlobals* globals);
+               RemoveITE& iteRemover, const LogicInfo& logic,
+               SmtGlobals* globals);
 
   /** Destroys a theory engine */
   ~TheoryEngine();
@@ -485,7 +486,7 @@ public:
     d_theoryOut[theoryId] = new EngineOutputChannel(this, theoryId);
     d_theoryTable[theoryId] =
         new TheoryClass(d_context, d_userContext, *d_theoryOut[theoryId],
-                        theory::Valuation(this), d_logicInfo, d_globals);
+                        theory::Valuation(this), d_logicInfo);
   }
 
   inline void setPropEngine(prop::PropEngine* propEngine) {
