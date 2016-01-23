@@ -232,5 +232,51 @@ void printStatsIncremental(std::ostream& out, const std::string& prvsStatsString
   }
 }
 
+void CommandExecutor::printStatsFilterZeros(std::ostream& out,
+                                            const std::string& statsString) {
+  // read each line, if a number, check zero and skip if so
+  // Stat are assumed to one-per line: "<statName>, <statValue>"
+
+  std::istringstream iss(statsString);
+  std::string statName, statValue;
+
+  std::getline(iss, statName, ',');
+
+  while( !iss.eof() ) {
+
+    std::getline(iss, statValue, '\n');
+
+    double curFloat;
+    bool isFloat = (std::istringstream(statValue) >> curFloat);
+
+    if( (isFloat && curFloat == 0) ||
+        statValue == " \"0\"" ||
+        statValue == " \"[]\"") {
+      // skip
+    } else {
+      out << statName << "," << statValue << std::endl;
+    }
+
+    std::getline(iss, statName, ',');
+  }
+
+}
+
+void CommandExecutor::flushOutputStreams() {
+  if(d_options.getStatistics()) {
+    if(d_options.getStatsHideZeros() == false) {
+      flushStatistics(*(d_options.getErr()));
+    } else {
+      std::ostringstream ossStats;
+      flushStatistics(ossStats);
+      printStatsFilterZeros(*(d_options.getErr()), ossStats.str());
+    }
+  }
+
+  // make sure out and err streams are flushed too
+  d_options.flushOut();
+  d_options.flushErr();
+}
+
 }/* CVC4::main namespace */
 }/* CVC4 namespace */

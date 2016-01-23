@@ -37,12 +37,14 @@ TheoryProxy::TheoryProxy(PropEngine* propEngine,
                          DecisionEngine* decisionEngine,
                          context::Context* context,
                          CnfStream* cnfStream,
+                         std::ostream* replayLog,
                          SmtGlobals* globals)
     : d_propEngine(propEngine),
       d_cnfStream(cnfStream),
       d_decisionEngine(decisionEngine),
       d_theoryEngine(theoryEngine),
       d_globals(globals),
+      d_replayLog(replayLog),
       d_queue(context),
       d_replayedDecisions("prop::theoryproxy::replayedDecisions", 0)
 {
@@ -62,10 +64,6 @@ LemmaInputChannel* TheoryProxy::inputChannel() {
 /** The lemma output channel we are using. */
 LemmaOutputChannel* TheoryProxy::outputChannel() {
   return d_globals->getLemmaOutputChannel();
-}
-
-std::ostream* TheoryProxy::replayLog() {
-  return d_globals->getReplayLog();
 }
 
 ExprStream* TheoryProxy::replayStream() {
@@ -214,9 +212,9 @@ SatLiteral TheoryProxy::getNextReplayDecision() {
 
 void TheoryProxy::logDecision(SatLiteral lit) {
 #ifdef CVC4_REPLAY
-  if(replayLog() != NULL) {
+  if(d_replayLog != NULL) {
     Assert(lit != undefSatLiteral, "logging an `undef' decision ?!");
-    (*replayLog()) << d_cnfStream->getNode(lit) << std::endl;
+    (*d_replayLog) << d_cnfStream->getNode(lit) << std::endl;
   }
 #endif /* CVC4_REPLAY */
 }

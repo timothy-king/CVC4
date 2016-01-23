@@ -1092,6 +1092,9 @@ std::string OptionsHandler::checkReplayFilename(std::string option, std::string 
 #endif /* CVC4_REPLAY */
 }
 
+void OptionsHandler::notifySetReplayLogFilename(std::string option) {
+  d_options->d_setReplayFilenameListeners.notify();
+}
 
 void OptionsHandler::statsEnabledBuild(std::string option, bool value) throw(OptionException) {
 #ifndef CVC4_STATISTICS_ON

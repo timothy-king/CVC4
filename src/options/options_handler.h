@@ -141,6 +141,8 @@ public:
   void notifySetRegularOutputChannel(std::string option);
   void notifySetDiagnosticOutputChannel(std::string option);
   std::string checkReplayFilename(std::string option, std::string optarg);
+  void notifySetReplayLogFilename(std::string option);
+
   void statsEnabledBuild(std::string option, bool value) throw(OptionException);
 
   unsigned long tlimitHandler(std::string option, std::string optarg) throw(OptionException);

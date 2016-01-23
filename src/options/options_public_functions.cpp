@@ -212,8 +212,8 @@ std::string Options::getBinaryName() const{
   return (*this)[options::binary_name];
 }
 
-std::string Options::getReplayFilename() const{
-  return (*this)[options::replayFilename];
+std::string Options::getReplayInputFilename() const{
+  return (*this)[options::replayInputFilename];
 }
 
 unsigned Options::getParseStep() const{
@@ -304,6 +304,19 @@ bool Options::wasSetByUserThreadStackSize() const {
 
 bool Options::wasSetByUserThreads() const {
   return wasSetByUser(options::threads);
+}
+
+
+void Options::flushErr() {
+  if(getErr() != NULL) {
+    *(getErr()) << std::flush;
+  }
+}
+
+void Options::flushOut() {
+  if(getOut() != NULL) {
+    *(getOut()) << std::flush;
+  }
 }
 
 }/* CVC4 namespace */

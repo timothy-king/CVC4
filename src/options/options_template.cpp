@@ -379,9 +379,17 @@ Options::registerSetDiagnosticOutputChannelListener(
   return registerAndNotify(d_setDiagnosticChannelListeners, listener, notify);
 }
 
+ListenerCollection::Registration*
+Options::registerSetReplayLogFilename(
+    Listener* listener, bool notifyIfSet)
+{
+  bool notify = notifyIfSet && wasSetByUser(options::replayLogFilename);
+  return registerAndNotify(d_setReplayFilenameListeners, listener, notify);
+}
+
 ${all_custom_handlers}
 
-#line 385 "${template}"
+#line 393 "${template}"
 
 #ifdef CVC4_DEBUG
 #  define USE_EARLY_TYPE_CHECKING_BY_DEFAULT true
@@ -399,18 +407,18 @@ options::OptionsHolder::OptionsHolder() : ${all_modules_defaults}
 {
 }
 
-#line 403 "${template}"
+#line 411 "${template}"
 
 static const std::string mostCommonOptionsDescription = "\
 Most commonly-used CVC4 options:${common_documentation}";
 
-#line 408 "${template}"
+#line 416 "${template}"
 
 static const std::string optionsDescription = mostCommonOptionsDescription + "\n\
 \n\
 Additional CVC4 options:${remaining_documentation}";
 
-#line 414 "${template}"
+#line 422 "${template}"
 
 static const std::string optionsFootnote = "\n\
 [*] Each of these options has a --no-OPTIONNAME variant, which reverses the\n\
@@ -489,7 +497,7 @@ static struct option cmdlineOptions[] = {${all_modules_long_options}
   { NULL, no_argument, NULL, '\0' }
 };/* cmdlineOptions */
 
-#line 493 "${template}"
+#line 501 "${template}"
 
 // static void preemptGetopt(int& argc, char**& argv, const char* opt) {
 
@@ -697,7 +705,7 @@ std::vector<std::string> Options::parseOptions(int argc, char* main_argv[]) thro
     switch(c) {
 ${all_modules_option_handlers}
 
-#line 701 "${template}"
+#line 709 "${template}"
 
     case ':':
       // This can be a long or short option, and the way to get at the
@@ -779,7 +787,7 @@ std::string Options::suggestCommandLineOptions(const std::string& optionName) th
 
 static const char* smtOptions[] = {
   ${all_modules_smt_options},
-#line 783 "${template}"
+#line 790 "${template}"
   NULL
 };/* smtOptions[] */
 
@@ -801,7 +809,7 @@ std::vector< std::vector<std::string> > Options::getOptions() const throw() {
 
   ${all_modules_get_options}
 
-#line 805 "${template}"
+#line 813 "${template}"
 
   return opts;
 }

@@ -74,6 +74,7 @@
 #include "smt/boolean_terms.h"
 #include "smt/command_list.h"
 #include "smt/logic_request.h"
+#include "smt/managed_ostreams.h"
 #include "smt/model_postprocessor.h"
 #include "smt/smt_engine_scope.h"
 #include "smt/update_ostream.h"
@@ -459,66 +460,25 @@ class PrintSuccessListener : public Listener {
 class SmtEnginePrivate : public NodeManagerListener {
   SmtEngine& d_smt;
 
-  class DumpToFileListener : public Listener {
-   public:
-    DumpToFileListener(SmtEnginePrivate* smtEnginePrivate)
-        : d_smtEnginePrivate(smtEnginePrivate){}
-    void notify(){
-      d_smtEnginePrivate->notifyDumpToFileListener();
-    }
-   private:
-    SmtEnginePrivate* d_smtEnginePrivate;
-  };
-
-  class RegularOutputChannelListener : public Listener {
-   public:
-    RegularOutputChannelListener(SmtEnginePrivate* smtEnginePrivate)
-        : d_smtEnginePrivate(smtEnginePrivate){}
-
-    virtual void notify() {
-      d_smtEnginePrivate->notifyRegularOutputChannel();
-    }
-   private:
-    SmtEnginePrivate* d_smtEnginePrivate;
-  };
-
-
-  class DiagnosticOutputChannelListener : public Listener {
-   public:
-    DiagnosticOutputChannelListener(SmtEnginePrivate* smtEnginePrivate)
-        : d_smtEnginePrivate(smtEnginePrivate)
-    {}
-    virtual void notify() {
-      d_smtEnginePrivate->notifyDiagnosticOutputChannel();
-    }
-   private:
-    SmtEnginePrivate* d_smtEnginePrivate;
-  };
+  typedef hash_map<Node, Node, NodeHashFunction> NodeToNodeHashMap;
+  typedef hash_map<Node, bool, NodeHashFunction> NodeToBoolHashMap;
 
   /**
    * Manager for limiting time and abstract resource usage.
    */
   ResourceManager* d_resourceManager;
 
-  /**
-   * When d_managedRegularChannel is non-null, it owns the memory allocated
-   * with the regular-output-channel. This is set when
-   * options::regularChannelName is set.
-   */
-  std::ostream* d_managedRegularChannel;
+  /** Manager for the memory of regular-output-channel. */
+  ManagedRegularOutputChannel d_managedRegularChannel;
 
-  /**
-   * When d_managedDiagnosticChannel is non-null, it owns the memory allocated
-   * with the diagnostic-output-channel. This is set when
-   * options::diagnosticChannelName is set.
-   */
-  std::ostream* d_managedDiagnosticChannel;
+  /** Manager for the memory of diagnostic-output-channel. */
+  ManagedDiagnosticOutputChannel d_managedDiagnosticChannel;
 
-  /**
-   * When d_managedDumpChannel is non-null, it owns the memory allocated
-   * for Dump.getStreamPointer. This is set when options::dumpToFileName is set.
-   */
-  std::ostream* d_managedDumpChannel;
+  /** Manager for the memory of --dump-to. */
+  ManagedDumpOStream d_managedDumpChannel;
+
+  /** Manager for --replay-log. */
+  ManagedReplayLogOstream d_managedReplayLog;
 
   /**
    * This list contains:
@@ -577,7 +537,7 @@ class SmtEnginePrivate : public NodeManagerListener {
    * same AbstractValues for the same real constants.  Only used if
    * options::abstractValues() is on.
    */
-  hash_map<Node, Node, NodeHashFunction> d_abstractValues;
+  NodeToNodeHashMap d_abstractValues;
 
   /** Number of calls of simplify assertions active.
    */
@@ -620,18 +580,20 @@ private:
    */
   void removeITEs();
 
-  Node intToBV(TNode n, std::hash_map<Node, Node, NodeHashFunction>& cache);
-  Node intToBVMakeBinary(TNode n, std::hash_map<Node, Node, NodeHashFunction>& cache);
+  Node intToBV(TNode n, NodeToNodeHashMap& cache);
+  Node intToBVMakeBinary(TNode n, NodeToNodeHashMap& cache);
 
   /**
-   * Helper function to fix up assertion list to restore invariants needed after ite removal
+   * Helper function to fix up assertion list to restore invariants needed after
+   * ite removal.
    */
-  void collectSkolems(TNode n, set<TNode>& skolemSet, hash_map<Node, bool, NodeHashFunction>& cache);
+  void collectSkolems(TNode n, set<TNode>& skolemSet, NodeToBoolHashMap& cache);
 
   /**
-   * Helper function to fix up assertion list to restore invariants needed after ite removal
+   * Helper function to fix up assertion list to restore invariants needed after
+   * ite removal.
    */
-  bool checkForBadSkolems(TNode n, TNode skolem, hash_map<Node, bool, NodeHashFunction>& cache);
+  bool checkForBadSkolems(TNode n, TNode skolem, NodeToBoolHashMap& cache);
 
   // Lift bit-vectors of size 1 to booleans
   void bvToBool();
@@ -646,8 +608,10 @@ private:
   // Simplify based on unconstrained values
   void unconstrainedSimp();
 
-  // Ensures the assertions asserted after before now
-  // effectively come before d_realAssertionsEnd
+  /**
+   * Ensures the assertions asserted after before now effectively come before
+   * d_realAssertionsEnd.
+   */
   void compressBeforeRealAssertions(size_t before);
 
   /**
@@ -658,7 +622,10 @@ private:
   void constrainSubtypes(TNode n, AssertionPipeline& assertions)
     throw();
 
-  // trace nodes back to their assertions using CircuitPropagator's BackEdgesMap
+  /**
+   * Trace nodes back to their assertions using CircuitPropagator's
+   * BackEdgesMap.
+   */
   void traceBackToAssertions(const std::vector<Node>& nodes,
                              std::vector<TNode>& assertions);
 
@@ -669,7 +636,7 @@ private:
   size_t removeFromConjunction(Node& n,
                                const std::hash_set<unsigned long>& toRemove);
 
-  // scrub miplib encodings
+  /** Scrub miplib encodings. */
   void doMiplibTrick();
 
   /**
@@ -686,9 +653,10 @@ public:
 
   SmtEnginePrivate(SmtEngine& smt) :
     d_smt(smt),
-    d_managedRegularChannel(NULL),
-    d_managedDiagnosticChannel(NULL),
-    d_managedDumpChannel(NULL),
+    d_managedRegularChannel(),
+    d_managedDiagnosticChannel(),
+    d_managedDumpChannel(),
+    d_managedReplayLog(),
     d_listenerRegistrations(new ListenerRegistrationList()),
     d_nonClausalLearnedLiterals(),
     d_realAssertionsEnd(0),
@@ -749,24 +717,20 @@ public:
         nodeManagerOptions.registerSetPrintSuccessListener(
             new PrintSuccessListener(), true));
     d_listenerRegistrations->add(
-        nodeManagerOptions.registerDumpToFileNameListener(
-            new DumpToFileListener(this), true));
-    d_listenerRegistrations->add(
         nodeManagerOptions.registerSetRegularOutputChannelListener(
-            new RegularOutputChannelListener(this), true));
+            new SetToDefaultSourceListener(&d_managedRegularChannel), true));
     d_listenerRegistrations->add(
         nodeManagerOptions.registerSetDiagnosticOutputChannelListener(
-            new DiagnosticOutputChannelListener(this), true));
+            new SetToDefaultSourceListener(&d_managedDiagnosticChannel), true));
+    d_listenerRegistrations->add(
+        nodeManagerOptions.registerDumpToFileNameListener(
+            new SetToDefaultSourceListener(&d_managedDumpChannel), true));
+    d_listenerRegistrations->add(
+        nodeManagerOptions.registerSetReplayLogFilename(
+            new SetToDefaultSourceListener(&d_managedReplayLog), true));
   }
 
   ~SmtEnginePrivate() throw() {
-    manageRegularOutputChannel(NULL);
-    manageDiagnosticOutputChannel(NULL);
-    manageDumpStream(NULL);
-    Assert(d_managedRegularChannel == NULL);
-    Assert(d_managedDiagnosticChannel == NULL);
-    Assert(d_managedDumpChannel == NULL);
-
     delete d_listenerRegistrations;
 
     if(d_propagatorNeedsFinish) {
@@ -870,11 +834,10 @@ public:
   void addFormula(TNode n, bool inUnsatCore, bool inInput = true)
     throw(TypeCheckingException, LogicException);
 
-  /**
-   * Expand definitions in n.
-   */
-  Node expandDefinitions(TNode n, hash_map<Node, Node, NodeHashFunction>& cache, bool expandOnly = false)
-    throw(TypeCheckingException, LogicException, UnsafeInterruptException);
+  /** Expand definitions in n. */
+  Node expandDefinitions(TNode n, NodeToNodeHashMap& cache,
+                         bool expandOnly = false)
+      throw(TypeCheckingException, LogicException, UnsafeInterruptException);
 
   /**
    * Rewrite Boolean terms in a Node.
@@ -888,7 +851,7 @@ public:
   Node simplify(TNode in) {
     // Substitute out any abstract values in ex.
     // Expand definitions.
-    hash_map<Node, Node, NodeHashFunction> cache;
+    NodeToNodeHashMap cache;
     Node n = expandDefinitions(in, cache).toExpr();
     // Make sure we've done all preprocessing, etc.
     Assert(d_assertions.size() == 0);
@@ -923,7 +886,7 @@ public:
     return retval;
   }
 
-  std::hash_map<Node, Node, NodeHashFunction> rewriteApplyToConstCache;
+  NodeToNodeHashMap d_rewriteApplyToConstCache;
   Node rewriteApplyToConst(TNode n) {
     Trace("rewriteApplyToConst") << "rewriteApplyToConst :: " << n << std::endl;
 
@@ -933,11 +896,13 @@ public:
       return n;
     }
 
-    if(rewriteApplyToConstCache.find(n) != rewriteApplyToConstCache.end()) {
+    if(d_rewriteApplyToConstCache.find(n) != d_rewriteApplyToConstCache.end()) {
       Trace("rewriteApplyToConst") << "in cache :: "
-                                   << rewriteApplyToConstCache[n] << std::endl;
-      return rewriteApplyToConstCache[n];
+                                   << d_rewriteApplyToConstCache[n]
+                                   << std::endl;
+      return d_rewriteApplyToConstCache[n];
     }
+
     if(n.getKind() == kind::APPLY_UF) {
       if(n.getNumChildren() == 1 && n[0].isConst() &&
          n[0].getType().isInteger())
@@ -952,7 +917,7 @@ public:
         Node newvar = NodeManager::currentNM()->mkSkolem(
             ss.str(), n.getType(), "rewriteApplyToConst skolem",
             NodeManager::SKOLEM_EXACT_NAME);
-        rewriteApplyToConstCache[n] = newvar;
+        d_rewriteApplyToConstCache[n] = newvar;
         Trace("rewriteApplyToConst") << "made :: " << newvar << std::endl;
         return newvar;
       } else {
@@ -975,7 +940,7 @@ public:
       builder << rewriteApplyToConst(n[i]);
     }
     Node rewr = builder;
-    rewriteApplyToConstCache[n] = rewr;
+    d_rewriteApplyToConstCache[n] = rewr;
     Trace("rewriteApplyToConst") << "built :: " << rewr << std::endl;
     return rewr;
   }
@@ -987,141 +952,9 @@ public:
             new UseTheoryListListener(theoryEngine), true));
   }
 
-
-  void notifyDumpToFileListener(){
-#ifdef CVC4_DUMPING
-    std::string optarg = options::dumpToFileName();
-    OstreamOpener opener("dump-to");
-    opener.addSpecialCase("-", &DumpOutC::dump_cout);
-    std::pair<bool, std::ostream*> pair = opener.open(optarg);
-    std::ostream* outStream = pair.second;
-    DumpOstreamUpdate dumpGetStream;
-    dumpGetStream.apply(outStream);
-    manageDumpStream(pair.first ? NULL : outStream);
-
-#else /* CVC4_DUMPING */
-    throw OptionException("The dumping feature was disabled in this build of CVC4.");
-#endif /* CVC4_DUMPING */
+  std::ostream* getReplayLog() const {
+    return d_managedReplayLog.getReplayLog();
   }
-
-  void manageDumpStream(std::ostream* manage_pointer) {
-    if(d_managedDumpChannel == manage_pointer) {
-      // This is a no-op.
-    } else {
-      Assert(d_managedDumpChannel != manage_pointer);
-
-      if(Dump.getStreamPointer() == d_managedDumpChannel){
-        Dump.setStream(&null_os);
-      }
-
-      if(d_managedDumpChannel  != NULL){
-        delete d_managedDumpChannel;
-      }
-      d_managedDumpChannel = manage_pointer;
-    }
-  }
-
-  void notifyRegularOutputChannel(){
-    OstreamOpener opener("regular-output-channel");
-    opener.addSpecialCase("stdout", &std::cout);
-    opener.addSpecialCase("stderr", &std::cerr);
-    std::pair<bool, std::ostream*> pair = opener.open(optarg);
-    std::ostream* outStream = pair.second;
-    OptionsErrOstreamUpdate optionsErrOstreamUpdate;
-    optionsErrOstreamUpdate.apply(outStream);
-
-    manageRegularOutputChannel(pair.first ? NULL : outStream);
-  }
-
-  void manageRegularOutputChannel(std::ostream* manage_pointer){
-    if(d_managedRegularChannel == manage_pointer) {
-      // This is a no-op.
-    } else {
-      Assert(d_managedRegularChannel != manage_pointer);
-      // We are setting this to a new value.
-
-
-      // Set all ostream that may still be using the old value of this channel
-      // to null_os. Consult RegularOutputChannelListener for the list of
-      // channels.
-      if(options::err() == d_managedRegularChannel){
-        options::err.set(&null_os);
-      }
-
-      if(d_managedRegularChannel != NULL){
-        delete d_managedRegularChannel;
-      }
-      d_managedRegularChannel = manage_pointer;
-    }
-  }
-
-  void notifyDiagnosticOutputChannel() {
-    OstreamOpener opener("diagnostic-output-channel");
-    opener.addSpecialCase("stdout", &std::cout);
-    opener.addSpecialCase("stderr", &std::cerr);
-    std::pair<bool, std::ostream*> pair = opener.open(optarg);
-    std::ostream* outStream = pair.second;
-
-    DebugOstreamUpdate debugOstreamUpdate;
-    debugOstreamUpdate.apply(outStream);
-    WarningOstreamUpdate warningOstreamUpdate;
-    warningOstreamUpdate.apply(outStream);
-    MessageOstreamUpdate messageOstreamUpdate;
-    messageOstreamUpdate.apply(outStream);
-    NoticeOstreamUpdate noticeOstreamUpdate;
-    noticeOstreamUpdate.apply(outStream);
-    ChatOstreamUpdate chatOstreamUpdate;
-    chatOstreamUpdate.apply(outStream);
-    TraceOstreamUpdate traceOstreamUpdate;
-    traceOstreamUpdate.apply(outStream);
-    OptionsErrOstreamUpdate optionsErrOstreamUpdate;
-    optionsErrOstreamUpdate.apply(outStream);
-
-    manageDiagnosticOutputChannel(pair.first ? NULL : outStream);
-  }
-
-
-
-  void manageDiagnosticOutputChannel(std::ostream* manage_pointer){
-    if(d_managedDiagnosticChannel == manage_pointer) {
-      // This is a no-op.
-    } else {
-      Assert(d_managedDiagnosticChannel != manage_pointer);
-      // We are setting d_managedDiagnosticChannel to a new value.
-
-      // Set all ostreams that may still be using the old value of this channel
-      // to null_os. Consult DiagnosticOutputChannelListener for the list of
-      // channels.
-      if(options::err() == d_managedDiagnosticChannel){
-        options::err.set(&null_os);
-      }
-
-      if(Debug.getStreamPointer() == d_managedDiagnosticChannel) {
-        Debug.setStream(&null_os);
-      }
-      if(Warning.getStreamPointer() == d_managedDiagnosticChannel){
-        Warning.setStream(&null_os);
-      }
-      if(Message.getStreamPointer() == d_managedDiagnosticChannel){
-        Message.setStream(&null_os);
-      }
-      if(Notice.getStreamPointer() == d_managedDiagnosticChannel){
-        Notice.setStream(&null_os);
-      }
-      if(Chat.getStreamPointer() == d_managedDiagnosticChannel){
-        Chat.setStream(&null_os);
-      }
-      if(Trace.getStreamPointer() == d_managedDiagnosticChannel){
-        Trace.setStream(&null_os);
-      }
-
-      if(d_managedDiagnosticChannel != NULL){
-        delete d_managedDiagnosticChannel;
-      }
-      d_managedDiagnosticChannel = manage_pointer;
-    }
-  }
-
 };/* class SmtEnginePrivate */
 
 }/* namespace CVC4::smt */
@@ -1206,7 +1039,8 @@ void SmtEngine::finishInit() {
   d_decisionEngine->init();   // enable appropriate strategies
 
   d_propEngine = new PropEngine(d_theoryEngine, d_decisionEngine, d_context,
-                                d_userContext, d_globals);
+                                d_userContext, d_private->getReplayLog(),
+                                d_globals);
 
   d_theoryEngine->setPropEngine(d_propEngine);
   d_theoryEngine->setDecisionEngine(d_decisionEngine);

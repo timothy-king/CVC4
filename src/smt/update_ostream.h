@@ -22,9 +22,12 @@
 
 #include <ostream>
 
+#include "base/cvc4_assert.h"
 #include "base/output.h"
 #include "expr/expr_iomanip.h"
 #include "options/language.h"
+#include "options/set_language.h"
+#include "options/base_options.h"
 #include "smt_util/dump.h"
 
 namespace CVC4 {
@@ -113,8 +116,6 @@ class TraceOstreamUpdate : public OstreamUpdate {
   virtual std::ostream& get() { return Trace.getStream(); }
   virtual void set(std::ostream* setTo) { Trace.setStream(setTo); }
 };  /* class TraceOstreamUpdate */
-
-
 
 }/* CVC4 namespace */
 

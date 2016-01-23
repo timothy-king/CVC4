@@ -145,10 +145,14 @@ expert-option bvSatConflictStep bv-sat-conflict-step --bv-sat-conflict-step unsi
 expert-option rewriteApplyToConst rewrite-apply-to-const --rewrite-apply-to-const bool :default false
  eliminate function applications, rewriting e.g. f(5) to a new symbol f_5
 
+
 # --replay is currently broken; don't document it for 1.0
-undocumented-option replayFilename --replay=FILE std::string :handler checkReplayFilename
+undocumented-option replayInputFilename --replay=FILE std::string :handler checkReplayFilename
  replay decisions from file
 
+# --replay is currently broken; don't document it for 1.0
+undocumented-option replayLogFilename --replay-log=FILE std::string :handler checkReplayFilename :notify notifySetReplayLogFilename :notify notifyBeforeSearch
+ replay decisions from file
 
 option forceNoLimitCpuWhileDump --force-no-limit-cpu-while-dump bool :default false
  Force no CPU limit when dumping models and proofs

@@ -93,6 +93,10 @@ class CVC4_PUBLIC Options {
   /** Listeners for options::diagnosticChannelName. */
   ListenerCollection d_setDiagnosticChannelListeners;
 
+  /** Listeners for options::replayFilename. */
+  ListenerCollection d_setReplayFilenameListeners;
+
+
   static ListenerCollection::Registration* registerAndNotify(
       ListenerCollection& collection, Listener* listener, bool notify);
 
@@ -230,7 +234,7 @@ public:
   std::ostream* getOut();
   std::ostream* getOutConst() const; // TODO: Remove this.
   std::string getBinaryName() const;
-  std::string getReplayFilename() const;
+  std::string getReplayInputFilename() const;
   unsigned getParseStep() const;
   unsigned getThreadStackSize() const;
   unsigned getThreads() const;
@@ -505,6 +509,24 @@ public:
    */
   ListenerCollection::Registration* registerSetDiagnosticOutputChannelListener(
       Listener* listener, bool notifyIfSet);
+
+  /**
+   * Registers a listener for options::replayLogFilename being set.
+   *
+   * If notifyIfSet is true, this calls notify on the listener
+   * if the option was set by the user.
+   *
+   * The memory for the Registration is controlled by the user and must
+   * be destroyed before the Options object is.
+   */
+  ListenerCollection::Registration* registerSetReplayLogFilename(
+      Listener* listener, bool notifyIfSet);
+
+  /** Sends a std::flush to getErr(). */
+  void flushErr();
+
+  /** Sends a std::flush to getOut(). */
+  void flushOut();
 
 };/* class Options */
 

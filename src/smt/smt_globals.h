@@ -59,11 +59,6 @@ class CVC4_PUBLIC SmtGlobals {
   SmtGlobals();
   ~SmtGlobals();
 
-  /** This setsReplayLog based on --replay-log */
-  void parseReplayLog(std::string optarg) throw (OptionException);
-  void setReplayLog(std::ostream*);
-  std::ostream* getReplayLog() { return d_replayLog; }
-
   void setReplayStream(ExprStream* stream);
   ExprStream* getReplayStream() { return d_replayStream; }
 
@@ -79,17 +74,6 @@ class CVC4_PUBLIC SmtGlobals {
 
   // Disable assignment operator.
   SmtGlobals& operator=(const SmtGlobals&) CVC4_UNDEFINED;
-
-  static std::pair<bool, std::ostream*>
-      checkReplayLogFilename(std::string optarg) throw (OptionException);
-
-  /**
-   * d_gcReplayLog is true iff d_replayLog was allocated by parseReplayLog.
-   */
-  bool d_gcReplayLog;
-
-  /** This captures the old options::replayLog .*/
-  std::ostream* d_replayLog;
 
   /** This captures the old options::replayStream .*/
   ExprStream* d_replayStream;

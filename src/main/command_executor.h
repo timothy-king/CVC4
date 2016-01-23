@@ -65,7 +65,11 @@ public:
     d_stats.flushInformation(out);
   }
 
+  static void printStatsFilterZeros(std::ostream& out,
+                                    const std::string& statsString);
+
   SmtGlobals* globals() { return d_smtEngine->globals(); }
+  void flushOutputStreams();
 
 protected:
   /** Executes treating cmd as a singleton */

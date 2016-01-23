@@ -54,6 +54,7 @@ public:
               DecisionEngine* decisionEngine,
               context::Context* context,
               CnfStream* cnfStream,
+              std::ostream* replayLog,
               SmtGlobals* globals);
 
   ~TheoryProxy();
@@ -116,13 +117,14 @@ public:
    */
   SmtGlobals* d_globals;
 
+  std::ostream* d_replayLog;
+
   /** The lemma input channel we are using. */
   LemmaInputChannel* inputChannel();
 
   /** The lemma output channel we are using. */
   LemmaOutputChannel* outputChannel();
 
-  std::ostream* replayLog();
   ExprStream* replayStream();
 
   /** Queue of asserted facts */

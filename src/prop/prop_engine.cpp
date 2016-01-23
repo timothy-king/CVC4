@@ -45,6 +45,13 @@
 using namespace std;
 using namespace CVC4::context;
 
+
+#ifdef CVC4_REPLAY
+#  define CVC4_USE_REPLAY true
+#else /* CVC4_REPLAY */
+#  define CVC4_USE_REPLAY false
+#endif /* CVC4_REPLAY */
+
 namespace CVC4 {
 namespace prop {
 
@@ -68,7 +75,7 @@ public:
   }
 };
 
-PropEngine::PropEngine(TheoryEngine* te, DecisionEngine *de, Context* satContext, Context* userContext, SmtGlobals* globals) :
+PropEngine::PropEngine(TheoryEngine* te, DecisionEngine *de, Context* satContext, Context* userContext, std::ostream* replayLog, SmtGlobals* globals) :
   d_inCheckSat(false),
   d_theoryEngine(te),
   d_decisionEngine(de),
@@ -78,8 +85,7 @@ PropEngine::PropEngine(TheoryEngine* te, DecisionEngine *de, Context* satContext
   d_registrar(NULL),
   d_cnfStream(NULL),
   d_interrupted(false),
-  d_resourceManager(NodeManager::currentResourceManager()),
-  d_globals(globals)
+  d_resourceManager(NodeManager::currentResourceManager())
 {
 
   Debug("prop") << "Constructing the PropEngine" << endl;
@@ -88,13 +94,14 @@ PropEngine::PropEngine(TheoryEngine* te, DecisionEngine *de, Context* satContext
 
   d_registrar = new theory::TheoryRegistrar(d_theoryEngine);
   d_cnfStream = new CVC4::prop::TseitinCnfStream
-    (d_satSolver, d_registrar, userContext, d_globals,
+    (d_satSolver, d_registrar, userContext,
      // fullLitToNode Map =
      options::threads() > 1 ||
-     options::decisionMode() == decision::DECISION_STRATEGY_RELEVANCY
+     options::decisionMode() == decision::DECISION_STRATEGY_RELEVANCY ||
+     ( CVC4_USE_REPLAY && replayLog != NULL )
      );
 
-  d_theoryProxy = new TheoryProxy(this, d_theoryEngine, d_decisionEngine, d_context, d_cnfStream, d_globals);
+  d_theoryProxy = new TheoryProxy(this, d_theoryEngine, d_decisionEngine, d_context, d_cnfStream, replayLog, globals);
   d_satSolver->initialize(d_context, d_theoryProxy);
 
   d_decisionEngine->setSatSolver(d_satSolver);

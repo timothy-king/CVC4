@@ -36,18 +36,11 @@
 using namespace std;
 using namespace CVC4::kind;
 
-#ifdef CVC4_REPLAY
-#  define CVC4_USE_REPLAY true
-#else /* CVC4_REPLAY */
-#  define CVC4_USE_REPLAY false
-#endif /* CVC4_REPLAY */
-
 namespace CVC4 {
 namespace prop {
 
 CnfStream::CnfStream(SatSolver* satSolver, Registrar* registrar,
-                     context::Context* context, SmtGlobals* globals,
-                     bool fullLitToNodeMap)
+                     context::Context* context, bool fullLitToNodeMap)
     : d_satSolver(satSolver),
       d_booleanVariables(context),
       d_nodeToLiteralMap(context),
@@ -56,14 +49,13 @@ CnfStream::CnfStream(SatSolver* satSolver, Registrar* registrar,
       d_convertAndAssertCounter(0),
       d_registrar(registrar),
       d_assertionTable(context),
-      d_globals(globals),
       d_removable(false) {
 }
 
 TseitinCnfStream::TseitinCnfStream(SatSolver* satSolver, Registrar* registrar,
                                    context::Context* context,
-                                   SmtGlobals* globals, bool fullLitToNodeMap)
-    : CnfStream(satSolver, registrar, context, globals, fullLitToNodeMap)
+                                   bool fullLitToNodeMap)
+    : CnfStream(satSolver, registrar, context, fullLitToNodeMap)
 {}
 
 void CnfStream::assertClause(TNode node, SatClause& c, ProofRule proof_id) {
@@ -188,10 +180,7 @@ SatLiteral CnfStream::newLiteral(TNode node, bool isTheoryAtom, bool preRegister
   }
 
   // If it's a theory literal, need to store it for back queries
-  if ( isTheoryAtom || d_fullLitToNodeMap ||
-       ( CVC4_USE_REPLAY && d_globals->getReplayLog() != NULL ) ||
-       (Dump.isOn("clauses")) ) {
-
+  if ( isTheoryAtom || d_fullLitToNodeMap || (Dump.isOn("clauses")) ) {
     d_literalToNodeMap.insert_safe(lit, node);
     d_literalToNodeMap.insert_safe(~lit, node.notNode());
   }

@@ -86,35 +86,6 @@ void printUsage(Options& opts, bool full) {
   }
 }
 
-void printStatsFilterZeros(std::ostream& out, const std::string& statsString) {
-  // read each line, if a number, check zero and skip if so
-  // Stat are assumed to one-per line: "<statName>, <statValue>"
-
-  std::istringstream iss(statsString);
-  std::string statName, statValue;
-
-  std::getline(iss, statName, ',');
-
-  while( !iss.eof() ) {
-
-    std::getline(iss, statValue, '\n');
-
-    double curFloat;
-    bool isFloat = (std::istringstream(statValue) >> curFloat);
-
-    if( (isFloat && curFloat == 0) ||
-        statValue == " \"0\"" ||
-        statValue == " \"[]\"") {
-      // skip
-    } else {
-      out << statName << "," << statValue << std::endl;
-    }
-
-    std::getline(iss, statName, ',');
-  }
-
-}
-
 int runCvc4(int argc, char* argv[], Options& opts) {
 
   // Timer statistic
@@ -271,8 +242,8 @@ int runCvc4(int argc, char* argv[], Options& opts) {
 # endif
 
   Parser* replayParser = NULL;
-  if( opts.getReplayFilename() != "" ) {
-    std::string replayFilename = opts.getReplayFilename();
+  if( opts.getReplayInputFilename() != "" ) {
+    std::string replayFilename = opts.getReplayInputFilename();
     ParserBuilder replayParserBuilder(exprMgr, replayFilename, opts);
 
     if( replayFilename == "-") {
@@ -283,11 +254,6 @@ int runCvc4(int argc, char* argv[], Options& opts) {
     }
     replayParser = replayParserBuilder.build();
     pExecutor->globals()->setReplayStream(new Parser::ExprStream(replayParser));
-  }
-  if( pExecutor->globals()->getReplayLog() != NULL ) {
-    std::ostream& replayLog = *(pExecutor->globals()->getReplayLog());
-    replayLog << language::SetLanguage(opts.getOutputLanguage())
-              << expr::ExprSetDepth(-1);
   }
 
   int returnValue = 0;
@@ -591,7 +557,7 @@ int runCvc4(int argc, char* argv[], Options& opts) {
     }
 
 #ifdef CVC4_COMPETITION_MODE
-    (*(opts.getOut())) << flush;
+    opts.flushOut();
     // exit, don't return (don't want destructors to run)
     // _exit() from unistd.h doesn't run global destructors
     // or other on_exit/atexit stuff.
@@ -599,30 +565,15 @@ int runCvc4(int argc, char* argv[], Options& opts) {
 #endif /* CVC4_COMPETITION_MODE */
 
     ReferenceStat< Result > s_statSatResult("sat/unsat", result);
-    RegisterStatistic statSatResultReg(&pExecutor->getStatisticsRegistry(), &s_statSatResult);
+    RegisterStatistic statSatResultReg(&pExecutor->getStatisticsRegistry(),
+                                       &s_statSatResult);
 
     pTotalTime->stop();
 
+    // Tim: I think that following comment is out of date?
     // Set the global executor pointer to NULL first.  If we get a
     // signal while dumping statistics, we don't want to try again.
-    if(opts.getStatistics()) {
-      if(opts.getStatsHideZeros() == false) {
-        pExecutor->flushStatistics(*(opts.getErr()));
-      } else {
-        std::ostringstream ossStats;
-        pExecutor->flushStatistics(ossStats);
-        printStatsFilterZeros(*(opts.getErr()), ossStats.str());
-      }
-    }
-
-    // make sure to flush replay output log before early-exit
-    if( pExecutor->globals()->getReplayLog() != NULL ) {
-      *(pExecutor->globals()->getReplayLog()) << flush;
-    }
-
-    // make sure out and err streams are flushed too
-    (*(opts.getOut())) << flush;
-    (*(opts.getErr())) << flush;
+    pExecutor->flushOutputStreams();
 
 #ifdef CVC4_DEBUG
     if(opts.getEarlyExit() && opts.wasSetByUserEarlyExit()) {

@@ -92,15 +92,12 @@ class PropEngine {
   /** Dump out the satisfying assignment (after SAT result) */
   void printSatisfyingAssignment();
 
-  /** Container for misc. globals. */
-  SmtGlobals* d_globals;
-
 public:
 
   /**
    * Create a PropEngine with a particular decision and theory engine.
    */
-  PropEngine(TheoryEngine*, DecisionEngine*, context::Context* satContext, context::Context* userContext, SmtGlobals* global);
+  PropEngine(TheoryEngine*, DecisionEngine*, context::Context* satContext, context::Context* userContext, std::ostream* replayLog, SmtGlobals* global);
 
   /**
    * Destructor.
