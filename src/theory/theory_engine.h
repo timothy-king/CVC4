@@ -30,8 +30,8 @@
 #include "options/options.h"
 #include "options/smt_options.h"
 #include "prop/prop_engine.h"
-#include "smt/smt_globals.h"
 #include "smt_util/command.h"
+#include "smt_util/lemma_channels.h"
 #include "theory/atom_requests.h"
 #include "theory/bv/bv_to_bool.h"
 #include "theory/interrupted.h"
@@ -457,15 +457,15 @@ class TheoryEngine {
   bool d_interrupted;
   ResourceManager* d_resourceManager;
 
-  /** Container for misc. globals. */
-  SmtGlobals* d_globals;
+  /** Container for lemma input and output channels. */
+  LemmaChannels* d_channels;
 
 public:
 
   /** Constructs a theory engine */
   TheoryEngine(context::Context* context, context::UserContext* userContext,
                RemoveITE& iteRemover, const LogicInfo& logic,
-               SmtGlobals* globals);
+               LemmaChannels* channels);
 
   /** Destroys a theory engine */
   ~TheoryEngine();

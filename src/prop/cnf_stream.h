@@ -33,7 +33,7 @@
 #include "proof/proof_manager.h"
 #include "prop/registrar.h"
 #include "prop/theory_proxy.h"
-#include "smt/smt_globals.h"
+#include "smt_util/lemma_channels.h"
 
 namespace CVC4 {
 namespace prop {
@@ -86,9 +86,6 @@ protected:
 
   /** A table of assertions, used for regenerating proofs. */
   context::CDList<Node> d_assertionTable;
-
-  /** Container for misc. globals. */
-  SmtGlobals* d_globals;
 
   /**
    * How many literals were already mapped at the top-level when we

@@ -77,7 +77,7 @@ public:
 
 PropEngine::PropEngine(TheoryEngine* te, DecisionEngine *de, Context* satContext,
                        Context* userContext, std::ostream* replayLog,
-                       ExprStream* replayStream, SmtGlobals* globals) :
+                       ExprStream* replayStream, LemmaChannels* channels) :
   d_inCheckSat(false),
   d_theoryEngine(te),
   d_decisionEngine(de),
@@ -100,10 +100,11 @@ PropEngine::PropEngine(TheoryEngine* te, DecisionEngine *de, Context* satContext
      // fullLitToNode Map =
      options::threads() > 1 ||
      options::decisionMode() == decision::DECISION_STRATEGY_RELEVANCY ||
-     ( CVC4_USE_REPLAY && replayLog != NULL )
-     );
+     ( CVC4_USE_REPLAY && replayLog != NULL ));
 
-  d_theoryProxy = new TheoryProxy(this, d_theoryEngine, d_decisionEngine, d_context, d_cnfStream, replayLog, replayStream, globals);
+  d_theoryProxy = new TheoryProxy(
+      this, d_theoryEngine, d_decisionEngine, d_context, d_cnfStream, replayLog,
+      replayStream, channels);
   d_satSolver->initialize(d_context, d_theoryProxy);
 
   d_decisionEngine->setSatSolver(d_satSolver);

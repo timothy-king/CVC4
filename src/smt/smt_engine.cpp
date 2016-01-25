@@ -992,7 +992,7 @@ SmtEngine::SmtEngine(ExprManager* em) throw() :
   d_smtAttributes(NULL),
   d_statisticsRegistry(NULL),
   d_stats(NULL),
-  d_globals(new SmtGlobals())
+  d_channels(new LemmaChannels())
 {
   SmtScope smts(this);
   d_originalOptions.copyValues(em->getOptions());
@@ -1007,7 +1007,7 @@ SmtEngine::SmtEngine(ExprManager* em) throw() :
   d_theoryEngine = new TheoryEngine(d_context, d_userContext,
                                     d_private->d_iteRemover,
                                     const_cast<const LogicInfo&>(d_logic),
-                                    d_globals);
+                                    d_channels);
 
   // Add the theories
   for(TheoryId id = theory::THEORY_FIRST; id < theory::THEORY_LAST; ++id) {
@@ -1041,7 +1041,7 @@ void SmtEngine::finishInit() {
 
   d_propEngine = new PropEngine(d_theoryEngine, d_decisionEngine, d_context,
                                 d_userContext, d_private->getReplayLog(),
-                                d_replayStream, d_globals);
+                                d_replayStream, d_channels);
 
   d_theoryEngine->setPropEngine(d_propEngine);
   d_theoryEngine->setDecisionEngine(d_decisionEngine);
@@ -1181,8 +1181,8 @@ SmtEngine::~SmtEngine() throw() {
     delete d_context;
     d_context = NULL;
 
-    delete d_globals;
-    d_globals = NULL;
+    delete d_channels;
+    d_channels = NULL;
 
   } catch(Exception& e) {
     Warning() << "CVC4 threw an exception during cleanup." << endl
@@ -1193,13 +1193,15 @@ SmtEngine::~SmtEngine() throw() {
 void SmtEngine::setLogic(const LogicInfo& logic) throw(ModalException) {
   SmtScope smts(this);
   if(d_fullyInited) {
-    throw ModalException("Cannot set logic in SmtEngine after the engine has finished initializing");
+    throw ModalException("Cannot set logic in SmtEngine after the engine has "
+                         "finished initializing.");
   }
   d_logic = logic;
   setLogicInternal();
 }
 
-void SmtEngine::setLogic(const std::string& s) throw(ModalException, LogicException) {
+void SmtEngine::setLogic(const std::string& s)
+    throw(ModalException, LogicException) {
   SmtScope smts(this);
   try {
     setLogic(LogicInfo(s));
@@ -1208,7 +1210,8 @@ void SmtEngine::setLogic(const std::string& s) throw(ModalException, LogicExcept
   }
 }
 
-void SmtEngine::setLogic(const char* logic) throw(ModalException, LogicException) {
+void SmtEngine::setLogic(const char* logic)
+    throw(ModalException, LogicException) {
   setLogic(string(logic));
 }
 
@@ -1217,7 +1220,8 @@ LogicInfo SmtEngine::getLogicInfo() const {
 }
 
 void SmtEngine::setLogicInternal() throw() {
-  Assert(!d_fullyInited, "setting logic in SmtEngine but the engine has already finished initializing for this run");
+  Assert(!d_fullyInited, "setting logic in SmtEngine but the engine has already"
+         " finished initializing for this run");
   d_logic.lock();
 }
 
@@ -1247,11 +1251,13 @@ void SmtEngine::setDefaults() {
       d_logic = d_logic.getUnlockedCopy();
       d_logic.enableQuantifiers();
       d_logic.lock();
-      Trace("smt") << "turning on quantifier logic, for strings-exp" << std::endl;
+      Trace("smt") << "turning on quantifier logic, for strings-exp"
+                   << std::endl;
     }
     if(! options::finiteModelFind.wasSetByUser()) {
       options::finiteModelFind.set( true );
-      Trace("smt") << "turning on finite-model-find, for strings-exp" << std::endl;
+      Trace("smt") << "turning on finite-model-find, for strings-exp"
+                   << std::endl;
     }
     if(! options::fmfBoundInt.wasSetByUser()) {
       if(! options::fmfBoundIntLazy.wasSetByUser()) {
@@ -1275,7 +1281,8 @@ void SmtEngine::setDefaults() {
 
   if(options::checkModels()) {
     if(! options::produceAssertions()) {
-      Notice() << "SmtEngine: turning on produce-assertions to support check-models" << endl;
+      Notice() << "SmtEngine: turning on produce-assertions to support "
+               << "check-models." << endl;
       setOption("produce-assertions", SExpr("true"));
     }
   }
@@ -1285,7 +1292,8 @@ void SmtEngine::setDefaults() {
       if(options::simplificationMode.wasSetByUser()) {
         throw OptionException("simplification not supported with unsat cores");
       }
-      Notice() << "SmtEngine: turning off simplification to support unsat-cores" << endl;
+      Notice() << "SmtEngine: turning off simplification to support unsat-cores"
+               << endl;
       options::simplificationMode.set(SIMPLIFICATION_MODE_NONE);
     }
 

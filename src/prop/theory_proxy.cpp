@@ -39,12 +39,12 @@ TheoryProxy::TheoryProxy(PropEngine* propEngine,
                          CnfStream* cnfStream,
                          std::ostream* replayLog,
                          ExprStream* replayStream,
-                         SmtGlobals* globals)
+                         LemmaChannels* channels)
     : d_propEngine(propEngine),
       d_cnfStream(cnfStream),
       d_decisionEngine(decisionEngine),
       d_theoryEngine(theoryEngine),
-      d_globals(globals),
+      d_channels(channels),
       d_replayLog(replayLog),
       d_replayStream(replayStream),
       d_queue(context),
@@ -60,12 +60,12 @@ TheoryProxy::~TheoryProxy() {
 
 /** The lemma input channel we are using. */
 LemmaInputChannel* TheoryProxy::inputChannel() {
-  return d_globals->getLemmaInputChannel();
+  return d_channels->getLemmaInputChannel();
 }
 
 /** The lemma output channel we are using. */
 LemmaOutputChannel* TheoryProxy::outputChannel() {
-  return d_globals->getLemmaOutputChannel();
+  return d_channels->getLemmaOutputChannel();
 }
 
 

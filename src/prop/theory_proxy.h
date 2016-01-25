@@ -29,9 +29,9 @@
 #include "expr/expr_stream.h"
 #include "expr/node.h"
 #include "prop/sat_solver.h"
-#include "smt/smt_globals.h"
-#include "smt_util/lemma_output_channel.h"
+#include "smt_util/lemma_channels.h"
 #include "smt_util/lemma_input_channel.h"
+#include "smt_util/lemma_output_channel.h"
 #include "theory/theory.h"
 #include "util/statistics_registry.h"
 
@@ -57,7 +57,7 @@ public:
               CnfStream* cnfStream,
               std::ostream* replayLog,
               ExprStream* replayStream,
-              SmtGlobals* globals);
+              LemmaChannels* globals);
 
   ~TheoryProxy();
 
@@ -113,11 +113,8 @@ public:
   TheoryEngine* d_theoryEngine;
 
 
-  /**
-   * Container for inputChannel, outputChannel, replayLog, and
-   * replayStream.
-   */
-  SmtGlobals* d_globals;
+  /** Container for inputChannel() and outputChannel(). */
+  LemmaChannels* d_channels;
 
   /** Stream on which to log replay events. */
   std::ostream* d_replayLog;

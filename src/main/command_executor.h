@@ -72,7 +72,7 @@ public:
   static void printStatsFilterZeros(std::ostream& out,
                                     const std::string& statsString);
 
-  SmtGlobals* globals() { return d_smtEngine->globals(); }
+  LemmaChannels* channels() { return d_smtEngine->channels(); }
   void flushOutputStreams();
 
   void setReplayStream(ExprStream* replayStream);

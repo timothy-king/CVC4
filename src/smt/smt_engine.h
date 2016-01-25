@@ -32,7 +32,7 @@
 #include "options/options.h"
 #include "proof/unsat_core.h"
 #include "smt/logic_exception.h"
-#include "smt/smt_globals.h"
+#include "smt_util/lemma_channels.h"
 #include "theory/logic_info.h"
 #include "util/hash.h"
 #include "util/proof.h"
@@ -381,7 +381,8 @@ class CVC4_PUBLIC SmtEngine {
 
   smt::SmtEngineStatistics* d_stats;
 
-  SmtGlobals* d_globals;
+  /** Container for the lemma input and output channels for this SmtEngine.*/
+  LemmaChannels* d_channels;
 
   /**
    * Add to Model command.  This is used for recording a command
@@ -726,7 +727,7 @@ public:
   /** Throws a ModalException if the SmtEngine has been fully initialized. */
   void beforeSearch() throw(ModalException);
 
-  SmtGlobals* globals() { return d_globals; }
+  LemmaChannels* channels() { return d_channels; }
 
 
   /**

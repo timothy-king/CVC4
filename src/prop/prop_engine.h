@@ -28,9 +28,9 @@
 #include "expr/node.h"
 #include "options/options.h"
 #include "proof/proof_manager.h"
-#include "smt/smt_globals.h"
-#include "util/unsafe_interrupt_exception.h"
+#include "smt_util/lemma_channels.h"
 #include "util/result.h"
+#include "util/unsafe_interrupt_exception.h"
 
 namespace CVC4 {
 
@@ -100,7 +100,7 @@ public:
    */
   PropEngine(TheoryEngine*, DecisionEngine*, context::Context* satContext,
              context::Context* userContext, std::ostream* replayLog,
-             ExprStream* replayStream, SmtGlobals* global);
+             ExprStream* replayStream, LemmaChannels* channels);
 
   /**
    * Destructor.

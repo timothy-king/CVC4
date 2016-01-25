@@ -114,8 +114,6 @@ libcvc4_la_SOURCES = \
 	smt/smt_engine_check_proof.cpp \
 	smt/smt_engine_scope.cpp \
 	smt/smt_engine_scope.h \
-	smt/smt_globals.cpp \
-	smt/smt_globals.h \
 	smt/smt_statistics_registry.cpp \
 	smt/smt_statistics_registry.h \
 	smt/update_ostream.h \

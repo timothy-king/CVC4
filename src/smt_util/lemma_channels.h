@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file smt_globals.h
+/*! \file lemma_channels.h
  ** \verbatim
  ** Original author: Tim King
  ** Major contributors: none
@@ -9,33 +9,29 @@
  ** See the file COPYING in the top-level source directory for licensing
  ** information.\endverbatim
  **
- ** \brief SmtGlobals is a light container for psuedo-global datastructures
- ** that are set by the user.
+ ** \brief LemmaChannels is a light container for a pair of input and output
+ ** lemma channels.
  **
- ** SmtGlobals is a light container for psuedo-global datastructures
- ** that are set by the user. These contain paramaters for infrequently
- ** used modes: Portfolio and Replay. There should be exactly one of these
- ** per SmtEngine with the same lifetime as the SmtEngine.
- ** A user directly passes these as pointers and is resonsible for cleaning up
- ** the memory.
+ ** LemmaChannels is a light container for a pair of input and output
+ ** lemma channels. These contain paramaters for the infrequently
+ ** used Portfolio mode. There should be exactly one of these per SmtEngine
+ ** with the same lifetime as the SmtEngine. The user directly passes these as
+ ** pointers and is resonsible for cleaning up the memory.
  **
  ** Basically, the problem this class is solving is that previously these were
  ** using smt_options.h and the Options class as globals for these same
  ** datastructures.
- **
- ** This class is NOT a good long term solution, but is a reasonable stop gap.
  **/
 
 #include "cvc4_public.h"
 
-#ifndef __CVC4__SMT__SMT_GLOBALS_H
-#define __CVC4__SMT__SMT_GLOBALS_H
+#ifndef __CVC4__SMT_UTIL__LEMMA_CHANNELS_H
+#define __CVC4__SMT_UTIL__LEMMA_CHANNELS_H
 
 #include <iosfwd>
 #include <string>
 #include <utility>
 
-//#include "expr/expr_stream.h"
 #include "options/option_exception.h"
 #include "smt_util/lemma_input_channel.h"
 #include "smt_util/lemma_output_channel.h"
@@ -43,20 +39,18 @@
 namespace CVC4 {
 
 /**
- * SmtGlobals is a wrapper around 4 pointers:
+ * LemmaChannels is a wrapper around two pointers:
  * - getLemmaInputChannel()
  * - getLemmaOutputChannel()
  *
  * The user can directly set these and is responsible for handling the
- * memory for these. These datastructures are used for the Replay and Portfolio
- * modes.
+ * memory for these. These datastructures are used for Portfolio mode.
  */
-class CVC4_PUBLIC SmtGlobals {
+class CVC4_PUBLIC LemmaChannels {
  public:
-  /** Creates an empty SmtGlobals with all 4 pointers initially NULL. */
-  SmtGlobals();
-  ~SmtGlobals();
-
+  /** Creates an empty LemmaChannels with all 4 pointers initially NULL. */
+  LemmaChannels();
+  ~LemmaChannels();
 
   void setLemmaInputChannel(LemmaInputChannel* in);
   LemmaInputChannel* getLemmaInputChannel() { return d_lemmaInputChannel; }
@@ -66,18 +60,18 @@ class CVC4_PUBLIC SmtGlobals {
 
  private:
   // Disable copy constructor.
-  SmtGlobals(const SmtGlobals&) CVC4_UNDEFINED;
+  LemmaChannels(const LemmaChannels&) CVC4_UNDEFINED;
 
   // Disable assignment operator.
-  SmtGlobals& operator=(const SmtGlobals&) CVC4_UNDEFINED;
+  LemmaChannels& operator=(const LemmaChannels&) CVC4_UNDEFINED;
 
   /** This captures the old options::lemmaInputChannel .*/
   LemmaInputChannel* d_lemmaInputChannel;
 
   /** This captures the old options::lemmaOutputChannel .*/
   LemmaOutputChannel* d_lemmaOutputChannel;
-}; /* class SmtGlobals */
+}; /* class LemmaChannels */
 
 } /* namespace CVC4 */
 
-#endif /* __CVC4__SMT__SMT_GLOBALS_H */
+#endif /* __CVC4__SMT_UTIL__LEMMA_CHANNELS_H */

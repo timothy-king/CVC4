@@ -106,7 +106,7 @@ TheoryEngine::TheoryEngine(context::Context* context,
                            context::UserContext* userContext,
                            RemoveITE& iteRemover,
                            const LogicInfo& logicInfo,
-                           SmtGlobals* globals)
+                           LemmaChannels* channels)
 : d_propEngine(NULL),
   d_decisionEngine(NULL),
   d_context(context),
@@ -135,7 +135,7 @@ TheoryEngine::TheoryEngine(context::Context* context,
   d_false(),
   d_interrupted(false),
   d_resourceManager(NodeManager::currentResourceManager()),
-  d_globals(globals),
+  d_channels(channels),
   d_inPreregister(false),
   d_factsAsserted(context, false),
   d_preRegistrationVisitor(this, context),
@@ -1397,8 +1397,8 @@ theory::LemmaStatus TheoryEngine::lemma(TNode node, bool negated, bool removable
   }
 
   // Share with other portfolio threads
-  if(d_globals->getLemmaOutputChannel() != NULL) {
-    d_globals->getLemmaOutputChannel()->notifyNewLemma(node.toExpr());
+  if(d_channels->getLemmaOutputChannel() != NULL) {
+    d_channels->getLemmaOutputChannel()->notifyNewLemma(node.toExpr());
   }
 
   // Run theory preprocessing, maybe

@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file smt_globals.cpp
+/*! \file lemma_channels.cpp
  ** \verbatim
  ** Original author: Tim King
  ** Major contributors: none
@@ -18,7 +18,7 @@
  ** stop gap.
  **/
 
-#include "smt/smt_globals.h"
+#include "smt_util/lemma_channels.h"
 
 #include <cerrno>
 #include <iostream>
@@ -35,18 +35,18 @@
 
 namespace CVC4 {
 
-SmtGlobals::SmtGlobals()
+LemmaChannels::LemmaChannels()
     : d_lemmaInputChannel(NULL)
     , d_lemmaOutputChannel(NULL)
 {}
 
-SmtGlobals::~SmtGlobals(){}
+LemmaChannels::~LemmaChannels(){}
 
-void SmtGlobals::setLemmaInputChannel(LemmaInputChannel* in) {
+void LemmaChannels::setLemmaInputChannel(LemmaInputChannel* in) {
   d_lemmaInputChannel = in;
 }
 
-void SmtGlobals::setLemmaOutputChannel(LemmaOutputChannel* out) {
+void LemmaChannels::setLemmaOutputChannel(LemmaOutputChannel* out) {
   d_lemmaOutputChannel = out;
 }
 
