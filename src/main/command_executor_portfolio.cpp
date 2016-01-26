@@ -130,8 +130,8 @@ void CommandExecutorPortfolio::lemmaSharingInit()
       LemmaInputChannel* inputChannel =
           new PortfolioLemmaInputChannel(tag, d_channelsIn[i], d_exprMgrs[i],
                                          d_vmaps[i]->d_from, d_vmaps[i]->d_to);
-      d_smts[i]->globals()->setLemmaInputChannel(inputChannel);
-      d_smts[i]->globals()->setLemmaOutputChannel(outputChannel);
+      d_smts[i]->channels()->setLemmaInputChannel(inputChannel);
+      d_smts[i]->channels()->setLemmaOutputChannel(outputChannel);
     }
 
     /* Output to string stream  */
@@ -160,10 +160,10 @@ void CommandExecutorPortfolio::lemmaSharingCleanup()
   for(unsigned i = 0; i < d_numThreads; ++i) {
     delete d_channelsIn[i];
     delete d_channelsOut[i];
-    delete d_smts[i]->globals()->getLemmaInputChannel();
-    d_smts[i]->globals()->setLemmaInputChannel(NULL);
-    delete d_smts[i]->globals()->getLemmaOutputChannel();
-    d_smts[i]->globals()->setLemmaOutputChannel(NULL);
+    delete d_smts[i]->channels()->getLemmaInputChannel();
+    d_smts[i]->channels()->setLemmaInputChannel(NULL);
+    delete d_smts[i]->channels()->getLemmaOutputChannel();
+    d_smts[i]->channels()->setLemmaOutputChannel(NULL);
   }
   d_channelsIn.clear();
   d_channelsOut.clear();
