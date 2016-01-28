@@ -20,9 +20,8 @@
 #define __CVC4__THEORY__THEORY_H
 
 #include <ext/hash_set>
-#include <iostream>
+#include <iosfwd>
 #include <string>
-#include <strings.h>
 
 #include "context/cdlist.h"
 #include "context/cdo.h"
@@ -148,6 +147,11 @@ private:
    */
   TheoryId d_id;
 
+  /** Name of this theory instance. Along with the TheoryId this should provide
+   * an unique string identifier for each instance of a Theory class. We need
+   * this to ensure unique statistics names over multiple theory instances. */
+  std::string d_instanceName;
+
   /**
    * The SAT search context for the Theory.
    */
@@ -203,12 +207,6 @@ protected:
   /** time spent in theory combination */
   TimerStat d_computeCareGraphTime;
 
-  static std::string statName(TheoryId id, const char* statName) {
-    std::stringstream ss;
-    ss << "theory<" << id << ">::" << statName;
-    return ss.str();
-  }
-
   /**
    * The only method to add suff to the care graph.
    */
@@ -243,10 +241,14 @@ protected:
 
   /**
    * Construct a Theory.
+   *
+   * The pair <id, instance> is assumed to uniquely identify this Theory
+   * w.r.t. the SmtEngine.
    */
   Theory(TheoryId id, context::Context* satContext,
          context::UserContext* userContext, OutputChannel& out,
-         Valuation valuation, const LogicInfo& logicInfo) throw();
+         Valuation valuation, const LogicInfo& logicInfo,
+         std::string instance = "") throw();  // taking : No default.
 
   /**
    * This is called at shutdown time by the TheoryEngine, just before
@@ -270,6 +272,12 @@ protected:
    */
   Valuation d_valuation;
 
+  /**
+   * Whether proofs are enabled
+   *
+   */
+  bool d_proofsEnabled;
+  
   /**
    * Returns the next assertion in the assertFact() queue.
    *
@@ -412,6 +420,13 @@ public:
   TheoryId getId() const {
     return d_id;
   }
+
+  /**
+   * Returns a string that uniquely identifies this theory solver w.r.t. the
+   * SmtEngine.
+   */
+  std::string getFullInstanceName() const;
+
 
   /**
    * Get the SAT context associated to this Theory.
@@ -851,6 +866,12 @@ public:
    * E |= lit in the theory.
    */
   virtual std::pair<bool, Node> entailmentCheck(TNode lit, const EntailmentCheckParameters* params = NULL, EntailmentCheckSideEffects* out = NULL);
+
+  /**
+   * Turn on proof-production mode.
+   */
+  void produceProofs() { d_proofsEnabled = true; }
+
 };/* class Theory */
 
 std::ostream& operator<<(std::ostream& os, theory::Theory::Effort level);
