@@ -109,6 +109,8 @@ libcvc4_la_SOURCES = \
 	smt/boolean_terms.h \
 	smt/command_list.cpp \
 	smt/command_list.h \
+	smt/ite_removal.cpp \
+	smt/ite_removal.h \
 	smt/logic_exception.h \
 	smt/logic_request.cpp \
 	smt/logic_request.h \

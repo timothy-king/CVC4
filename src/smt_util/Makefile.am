@@ -14,8 +14,6 @@ libsmtutil_la_SOURCES = \
 	command.h \
 	dump.cpp \
 	dump.h \
-	ite_removal.cpp \
-	ite_removal.h \
 	lemma_channels.cpp \
 	lemma_channels.h \
 	lemma_input_channel.h \
