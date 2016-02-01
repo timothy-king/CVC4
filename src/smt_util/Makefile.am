@@ -18,7 +18,3 @@ libsmtutil_la_SOURCES = \
 	nary_builder.h \
 	node_visitor.h
 
-
-EXTRA_DIST = \
-	command.i
-

@@ -486,6 +486,7 @@ EXTRA_DIST = \
 	include/cvc4parser_private.h \
 	include/cvc4parser_public.h \
 	mksubdirs \
+	smt/command.i \
 	smt/logic_exception.i \
 	smt/smt_engine.i \
 	proof/unsat_core.i \
