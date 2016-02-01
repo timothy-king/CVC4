@@ -107,8 +107,12 @@ libcvc4_la_SOURCES = \
 	prop/sat_solver_factory.cpp \
 	smt/boolean_terms.cpp \
 	smt/boolean_terms.h \
+	smt/command.cpp \
+	smt/command.h \
 	smt/command_list.cpp \
 	smt/command_list.h \
+	smt/dump.cpp \
+	smt/dump.h \
 	smt/ite_removal.cpp \
 	smt/ite_removal.h \
 	smt/logic_exception.h \
@@ -116,6 +120,8 @@ libcvc4_la_SOURCES = \
 	smt/logic_request.h \
 	smt/managed_ostreams.cpp \
 	smt/managed_ostreams.h \
+	smt/model.cpp \
+	smt/model.h \
 	smt/model_postprocessor.cpp \
 	smt/model_postprocessor.h \
 	smt/smt_engine.cpp \
