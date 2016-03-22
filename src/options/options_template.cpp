@@ -590,6 +590,7 @@ std::vector<std::string> Options::parseOptions(Options* options,
     }
   }
 
+  delete argumentExtender;
   return nonoptions;
 }
 

@@ -33,7 +33,7 @@ namespace options {
 class ArgumentExtender {
 public:
   ArgumentExtender(){}
-  ~ArgumentExtender(){}
+  virtual ~ArgumentExtender(){}
 
   /**
    * This creates a copy of the current arguments list as a new array.
