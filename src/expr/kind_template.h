@@ -158,7 +158,7 @@ ${kind_to_theory_id}
   case kind::LAST_KIND:
     break;
   }
-  throw IllegalArgumentException("", "k", __PRETTY_FUNCTION__, "bad kind");
+  throw IllegalArgumentException("", "k", __func__, "bad kind");
 }
 
 inline TheoryId typeConstantToTheoryId(::CVC4::TypeConstant typeConstant) {
@@ -168,7 +168,7 @@ ${type_constant_to_theory_id}
   case LAST_TYPE:
     break;
   }
-  throw IllegalArgumentException("", "k", __PRETTY_FUNCTION__, "bad type constant");
+  throw IllegalArgumentException("", "k", __func__, "bad type constant");
 }
 
 }/* CVC4::theory namespace */

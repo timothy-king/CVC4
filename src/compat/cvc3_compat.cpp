@@ -47,7 +47,7 @@ using namespace std;
 #define CompatCheckArgument(cond, arg, msg...)         \
   do { \
     if(__builtin_expect( ( ! (cond) ), false )) { \
-      throw ::CVC4::IllegalArgumentException(#cond, #arg, __PRETTY_FUNCTION__, \
+      throw ::CVC4::IllegalArgumentException(#cond, #arg, __func__, \
                                              ::CVC4::IllegalArgumentException::formatVariadic(msg).c_str()); \
     } \
   } while(0)
