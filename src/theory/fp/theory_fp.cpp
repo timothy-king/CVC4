@@ -70,7 +70,7 @@ namespace removeToFPGeneric {
       return NodeManager::currentNM()->mkNode(op, node[0], node[1]);
     }
 
-    Unreachable("to_fp generic not rewritten");
+    UnreachableWithMessage("to_fp generic not rewritten");
   }
 }
 

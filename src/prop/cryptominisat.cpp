@@ -128,7 +128,7 @@ SatValue CryptoMinisatSolver::solve(){
 
 SatValue CryptoMinisatSolver::solve(long unsigned int& resource) {
   // CMSat::SalverConf conf = d_solver->getConf();
-  Unreachable("Not sure how to set different limits for calls to solve in Cryptominisat"); 
+  UnreachableWithMessage("Not sure how to set different limits for calls to solve in Cryptominisat"); 
   return solve();
 }
 
@@ -145,7 +145,7 @@ SatValue CryptoMinisatSolver::modelValue(SatLiteral l){
 }
 
 unsigned CryptoMinisatSolver::getAssertionLevel() const {
-  Unreachable("No interface to get assertion level in Cryptominisat");
+  UnreachableWithMessage("No interface to get assertion level in Cryptominisat");
   return -1; 
 }
 

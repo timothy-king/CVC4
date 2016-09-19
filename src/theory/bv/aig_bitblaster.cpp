@@ -36,7 +36,7 @@ namespace bv {
 
 template <> inline
 std::string toString<Abc_Obj_t*> (const std::vector<Abc_Obj_t*>& bits) {
-  Unreachable("Don't know how to print AIG");
+  UnreachableWithMessage("Don't know how to print AIG");
 } 
 
 
@@ -156,7 +156,7 @@ AigBitblaster::AigBitblaster()
                                                               "AigBitblaster");
     break;
   default:
-    Unreachable("Unknown SAT solver type");
+    UnreachableWithMessage("Unknown SAT solver type");
   }
 }
 
@@ -492,7 +492,7 @@ namespace bv {
 
 template <> inline
 std::string toString<Abc_Obj_t*> (const std::vector<Abc_Obj_t*>& bits) {
-  Unreachable("Don't know how to print AIG");
+  UnreachableWithMessage("Don't know how to print AIG");
 } 
 
 

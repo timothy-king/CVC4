@@ -1651,7 +1651,7 @@ Node QuantifiersRewriter::rewriteRewriteRule( Node r ) {
     }
     break;
   default:
-    Unreachable("RewriteRules can be of only three kinds");
+    UnreachableWithMessage("RewriteRules can be of only three kinds");
     break;
   }
   // Add the other guards

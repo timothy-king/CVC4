@@ -1170,7 +1170,7 @@ void LFSCBooleanProof::printTheoryLemmaProof(std::vector<Expr>& lemma,
                                              std::ostream& os,
                                              std::ostream& paren,
                                              const ProofLetMap& map) {
-  Unreachable("No boolean lemmas yet!");
+  UnreachableWithMessage("No boolean lemmas yet!");
 }
 
 void TheoryProof::printConstantDisequalityProof(std::ostream& os, Expr c1, Expr c2, const ProofLetMap &globalLetMap) {

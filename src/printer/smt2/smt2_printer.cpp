@@ -201,7 +201,7 @@ void Smt2Printer::toStream(std::ostream& out, TNode n,
       case roundTowardNegative : out << "roundTowardNegative"; break;
       case roundTowardZero : out << "roundTowardZero"; break;
       default :
-        Unreachable("Invalid value of rounding mode constant (%d)",n.getConst<RoundingMode>());
+        UnreachableWithMessage("Invalid value of rounding mode constant (%d)",n.getConst<RoundingMode>());
       }
       break;
     case kind::CONST_BOOLEAN:

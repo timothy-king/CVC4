@@ -854,7 +854,7 @@ void LFSCBitVectorProof::printTermBitblasting(Expr term, std::ostream& os) {
   }
 
   default:
-    Unreachable("LFSCBitVectorProof Unknown operator");
+    UnreachableWithMessage("LFSCBitVectorProof Unknown operator");
   }
 }
 
@@ -885,7 +885,7 @@ void LFSCBitVectorProof::printAtomBitblasting(Expr atom, std::ostream& os, bool 
     return;
   }
   default:
-    Unreachable("LFSCBitVectorProof Unknown atom kind");
+    UnreachableWithMessage("LFSCBitVectorProof Unknown atom kind");
   }
 }
 
