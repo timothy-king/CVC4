@@ -133,8 +133,9 @@ class CVC4_PUBLIC DatatypeSelfType {}; /* class DatatypeSelfType */
  */
 class CVC4_PUBLIC DatatypeUnresolvedType {
  public:
-  inline DatatypeUnresolvedType(std::string name);
-  inline std::string getName() const throw();
+  DatatypeUnresolvedType(std::string name) : d_name(name) {}
+
+  std::string getName() const { return d_name; }
 
  private:
   std::string d_name;
@@ -144,18 +145,6 @@ class CVC4_PUBLIC DatatypeUnresolvedType {
  * A Datatype constructor argument (i.e., a Datatype field).
  */
 class CVC4_PUBLIC DatatypeConstructorArg {
-  std::string d_name;
-  Expr d_selector;
-  /** the constructor associated with this selector */
-  Expr d_constructor;
-  bool d_resolved;
-
-  DatatypeConstructorArg(std::string name, Expr selector);
-  friend class DatatypeConstructor;
-  friend class Datatype;
-
-  bool isUnresolvedSelf() const throw();
-
  public:
   /** Get the name of this constructor argument. */
   std::string getName() const throw();
@@ -167,34 +156,42 @@ class CVC4_PUBLIC DatatypeConstructorArg {
   Expr getSelector() const;
 
   /**
-   * Get the associated constructor for this constructor argument;
-   * this call is only permitted after resolution.
+   * Get the associated constructor for this constructor argument; this call is
+   * only permitted after resolution.
    */
   Expr getConstructor() const;
 
   /**
-   * Get the type of the selector for this constructor argument;
-   * this call is only permitted after resolution.
+   * Get the type of the selector for this constructor argument; this call is
+   * only permitted after resolution.
    */
   SelectorType getType() const;
 
-  /**
-   * Get the range type of this argument.
-   */
+  /** Get the range type of this argument. */
   Type getRangeType() const;
 
   /**
-   * Get the name of the type of this constructor argument
-   * (Datatype field).  Can be used for not-yet-resolved Datatypes
-   * (in which case the name of the unresolved type, or "[self]"
-   * for a self-referential type is returned).
+   * Get the name of the type of this constructor argument (Datatype field).
+   * Can be used for not-yet-resolved Datatypes (in which case the name of the
+   * unresolved type, or "[self]" for a self-referential type is returned).
    */
   std::string getTypeName() const;
 
-  /**
-   * Returns true iff this constructor argument has been resolved.
-   */
+  /** Returns true iff this constructor argument has been resolved. */
   bool isResolved() const throw();
+
+ private:
+  DatatypeConstructorArg(std::string name, Expr selector);
+  bool isUnresolvedSelf() const throw();
+
+  friend class DatatypeConstructor;
+  friend class Datatype;
+
+  std::string d_name;
+  Expr d_selector;
+  /** the constructor associated with this selector */
+  Expr d_constructor;
+  bool d_resolved;
 
 }; /* class DatatypeConstructorArg */
 
@@ -820,13 +817,6 @@ std::ostream& operator<<(std::ostream& os,
 
 inline DatatypeResolutionException::DatatypeResolutionException(std::string msg)
     : Exception(msg) {}
-
-inline DatatypeUnresolvedType::DatatypeUnresolvedType(std::string name)
-    : d_name(name) {}
-
-inline std::string DatatypeUnresolvedType::getName() const throw() {
-  return d_name;
-}
 
 inline Datatype::Datatype(std::string name, bool isCo)
     : d_name(name),
