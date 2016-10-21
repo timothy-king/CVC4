@@ -22,10 +22,11 @@
 #ifndef __CVC4__TYPE_NODE_H
 #define __CVC4__TYPE_NODE_H
 
-#include <vector>
-#include <string>
-#include <iostream>
 #include <stdint.h>
+
+#include <iostream>
+#include <string>
+#include <vector>
 
 #include "base/cvc4_assert.h"
 #include "expr/kind.h"
@@ -92,19 +93,21 @@ private:
    * Cache-aware, recursive version of substitute() used by the public
    * member function with a similar signature.
    */
-  TypeNode substitute(const TypeNode& type, const TypeNode& replacement,
-                      std::hash_map<TypeNode, TypeNode, HashFunction>& cache) const;
+  TypeNode substitute(
+      const TypeNode& type, const TypeNode& replacement,
+      std::hash_map<TypeNode, TypeNode, HashFunction>& cache) const;
 
   /**
    * Cache-aware, recursive version of substitute() used by the public
    * member function with a similar signature.
    */
   template <class Iterator1, class Iterator2>
-  TypeNode substitute(Iterator1 typesBegin, Iterator1 typesEnd,
-                      Iterator2 replacementsBegin, Iterator2 replacementsEnd,
-                      std::hash_map<TypeNode, TypeNode, HashFunction>& cache) const;
+  TypeNode substitute(
+      Iterator1 typesBegin, Iterator1 typesEnd, Iterator2 replacementsBegin,
+      Iterator2 replacementsEnd,
+      std::hash_map<TypeNode, TypeNode, HashFunction>& cache) const;
 
-public:
+ public:
 
   /** Default constructor, makes a null expression. */
   TypeNode() : d_nv(&expr::NodeValue::null()) { }
@@ -381,7 +384,9 @@ public:
    * @param out the stream to serialize this node to
    * @param language the language in which to output
    */
-  inline void toStream(std::ostream& out, OutputLanguage language = language::output::LANG_AUTO) const {
+  inline void toStream(
+      std::ostream& out,
+      OutputLanguage language = language::output::LANG_AUTO) const {
     d_nv->toStream(out, -1, false, 0, language);
   }
 

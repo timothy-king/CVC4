@@ -113,22 +113,29 @@ void Datatype::resolve(ExprManager* em,
                        const std::vector< SortConstructorType >& paramTypes,
                        const std::vector< DatatypeType >& paramReplacements)
   throw(IllegalArgumentException, DatatypeResolutionException) {
-
-  PrettyCheckArgument(em != NULL, em, "cannot resolve a Datatype with a NULL expression manager");
+  PrettyCheckArgument(
+      em != NULL, em,
+      "cannot resolve a Datatype with a NULL expression manager");
   PrettyCheckArgument(!d_resolved, this, "cannot resolve a Datatype twice");
-  PrettyCheckArgument(resolutions.find(d_name) != resolutions.end(), resolutions,
-                "Datatype::resolve(): resolutions doesn't contain me!");
+  PrettyCheckArgument(resolutions.find(d_name) != resolutions.end(),
+                      resolutions,
+                      "Datatype::resolve(): resolutions doesn't contain me!");
   PrettyCheckArgument(placeholders.size() == replacements.size(), placeholders,
-                "placeholders and replacements must be the same size");
+                      "placeholders and replacements must be the same size");
   PrettyCheckArgument(paramTypes.size() == paramReplacements.size(), paramTypes,
-                "paramTypes and paramReplacements must be the same size");
-  PrettyCheckArgument(getNumConstructors() > 0, *this, "cannot resolve a Datatype that has no constructors");
+                      "paramTypes and paramReplacements must be the same size");
+  PrettyCheckArgument(getNumConstructors() > 0, *this,
+                      "cannot resolve a Datatype that has no constructors");
   DatatypeType self = (*resolutions.find(d_name)).second;
-  PrettyCheckArgument(&self.getDatatype() == this, resolutions, "Datatype::resolve(): resolutions doesn't contain me!");
+  PrettyCheckArgument(&self.getDatatype() == this, resolutions,
+                      "Datatype::resolve(): resolutions doesn't contain me!");
   d_resolved = true;
   size_t index = 0;
-  for(std::vector<DatatypeConstructor>::iterator i = d_constructors.begin(), i_end = d_constructors.end(); i != i_end; ++i) {
-    (*i).resolve(em, self, resolutions, placeholders, replacements, paramTypes, paramReplacements, index);
+  for (std::vector<DatatypeConstructor>::iterator i = d_constructors.begin(),
+                                                  i_end = d_constructors.end();
+       i != i_end; ++i) {
+    (*i).resolve(em, self, resolutions, placeholders, replacements, paramTypes,
+                 paramReplacements, index);
     Node::fromExpr((*i).d_constructor).setAttribute(DatatypeIndexAttr(), index);
     Node::fromExpr((*i).d_tester).setAttribute(DatatypeIndexAttr(), index++);
   }

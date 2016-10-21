@@ -564,8 +564,9 @@ std::vector<Type> ConstructorType::getArgTypes() const {
 
 const Datatype& DatatypeType::getDatatype() const {
   NodeManagerScope nms(d_nodeManager);
-  if( d_typeNode->isParametricDatatype() ) {
-    PrettyCheckArgument( (*d_typeNode)[0].getKind() == kind::DATATYPE_TYPE, this);
+  if (d_typeNode->isParametricDatatype()) {
+    PrettyCheckArgument((*d_typeNode)[0].getKind() == kind::DATATYPE_TYPE,
+                        this);
     const Datatype& dt = (*d_typeNode)[0].getConst<Datatype>();
     return dt;
   } else {

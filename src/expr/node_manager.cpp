@@ -717,4 +717,19 @@ void NodeManager::debugHook(int debugFlag){
   // For debugging purposes only, DO NOT CHECK IN ANY CODE!
 }
 
+void NodeManager::registerBackedge(Backedge* backedge) {
+  d_backedges.push_back(backedge);
+}
+
+void NodeManager::clearBackedges() {
+  for (std::vector<expr::Backedge *>::iterator i = d_backedges.begin(),
+                                               i_end = d_backedges.end();
+       i != i_end; ++i) {
+    Backedge* backedge = *i;
+    backedge->removeBackedge();
+    delete backedge;
+  }
+  d_backedges.clear();
+}
+
 }/* CVC4 namespace */

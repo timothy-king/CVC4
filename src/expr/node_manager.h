@@ -33,6 +33,7 @@
 #include <ext/hash_set>
 
 #include "base/tls.h"
+#include "expr/backedge.h"
 #include "expr/kind.h"
 #include "expr/metakind.h"
 #include "expr/node_value.h"
@@ -58,20 +59,24 @@ namespace expr {
  * to NodeManager events via NodeManager::subscribeEvents(this).
  */
 class NodeManagerListener {
-public:
-  virtual ~NodeManagerListener() { }
-  virtual void nmNotifyNewSort(TypeNode tn, uint32_t flags) { }
-  virtual void nmNotifyNewSortConstructor(TypeNode tn) { }
-  virtual void nmNotifyInstantiateSortConstructor(TypeNode ctor, TypeNode sort, uint32_t flags) { }
-  virtual void nmNotifyNewDatatypes(const std::vector<DatatypeType>& datatypes) { }
-  virtual void nmNotifyNewVar(TNode n, uint32_t flags) { }
-  virtual void nmNotifyNewSkolem(TNode n, const std::string& comment, uint32_t flags) { }
+ public:
+  virtual ~NodeManagerListener() {}
+  virtual void nmNotifyNewSort(TypeNode tn, uint32_t flags) {}
+  virtual void nmNotifyNewSortConstructor(TypeNode tn) {}
+  virtual void nmNotifyInstantiateSortConstructor(TypeNode ctor, TypeNode sort,
+                                                  uint32_t flags) {}
+  virtual void nmNotifyNewDatatypes(
+      const std::vector<DatatypeType>& datatypes) {}
+  virtual void nmNotifyNewVar(TNode n, uint32_t flags) {}
+  virtual void nmNotifyNewSkolem(TNode n, const std::string& comment,
+                                 uint32_t flags) {}
   /**
-   * Notify a listener of a Node that's being GCed.  If this function stores a reference
+   * Notify a listener of a Node that's being GCed.  If this function stores a
+   * reference
    * to the Node somewhere, very bad things will happen.
    */
-  virtual void nmNotifyDeleteNode(TNode n) { }
-};/* class NodeManagerListener */
+  virtual void nmNotifyDeleteNode(TNode n) {}
+}; /* class NodeManagerListener */
 
 class NodeManager {
   template <unsigned nchild_thresh> friend class CVC4::NodeBuilder;
@@ -84,7 +89,8 @@ class NodeManager {
   friend Expr ExprManager::mkVar(Type, uint32_t flags);
 
   // friend so it can access NodeManager's d_listeners and notify clients
-  friend std::vector<DatatypeType> ExprManager::mkMutualDatatypeTypes(const std::vector<Datatype>&, const std::set<Type>&);
+  friend std::vector<DatatypeType> ExprManager::mkMutualDatatypeTypes(
+      const std::vector<Datatype>&, const std::set<Type>&);
 
   /** Predicate for use with STL algorithms */
   struct NodeValueReferenceCountNonZero {
@@ -173,13 +179,15 @@ class NodeManager {
   public:
     std::map< TypeNode, TupleTypeCache > d_children;
     TypeNode d_data;
-    TypeNode getTupleType( NodeManager * nm, std::vector< TypeNode >& types, unsigned index = 0 );
+    TypeNode getTupleType(NodeManager* nm, std::vector<TypeNode>& types,
+                          unsigned index = 0);
   };
   class RecTypeCache {
   public:
     std::map< TypeNode, std::map< std::string, RecTypeCache > > d_children;
     TypeNode d_data;
-    TypeNode getRecordType( NodeManager * nm, const Record& rec, unsigned index = 0 );
+    TypeNode getRecordType(NodeManager* nm, const Record& rec,
+                           unsigned index = 0);
   };
   TupleTypeCache d_tt_cache;
   RecTypeCache d_rt_cache;
@@ -200,6 +208,12 @@ class NodeManager {
    * by this node manager.
    */
   unsigned d_skolemCounter;
+
+  /**
+   * Potential back edges in the expression graph. These will be removed and
+   * the cycles broken when the NodeManager is destroyed.
+   */
+  std::vector<expr::Backedge*> d_backedges;
 
   /**
    * Look up a NodeValue in the pool associated to this NodeManager.
@@ -329,13 +343,22 @@ class NodeManager {
    * version of this is private to avoid internal uses of mkVar() from
    * within CVC4.  Such uses should employ mkSkolem() instead.
    */
-  Node mkVar(const std::string& name, const TypeNode& type, uint32_t flags = ExprManager::VAR_FLAG_NONE);
-  Node* mkVarPtr(const std::string& name, const TypeNode& type, uint32_t flags = ExprManager::VAR_FLAG_NONE);
+  Node mkVar(const std::string& name, const TypeNode& type,
+             uint32_t flags = ExprManager::VAR_FLAG_NONE);
+  Node* mkVarPtr(const std::string& name, const TypeNode& type,
+                 uint32_t flags = ExprManager::VAR_FLAG_NONE);
 
   /** Create a variable with the given type. */
   Node mkVar(const TypeNode& type, uint32_t flags = ExprManager::VAR_FLAG_NONE);
-  Node* mkVarPtr(const TypeNode& type, uint32_t flags = ExprManager::VAR_FLAG_NONE);
-  
+  Node* mkVarPtr(const TypeNode& type,
+                 uint32_t flags = ExprManager::VAR_FLAG_NONE);
+
+  /** Takes ownership of a backedge object. */
+  void registerBackedge(expr::Backedge* backedge);
+
+  /** Destroys the backedges as a part of destroying the node manager. */
+  void clearBackedges();
+
 public:
 
   explicit NodeManager(ExprManager* exprManager);
@@ -345,7 +368,9 @@ public:
   /** The node manager in the current public-facing CVC4 library context */
   static NodeManager* currentNM() { return s_current; }
   /** The resource manager associated with the current node manager */
-  static ResourceManager* currentResourceManager() { return s_current->d_resourceManager; }
+  static ResourceManager* currentResourceManager() {
+    return s_current->d_resourceManager;
+  }
 
   /** Get this node manager's options (const version) */
   const Options& getOptions() const {
@@ -367,13 +392,16 @@ public:
 
   /** Subscribe to NodeManager events */
   void subscribeEvents(NodeManagerListener* listener) {
-    Assert(std::find(d_listeners.begin(), d_listeners.end(), listener) == d_listeners.end(), "listener already subscribed");
+    Assert(std::find(d_listeners.begin(), d_listeners.end(), listener) ==
+               d_listeners.end(),
+           "listener already subscribed");
     d_listeners.push_back(listener);
   }
 
   /** Unsubscribe from NodeManager events */
   void unsubscribeEvents(NodeManagerListener* listener) {
-    std::vector<NodeManagerListener*>::iterator elt = std::find(d_listeners.begin(), d_listeners.end(), listener);
+    std::vector<NodeManagerListener*>::iterator elt =
+        std::find(d_listeners.begin(), d_listeners.end(), listener);
     Assert(elt != d_listeners.end(), "listener not subscribed");
     d_listeners.erase(elt);
   }
@@ -411,7 +439,8 @@ public:
   template <bool ref_count>
   Node mkNode(Kind kind, const std::vector<NodeTemplate<ref_count> >& children);
   template <bool ref_count>
-  Node* mkNodePtr(Kind kind, const std::vector<NodeTemplate<ref_count> >& children);
+  Node* mkNodePtr(Kind kind,
+                  const std::vector<NodeTemplate<ref_count> >& children);
 
   /** Create a node (with no children) by operator. */
   Node mkNode(TNode opNode);
@@ -443,9 +472,11 @@ public:
 
   /** Create a node by applying an operator to the children. */
   template <bool ref_count>
-  Node mkNode(TNode opNode, const std::vector<NodeTemplate<ref_count> >& children);
+  Node mkNode(TNode opNode,
+              const std::vector<NodeTemplate<ref_count> >& children);
   template <bool ref_count>
-  Node* mkNodePtr(TNode opNode, const std::vector<NodeTemplate<ref_count> >& children);
+  Node* mkNodePtr(TNode opNode,
+                  const std::vector<NodeTemplate<ref_count> >& children);
 
   Node mkBoundVar(const std::string& name, const TypeNode& type);
   Node* mkBoundVarPtr(const std::string& name, const TypeNode& type);
@@ -506,8 +537,48 @@ public:
   template <class T>
   TypeNode mkTypeConst(const T&);
 
+  /**
+   * Creates a Type constant for a mutable type constant. This registers a backedge for the TypeNode.
+   *
+   * Usage of this function is highly discouraged. It ensures the Node will not
+   * be garbage collected normally. This is an expert's only function. It is
+   * useful to fix some longstanding design flaws.
+   *
+   * This registers a Backedge for underlying TypeNode.
+   *
+   * @param data is a class corresponding to a 'constant' declared in a kinds file for a Type.
+   *     A copy is stored internally in the node graph.
+   * @param FactoryFn is a class has an operator() that takes a NodeValue* and a pointer
+   *     to internal copy of data.
+   * @returns a pair containing the constructed TypeNode and a pointer to the internal storage for the node.
+   */
+  template <class T, class FactoryFn>
+  std::pair<TypeNode, T*> mkMutableTypeConst(const T& data, const FactoryFn& factory);
+
   template <class NodeClass, class T>
   NodeClass mkConstInternal(const T&);
+
+  /**
+   * Creates a mutable constant.
+   *
+   * Usage of this function is highly discouraged. It ensures the Node will not
+   * be garbage collected normally. This is an expert's only function. It is
+   * useful to fix some longstanding design flaws.
+   *
+   * This registers a Backedge for underlying NodeClass.
+   *
+   * @param data is a class corresponding to a 'constant' declared in a kinds
+   *   file for a Type. A copy is stored internally in the node graph.
+   * @param factory is a factory function to create Backedges. It is expected
+   *   to have function with the signature Backedge* operator()(NodeValue*, T*).
+   *   Ownership of the new Backedge is given the caller and can be destroyed
+   *   via delete.
+   * @returns a pair containing the constructed TypeNode and a pointer to the
+   *   internal storage for the node.
+   */
+  template <class NodeClass, class T, class FactoryFn>
+  std::pair<NodeClass, T*> mkMutableConstInternal(const T&,
+                                                  const FactoryFn& factory);
 
   /** Create a node with children. */
   TypeNode mkTypeNode(Kind kind, TypeNode child1);
@@ -916,7 +987,10 @@ public:
    */
   static inline TypeNode fromType(Type t);
 
-  /** Reclaim zombies while there are more than k nodes in the pool (if possible).*/
+  /**
+   * Reclaim zombies while there are more than k nodes in the pool (if
+   * possible).
+   */
   void reclaimZombiesUntil(uint32_t k);
 
   /** Reclaims all zombies (if possible).*/
@@ -926,7 +1000,8 @@ public:
   size_t poolSize() const;
 
   /** Deletes a list of attributes from the NM's AttributeManager.*/
-  void deleteAttributes(const std::vector< const expr::attr::AttributeUniqueId* >& ids);
+  void deleteAttributes(
+      const std::vector<const expr::attr::AttributeUniqueId*>& ids);
 
   /**
    * This function gives developers a hook into the NodeManager.
@@ -1522,6 +1597,70 @@ NodeClass NodeManager::mkConstInternal(const T& val) {
   }
 
   return NodeClass(nv);
+}
+
+template <class T, FactoryFn>
+std::pair<TypeNode, T*> NodeManager::mkMutableTypeConst(const T& val, const FactoryFn& factory) {
+  return mkConstInternal<TypeNode, T>(val, factory);
+}
+
+template <class NodeClass, class T, class Factory>
+NodeClass NodeManager::mkConstInternal(const T& val, const Factory& factory) {
+
+  // typedef typename kind::metakind::constantMap<T>::OwningTheory theory_t;
+  NVStorage<1> nvStorage;
+  expr::NodeValue& nvStack = reinterpret_cast<expr::NodeValue&>(nvStorage);
+
+  nvStack.d_id = 0;
+  nvStack.d_kind = kind::metakind::ConstantMap<T>::kind;
+  nvStack.d_rc = 0;
+  nvStack.d_nchildren = 1;
+
+#if defined(__GNUC__) && \
+    (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
+
+  nvStack.d_children[0] = const_cast<expr::NodeValue*>(
+      reinterpret_cast<const expr::NodeValue*>(&val));
+  expr::NodeValue* nv = poolLookup(&nvStack);
+
+#if defined(__GNUC__) && \
+    (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6))
+#pragma GCC diagnostic pop
+#endif
+
+  if(nv != NULL) {
+    return NodeClass(nv);
+  }
+
+  nv = (expr::NodeValue*)
+    std::malloc(sizeof(expr::NodeValue) + sizeof(T));
+  if(nv == NULL) {
+    throw std::bad_alloc();
+  }
+
+  nv->d_nchildren = 0;
+  nv->d_kind = kind::metakind::ConstantMap<T>::kind;
+  nv->d_id = next_id++;// FIXME multithreading
+  nv->d_rc = 0;
+
+  //OwningTheory::mkConst(val);
+  new (&nv->d_children) T(val);
+  T* mutable_value = reinterpret_cast<T*>(&nv->d_children);
+  
+  poolInsert(nv);
+  if(Debug.isOn("gc")) {
+    Debug("gc") << "creating node value " << nv
+                << " [" << nv->d_id << "]: ";
+    nv->printAst(Debug("gc"));
+    Debug("gc") << std::endl;
+  }
+  Backedge* edge = factory(nv, mutable_value);
+  registerBackedge(edge);
+
+  return std::make_pair(NodeClass(nv), mutable_value);
 }
 
 }/* CVC4 namespace */

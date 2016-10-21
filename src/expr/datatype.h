@@ -707,8 +707,8 @@ class CVC4_PUBLIC Datatype {
   Expr mkGroundTerm(Type t) const throw(IllegalArgumentException);
 
   /**
-   * Get the DatatypeType associated to this Datatype.  Can only be
-   * called post-resolution.
+   * Get the DatatypeType associated to this Datatype.  Can only be called
+   * post-resolution.
    */
   DatatypeType getDatatypeType() const throw(IllegalArgumentException);
 
