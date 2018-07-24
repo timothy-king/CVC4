@@ -16,6 +16,7 @@
 
 #include "theory/quantifiers/fmf/bounded_integers.h"
 
+#include "base/map_util.h"
 #include "options/quantifiers_options.h"
 #include "theory/arith/arith_msum.h"
 #include "theory/quantifiers/first_order_model.h"
@@ -23,7 +24,6 @@
 #include "theory/quantifiers/term_enumeration.h"
 #include "theory/quantifiers/term_util.h"
 #include "theory/theory_engine.h"
-#include "util/map_util.h"
 
 using namespace CVC4;
 using namespace std;

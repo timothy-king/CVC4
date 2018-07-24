@@ -21,10 +21,10 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "base/map_util.h"
 #include "context/cdhashmap.h"
 #include "context/cdhashset.h"
 #include "context/cdinsert_hashmap.h"
-#include "util/map_util.h"
 
 using CVC4::ContainsKey;
 using CVC4::FindOrDie;
@@ -41,7 +41,8 @@ class MapUtilBlack : public CxxTest::TestSuite
 
   void testMap()
   {
-    std::map<std::string, std::string> map{{"key", "value"}, {"other", "entry"}};
+    std::map<std::string, std::string> map{{"key", "value"},
+                                           {"other", "entry"}};
     TS_ASSERT(ContainsKey(map, "key"));
     TS_ASSERT(!ContainsKey(map, "non key"));
 
@@ -56,7 +57,8 @@ class MapUtilBlack : public CxxTest::TestSuite
 
   void testConstantMap()
   {
-    const std::map<std::string, std::string> map{{"key", "value"}, {"other", "entry"}};
+    const std::map<std::string, std::string> map{{"key", "value"},
+                                                 {"other", "entry"}};
     TS_ASSERT(ContainsKey(map, "key"));
     TS_ASSERT(!ContainsKey(map, "non key"));
 
@@ -72,7 +74,7 @@ class MapUtilBlack : public CxxTest::TestSuite
   void testUnorderedMap()
   {
     std::unordered_map<std::string, std::string> map{{"key", "value"},
-                                           {"other", "entry"}};
+                                                     {"other", "entry"}};
     TS_ASSERT(ContainsKey(map, "key"));
     TS_ASSERT(!ContainsKey(map, "non key"));
 
