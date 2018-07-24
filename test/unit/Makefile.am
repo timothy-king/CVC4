@@ -56,6 +56,7 @@ UNIT_TESTS += \
 	util/rational_black \
 	util/rational_white \
 	util/stats_black \
+	util/map_util_black \
 	util/boolean_simplification_black \
 	main/interactive_shell_black
 endif

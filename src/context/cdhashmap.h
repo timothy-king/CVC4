@@ -100,8 +100,15 @@ template <class Key, class Data, class HashFcn = std::hash<Key> >
 class CDOhash_map : public ContextObj {
   friend class CDHashMap<Key, Data, HashFcn>;
 
-  Key d_key;
-  Data d_data;
+ public:
+  using value_type = std::pair<const Key, const Data>;
+ private:
+  value_type d_value;
+  Key& mutable_key() { return const_cast<Key&>(d_value.first); }
+  Data& mutable_data() { return const_cast<Data&>(d_value.second); }
+
+  // Key d_key;
+  // Data d_data;
   CDHashMap<Key, Data, HashFcn>* d_map;
 
   /** never put this cdhashmapelement on the trash */
@@ -121,10 +128,10 @@ class CDOhash_map : public ContextObj {
     CDOhash_map* p = static_cast<CDOhash_map*>(data);
     if(d_map != NULL) {
       if(p->d_map == NULL) {
-        Assert(d_map->d_map.find(d_key) != d_map->d_map.end() &&
-               (*d_map->d_map.find(d_key)).second == this);
+        Assert(d_map->d_map.find(d_value.first) != d_map->d_map.end() &&
+               (*d_map->d_map.find(d_value.first)).second == this);
         // no longer in map (popped beyond first level in which it was)
-        d_map->d_map.erase(d_key);
+        d_map->d_map.erase(d_value.first);
         // If we call deleteSelf() here, it re-enters restore().  So,
         // put it on a "trash heap" instead, for later deletion.
         //
@@ -150,13 +157,13 @@ class CDOhash_map : public ContextObj {
           enqueueToGarbageCollect();
         }
       } else {
-        d_data = p->d_data;
+        mutable_data() = p->d_value.second;
       }
     }
     // Explicitly call destructors for the key and the data as they will not
     // otherwise get called.
-    p->d_key.~Key();
-    p->d_data.~Data();
+    p->mutable_key().~Key();
+    p->mutable_data().~Data();
   }
 
   /** ensure copy ctor is only called by us */
@@ -164,8 +171,7 @@ class CDOhash_map : public ContextObj {
     ContextObj(other),
     // don't need to save the key---and if we do we can get
     // refcounts for Node keys messed up and leak memory
-    d_key(),
-    d_data(other.d_data),
+    d_value(Key(), other.d_value.second),
     d_map(other.d_map),
     d_prev(NULL),
     d_next(NULL) {
@@ -181,8 +187,7 @@ public:
          bool atLevelZero = false,
          bool allocatedInCMM = false) :
     ContextObj(allocatedInCMM, context),
-    d_key(key),
-    d_data(data),
+    d_value(key, data),
     d_map(NULL),
     d_noTrash(allocatedInCMM) {
 
@@ -194,7 +199,7 @@ public:
       // removed from the map, it's inserted at level 0 as an
       // "initializing" element.  See
       // CDHashMap<>::insertAtContextLevelZero().
-      d_data = data;
+      mutable_data() = data;
     } else {
       // Normal map insertion: first makeCurrent(), then set the data
       // and then, later, the map.  Order is important; we can't
@@ -232,15 +237,19 @@ public:
 
   void set(const Data& data) {
     makeCurrent();
-    d_data = data;
+    mutable_data() = data;
   }
 
   const Key& getKey() const {
-    return d_key;
+    return d_value.first;
   }
 
   const Data& get() const {
-    return d_data;
+    return d_value.second;
+  }
+
+  const value_type& getValue() const {
+    return d_value;
   }
 
   operator Data() {
@@ -395,6 +404,8 @@ public:
 
   // FIXME: no erase(), too much hassle to implement efficiently...
 
+  using value_type = typename CDOhash_map<Key, Data, HashFcn>::value_type;
+
   class iterator {
     const Element* d_it;
 
@@ -415,8 +426,8 @@ public:
     }
 
     // Dereference operators.
-    std::pair<const Key, const Data> operator*() const {
-      return std::pair<const Key, const Data>(d_it->getKey(), d_it->get());
+    const value_type& operator*() const {
+      return d_it->getValue();
     }
 
     // Prefix increment

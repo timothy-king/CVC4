@@ -73,6 +73,7 @@ public:
   /**An iterator over the elements in the hash_map. */
   typedef typename HashMap::const_iterator const_iterator;
 
+  using value_type = typename HashMap::value_type;
 
   /**
    * Returns an iterator to the begining of the HashMap.
@@ -279,6 +280,7 @@ public:
     delete d_insertMap;
   }
 
+
   /** An iterator over the elements in the hash_map. */
   typedef typename IHM::const_iterator const_iterator;
 
@@ -288,6 +290,10 @@ public:
    * (See std::deque<>::iterator).
    */
   typedef typename IHM::key_iterator key_iterator;
+
+  // HACK: We lie about the type of const_iterator::value_type. This lets
+  // FindOrNull complete to the correct return type.
+  using value_type = std::pair<const Key, const Data>;
 
   /** Returns true if the map is empty in the current context. */
   bool empty() const{
