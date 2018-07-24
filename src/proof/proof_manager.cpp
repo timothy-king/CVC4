@@ -41,16 +41,22 @@
 
 namespace CVC4 {
 
-std::string nodeSetToString(const std::set<Node>& nodes) {
+namespace {
+
+std::string nodeSetToString(const std::set<Node>& nodes)
+{
   std::ostringstream os;
-  std::set<Node>::const_iterator it;
-  for (it = nodes.begin(); it != nodes.end(); ++it) {
-    os << *it << " ";
+  for (Node member : nodes)
+  {
+    os << member << " ";
   }
   return os.str();
 }
 
-std::string append(const std::string& str, uint64_t num) {
+}  // namespace
+
+std::string append(const std::string& str, uint64_t num)
+{
   std::ostringstream os;
   os << str << num;
   return os.str();

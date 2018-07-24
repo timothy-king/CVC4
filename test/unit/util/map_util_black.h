@@ -1,17 +1,17 @@
 /*********************                                                        */
-/*! \file datatype_black.h
+/*! \file map_util_black.h
  ** \verbatim
  ** Top contributors (to current version):
- **   Morgan Deters, Andrew Reynolds, Tim King
+ **   Tim King
  ** This file is part of the CVC4 project.
  ** Copyright (c) 2009-2018 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
  ** All rights reserved.  See the file COPYING in the top-level source
  ** directory for licensing information.\endverbatim
  **
- ** \brief Black box testing of CVC4::Datatype
+ ** \brief Black box testing of map utility functions.
  **
- ** Black box testing of CVC4::Datatype.
+ ** Black box testing of map utility functions.
  **/
 
 #include <cxxtest/TestSuite.h>
