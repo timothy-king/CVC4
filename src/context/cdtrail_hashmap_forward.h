@@ -10,14 +10,14 @@
  ** directory for licensing information.\endverbatim
  **
  ** \brief This is a forward declaration header to declare the
- ** CDTrailHashMap<> template
+ ** NotUsedTrailHashMap<> template
  **
- ** This is a forward declaration header to declare the CDTrailHashMap<>
- ** template.  It's useful if you want to forward-declare CDTrailHashMap<>
+ ** This is a forward declaration header to declare the NotUsedTrailHashMap<>
+ ** template.  It's useful if you want to forward-declare NotUsedTrailHashMap<>
  ** without including the full cdtrail_hash_map.h header, for example, in a
  ** public header context.
  **
- ** For CDTrailHashMap<> in particular, it's difficult to forward-declare it
+ ** For NotUsedTrailHashMap<> in particular, it's difficult to forward-declare it
  ** yourself, because it has a default template argument.
  **/
 
@@ -30,6 +30,6 @@
 namespace CVC4 {
   namespace context {
     template <class Key, class Data, class HashFcn = std::hash<Key> >
-    class CDTrailHashMap;
+    class NotUsedTrailHashMap;
   }/* CVC4::context namespace */
 }/* CVC4 namespace */

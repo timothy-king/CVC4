@@ -101,7 +101,14 @@ class CDOhash_map : public ContextObj {
   friend class CDHashMap<Key, Data, HashFcn>;
 
  public:
+  // This is conceptually how a user of the CDHashMap sees the data stored in
+  // this class.
+  //
+  // Implementation: To avoid creating copies of the data on
+  // CDHashMap::iterator::operator*, we internally store the data using this
+  // type and then break the const encapsulation when interacting with d_value.
   using value_type = std::pair<const Key, const Data>;
+
  private:
   value_type d_value;
   Key& mutable_key() { return const_cast<Key&>(d_value.first); }
@@ -436,29 +443,34 @@ public:
       return *this;
     }
 
-    // Postfix increment: requires a Proxy object to hold the
-    // intermediate value for dereferencing
-    class Proxy {
-      const std::pair<const Key, Data>* d_pair;
+    // // Postfix increment: requires a Proxy object to hold the
+    // // intermediate value for dereferencing
+    // class Proxy {
+    //   const std::pair<const Key, Data>* d_pair;
 
-    public:
+    // public:
 
-      Proxy(const std::pair<const Key, Data>& p) : d_pair(&p) {}
+    //   Proxy(const std::pair<const Key, Data>& p) : d_pair(&p) {}
 
-      const std::pair<const Key, Data>& operator*() const {
-        return *d_pair;
-      }
-    };/* class CDHashMap<>::iterator::Proxy */
+    //   const std::pair<const Key, Data>& operator*() const {
+    //     return *d_pair;
+    //   }
+    // };/* class CDHashMap<>::iterator::Proxy */
 
     // Actual postfix increment: returns Proxy with the old value.
     // Now, an expression like *i++ will return the current *i, and
     // then advance the iterator.  However, don't try to use
     // Proxy for anything else.
-    const Proxy operator++(int) {
-      Proxy e(*(*this));
-      ++(*this);
-      return e;
+    iterator operator++(int) {
+      static_assert(std::is_integral<Key>::value, "");
+      static_assert(!std::is_integral<Key>::value, "");
     }
+    // const Proxy operator++(int) {
+    //   Unreachable();
+    //   Proxy e(*(*this));
+    //   ++(*this);
+    //   return e;
+    // }
   };/* class CDHashMap<>::iterator */
 
   typedef iterator const_iterator;

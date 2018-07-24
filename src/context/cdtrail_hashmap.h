@@ -347,7 +347,7 @@ public:
 };/* class TrailHashMap<> */
 
 template <class Key, class Data, class HashFcn >
-class CDTrailHashMap : public ContextObj {
+class NotUsedTrailHashMap : public ContextObj {
 private:
   /** A short name for the templatized TrailMap that backs the CDTrailMap. */
   typedef TrailHashMap<Key, Data, HashFcn> THM;
@@ -355,7 +355,7 @@ private:
   /** The trail map that backs the CDTrailMap. */
   THM* d_trailMap;
 public:
-  /** Iterator for the CDTrailHashMap. */
+  /** Iterator for the NotUsedTrailHashMap. */
   typedef typename THM::const_iterator const_iterator;
 
   /** Return value of operator* on a const_iterator (pair<Key,Data>).*/
@@ -379,12 +379,12 @@ private:
    * only the base class information, d_trailSize, and d_prevTrailSize
    * are needed in restore.
    */
-  CDTrailHashMap(const CDTrailHashMap<Key, Data, HashFcn>& l) :
+  NotUsedTrailHashMap(const NotUsedTrailHashMap<Key, Data, HashFcn>& l) :
     ContextObj(l),
     d_trailMap(NULL),
     d_trailSize(l.d_trailSize),
     d_prevTrailSize(l.d_prevTrailSize){
-    Debug("CDTrailHashMap") << "copy ctor: " << this
+    Debug("NotUsedTrailHashMap") << "copy ctor: " << this
                     << " from " << &l
                     << " size " << d_trailSize << std::endl;
   }
@@ -396,8 +396,8 @@ private:
    */
   ContextObj* save(ContextMemoryManager* pCMM) override
   {
-    ContextObj* data = new(pCMM) CDTrailHashMap<Key, Data, HashFcn>(*this);
-    Debug("CDTrailHashMap") << "save " << this
+    ContextObj* data = new(pCMM) NotUsedTrailHashMap<Key, Data, HashFcn>(*this);
+    Debug("NotUsedTrailHashMap") << "save " << this
                             << " at level " << this->getContext()->getLevel()
                             << " size at " << this->d_trailSize
                             << " d_list is " << this->d_trailMap
@@ -412,19 +412,19 @@ protected:
    */
  void restore(ContextObj* data) override
  {
-   Debug("CDTrailHashMap") << "restore " << this << " level "
+   Debug("NotUsedTrailHashMap") << "restore " << this << " level "
                            << this->getContext()->getLevel()
                            << " data == " << data
                            << " d_trailMap == " << this->d_trailMap
                            << std::endl;
-   size_t oldSize = ((CDTrailHashMap<Key, Data, HashFcn>*)data)->d_trailSize;
+   size_t oldSize = ((NotUsedTrailHashMap<Key, Data, HashFcn>*)data)->d_trailSize;
    d_trailMap->pop_to_size(oldSize);
    d_trailSize = oldSize;
    Assert(d_trailMap->trailSize() == d_trailSize);
 
    d_prevTrailSize =
-       ((CDTrailHashMap<Key, Data, HashFcn>*)data)->d_prevTrailSize;
-   Debug("CDTrailHashMap") << "restore " << this << " level "
+       ((NotUsedTrailHashMap<Key, Data, HashFcn>*)data)->d_prevTrailSize;
+   Debug("NotUsedTrailHashMap") << "restore " << this << " level "
                            << this->getContext()->getLevel() << " size back to "
                            << this->d_trailSize << std::endl;
   }
@@ -446,7 +446,7 @@ public:
   /**
    * Main constructor: d_trailMap starts as an empty map, with the sizes are 0
    */
-  CDTrailHashMap(Context* context) :
+  NotUsedTrailHashMap(Context* context) :
     ContextObj(context),
     d_trailMap(new THM()),
     d_trailSize(0),
@@ -457,7 +457,7 @@ public:
   /**
    * Destructor: delete the map
    */
-  ~CDTrailHashMap() {
+  ~NotUsedTrailHashMap() {
     this->destroy();
     delete d_trailMap;
   }
@@ -553,15 +553,15 @@ public:
     return d_trailMap->end();
   }
 
-};/* class CDTrailHashMap<> */
+};/* class NotUsedTrailHashMap<> */
 
 template <class Data, class HashFcn>
-class CDTrailHashMap<TNode, Data, HashFcn> : public ContextObj {
-  /* CDTrailHashMap is challenging to get working with TNode.
+class NotUsedTrailHashMap<TNode, Data, HashFcn> : public ContextObj {
+  /* NotUsedTrailHashMap is challenging to get working with TNode.
    * Consider using CDHashMap<TNode,...> instead.
    *
    * Explanation:
-   * CDTrailHashMap uses keys during deallocation.
+   * NotUsedTrailHashMap uses keys during deallocation.
    * If the key is a TNode and the backing (the hard node reference)
    * for the key in another data structure removes the key at the same context
    * the ref count could drop to 0.  The key would then not be eligible to be
@@ -569,7 +569,7 @@ class CDTrailHashMap<TNode, Data, HashFcn> : public ContextObj {
    */
 
   static_assert(sizeof(Data) == 0,
-                "Cannot create a CDTrailHashMap with TNode keys");
+                "Cannot create a NotUsedTrailHashMap with TNode keys");
 };
 
 }/* CVC4::context namespace */
